@@ -89,3 +89,9 @@
 .note-marker.role-third { background-color: #64b5f6; box-shadow: 0 0 8px #64b5f6; color: #000; }
 .note-marker.role-fifth { background-color: #81c784; box-shadow: 0 0 8px #81c784; color: #000; }
 .note-marker.role-scale { background-color: #e0e0e0; box-shadow: 0 0 8px #e0e0e0; color: #000; font-weight: normal; }
+.note-marker.role-target { 
+    background-color: var(--theme-primary); 
+    box-shadow: 0 0 12px var(--theme-primary); 
+    color: #000; 
+    border: 2px solid #fff; 
+}
