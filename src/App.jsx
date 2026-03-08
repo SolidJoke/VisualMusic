@@ -18,13 +18,14 @@ function App() {
   const [layoutMode, setLayoutMode] = useState('all'); 
   const [activeTab, setActiveTab] = useState('sequencer');
   const [useRhythmVariation, setUseRhythmVariation] = useState(false);
-  
-  // LA MÉMOIRE DE LA MAIN POUR LES INVERSIONS
   const [currentAbsoluteNotes, setCurrentAbsoluteNotes] = useState(new Array());
 
   // --- STATES DU MODE DICTIONNAIRE ---
   const [dictRoot, setDictRoot] = useState(0);
   const [dictType, setDictType] = useState('single_note'); 
+
+  // NOUVEAU : Filtre de position pour la guitare
+  const [fretboardZone, setFretboardZone] = useState('all');
 
   const activeBrick = BRICKS.at(Number(currentBrickIndex));
   
@@ -38,10 +39,9 @@ function App() {
     }
     setClickedChord(null);
     setUseRhythmVariation(false); 
-    setCurrentAbsoluteNotes(new Array()); // On reset la position de la main au changement
-  }, [currentBrickIndex, appMode]);
+    setCurrentAbsoluteNotes(new Array()); 
+  }, [currentBrickIndex, appMode, activeBrick]);
 
-  // FONCTION APPELÉE AU CLIC SUR UN ACCORD MAGIQUE
   const handleChordClick = (c) => {
       setClickedChord(c);
       const rootVal = c.rootNote.value;
@@ -50,7 +50,6 @@ function App() {
       let thirdInterval = (isMinor || isDim) ? 3 : 4; 
       let fifthInterval = isDim ? 6 : 7;
       
-      // On calcule et on sauvegarde la meilleure inversion en fonction de la position précédente !
       setCurrentAbsoluteNotes(prevNotes => {
           return getClosestInversion(prevNotes, rootVal, thirdInterval, fifthInterval);
       });
@@ -72,7 +71,6 @@ function App() {
                   activeNoteValues.push(currentAbsoluteNotes.at(0), currentAbsoluteNotes.at(1), currentAbsoluteNotes.at(2));
               }
           } else {
-              // Accord de base propre sur l'octave 1
               const n1 = scaleNotes.at(0).value;
               const n2 = scaleNotes.at(2).value;
               const n3 = scaleNotes.at(4).value;
@@ -186,15 +184,30 @@ function App() {
           </div>
       )}
 
-      <div style={{ marginBottom: '25px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+      {/* BOUTONS D'AFFICHAGE ET FILTRES */}
+      <div style={{ marginBottom: '25px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
         <button onClick={() => setNotation('us')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'us' ? 'var(--theme-primary)' : '#333', color: notation === 'us' ? '#000' : '#fff' }}>US (A, B, C)</button>
         <button onClick={() => setNotation('eu')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'eu' ? 'var(--theme-primary)' : '#333', color: notation === 'eu' ? '#000' : '#fff' }}>EU (Do, Ré, Mi)</button>
         
         {appMode === 'studio' && (
             <>
-                <div style={{ borderLeft: '2px solid #555', margin: '0 10px' }}></div>
+                <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px' }}></div>
                 <button onClick={() => setDisplayMode('chord')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: displayMode === 'chord' ? 'var(--theme-primary)' : '#333', color: displayMode === 'chord' ? '#000' : '#fff' }}>🎸 Accord</button>
                 <button onClick={() => setDisplayMode('scale')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: displayMode === 'scale' ? 'var(--theme-primary)' : '#333', color: displayMode === 'scale' ? '#000' : '#fff' }}>🎹 Gamme</button>
+            </>
+        )}
+
+        {/* NOUVEAU : SÉLECTEUR DE ZONE POUR LA GUITARE */}
+        {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'guitars') && (
+            <>
+                <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px' }}></div>
+                <span style={{ color: '#ccc', fontWeight: 'bold', marginRight: '5px' }}>Position Guitare :</span>
+                <select value={fretboardZone} onChange={(e) => setFretboardZone(e.target.value)} style={{ padding: '8px', fontSize: '14px', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#222', color: '#fff', border: '1px solid #555' }}>
+                    <option value="all">Toutes les cases</option>
+                    <option value="open">Ouverte (0-4)</option>
+                    <option value="mid">Milieu (5-9)</option>
+                    <option value="high">Aiguë (10-14)</option>
+                </select>
             </>
         )}
       </div>
@@ -242,8 +255,8 @@ function App() {
 
       {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'guitars') && (
           <>
-            <Fretboard instrument="guitar" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.guitarStrings} rootValue={currentRootValue} targetValue={targetValue} />
-            <Fretboard instrument="bass" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.bassStrings} rootValue={currentRootValue} targetValue={targetValue} />
+            <Fretboard instrument="guitar" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.guitarStrings} rootValue={currentRootValue} targetValue={targetValue} fretboardZone={fretboardZone} />
+            <Fretboard instrument="bass" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.bassStrings} rootValue={currentRootValue} targetValue={targetValue} fretboardZone={fretboardZone} />
           </>
       )}
     </div>
