@@ -29,6 +29,22 @@ const bassSynth = new Tone.MonoSynth({
 
 const noteNamesArray = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+// --- Helper pour convertir le format NNS (1, 4, 6-) en Chiffres Romains (I, IV, vi)
+const toRoman = (nnsStr) => {
+    const map = { '1': 'I', '2': 'II', '3': 'III', '4': 'IV', '5': 'V', '6': 'VI', '7': 'VII' };
+    const baseNum = nnsStr.match(/[1-7]/)?.[0] || '1';
+    let roman = map[baseNum];
+    const isMinor = nnsStr.includes('-');
+    const isDim = nnsStr.includes('°') || nnsStr.includes('b5');
+    
+    if (isMinor || isDim) roman = roman.toLowerCase();
+    
+    let prefix = nnsStr.includes('b') && !nnsStr.includes('b5') ? 'b' : (nnsStr.includes('#') ? '#' : '');
+    let suffix = isDim ? '°' : (isMinor ? 'm' : '');
+    
+    return prefix + roman + suffix;
+};
+
 const translations = {
     fr: {
         title: "🎛️ Vmu : VisualMusic Coach",
@@ -64,10 +80,6 @@ const translations = {
         posOpen: "Ouverte (0-4)",
         posMid: "Milieu (5-9)",
         posHigh: "Aiguë (10-14)",
-        guideTitle: "💡 Guide d'Improvisation (La Méthode du Drone)",
-        guide1: "Étape 1 (Le Drone) : Joue la Fondamentale (Rouge) dans les graves et laisse-la résonner. Cela crée ton centre de gravité musical.",
-        guide2: "Étape 2 (L'Exploration) : Avec l'autre main, promène-toi librement sur les notes de la Gamme (Bleu-gris). Écoute comment chaque note sonne par rapport à ta fondamentale.",
-        guide3: "Étape 3 (La Couleur) : Insiste sur la Note Magique (Dorée) ! C'est la note caractéristique qui donne à ce mode son émotion unique.",
         drumMachine: "🥁 Boîte à Rythmes",
         melodicSeq: "🎹 Séquenceur Mélodique",
         labelRoot: "Fondamentale",
@@ -79,7 +91,28 @@ const translations = {
         createdBy: "Créé et développé par Gabriel Resende.",
         kofi: "☕ M'offrir un café sur Ko-fi",
         github: "💻 Voir le code sur GitHub",
-        listen: "🎵 Écouter"
+        listen: "🎵 Écouter",
+        // Nouveaux ajouts
+        guideTheoryBtn: "💡 Guide & Théorie",
+        theoryModalTitle: "📖 Théorie Musicale & Guide",
+        guideTitle: "💡 Guide d'Improvisation (La Méthode du Drone)",
+        guide1: "Étape 1 (Le Drone) : Joue la Fondamentale (Rouge) dans les graves et laisse-la résonner. Cela crée ton centre de gravité musical.",
+        guide2: "Étape 2 (L'Exploration) : Avec l'autre main, promène-toi librement sur les notes de la Gamme (Bleu-gris). Écoute comment chaque note sonne par rapport à ta fondamentale.",
+        guide3: "Étape 3 (La Couleur) : Insiste sur la Note Magique (Dorée) ! C'est la note caractéristique qui donne à ce mode son émotion unique.",
+        modesEmotionTitle: "🎭 Topographie des Émotions (Les Modes)",
+        modeIonian: "Majeur Joyeux, Triomphant, Lumineux.",
+        modeDorian: "Mineur Nostalgique, Héroïque, Jazzy.",
+        modePhrygian: "Mineur Sombre, Exotique, Flamenco.",
+        modeLydian: "Majeur Magique, Flottant, Rêveur.",
+        modeMixolydian: "Majeur Bluesy, Rock, Entraînant.",
+        modeAeolian: "Mineur Triste, Mélancolique, Épique.",
+        modeLocrian: "Diminué Tendu, Instable, Cauchemardesque.",
+        displayStandard: "Noms d'Accords",
+        displayNNS: "Degrés Romains",
+        invRoot: "Accord joué : État fondamental",
+        invFirst: "Accord joué : 1er renversement (Tierce à la basse)",
+        invSecond: "Accord joué : 2ème renversement (Quinte à la basse)",
+        invUnknown: "Accord joué : Voicing personnalisé"
     },
     en: {
         title: "🎛️ Vmu: VisualMusic Coach",
@@ -115,10 +148,6 @@ const translations = {
         posOpen: "Open (0-4)",
         posMid: "Mid (5-9)",
         posHigh: "High (10-14)",
-        guideTitle: "💡 Improvisation Guide (The Drone Method)",
-        guide1: "Step 1 (The Drone): Play the Root Note (Red) in the low register and let it ring. This creates your musical center of gravity.",
-        guide2: "Step 2 (Exploration): With your other hand, wander freely over the Scale notes (Blue-grey). Listen to how each note sounds against your root.",
-        guide3: "Step 3 (The Color): Emphasize the Magic Note (Gold)! This is the Character Tone that gives this mode its unique emotion.",
         drumMachine: "🥁 Drum Machine",
         melodicSeq: "🎹 Melodic Sequencer",
         labelRoot: "Root",
@@ -130,7 +159,27 @@ const translations = {
         createdBy: "Created and developed by Gabriel Resende.",
         kofi: "☕ Buy me a coffee on Ko-fi",
         github: "💻 View code on GitHub",
-        listen: "🎵 Listen"
+        listen: "🎵 Listen",
+        guideTheoryBtn: "💡 Guide & Theory",
+        theoryModalTitle: "📖 Music Theory & Guide",
+        guideTitle: "💡 Improvisation Guide (The Drone Method)",
+        guide1: "Step 1 (The Drone): Play the Root Note (Red) in the low register and let it ring. This creates your musical center of gravity.",
+        guide2: "Step 2 (Exploration): With your other hand, wander freely over the Scale notes (Blue-grey). Listen to how each note sounds against your root.",
+        guide3: "Step 3 (The Color): Emphasize the Magic Note (Gold)! This is the Character Tone that gives this mode its unique emotion.",
+        modesEmotionTitle: "🎭 Topography of Emotions (Modes)",
+        modeIonian: "Major Happy, Triumphant, Bright.",
+        modeDorian: "Minor Nostalgic, Heroic, Jazzy.",
+        modePhrygian: "Minor Dark, Exotic, Flamenco.",
+        modeLydian: "Major Magic, Floating, Dreamy.",
+        modeMixolydian: "Major Bluesy, Rock, Driving.",
+        modeAeolian: "Minor Sad, Melancholic, Epic.",
+        modeLocrian: "Diminished Tense, Unstable, Nightmarish.",
+        displayStandard: "Chord Names",
+        displayNNS: "Roman Numerals",
+        invRoot: "Current Voicing: Root Position",
+        invFirst: "Current Voicing: 1st Inversion (Third in bass)",
+        invSecond: "Current Voicing: 2nd Inversion (Fifth in bass)",
+        invUnknown: "Current Voicing: Custom"
     },
     pt: {
         title: "🎛️ Vmu: VisualMusic Coach",
@@ -166,10 +215,6 @@ const translations = {
         posOpen: "Aberta (0-4)",
         posMid: "Meio (5-9)",
         posHigh: "Aguda (10-14)",
-        guideTitle: "💡 Guia de Improvisação (Método Drone)",
-        guide1: "Passo 1 (O Drone): Toque a Nota Fundamental (Vermelha) nos graves e deixe soar. Isso cria seu centro de gravidade musical.",
-        guide2: "Passo 2 (A Exploração): Com a outra mão, passeie livremente pelas notas da Escala (Azul-acinzentado). Ouça como cada nota soa em relação à tônica.",
-        guide3: "Passo 3 (A Cor): Destaque a Nota Mágica (Dourada)! É a nota característica que dá a esse modo sua emoção única.",
         drumMachine: "🥁 Caixa de Ritmos",
         melodicSeq: "🎹 Sequenciador Melódico",
         labelRoot: "Tônica",
@@ -181,7 +226,27 @@ const translations = {
         createdBy: "Criado e desenvolvido por Gabriel Resende.",
         kofi: "☕ Pague-me um café no Ko-fi",
         github: "💻 Ver código no GitHub",
-        listen: "🎵 Ouvir"
+        listen: "🎵 Ouvir",
+        guideTheoryBtn: "💡 Guia e Teoria",
+        theoryModalTitle: "📖 Teoria Musical e Guia",
+        guideTitle: "💡 Guia de Improvisação (Método Drone)",
+        guide1: "Passo 1 (O Drone): Toque a Nota Fundamental (Vermelha) nos graves e deixe soar. Isso cria seu centro de gravidade musical.",
+        guide2: "Passo 2 (A Exploração): Com a outra mão, passeie livremente pelas notas da Escala (Azul-acinzentado). Ouça como cada nota soa em relação à tônica.",
+        guide3: "Passo 3 (A Cor): Destaque a Nota Mágica (Dourada)! É a nota característica que dá a esse modo sua emoção única.",
+        modesEmotionTitle: "🎭 Topografia das Emoções (Modos)",
+        modeIonian: "Maior Alegre, Triunfante, Brilhante.",
+        modeDorian: "Menor Nostálgico, Heróico, Jazzy.",
+        modePhrygian: "Menor Sombrio, Exótico, Flamenco.",
+        modeLydian: "Maior Mágico, Flutuante, Sonhador.",
+        modeMixolydian: "Maior Bluesy, Rock, Animado.",
+        modeAeolian: "Menor Triste, Melancólico, Épico.",
+        modeLocrian: "Diminuto Tenso, Instável.",
+        displayStandard: "Nomes dos Acordes",
+        displayNNS: "Graus Romanos",
+        invRoot: "Acorde atual: Estado fundamental",
+        invFirst: "Acorde atual: 1ª Inversão (Terça no baixo)",
+        invSecond: "Acorde atual: 2ª Inversão (Quinta no baixo)",
+        invUnknown: "Acorde atual: Voicing personalizado"
     },
     zh: {
         title: "🎛️ Vmu: 视觉音乐教练",
@@ -217,10 +282,6 @@ const translations = {
         posOpen: "开放把位 (0-4)",
         posMid: "中把位 (5-9)",
         posHigh: "高把位 (10-14)",
-        guideTitle: "💡 即兴演奏指南 (持续音方法)",
-        guide1: "第一步 (持续音): 在低音区弹奏根音 (红色) 并让它持续发声。这创造了你的音乐重心。",
-        guide2: "第二步 (探索): 用另一只手在音阶音符 (蓝灰色) 上自由游走。聆听每个音符与根音的碰撞。",
-        guide3: "第三步 (色彩): 强调魔法音符 (金色)！这是赋予该调式独特情感的特征音。",
         drumMachine: "🥁 鼓机",
         melodicSeq: "🎹 旋律音序器",
         labelRoot: "根音",
@@ -232,7 +293,27 @@ const translations = {
         createdBy: "由 Gabriel Resende 创建和开发。",
         kofi: "☕ 在 Ko-fi 上请我喝杯咖啡",
         github: "💻 在 GitHub 上查看代码",
-        listen: "🎵 听"
+        listen: "🎵 听",
+        guideTheoryBtn: "💡 指南与理论",
+        theoryModalTitle: "📖 音乐理论与指南",
+        guideTitle: "💡 即兴演奏指南 (持续音方法)",
+        guide1: "第一步 (持续音): 在低音区弹奏根音 (红色) 并让它持续发声。这创造了你的音乐重心。",
+        guide2: "第二步 (探索): 用另一只手在音阶音符 (蓝灰色) 上自由游走。聆听每个音符与根音的碰撞。",
+        guide3: "第三步 (色彩): 强调魔法音符 (金色)！这是赋予该调式独特情感的特征音。",
+        modesEmotionTitle: "🎭 情感地形图 (调式)",
+        modeIonian: "大调 快乐，凯旋，明亮。",
+        modeDorian: "小调 怀旧，英雄，爵士。",
+        modePhrygian: "小调 黑暗，异国情调，弗拉门戈。",
+        modeLydian: "大调 神奇，漂浮，梦幻。",
+        modeMixolydian: "大调 蓝调，摇滚，驱动。",
+        modeAeolian: "小调 悲伤，忧郁，史诗。",
+        modeLocrian: "减音阶 紧张，不稳定，噩梦般。",
+        displayStandard: "和弦名称",
+        displayNNS: "罗马数字",
+        invRoot: "当前和弦: 原位",
+        invFirst: "当前和弦: 第一转位 (三音在低音)",
+        invSecond: "当前和弦: 第二转位 (五音在低音)",
+        invUnknown: "当前和弦: 自定义"
     }
 };
 
@@ -242,7 +323,9 @@ function App() {
 
   const [appMode, setAppMode] = useState('studio'); 
   const [notation, setNotation] = useState('us');
+  const [chordDisplayMode, setChordDisplayMode] = useState('standard'); // 'standard' ou 'nns'
   const [showAbout, setShowAbout] = useState(false);
+  const [showTheory, setShowTheory] = useState(false); // NOUVEAU : Modale Théorie
 
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -296,6 +379,23 @@ function App() {
       else if (dictType === 'chord_major') activeNoteValues.push(currentRootValue + 12, currentRootValue + 4 + 12, currentRootValue + 7 + 12);
       else if (dictType === 'chord_minor') activeNoteValues.push(currentRootValue + 12, currentRootValue + 3 + 12, currentRootValue + 7 + 12);
       else if (dictType === 'single_note') activeNoteValues.push(currentRootValue);
+  }
+
+  // NOUVEAU : Calcul du texte de renversement (Voice Leading)
+  let inversionText = "";
+  if (clickedChord && currentAbsoluteNotes.length > 0) {
+      const bassNoteClass = currentAbsoluteNotes[0] % 12; // La note la plus grave du voicing
+      const rootVal = clickedChord.rootNote.value;
+      const isMinor = clickedChord.nns.includes('-');
+      const isDim = clickedChord.nns.includes('°') || clickedChord.nns.includes('b5');
+      
+      const thirdVal = (rootVal + (isMinor || isDim ? 3 : 4)) % 12;
+      const fifthVal = (rootVal + (isDim ? 6 : 7)) % 12;
+
+      if (bassNoteClass === rootVal) inversionText = txt.invRoot;
+      else if (bassNoteClass === thirdVal) inversionText = txt.invFirst;
+      else if (bassNoteClass === fifthVal) inversionText = txt.invSecond;
+      else inversionText = txt.invUnknown;
   }
 
   const drumRef = useRef(activeDrums);
@@ -467,7 +567,6 @@ function App() {
       }
   };
 
-  // NOUVEAU : Fonction demandée par le PO pour jouer une note interactive
   const playSingleNote = async (noteName) => {
       if (!isAudioReady) {
           await Tone.start();
@@ -480,15 +579,11 @@ function App() {
   return (
     <div className="app-container" style={{ maxWidth: '1600px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
       
+      {/* MODALE ABOUT */}
       {showAbout && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(5px)' }}>
               <div style={{ backgroundColor: '#1a1a1a', padding: '40px', borderRadius: '12px', border: '1px solid var(--theme-primary)', maxWidth: '500px', width: '90%', textAlign: 'center', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
-                  <button 
-                      onClick={() => setShowAbout(false)} 
-                      style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer' }}
-                  >
-                      ✖
-                  </button>
+                  <button onClick={() => setShowAbout(false)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer' }}>✖</button>
                   <h2 style={{ color: 'var(--theme-primary)', marginTop: 0 }}>Vmu : VisualMusic Coach</h2>
                   <p style={{ color: '#ccc', lineHeight: '1.6', fontSize: '16px' }}>{txt.aboutDesc}</p>
                   <p style={{ color: '#fff', fontWeight: 'bold', margin: '20px 0' }}>{txt.createdBy}</p>
@@ -505,11 +600,50 @@ function App() {
           </div>
       )}
 
+      {/* MODALE THEORIE */}
+      {showTheory && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(5px)' }}>
+              <div style={{ backgroundColor: '#1a1a1a', padding: '30px', borderRadius: '12px', border: '1px solid var(--theme-primary)', maxWidth: '600px', width: '90%', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', maxHeight: '90vh', overflowY: 'auto' }}>
+                  <button onClick={() => setShowTheory(false)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer' }}>✖</button>
+                  <h2 style={{ color: 'var(--theme-primary)', marginTop: 0, textAlign: 'center' }}>{txt.theoryModalTitle}</h2>
+                  
+                  <div style={{ backgroundColor: '#222', padding: '15px', borderRadius: '8px', marginBottom: '20px', borderLeft: '4px solid #90caf9' }}>
+                      <h3 style={{ margin: '0 0 10px 0', color: '#90caf9' }}>{txt.guideTitle}</h3>
+                      <ul style={{ color: '#e3f2fd', margin: 0, paddingLeft: '20px', lineHeight: '1.6', fontSize: '14px' }}>
+                          <li style={{ marginBottom: '8px' }}>{txt.guide1}</li>
+                          <li style={{ marginBottom: '8px' }}>{txt.guide2}</li>
+                          <li>{txt.guide3}</li>
+                      </ul>
+                  </div>
+
+                  <h3 style={{ color: '#fff', borderBottom: '1px solid #444', paddingBottom: '10px' }}>{txt.modesEmotionTitle}</h3>
+                  <ul style={{ listStyleType: 'none', padding: 0, color: '#ccc', lineHeight: '1.8' }}>
+                      <li><strong style={{ color: '#fff' }}>Ionian :</strong> {txt.modeIonian}</li>
+                      <li><strong style={{ color: '#fff' }}>Dorian :</strong> {txt.modeDorian}</li>
+                      <li><strong style={{ color: '#fff' }}>Phrygian :</strong> {txt.modePhrygian}</li>
+                      <li><strong style={{ color: '#fff' }}>Lydian :</strong> {txt.modeLydian}</li>
+                      <li><strong style={{ color: '#fff' }}>Mixolydian :</strong> {txt.modeMixolydian}</li>
+                      <li><strong style={{ color: '#fff' }}>Aeolian :</strong> {txt.modeAeolian}</li>
+                      <li><strong style={{ color: '#fff' }}>Locrian :</strong> {txt.modeLocrian}</li>
+                  </ul>
+              </div>
+          </div>
+      )}
+
       <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
               <h1 style={{color: '#fff', margin: 0}}>{txt.title}</h1>
               
               <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                  <button 
+                      onClick={() => setShowTheory(true)} 
+                      style={{ padding: '8px 15px', backgroundColor: '#1a237e', color: '#90caf9', border: '1px solid #3949ab', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '5px' }}
+                      onMouseOver={e => e.currentTarget.style.backgroundColor = '#283593'}
+                      onMouseOut={e => e.currentTarget.style.backgroundColor = '#1a237e'}
+                  >
+                      {txt.guideTheoryBtn}
+                  </button>
+
                   <select 
                       value={lang} 
                       onChange={(e) => setLang(e.target.value)}
@@ -585,16 +719,26 @@ function App() {
                         <strong>{txt.magicProg} </strong> <br/><br/>
                         {generateChordsFromNNS(activeBrick.rootValue, activeBrick.modeName, activeProgression).map((c, i) => {
                             const isSelected = clickedChord && clickedChord.nns === c.nns;
+                            // Application du displayMode (Standard vs Chiffres Romains)
+                            const chordText = chordDisplayMode === 'nns' ? toRoman(c.nns) : (notation === 'us' ? c.chordNameUS : c.chordNameEU);
+                            
                             return (
                                 <span key={i}>
                                     <button onClick={() => handleChordClick(c)} style={{ background: isSelected ? 'var(--theme-primary)' : '#222', color: isSelected ? '#000' : 'var(--theme-primary)', border: '2px solid var(--theme-primary)', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', margin: '5px', transition: 'all 0.2s' }}>
-                                        {notation === 'us' ? c.chordNameUS : c.chordNameEU}
+                                        {chordText}
                                     </button>
                                     {i < activeProgression.length - 1 ? <span style={{display: 'inline-block', margin: '0 5px'}}>➜</span> : ''}
                                 </span>
                             );
                         })}
                         {clickedChord && (<button onClick={() => { setClickedChord(null); setCurrentAbsoluteNotes([]); }} style={{marginLeft: '15px', padding: '5px', fontSize: '12px', cursor: 'pointer', backgroundColor: '#444', color: '#fff', border: 'none', borderRadius: '4px'}}>{txt.backRoot}</button>)}
+                        
+                        {/* NOUVEAU : Affichage du renversement */}
+                        {inversionText && (
+                            <div style={{ marginTop: '15px', fontSize: '14px', color: '#90caf9', fontStyle: 'italic' }}>
+                                🎹 {inversionText}
+                            </div>
+                        )}
                     </div>
                   </div>
 
@@ -647,9 +791,19 @@ function App() {
           )}
 
           <div style={{ marginBottom: '25px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+            {/* Toggle US/EU */}
             <button onClick={() => setNotation('us')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'us' ? 'var(--theme-primary)' : '#333', color: notation === 'us' ? '#000' : '#fff' }}>US (A, B, C)</button>
             <button onClick={() => setNotation('eu')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'eu' ? 'var(--theme-primary)' : '#333', color: notation === 'eu' ? '#000' : '#fff' }}>EU (Do, Ré, Mi)</button>
             
+            {/* NOUVEAU : Toggle Standard / NNS */}
+            {appMode === 'studio' && (
+                <>
+                    <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px', display: 'inline-block' }}></div>
+                    <button onClick={() => setChordDisplayMode('standard')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: chordDisplayMode === 'standard' ? 'var(--theme-primary)' : '#333', color: chordDisplayMode === 'standard' ? '#000' : '#fff' }}>{txt.displayStandard}</button>
+                    <button onClick={() => setChordDisplayMode('nns')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: chordDisplayMode === 'nns' ? 'var(--theme-primary)' : '#333', color: chordDisplayMode === 'nns' ? '#000' : '#fff' }}>{txt.displayNNS}</button>
+                </>
+            )}
+
             {appMode === 'studio' && (
                 <>
                     <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px', display: 'inline-block' }}></div>
@@ -672,19 +826,6 @@ function App() {
             )}
           </div>
           
-          {((appMode === 'studio' && displayMode === 'scale') || (appMode === 'dictionary' && dictType.includes('scale'))) && (
-              <div style={{ maxWidth: '1600px', margin: '0 auto 20px auto', backgroundColor: '#1a237e', padding: '15px 25px', borderRadius: '8px', border: '1px solid #3949ab', textAlign: 'left', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
-                  <h3 style={{ margin: '0 0 12px 0', color: '#90caf9', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                     {txt.guideTitle}
-                  </h3>
-                  <ul style={{ color: '#e3f2fd', margin: 0, paddingLeft: '20px', lineHeight: '1.6', fontSize: '15px' }}>
-                      <li style={{ marginBottom: '8px' }}>{txt.guide1}</li>
-                      <li style={{ marginBottom: '8px' }}>{txt.guide2}</li>
-                      <li>{txt.guide3}</li>
-                  </ul>
-              </div>
-          )}
-
           {appMode === 'studio' && (layoutMode === 'all' || activeTab === 'sequencer') && (
               <div style={{width: '100%', maxWidth: '1600px', marginBottom: '30px'}}>
                 <h3 style={{color: 'var(--theme-primary)'}}>{txt.drumMachine}</h3>
