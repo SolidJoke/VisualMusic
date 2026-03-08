@@ -75,10 +75,11 @@ const translations = {
         labelFifth: "Quinte",
         labelScale: "Gamme",
         labelTarget: "Note Magique (Target)",
-        aboutDesc: "Une application web interactive conçue pour aider les musiciens à comprendre la théorie musicale, à visualiser les gammes et les accords, e à s'entraîner sur des rythmes générés en temps réel.",
+        aboutDesc: "Une application web interactive conçue pour aider les musiciens à comprendre la théorie musicale, à visualiser les gammes et les accords, et à s'entraîner sur des rythmes générés en temps réel.",
         createdBy: "Créé et développé par Gabriel Resende.",
         kofi: "☕ M'offrir un café sur Ko-fi",
-        github: "💻 Voir le code sur GitHub"
+        github: "💻 Voir le code sur GitHub",
+        listen: "🎵 Écouter"
     },
     en: {
         title: "🎛️ Vmu: VisualMusic Coach",
@@ -128,7 +129,8 @@ const translations = {
         aboutDesc: "An interactive web app designed to help musicians understand music theory, visualize scales and chords, and practice over real-time generated rhythms.",
         createdBy: "Created and developed by Gabriel Resende.",
         kofi: "☕ Buy me a coffee on Ko-fi",
-        github: "💻 View code on GitHub"
+        github: "💻 View code on GitHub",
+        listen: "🎵 Listen"
     },
     pt: {
         title: "🎛️ Vmu: VisualMusic Coach",
@@ -178,7 +180,8 @@ const translations = {
         aboutDesc: "Um aplicativo web interativo projetado para ajudar músicos a entender a teoria musical, visualizar escalas e acordes e praticar sobre ritmos gerados em tempo real.",
         createdBy: "Criado e desenvolvido por Gabriel Resende.",
         kofi: "☕ Pague-me um café no Ko-fi",
-        github: "💻 Ver código no GitHub"
+        github: "💻 Ver código no GitHub",
+        listen: "🎵 Ouvir"
     },
     zh: {
         title: "🎛️ Vmu: 视觉音乐教练",
@@ -228,7 +231,8 @@ const translations = {
         aboutDesc: "一个互动的Web应用程序，旨在帮助音乐家理解音乐理论，可视化音阶和和弦，并跟随实时生成的节奏进行练习。",
         createdBy: "由 Gabriel Resende 创建和开发。",
         kofi: "☕ 在 Ko-fi 上请我喝杯咖啡",
-        github: "💻 在 GitHub 上查看代码"
+        github: "💻 在 GitHub 上查看代码",
+        listen: "🎵 听"
     }
 };
 
@@ -412,6 +416,35 @@ function App() {
       setCurrentAbsoluteNotes(nextNotes);
   };
 
+  // NOUVEAU : Fonction pour lire l'audio en mode Dictionnaire
+  const playDictionaryAudio = async () => {
+      if (!isAudioReady) {
+          await Tone.start();
+          Tone.Destination.volume.value = masterVolume;
+          setIsAudioReady(true);
+      }
+
+      const notesToPlay = activeNoteValues.map(n => {
+          const noteName = noteNamesArray[n % 12];
+          const octave = Math.floor(n / 12) + 3; // L'octave de base est la 3
+          return `${noteName}${octave}`;
+      });
+
+      if (dictType.includes('chord')) {
+          // Jouer l'accord complet (toutes les notes en même temps)
+          chordSynth.triggerAttackRelease(notesToPlay, "2n");
+      } else if (dictType.includes('scale')) {
+          // Jouer la gamme en arpège (une note après l'autre)
+          const now = Tone.now();
+          notesToPlay.forEach((note, index) => {
+              chordSynth.triggerAttackRelease(note, "8n", now + index * 0.3); // 0.3s entre chaque note
+          });
+      } else {
+          // Jouer une note unique
+          chordSynth.triggerAttackRelease(notesToPlay[0], "2n");
+      }
+  };
+
   return (
     <div className="app-container" style={{ maxWidth: '1600px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
       
@@ -569,6 +602,16 @@ function App() {
                           </select>
                       </div>
                   </div>
+                  
+                  {/* NOUVEAU : Bouton Écouter le dictionnaire */}
+                  <button 
+                      onClick={playDictionaryAudio} 
+                      style={{ marginTop: '20px', padding: '12px 25px', fontSize: '16px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: 'var(--theme-primary)', color: '#000', border: 'none', transition: 'transform 0.1s' }}
+                      onMouseDown={e => e.target.style.transform = 'scale(0.95)'}
+                      onMouseUp={e => e.target.style.transform = 'scale(1)'}
+                  >
+                      {txt.listen}
+                  </button>
               </div>
           )}
 
