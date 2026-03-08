@@ -2,10 +2,11 @@ import React from 'react';
 import './Fretboard.css';
 import { NOTES } from '../../core/theory';
 
-export default function Fretboard({ instrument = 'guitar', activeNotes = [], notation = 'us', stringTuning, rootValue = 0, targetValue = -1, fretboardZone = 'all' }) {
+export default function Fretboard({ instrument = 'guitar', activeNotes = [], notation = 'us', stringTuning, rootValue = 0, targetValue = -1, fretboardZone = 'all', onNoteClick }) {
     const numFrets = 14; 
-    const defaultGuitar = [4, 11, 7, 2, 9, 4]; // E, B, G, D, A, E (numérique)
-    const defaultBass = [7, 2, 9, 4];
+    // On utilise maintenant des strings par défaut pour correspondre à notre structure de données
+    const defaultGuitar = ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
+    const defaultBass = ['E1', 'A1', 'D2', 'G2'];
     const strings = stringTuning ? stringTuning : (instrument === 'bass' ? defaultBass : defaultGuitar);
 
     const getFrets = () => {
@@ -22,12 +23,30 @@ export default function Fretboard({ instrument = 'guitar', activeNotes = [], not
         return true;
     };
 
-    // NOUVEAU : Fonction vitale pour extraire la valeur numérique d'une string comme "E4" ou "F#2"
-    const getNumericValueOfString = (strOrNum) => {
-        if (typeof strOrNum === 'number') return strOrNum;
-        const letter = strOrNum.replace(/[0-9]/g, ''); // Retire le chiffre de l'octave
+    // Helper 1: Extraction numérique simple pour l'affichage visuel
+    const getNumericValueOfString = (str) => {
+        const letter = String(str).replace(/[0-9]/g, '');
         const found = NOTES.find(n => n.us === letter);
         return found ? found.value : 0;
+    };
+
+    // Helper 2: Calcul scientifique de la note absolue pour Tone.js (ex: Frette 8 sur E2 -> C3)
+    const getAbsoluteNote = (rawString, fret) => {
+        const strVal = String(rawString);
+        const letter = strVal.replace(/[0-9]/g, '');
+        const baseOctaveStr = strVal.replace(/[^0-9]/g, '');
+        const baseOctave = baseOctaveStr ? parseInt(baseOctaveStr, 10) : 2; 
+        
+        const found = NOTES.find(n => n.us === letter);
+        const baseNoteClass = found ? found.value : 0;
+        
+        const totalSemitones = baseNoteClass + fret;
+        const absoluteNoteClass = totalSemitones % 12;
+        const octaveShift = Math.floor(totalSemitones / 12);
+        const finalOctave = baseOctave + octaveShift;
+        
+        const finalNoteInfo = NOTES.at(absoluteNoteClass);
+        return `${finalNoteInfo.us}${finalOctave}`;
     };
 
     return (
@@ -35,7 +54,6 @@ export default function Fretboard({ instrument = 'guitar', activeNotes = [], not
             <h3 style={{color: '#ccc', marginBottom: '10px'}}>{instrument === 'bass' ? '🎸 Basse (4 cordes)' : '🎸 Guitare (6 cordes)'}</h3>
             <div className="fretboard">
                 {strings.map((rawStringData, stringIndex) => {
-                    // On convertit proprement la corde en nombre avant le calcul
                     const baseNoteValue = getNumericValueOfString(rawStringData);
 
                     return (
@@ -59,7 +77,12 @@ export default function Fretboard({ instrument = 'guitar', activeNotes = [], not
                                 }
                                 
                                 return (
-                                    <div key={`fret-${fret}`} className={`fret ${fret === 0 ? 'open-string' : ''}`}>
+                                    <div 
+                                        key={`fret-${fret}`} 
+                                        className={`fret ${fret === 0 ? 'open-string' : ''}`}
+                                        onClick={() => onNoteClick && onNoteClick(getAbsoluteNote(rawStringData, fret))}
+                                        style={{ cursor: 'pointer' }}
+                                    >
                                         <div className="string-line"></div>
                                         {hasDot && !isActive && <div className="fret-dot"></div>}
                                         {fret === 0 && (<div style={{ position: 'absolute', left: '-30px', color: '#d4c4a8', fontWeight: 'bold', fontSize: '13px', zIndex: 2 }}>{noteInfo[notation]}</div>)}
