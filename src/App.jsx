@@ -14,8 +14,6 @@ const chordSynth = new Tone.PolySynth(Tone.Synth, {
 
 const kickSynth = new Tone.MembraneSynth({ volume: -2 }).toDestination();
 const snareSynth = new Tone.NoiseSynth({ volume: -10, noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.2, sustain: 0 } }).toDestination();
-
-// CORRECTION HI-HAT : Bruit blanc fiable filtré dans les aigus (plus de plantage audio !)
 const hatFilter = new Tone.Filter(7000, "highpass").toDestination();
 const hatSynth = new Tone.NoiseSynth({ 
     volume: -12, 
@@ -35,6 +33,8 @@ const noteNamesArray = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A
 function App() {
   const [appMode, setAppMode] = useState('studio'); 
   const [notation, setNotation] = useState('us');
+  // NOUVEAU : État pour gérer l'affichage de la fenêtre "À propos"
+  const [showAbout, setShowAbout] = useState(false);
 
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -142,7 +142,6 @@ function App() {
                       } else if (name.includes('snare') || name.includes('clap') || name.includes('rim')) {
                           snareSynth.triggerAttackRelease("16n", time, vel);
                       } else {
-                          // Le Hi-Hat (NoiseSynth) est déclenché ici en toute sécurité !
                           hatSynth.triggerAttackRelease("32n", time, vel);
                       }
                   }
@@ -210,9 +209,51 @@ function App() {
   };
 
   return (
-    <div className="app-container" style={{ maxWidth: '1600px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div className="app-container" style={{ maxWidth: '1600px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
+      
+      {/* LA FENÊTRE MODALE (POP-UP) À PROPOS */}
+      {showAbout && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(5px)' }}>
+              <div style={{ backgroundColor: '#1a1a1a', padding: '40px', borderRadius: '12px', border: '1px solid var(--theme-primary)', maxWidth: '500px', width: '90%', textAlign: 'center', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+                  <button 
+                      onClick={() => setShowAbout(false)} 
+                      style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer' }}
+                  >
+                      ✖
+                  </button>
+                  <h2 style={{ color: 'var(--theme-primary)', marginTop: 0 }}>Vmu : VisualMusic Coach</h2>
+                  <p style={{ color: '#ccc', lineHeight: '1.6', fontSize: '16px' }}>
+                      Une application web interactive conçue pour aider les musiciens à comprendre la théorie musicale, à visualiser les gammes et les accords, et à s'entraîner sur des rythmes générés en temps réel.
+                  </p>
+                  <p style={{ color: '#fff', fontWeight: 'bold', margin: '20px 0' }}>
+                      Créé et développé par Gabriel Resende.
+                  </p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '30px' }}>
+                      <a href="https://ko-fi.com/gabrielgsdresende" target="_blank" rel="noopener noreferrer" style={{ display: 'block', backgroundColor: '#FF5E5B', color: '#fff', padding: '12px 20px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '18px', transition: 'transform 0.2s' }} onMouseOver={e => e.target.style.transform = 'scale(1.05)'} onMouseOut={e => e.target.style.transform = 'scale(1)'}>
+                          ☕ M'offrir un café sur Ko-fi
+                      </a>
+                      <a href="https://github.com/SolidJoke/VisualMusic" target="_blank" rel="noopener noreferrer" style={{ display: 'block', backgroundColor: '#333', color: '#fff', padding: '12px 20px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '18px', border: '1px solid #555', transition: 'transform 0.2s' }} onMouseOver={e => e.target.style.transform = 'scale(1.05)'} onMouseOut={e => e.target.style.transform = 'scale(1)'}>
+                          💻 Voir le code sur GitHub
+                      </a>
+                  </div>
+              </div>
+          </div>
+      )}
+
       <div style={{ flex: 1 }}>
-          <h1 style={{color: '#fff'}}>🎛️ Vmu : VisualMusic Coach</h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h1 style={{color: '#fff'}}>🎛️ Vmu : VisualMusic Coach</h1>
+              {/* BOUTON À PROPOS DANS LE HEADER */}
+              <button 
+                  onClick={() => setShowAbout(true)} 
+                  style={{ padding: '8px 15px', backgroundColor: 'transparent', color: 'var(--theme-primary)', border: '1px solid var(--theme-primary)', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}
+                  onMouseOver={e => {e.target.style.backgroundColor = 'var(--theme-primary)'; e.target.style.color = '#000';}}
+                  onMouseOut={e => {e.target.style.backgroundColor = 'transparent'; e.target.style.color = 'var(--theme-primary)';}}
+              >
+                  ℹ️ À propos
+              </button>
+          </div>
           
           <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '20px', padding: '10px', backgroundColor: '#111', borderRadius: '10px', border: '1px solid #333', flexWrap: 'wrap' }}>
               <button onClick={() => setAppMode('studio')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'studio' ? 'var(--theme-primary)' : '#222', color: appMode === 'studio' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>🎛️ Mode Studio (Genres)</button>
@@ -400,7 +441,6 @@ function App() {
           )}
       </div>
 
-      {/* NOUVEAU FOOTER AVEC COPYRIGHT ET TOOLTIP LICENCE */}
       <footer style={{
           marginTop: '60px',
           padding: '20px 0',
