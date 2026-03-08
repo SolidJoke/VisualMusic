@@ -416,7 +416,7 @@ function App() {
       setCurrentAbsoluteNotes(nextNotes);
   };
 
-  // NOUVEAU : Fonction pour lire l'audio en mode Dictionnaire
+  // NOUVEAU : Lecture Dictionnaire (Accords & Gammes Ascendantes/Descendantes)
   const playDictionaryAudio = async () => {
       if (!isAudioReady) {
           await Tone.start();
@@ -424,23 +424,56 @@ function App() {
           setIsAudioReady(true);
       }
 
-      const notesToPlay = activeNoteValues.map(n => {
-          const noteName = noteNamesArray[n % 12];
-          const octave = Math.floor(n / 12) + 3; // L'octave de base est la 3
-          return `${noteName}${octave}`;
-      });
+      let notesToPlay = [];
 
+      if (dictType.includes('scale')) {
+          // 1. Calcul de la gamme complète aller-retour
+          const modeName = dictType === 'scale_major' ? 'Ionian' : 'Aeolian';
+          const intervals = MODES[modeName].intervals;
+          
+          let currentPitch = Number(dictRoot);
+          let pitches = [currentPitch];
+          
+          // Montée (Ascendant)
+          intervals.forEach(interval => {
+              currentPitch += interval;
+              pitches.push(currentPitch);
+          });
+
+          // Descente (Descendant)
+          // On commence à l'avant-dernière note pour ne pas répéter le sommet
+          for (let i = pitches.length - 2; i >= 0; i--) {
+              pitches.push(pitches[i]);
+          }
+
+          // 2. Conversion en strings intelligibles pour le synthétiseur (ex: "C3")
+          notesToPlay = pitches.map(p => {
+              const noteName = noteNamesArray[p % 12];
+              const octave = Math.floor(p / 12) + 3; // Octave de base = 3
+              return `${noteName}${octave}`;
+          });
+
+      } else {
+          // Logique classique pour accords et note unique
+          notesToPlay = activeNoteValues.map(n => {
+              const noteName = noteNamesArray[n % 12];
+              const octave = Math.floor(n / 12) + 3;
+              return `${noteName}${octave}`;
+          });
+      }
+
+      // Lecture de l'audio
       if (dictType.includes('chord')) {
-          // Jouer l'accord complet (toutes les notes en même temps)
+          // Accord : toutes les notes en même temps
           chordSynth.triggerAttackRelease(notesToPlay, "2n");
       } else if (dictType.includes('scale')) {
-          // Jouer la gamme en arpège (une note après l'autre)
+          // Gamme : arpégée avec un délai de 0.25s (Tempo fluide)
           const now = Tone.now();
           notesToPlay.forEach((note, index) => {
-              chordSynth.triggerAttackRelease(note, "8n", now + index * 0.3); // 0.3s entre chaque note
+              chordSynth.triggerAttackRelease(note, "8n", now + index * 0.25);
           });
       } else {
-          // Jouer une note unique
+          // Note unique
           chordSynth.triggerAttackRelease(notesToPlay[0], "2n");
       }
   };
@@ -603,7 +636,6 @@ function App() {
                       </div>
                   </div>
                   
-                  {/* NOUVEAU : Bouton Écouter le dictionnaire */}
                   <button 
                       onClick={playDictionaryAudio} 
                       style={{ marginTop: '20px', padding: '12px 25px', fontSize: '16px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: 'var(--theme-primary)', color: '#000', border: 'none', transition: 'transform 0.1s' }}
