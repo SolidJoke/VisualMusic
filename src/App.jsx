@@ -24,7 +24,7 @@ function App() {
   const [dictRoot, setDictRoot] = useState(0);
   const [dictType, setDictType] = useState('single_note'); 
 
-  // NOUVEAU : Filtre de position pour la guitare
+  // --- NOUVEAU : Filtre de position pour la guitare ---
   const [fretboardZone, setFretboardZone] = useState('all');
 
   const activeBrick = BRICKS.at(Number(currentBrickIndex));
@@ -197,7 +197,6 @@ function App() {
             </>
         )}
 
-        {/* NOUVEAU : SÉLECTEUR DE ZONE POUR LA GUITARE */}
         {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'guitars') && (
             <>
                 <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px' }}></div>
@@ -243,7 +242,8 @@ function App() {
                     {appMode === 'studio' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '20px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#ffd700', borderRadius: '50%', boxShadow: '0 0 10px #ffd700' }}></div><span style={{ color: '#ffd700', fontSize: '14px', fontWeight: 'bold' }}>Note Magique (Target)</span></div>
                     )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#e0e0e0', borderRadius: '50%' }}></div><span style={{ color: '#aaa', fontSize: '14px' }}>Gamme</span></div>
+                    {/* C'est ICI qu'on a appliqué la couleur #78909c pour la Gamme ! */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#78909c', borderRadius: '50%' }}></div><span style={{ color: '#ccc', fontSize: '14px' }}>Gamme</span></div>
                   </>
               ) : null}
           </div>
@@ -264,3 +264,4 @@ function App() {
 }
 
 export default App;
+

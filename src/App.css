@@ -63,3 +63,23 @@ h1 {
 .piano-key.role-target .note-label { color: #000; font-weight: bold; }
 
 .note-marker.role-target { background-color: #ffd700; box-shadow: 0 0 12px #ffd700; color: #000; font-weight: bold; border: 2px solid #fff; }
+
+/* --- AMÉLIORATIONS UI (Tailles et Couleurs) --- */
+
+/* 1. Contraste des notes de la gamme (Bleu-Gris) */
+.piano-key.role-scale { background-color: #78909c !important; box-shadow: inset 0 0 8px #546e7a; }
+.note-marker.role-scale { background-color: #78909c !important; color: #fff !important; border: 1px solid #546e7a; }
+
+/* 2. Agrandissement du Piano (+10%) */
+.piano-container {
+    transform: scale(1.1);
+    transform-origin: center top;
+    margin-bottom: 40px; /* On ajoute de la marge pour compenser le zoom */
+}
+
+/* 3. Agrandissement des Manches de Guitare (+25%) */
+.fretboard-container {
+    transform: scale(1.25);
+    transform-origin: center top;
+    margin-bottom: 60px; /* Marge pour éviter que les manches ne se chevauchent */
+}
