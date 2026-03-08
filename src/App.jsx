@@ -29,7 +29,6 @@ const bassSynth = new Tone.MonoSynth({
 
 const noteNamesArray = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-// --- DICTIONNAIRE DE TRADUCTION ---
 const translations = {
     fr: {
         title: "🎛️ Vmu : VisualMusic Coach",
@@ -76,7 +75,7 @@ const translations = {
         labelFifth: "Quinte",
         labelScale: "Gamme",
         labelTarget: "Note Magique (Target)",
-        aboutDesc: "Une application web interative conçue pour aider les musiciens à comprendre la théorie musicale, à visualiser les gammes et les accords, et à s'entraîner sur des ritmos gerados em tempo real.",
+        aboutDesc: "Une application web interactive conçue pour aider les musiciens à comprendre la théorie musicale, à visualiser les gammes et les accords, e à s'entraîner sur des rythmes générés en temps réel.",
         createdBy: "Créé et développé par Gabriel Resende.",
         kofi: "☕ M'offrir un café sur Ko-fi",
         github: "💻 Voir le code sur GitHub"
@@ -234,9 +233,8 @@ const translations = {
 };
 
 function App() {
-  // NOUVEAU : État de la langue (fr par défaut)
   const [lang, setLang] = useState('fr');
-  const txt = translations[lang]; // Raccourci pour accéder aux textes
+  const txt = translations[lang];
 
   const [appMode, setAppMode] = useState('studio'); 
   const [notation, setNotation] = useState('us');
@@ -443,11 +441,10 @@ function App() {
       )}
 
       <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h1 style={{color: '#fff'}}>{txt.title}</h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+              <h1 style={{color: '#fff', margin: 0}}>{txt.title}</h1>
               
               <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                  {/* LE SÉLECTEUR DE LANGUE (i18n) */}
                   <select 
                       value={lang} 
                       onChange={(e) => setLang(e.target.value)}
@@ -470,12 +467,12 @@ function App() {
               </div>
           </div>
           
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '20px', padding: '10px', backgroundColor: '#111', borderRadius: '10px', border: '1px solid #333', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', margin: '20px 0', padding: '10px', backgroundColor: '#111', borderRadius: '10px', border: '1px solid #333', flexWrap: 'wrap' }}>
               <button onClick={() => setAppMode('studio')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'studio' ? 'var(--theme-primary)' : '#222', color: appMode === 'studio' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>{txt.studioMode}</button>
               <button onClick={() => setAppMode('dictionary')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'dictionary' ? 'var(--theme-primary)' : '#222', color: appMode === 'dictionary' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>{txt.dictMode}</button>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '25px', marginBottom: '30px', padding: '15px', backgroundColor: '#1a1a1a', borderRadius: '10px', border: `1px solid ${isPlaying ? '#4CAF50' : '#333'}`, transition: 'all 0.3s' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '25px', marginBottom: '30px', padding: '15px', backgroundColor: '#1a1a1a', borderRadius: '10px', border: `1px solid ${isPlaying ? '#4CAF50' : '#333'}`, transition: 'all 0.3s', flexWrap: 'wrap' }}>
               <button 
                   onClick={togglePlayback}
                   style={{ padding: '12px 30px', fontSize: '20px', cursor: 'pointer', backgroundColor: isPlaying ? '#e53935' : '#4CAF50', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s', boxShadow: isPlaying ? '0 0 15px rgba(229, 57, 53, 0.4)' : 'none' }}
@@ -499,8 +496,9 @@ function App() {
               <>
                   <div className="dashboard-panel" style={{ textAlign: 'center', maxWidth: '1600px' }}>
                     <h2 style={{ margin: '0 0 15px 0', color: '#fff' }}>{txt.styleSelection}</h2>
-                    <select value={currentBrickIndex} onChange={(e) => setCurrentBrickIndex(e.target.value)} style={{ padding: '10px', fontSize: '18px', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#222', color: 'var(--theme-primary)', border: '1px solid var(--theme-primary)', fontWeight: 'bold', width: '80%' }}>
-                      {BRICKS.map((brick, index) => (<option key={index} value={index}>{brick.name}</option>))}
+                    
+                    <select value={currentBrickIndex} onChange={(e) => setCurrentBrickIndex(e.target.value)} style={{ padding: '10px', fontSize: '18px', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#222', color: 'var(--theme-primary)', border: '1px solid var(--theme-primary)', fontWeight: 'bold', width: '80%', maxWidth: '400px' }}>
+                      {BRICKS.map((brick, index) => (<option key={index} value={index}>{brick.name[lang]}</option>))}
                     </select>
                     
                     <div style={{ marginTop: '15px' }}>
@@ -509,8 +507,8 @@ function App() {
                         <span className="info-badge">🎸 Tuning: {activeBrick.tuning}</span>
                     </div>
                     
-                    <div className="effects-text">💡 {activeBrick.effects}</div>
-                    <div style={{ color: '#aaa', fontSize: '13px', marginTop: '5px', fontStyle: 'italic' }}>🎧 {activeBrick.examples}</div>
+                    <div className="effects-text">💡 {activeBrick.effects[lang]}</div>
+                    <div style={{ color: '#aaa', fontSize: '13px', marginTop: '5px', fontStyle: 'italic', textAlign: 'left', paddingLeft: '12px' }}>🎧 {activeBrick.examples[lang]}</div>
                     
                     <div style={{marginTop: '20px', color: '#fff', fontSize: '15px', backgroundColor: '#111', padding: '15px', borderRadius: '4px'}}>
                         <div style={{ marginBottom: '15px' }}>
@@ -524,10 +522,10 @@ function App() {
                             const isSelected = clickedChord && clickedChord.nns === c.nns;
                             return (
                                 <span key={i}>
-                                    <button onClick={() => handleChordClick(c)} style={{ background: isSelected ? 'var(--theme-primary)' : '#222', color: isSelected ? '#000' : 'var(--theme-primary)', border: '2px solid var(--theme-primary)', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', margin: '0 5px', transition: 'all 0.2s' }}>
+                                    <button onClick={() => handleChordClick(c)} style={{ background: isSelected ? 'var(--theme-primary)' : '#222', color: isSelected ? '#000' : 'var(--theme-primary)', border: '2px solid var(--theme-primary)', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', margin: '5px', transition: 'all 0.2s' }}>
                                         {notation === 'us' ? c.chordNameUS : c.chordNameEU}
                                     </button>
-                                    {i < activeProgression.length - 1 ? ' ➜ ' : ''}
+                                    {i < activeProgression.length - 1 ? <span style={{display: 'inline-block', margin: '0 5px'}}>➜</span> : ''}
                                 </span>
                             );
                         })}
@@ -535,13 +533,13 @@ function App() {
                     </div>
                   </div>
 
-                  <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', justifyContent: 'center' }}>
+                  <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
                       <button onClick={() => setLayoutMode('all')} style={{ padding: '8px 16px', borderRadius: '20px', border: '1px solid #777', backgroundColor: layoutMode === 'all' ? '#555' : '#222', color: '#fff', cursor: 'pointer' }}>{txt.showAll}</button>
                       <button onClick={() => setLayoutMode('tabs')} style={{ padding: '8px 16px', borderRadius: '20px', border: '1px solid #777', backgroundColor: layoutMode === 'tabs' ? '#555' : '#222', color: '#fff', cursor: 'pointer' }}>{txt.focusMode}</button>
                   </div>
 
                   {layoutMode === 'tabs' && (
-                      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
                           <button onClick={() => setActiveTab('sequencer')} style={{ padding: '10px', fontWeight: 'bold', backgroundColor: activeTab === 'sequencer' ? 'var(--theme-primary)' : '#333', color: activeTab === 'sequencer' ? '#000' : '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>{txt.tabDrums}</button>
                           <button onClick={() => setActiveTab('piano')} style={{ padding: '10px', fontWeight: 'bold', backgroundColor: activeTab === 'piano' ? 'var(--theme-primary)' : '#333', color: activeTab === 'piano' ? '#000' : '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>{txt.tabPiano}</button>
                           <button onClick={() => setActiveTab('guitars')} style={{ padding: '10px', fontWeight: 'bold', backgroundColor: activeTab === 'guitars' ? 'var(--theme-primary)' : '#333', color: activeTab === 'guitars' ? '#000' : '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>{txt.tabGuitars}</button>
@@ -551,7 +549,7 @@ function App() {
           )}
 
           {appMode === 'dictionary' && (
-              <div className="dashboard-panel" style={{ textAlign: 'center', maxWidth: '1600px', backgroundColor: '#2a2a2a', border: '1px solid #ffd700' }}>
+              <div className="dashboard-panel" style={{ textAlign: 'center', maxWidth: '1600px', backgroundColor: '#2a2a2a', border: '1px solid var(--theme-primary)' }}>
                   <h2 style={{ margin: '0 0 15px 0', color: 'var(--theme-primary)' }}>{txt.freeExplorer}</h2>
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
                       <div>
@@ -580,7 +578,7 @@ function App() {
             
             {appMode === 'studio' && (
                 <>
-                    <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px' }}></div>
+                    <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px', display: 'inline-block' }}></div>
                     <button onClick={() => setDisplayMode('chord')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: displayMode === 'chord' ? 'var(--theme-primary)' : '#333', color: displayMode === 'chord' ? '#000' : '#fff' }}>{txt.chord}</button>
                     <button onClick={() => setDisplayMode('scale')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: displayMode === 'scale' ? 'var(--theme-primary)' : '#333', color: displayMode === 'scale' ? '#000' : '#fff' }}>{txt.scale}</button>
                 </>
@@ -588,7 +586,7 @@ function App() {
 
             {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'guitars') && (
                 <>
-                    <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px' }}></div>
+                    <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px', display: 'inline-block' }}></div>
                     <span style={{ color: '#ccc', fontWeight: 'bold', marginRight: '5px' }}>{txt.guitarPos}</span>
                     <select value={fretboardZone} onChange={(e) => setFretboardZone(e.target.value)} style={{ padding: '8px', fontSize: '14px', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#222', color: '#fff', border: '1px solid #555' }}>
                         <option value="all">{txt.posAll}</option>
@@ -615,12 +613,14 @@ function App() {
 
           {appMode === 'studio' && (layoutMode === 'all' || activeTab === 'sequencer') && (
               <div style={{width: '100%', maxWidth: '1600px', marginBottom: '30px'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                    <h3 style={{color: 'var(--theme-primary)'}}>{txt.drumMachine}</h3>
+                <h3 style={{color: 'var(--theme-primary)'}}>{txt.drumMachine}</h3>
+                <div className="scrollable-instrument">
+                    <PianoRoll tracks={activeDrums} totalSteps={16} currentStep={currentStep} />
                 </div>
-                <PianoRoll tracks={activeDrums} totalSteps={16} currentStep={currentStep} />
                 <h3 style={{color: 'var(--theme-primary)', marginTop: '30px'}}>{txt.melodicSeq}</h3>
-                <PianoRoll tracks={activeMelody} totalSteps={16} currentStep={currentStep} />
+                <div className="scrollable-instrument">
+                    <PianoRoll tracks={activeMelody} totalSteps={16} currentStep={currentStep} />
+                </div>
               </div>
           )}
 
@@ -645,14 +645,17 @@ function App() {
           )}
 
           {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'piano') && (
-              <PianoKeyboard activeNotes={activeNoteValues} numOctaves={3} notation={notation} rootValue={currentRootValue} targetValue={targetValue} />
+              <div className="scrollable-instrument">
+                  <PianoKeyboard activeNotes={activeNoteValues} numOctaves={3} notation={notation} rootValue={currentRootValue} targetValue={targetValue} />
+              </div>
           )}
 
           {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'guitars') && (
-              <>
+              <div className="scrollable-instrument">
                 <Fretboard instrument="guitar" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.guitarStrings} rootValue={currentRootValue} targetValue={targetValue} fretboardZone={fretboardZone} />
+                <br/>
                 <Fretboard instrument="bass" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.bassStrings} rootValue={currentRootValue} targetValue={targetValue} fretboardZone={fretboardZone} />
-              </>
+              </div>
           )}
       </div>
 

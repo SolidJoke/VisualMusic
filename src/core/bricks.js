@@ -1,191 +1,216 @@
-// src/core/bricks.js
-
-export const BRICKS = new Array(
+export const BRICKS = [
     {
-        id: 'psytrance', name: 'Psytrance (Hypnotique)', bpm: 140, rootValue: 9, modeName: 'Dorian', tuning: 'Standard',
-        effects: 'Compression Sidechain lourde sur la basse.', examples: 'Dugga-dugga bassline. Mode Dorien ("Get Lucky").',
-        theme: { primary: '#bb86fc', bg: '#121212' }, nnsProgression: new Array("1-", "6", "7", "1-"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 4), bassStrings: new Array(7, 2, 9, 4),
-        drumTracks: new Array(
-            { name: 'Kick', colorClass: 'bg-kick', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() },
-            { name: 'Hi-Hat', colorClass: 'bg-hat', activeSteps: new Array(2, 6, 10, 14), lowVelocitySteps: new Array() }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick', colorClass: 'bg-kick', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() },
-            { name: 'Hi-Hat (16th)', colorClass: 'bg-hat', activeSteps: new Array(2, 3, 6, 7, 10, 11, 14, 15), lowVelocitySteps: new Array(3, 7, 11, 15) }
-        ),
-        melodyTracks: new Array({ name: 'Bass (16th)', colorClass: 'bg-bass', activeSteps: new Array(1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15), lowVelocitySteps: new Array(1, 5, 9, 13) })
+        name: {
+            fr: "Techno Euphorique",
+            en: "Euphoric Techno",
+            pt: "Techno Eufórico",
+            zh: "欢快 Techno"
+        },
+        bpm: 130,
+        modeName: "Ionian",
+        rootValue: 0, // C
+        tuning: "Standard",
+        guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+        bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: {
+            fr: "Grosse caisse 'Four-on-the-floor' avec un 'Rumble' en sidechain sur la basse.",
+            en: "Four-on-the-floor kick with a sidechained 'Rumble' on the bass.",
+            pt: "Bumbo 'Four-on-the-floor' com um 'Rumble' em sidechain no baixo.",
+            zh: "四四拍底鼓，低音带有侧链 'Rumble' 效果。"
+        },
+        examples: {
+            fr: "Progression: 1 - 5 - 4 - 1. Rythme 16èmes de notes.",
+            en: "Progression: 1 - 5 - 4 - 1. 16th note rhythms.",
+            pt: "Progressão: 1 - 5 - 4 - 1. Ritmos de semicolcheia.",
+            zh: "和弦进行: 1 - 5 - 4 - 1. 十六分音符节奏。"
+        },
+        theme: { primary: '#00e5ff', bg: '#001a1f' },
+        nnsProgression: ['1', '5', '4', '1'],
+        nnsProgressionVariation: ['1', '6-', '4', '5'],
+        drumTracks: [
+            { name: 'Kick', activeSteps: [0, 4, 8, 12] },
+            { name: 'Hat', activeSteps: [2, 6, 10, 14] }
+        ],
+        drumTracksVariation: [
+            { name: 'Kick', activeSteps: [0, 4, 8, 12] },
+            { name: 'Hat', activeSteps: [2, 6, 10, 14] },
+            { name: 'Snare', activeSteps: [4, 12] }
+        ],
+        melodyTracks: [
+            { name: 'Bass', activeSteps: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] }
+        ],
+        melodyTracksVariation: [
+            { name: 'Bass', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14], lowVelocitySteps: [2, 6, 10, 14] }
+        ]
     },
     {
-        id: 'reggae', name: 'Reggae / Dub (Détendu)', bpm: 75, rootValue: 0, modeName: 'Ionian', tuning: 'Standard',
-        effects: 'Tape Delay avec beaucoup de feedback (Echo).', examples: 'Progression I-ii ou vi-V. "Big Ship" (Freddie McGregor).',
-        theme: { primary: '#4CAF50', bg: '#0b1a0d' }, nnsProgression: new Array("1", "2-", "1", "2-"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 4), bassStrings: new Array(7, 2, 9, 4),
-        drumTracks: new Array(
-            { name: 'Kick (One Drop)', colorClass: 'bg-kick', activeSteps: new Array(8), lowVelocitySteps: new Array() },
-            { name: 'Snare (Rim)', colorClass: 'bg-snare', activeSteps: new Array(8), lowVelocitySteps: new Array() },
-            { name: 'Hi-Hat', colorClass: 'bg-hat', activeSteps: new Array(0, 2, 4, 6, 8, 10, 12, 14), lowVelocitySteps: new Array() }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick (Steppers)', colorClass: 'bg-kick', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() },
-            { name: 'Snare', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Hat (Swung)', colorClass: 'bg-hat', activeSteps: new Array(0, 2, 4, 6, 8, 10, 12, 14), lowVelocitySteps: new Array(2, 6, 10, 14) }
-        ),
-        melodyTracks: new Array(
-            { name: 'Skank (Guitare)', colorClass: 'bg-bass', activeSteps: new Array(2, 6, 10, 14), lowVelocitySteps: new Array() },
-            { name: 'Bubble (Orgue)', colorClass: 'bg-kick', activeSteps: new Array(1, 3, 5, 7, 9, 11, 13, 15), lowVelocitySteps: new Array() }
-        )
+        name: {
+            fr: "Psytrance Nostalgique",
+            en: "Nostalgic Psytrance",
+            pt: "Psytrance Nostálgico",
+            zh: "怀旧 Psytrance"
+        },
+        bpm: 140,
+        modeName: "Dorian",
+        rootValue: 2, // D
+        tuning: "Standard",
+        guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+        bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: {
+            fr: "Basse KBBB (Kick-Bass-Bass-Bass) très serrée. Cible la 6te majeure pour la nostalgie.",
+            en: "Tight KBBB (Kick-Bass-Bass-Bass) rolling bass. Target the major 6th for nostalgia.",
+            pt: "Baixo KBBB muito firme. Foque na 6ª maior para nostalgia.",
+            zh: "紧凑的 KBBB 滚动低音。强调大六度以产生怀旧感。"
+        },
+        examples: {
+            fr: "Progression: 1- - 6 - 7 - 1-. Arpèges rapides.",
+            en: "Progression: 1- - 6 - 7 - 1-. Fast arpeggios.",
+            pt: "Progressão: 1- - 6 - 7 - 1-. Arpejos rápidos.",
+            zh: "和弦进行: 1- - 6 - 7 - 1-. 快速琶音。"
+        },
+        theme: { primary: '#b000ff', bg: '#1a0026' },
+        nnsProgression: ['1-', '6', '7', '1-'],
+        nnsProgressionVariation: ['1-', 'b3', '4', '5'],
+        drumTracks: [
+            { name: 'Kick', activeSteps: [0, 4, 8, 12] }
+        ],
+        drumTracksVariation: [
+            { name: 'Kick', activeSteps: [0, 4, 8, 12] },
+            { name: 'Hat', activeSteps: [2, 6, 10, 14] }
+        ],
+        melodyTracks: [
+            { name: 'Bass', activeSteps: [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15], lowVelocitySteps: [1, 5, 9, 13] }
+        ],
+        melodyTracksVariation: [
+            { name: 'Bass', activeSteps: [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15] }
+        ]
     },
     {
-        id: 'metal_epic', name: 'Epic Metal (Puissant)', bpm: 120, rootValue: 4, modeName: 'PhrygianDominant', tuning: 'Drop D (D-A-D-G-B-E)',
-        effects: 'Forte Distorsion, Palm Mute serré sur la corde de Mi.', examples: '"Symphony Of Destruction" (Megadeth).',
-        theme: { primary: '#cf6679', bg: '#1a0b0b' }, nnsProgression: new Array("1", "b2", "b6", "5"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 2), bassStrings: new Array(7, 2, 9, 2),
-        drumTracks: new Array(
-            { name: 'Kick (Double)', colorClass: 'bg-kick', activeSteps: new Array(0, 2, 3, 6, 8, 10, 11, 14), lowVelocitySteps: new Array() },
-            { name: 'Snare', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Crash', colorClass: 'bg-hat', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick (Blast)', colorClass: 'bg-kick', activeSteps: new Array(0,2,4,6,8,10,12,14), lowVelocitySteps: new Array() },
-            { name: 'Snare (Blast)', colorClass: 'bg-snare', activeSteps: new Array(1,3,5,7,9,11,13,15), lowVelocitySteps: new Array() }
-        ),
-        melodyTracks: new Array({ name: 'Chug (Palm Mute)', colorClass: 'bg-bass', activeSteps: new Array(0, 1, 2, 3, 8, 9, 10, 11), lowVelocitySteps: new Array() })
+        name: {
+            fr: "Metal Épique",
+            en: "Epic Metal",
+            pt: "Metal Épico",
+            zh: "史诗金属"
+        },
+        bpm: 180,
+        modeName: "Phrygian",
+        rootValue: 4, // E
+        tuning: "Drop D",
+        guitarStrings: ['D2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+        bassStrings: ['D1', 'A1', 'D2', 'G2'],
+        effects: {
+            fr: "Power chords avec distorsion et 'chugs' en palm-mute sur la fondamentale.",
+            en: "Distorted power chords with palm-muted 'chugs' on the root.",
+            pt: "Power chords com distorção e 'chugs' na tônica.",
+            zh: "带有失真的强力和弦，以及在根音上的手掌闷音 'chugs'。"
+        },
+        examples: {
+            fr: "Progression: 1 - b2 - b6 - 5. Rythme galopant.",
+            en: "Progression: 1 - b2 - b6 - 5. Galloping rhythm.",
+            pt: "Progressão: 1 - b2 - b6 - 5. Ritmo galopante.",
+            zh: "和弦进行: 1 - b2 - b6 - 5. 奔腾节奏。"
+        },
+        theme: { primary: '#ff3300', bg: '#260000' },
+        nnsProgression: ['1', 'b2', 'b6', '5'],
+        nnsProgressionVariation: ['1', 'b5', '4', 'b2'],
+        drumTracks: [
+            { name: 'Kick', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] },
+            { name: 'Snare', activeSteps: [4, 12] }
+        ],
+        drumTracksVariation: [
+            { name: 'Kick', activeSteps: [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14] },
+            { name: 'Snare', activeSteps: [4, 12] },
+            { name: 'Crash', activeSteps: [0] }
+        ],
+        melodyTracks: [
+            { name: 'Bass', activeSteps: [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14] }
+        ],
+        melodyTracksVariation: [
+            { name: 'Bass', activeSteps: [0, 1, 2, 3, 4, 5, 6] }
+        ]
     },
     {
-        id: 'techno', name: 'Industrial Techno (Rumble)', bpm: 130, rootValue: 2, modeName: 'Phrygian', tuning: 'Standard',
-        effects: 'Reverb très longue sur le kick, puis filtre passe-bas (Rumble).', examples: 'Amelie Lens, Adam Beyer. Ambiance sombre et mécanique.',
-        theme: { primary: '#03DAC6', bg: '#101414' }, nnsProgression: new Array("1-", "b2", "1-", "7"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 4), bassStrings: new Array(7, 2, 9, 4),
-        drumTracks: new Array(
-            { name: 'Kick (4/4)', colorClass: 'bg-kick', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() },
-            { name: 'Off-beat Hat', colorClass: 'bg-hat', activeSteps: new Array(2, 6, 10, 14), lowVelocitySteps: new Array() },
-            { name: 'Clap (Reverb)', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick', colorClass: 'bg-kick', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() },
-            { name: 'Rolling Hats', colorClass: 'bg-hat', activeSteps: new Array(2, 3, 6, 7, 10, 11, 14, 15), lowVelocitySteps: new Array(3, 7, 11, 15) },
-            { name: 'Ride Cymbal', colorClass: 'bg-snare', activeSteps: new Array(2, 6, 10, 14), lowVelocitySteps: new Array() }
-        ),
-        melodyTracks: new Array(
-            { name: 'Rumble (Sub)', colorClass: 'bg-bass', activeSteps: new Array(1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15), lowVelocitySteps: new Array(1, 5, 9, 13) }
-        )
+        name: {
+            fr: "Reggae Joyeux",
+            en: "Joyful Reggae",
+            pt: "Reggae Alegre",
+            zh: "欢快雷鬼"
+        },
+        bpm: 90,
+        modeName: "Ionian",
+        rootValue: 7, // G
+        tuning: "Standard",
+        guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+        bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: {
+            fr: "Skank sur le contretemps (et) et technique du 'Bubble' à l'orgue.",
+            en: "Skank on the offbeats (and) with organ 'Bubble' technique.",
+            pt: "Skank no contratempo (e) com técnica 'Bubble'.",
+            zh: "反拍上的 Skank 和风琴 'Bubble' 技巧。"
+        },
+        examples: {
+            fr: "Progression: 1 - 4 - 5 - 4. Beat 'One Drop'.",
+            en: "Progression: 1 - 4 - 5 - 4. 'One Drop' beat.",
+            pt: "Progressão: 1 - 4 - 5 - 4. Batida 'One Drop'.",
+            zh: "和弦进行: 1 - 4 - 5 - 4. 'One Drop' 鼓点。"
+        },
+        theme: { primary: '#00ff00', bg: '#002600' },
+        nnsProgression: ['1', '4', '5', '4'],
+        nnsProgressionVariation: ['1', '2-', '5', '1'],
+        drumTracks: [
+            { name: 'Kick', activeSteps: [8] },
+            { name: 'Rim', activeSteps: [8] },
+            { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] }
+        ],
+        drumTracksVariation: [
+            { name: 'Kick', activeSteps: [0, 4, 8, 12] },
+            { name: 'Rim', activeSteps: [4, 12] },
+            { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] }
+        ],
+        melodyTracks: [
+            { name: 'Bass', activeSteps: [0, 3, 8, 11] }
+        ],
+        melodyTracksVariation: [
+            { name: 'Bass', activeSteps: [2, 6, 10, 14] }
+        ]
     },
     {
-        id: 'berlin', name: 'Berlin School (Ambient)', bpm: 105, rootValue: 0, modeName: 'Lydian', tuning: 'Standard',
-        effects: 'LFO lents sur le filtre. Ratcheting (répétitions ultra-rapides).', examples: 'Tangerine Dream, Klaus Schulze. Mode Lydien spatial.',
-        theme: { primary: '#FF9800', bg: '#1a1305' }, nnsProgression: new Array("1", "2", "1", "4"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 4), bassStrings: new Array(7, 2, 9, 4),
-        drumTracks: new Array(
-            { name: 'Analog Clock', colorClass: 'bg-hat', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Syncopated Clock', colorClass: 'bg-hat', activeSteps: new Array(0, 3, 8, 11), lowVelocitySteps: new Array() }
-        ),
-        melodyTracks: new Array(
-            { name: 'Seq Bass', colorClass: 'bg-bass', activeSteps: new Array(0, 2, 4, 6, 8, 10, 12, 14), lowVelocitySteps: new Array() },
-            { name: 'Lead (Ratcheting)', colorClass: 'bg-snare', activeSteps: new Array(0, 7, 12), lowVelocitySteps: new Array() }
-        )
-    },
-    {
-        id: 'dnb', name: 'Drum & Bass / Jungle', bpm: 174, rootValue: 5, modeName: 'Aeolian', tuning: 'Drop C (Sub Bass)',
-        effects: 'Découpage de Breakbeats (Amen Break). Grosse basse "Reese".', examples: 'Mode Éolien naturel. Ambiance urbaine et frénétique.',
-        theme: { primary: '#E91E63', bg: '#170b10' }, nnsProgression: new Array("1-", "6", "4", "5"),
-        guitarStrings: new Array(2, 9, 5, 0, 7, 0), bassStrings: new Array(5, 0, 7, 0),
-        drumTracks: new Array(
-            { name: 'Kick (Break)', colorClass: 'bg-kick', activeSteps: new Array(0, 10), lowVelocitySteps: new Array() },
-            { name: 'Snare (Main)', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Ghost Snare', colorClass: 'bg-snare', activeSteps: new Array(7, 9, 14), lowVelocitySteps: new Array(7, 9, 14) },
-            { name: 'Hi-Hat (Fast)', colorClass: 'bg-hat', activeSteps: new Array(0, 2, 4, 6, 8, 10, 12, 14), lowVelocitySteps: new Array(2, 6, 10, 14) }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick (2-Step)', colorClass: 'bg-kick', activeSteps: new Array(0, 8), lowVelocitySteps: new Array() },
-            { name: 'Snare', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Ride', colorClass: 'bg-hat', activeSteps: new Array(0, 2, 4, 6, 8, 10, 12, 14), lowVelocitySteps: new Array() }
-        ),
-        melodyTracks: new Array({ name: 'Reese Bass', colorClass: 'bg-bass', activeSteps: new Array(0), lowVelocitySteps: new Array() })
-    },
-    {
-        id: 'funk', name: 'Funk (Groove)', bpm: 110, rootValue: 2, modeName: 'Dorian', tuning: 'Standard',
-        effects: 'Guitare staccato ("cocottes"), Basse très syncopée.', examples: 'Chic (Good Times), Daft Punk.',
-        theme: { primary: '#00e5ff', bg: '#001a1a' }, nnsProgression: new Array("1-", "2-", "4", "5"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 4), bassStrings: new Array(7, 2, 9, 4),
-        drumTracks: new Array(
-            { name: 'Kick', colorClass: 'bg-kick', activeSteps: new Array(0, 8, 11), lowVelocitySteps: new Array() },
-            { name: 'Snare', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Hat (16th)', colorClass: 'bg-hat', activeSteps: new Array(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), lowVelocitySteps: new Array(1,3,5,7,9,11,13,15) }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick', colorClass: 'bg-kick', activeSteps: new Array(0, 7, 10), lowVelocitySteps: new Array() },
-            { name: 'Snare', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Open Hat', colorClass: 'bg-hat', activeSteps: new Array(2, 6, 10, 14), lowVelocitySteps: new Array() }
-        ),
-        melodyTracks: new Array({ name: 'Slap Bass', colorClass: 'bg-bass', activeSteps: new Array(0, 2, 5, 8, 14), lowVelocitySteps: new Array() })
-    },
-    {
-        id: 'rock60s', name: 'Rock Années 60', bpm: 120, rootValue: 9, modeName: 'Mixolydian', tuning: 'Standard',
-        effects: 'Overdrive à lampes. Rythme binaire solide.', examples: 'The Beatles, Hendrix. Gamme Mixolydienne rebelle.',
-        theme: { primary: '#ffaa00', bg: '#1a1100' }, nnsProgression: new Array("1", "b7", "4", "1"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 4), bassStrings: new Array(7, 2, 9, 4),
-        drumTracks: new Array(
-            { name: 'Kick', colorClass: 'bg-kick', activeSteps: new Array(0, 8), lowVelocitySteps: new Array() },
-            { name: 'Snare', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Ride', colorClass: 'bg-hat', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick Syncopé', colorClass: 'bg-kick', activeSteps: new Array(0, 8, 10), lowVelocitySteps: new Array() },
-            { name: 'Snare', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Hat (8th)', colorClass: 'bg-hat', activeSteps: new Array(0, 2, 4, 6, 8, 10, 12, 14), lowVelocitySteps: new Array() }
-        ),
-        melodyTracks: new Array({ name: 'Guitar Riff', colorClass: 'bg-bass', activeSteps: new Array(0, 2, 4, 8, 10, 12), lowVelocitySteps: new Array() })
-    },
-    {
-        id: 'hiphop', name: 'Hip-Hop (Boom Bap)', bpm: 90, rootValue: 0, modeName: 'Aeolian', tuning: 'Standard',
-        effects: 'Samples vinyle (Lo-Fi), Swing fort sur les charleys.', examples: 'Wu-Tang Clan, Mobb Deep.',
-        theme: { primary: '#ffcc00', bg: '#111' }, nnsProgression: new Array("1-", "4-", "1-", "5-"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 4), bassStrings: new Array(7, 2, 9, 4),
-        drumTracks: new Array(
-            { name: 'Kick (Boom)', colorClass: 'bg-kick', activeSteps: new Array(0, 9), lowVelocitySteps: new Array() },
-            { name: 'Snare (Bap)', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Hat (Swung)', colorClass: 'bg-hat', activeSteps: new Array(0,2,4,6,8,10,12,14), lowVelocitySteps: new Array(2,6,10,14) }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick', colorClass: 'bg-kick', activeSteps: new Array(0, 7, 10), lowVelocitySteps: new Array() },
-            { name: 'Snare', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() }
-        ),
-        melodyTracks: new Array({ name: 'Sub Bass', colorClass: 'bg-bass', activeSteps: new Array(0, 9), lowVelocitySteps: new Array() })
-    },
-    {
-        id: 'house', name: 'House Classic', bpm: 124, rootValue: 4, modeName: 'Dorian', tuning: 'Standard',
-        effects: 'Kick 4/4, Clap sur les temps pairs, Charley à contre-temps.', examples: 'Daft Punk, Frankie Knuckles.',
-        theme: { primary: '#ff00ff', bg: '#1a001a' }, nnsProgression: new Array("1-", "4", "5", "1-"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 4), bassStrings: new Array(7, 2, 9, 4),
-        drumTracks: new Array(
-            { name: 'Kick (4/4)', colorClass: 'bg-kick', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() },
-            { name: 'Clap', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Off-beat Hat', colorClass: 'bg-hat', activeSteps: new Array(2, 6, 10, 14), lowVelocitySteps: new Array() }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick (4/4)', colorClass: 'bg-kick', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() },
-            { name: 'Clap', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Shaker 16th', colorClass: 'bg-hat', activeSteps: new Array(1,3,5,7,9,11,13,15), lowVelocitySteps: new Array() }
-        ),
-        melodyTracks: new Array({ name: 'FM Bass', colorClass: 'bg-bass', activeSteps: new Array(2, 6, 9, 14), lowVelocitySteps: new Array() })
-    },
-    {
-        id: 'retrowave', name: 'Retrowave / Synthwave', bpm: 100, rootValue: 9, modeName: 'Aeolian', tuning: 'Standard',
-        effects: 'Synthétiseurs analogiques, Reverb Gated sur caisse claire.', examples: 'Kavinsky, The Midnight.',
-        theme: { primary: '#00ffff', bg: '#2b00ff' }, nnsProgression: new Array("6-", "4", "1", "5"),
-        guitarStrings: new Array(4, 11, 7, 2, 9, 4), bassStrings: new Array(7, 2, 9, 4),
-        drumTracks: new Array(
-            { name: 'Kick (LinnDrum)', colorClass: 'bg-kick', activeSteps: new Array(0, 4, 8, 12), lowVelocitySteps: new Array() },
-            { name: 'Snare (Gated)', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() }
-        ),
-        drumTracksVariation: new Array(
-            { name: 'Kick', colorClass: 'bg-kick', activeSteps: new Array(0, 4, 8, 10), lowVelocitySteps: new Array() },
-            { name: 'Snare (Gated)', colorClass: 'bg-snare', activeSteps: new Array(4, 12), lowVelocitySteps: new Array() },
-            { name: 'Tom Fill', colorClass: 'bg-hat', activeSteps: new Array(13, 14, 15), lowVelocitySteps: new Array() }
-        ),
-        melodyTracks: new Array({ name: '16th Synth Bass', colorClass: 'bg-bass', activeSteps: new Array(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), lowVelocitySteps: new Array(1,3,5,7,9,11,13,15) })
+        name: {
+            fr: "Ambient Berlin School",
+            en: "Berlin School Ambient",
+            pt: "Ambient Berlin School",
+            zh: "柏林学派氛围音乐"
+        },
+        bpm: 110,
+        modeName: "Lydian",
+        rootValue: 5, // F
+        tuning: "Standard",
+        guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+        bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: {
+            fr: "Séquences hypnotiques avec 'Ratcheting' (répétitions rapides) et delays.",
+            en: "Hypnotic sequences with 'Ratcheting' (fast repeats) and delays.",
+            pt: "Sequências hipnóticas com 'Ratcheting' e delays.",
+            zh: "带有 'Ratcheting' (快速重复) 和延迟效果的催眠序列。"
+        },
+        examples: {
+            fr: "Progression: 1 continu. Polyrhythmies (séquenceur 8 pas vs 7 pas).",
+            en: "Progression: Drone on 1. Polyrhythms.",
+            pt: "Progressão: Drone no 1. Polirritmias.",
+            zh: "和弦进行: 保持在 1。复合节奏。"
+        },
+        theme: { primary: '#ff00ff', bg: '#260026' },
+        nnsProgression: ['1', '1', '4', '1'],
+        nnsProgressionVariation: ['1', '5', '4', '1'],
+        drumTracks: [],
+        drumTracksVariation: [
+            { name: 'Hat', activeSteps: [0, 1, 2, 3] }
+        ],
+        melodyTracks: [
+            { name: 'Bass', activeSteps: [0, 1, 2, 3, 4, 5, 6, 7] }
+        ],
+        melodyTracksVariation: [
+            { name: 'Bass', activeSteps: [0, 1, 2, 3, 4, 5, 6, 11, 14] }
+        ]
     }
-);
+];
