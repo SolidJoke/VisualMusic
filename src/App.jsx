@@ -29,7 +29,6 @@ const bassSynth = new Tone.MonoSynth({
 
 const noteNamesArray = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-// --- Helper pour convertir le format NNS (1, 4, 6-) en Chiffres Romains (I, IV, vi)
 const toRoman = (nnsStr) => {
     const map = { '1': 'I', '2': 'II', '3': 'III', '4': 'IV', '5': 'V', '6': 'VI', '7': 'VII' };
     const baseNum = nnsStr.match(/[1-7]/)?.[0] || '1';
@@ -53,7 +52,8 @@ const translations = {
         dictMode: "📖 Mode Dictionnaire",
         enableAudio: "🔊 ACTIVER L'AUDIO",
         stopAudio: "⏹️ STOP AUDIO",
-        masterVol: "🔊 Volume Master",
+        masterVol: "🔊 Volume",
+        tempoBpm: "⏱️ Tempo (BPM)",
         styleSelection: "1. Sélection du Style",
         theme: "Thème (Rythme & Accords) :",
         varA: "Variation A",
@@ -92,7 +92,6 @@ const translations = {
         kofi: "☕ M'offrir un café sur Ko-fi",
         github: "💻 Voir le code sur GitHub",
         listen: "🎵 Écouter",
-        // Nouveaux ajouts
         guideTheoryBtn: "💡 Guide & Théorie",
         theoryModalTitle: "📖 Théorie Musicale & Guide",
         guideTitle: "💡 Guide d'Improvisation (La Méthode du Drone)",
@@ -121,7 +120,8 @@ const translations = {
         dictMode: "📖 Dictionary Mode",
         enableAudio: "🔊 ENABLE AUDIO",
         stopAudio: "⏹️ STOP AUDIO",
-        masterVol: "🔊 Master Volume",
+        masterVol: "🔊 Volume",
+        tempoBpm: "⏱️ Tempo (BPM)",
         styleSelection: "1. Style Selection",
         theme: "Theme (Rhythm & Chords):",
         varA: "Variation A",
@@ -188,7 +188,8 @@ const translations = {
         dictMode: "📖 Modo Dicionário",
         enableAudio: "🔊 ATIVAR ÁUDIO",
         stopAudio: "⏹️ PARAR ÁUDIO",
-        masterVol: "🔊 Volume Master",
+        masterVol: "🔊 Volume",
+        tempoBpm: "⏱️ Tempo (BPM)",
         styleSelection: "1. Seleção de Estilo",
         theme: "Tema (Ritmo e Acordes):",
         varA: "Variação A",
@@ -255,7 +256,8 @@ const translations = {
         dictMode: "📖 字典模式",
         enableAudio: "🔊 开启音频",
         stopAudio: "⏹️ 停止音频",
-        masterVol: "🔊 主音量",
+        masterVol: "🔊 音量",
+        tempoBpm: "⏱️ 速度 (BPM)",
         styleSelection: "1. 风格选择",
         theme: "主题 (节奏与和弦):",
         varA: "变体 A",
@@ -323,13 +325,14 @@ function App() {
 
   const [appMode, setAppMode] = useState('studio'); 
   const [notation, setNotation] = useState('us');
-  const [chordDisplayMode, setChordDisplayMode] = useState('standard'); // 'standard' ou 'nns'
+  const [chordDisplayMode, setChordDisplayMode] = useState('standard');
   const [showAbout, setShowAbout] = useState(false);
-  const [showTheory, setShowTheory] = useState(false); // NOUVEAU : Modale Théorie
+  const [showTheory, setShowTheory] = useState(false);
 
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [masterVolume, setMasterVolume] = useState(-12); 
+  const [currentBpm, setCurrentBpm] = useState(120); // NOUVEAU : État du BPM
   const [currentStep, setCurrentStep] = useState(-1);
 
   const [currentBrickIndex, setCurrentBrickIndex] = useState(0);
@@ -381,10 +384,9 @@ function App() {
       else if (dictType === 'single_note') activeNoteValues.push(currentRootValue);
   }
 
-  // NOUVEAU : Calcul du texte de renversement (Voice Leading)
   let inversionText = "";
   if (clickedChord && currentAbsoluteNotes.length > 0) {
-      const bassNoteClass = currentAbsoluteNotes[0] % 12; // La note la plus grave du voicing
+      const bassNoteClass = currentAbsoluteNotes[0] % 12;
       const rootVal = clickedChord.rootNote.value;
       const isMinor = clickedChord.nns.includes('-');
       const isDim = clickedChord.nns.includes('°') || clickedChord.nns.includes('b5');
@@ -412,6 +414,8 @@ function App() {
     if (appMode === 'studio') {
         document.documentElement.style.setProperty('--theme-primary', activeBrick.theme.primary);
         document.documentElement.style.setProperty('--theme-bg', activeBrick.theme.bg);
+        // NOUVEAU : Réinitialise le BPM en fonction du genre choisi
+        setCurrentBpm(activeBrick.bpm);
         Tone.Transport.bpm.value = activeBrick.bpm; 
     } else {
         document.documentElement.style.setProperty('--theme-primary', '#ffd700'); 
@@ -485,6 +489,7 @@ function App() {
       if (!isAudioReady) {
           await Tone.start();
           Tone.Destination.volume.value = masterVolume; 
+          Tone.Transport.bpm.value = currentBpm; // S'assure que le BPM est bien appliqué
           setIsAudioReady(true);
       }
       if (isPlaying) {
@@ -494,6 +499,13 @@ function App() {
           Tone.Transport.start();
           setIsPlaying(true);
       }
+  };
+
+  // NOUVEAU : Fonction de gestion manuelle du BPM
+  const handleBpmChange = (e) => {
+      const newBpm = Number(e.target.value);
+      setCurrentBpm(newBpm);
+      Tone.Transport.bpm.value = newBpm;
   };
 
   const handleChordClick = async (c) => {
@@ -579,7 +591,6 @@ function App() {
   return (
     <div className="app-container" style={{ maxWidth: '1600px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
       
-      {/* MODALE ABOUT */}
       {showAbout && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(5px)' }}>
               <div style={{ backgroundColor: '#1a1a1a', padding: '40px', borderRadius: '12px', border: '1px solid var(--theme-primary)', maxWidth: '500px', width: '90%', textAlign: 'center', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
@@ -600,7 +611,6 @@ function App() {
           </div>
       )}
 
-      {/* MODALE THEORIE */}
       {showTheory && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(5px)' }}>
               <div style={{ backgroundColor: '#1a1a1a', padding: '30px', borderRadius: '12px', border: '1px solid var(--theme-primary)', maxWidth: '600px', width: '90%', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -671,7 +681,7 @@ function App() {
               <button onClick={() => setAppMode('dictionary')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'dictionary' ? 'var(--theme-primary)' : '#222', color: appMode === 'dictionary' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>{txt.dictMode}</button>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '25px', marginBottom: '30px', padding: '15px', backgroundColor: '#1a1a1a', borderRadius: '10px', border: `1px solid ${isPlaying ? '#4CAF50' : '#333'}`, transition: 'all 0.3s', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '30px', marginBottom: '30px', padding: '20px', backgroundColor: '#1a1a1a', borderRadius: '10px', border: `1px solid ${isPlaying ? '#4CAF50' : '#333'}`, transition: 'all 0.3s', flexWrap: 'wrap' }}>
               <button 
                   onClick={togglePlayback}
                   style={{ padding: '12px 30px', fontSize: '20px', cursor: 'pointer', backgroundColor: isPlaying ? '#e53935' : '#4CAF50', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s', boxShadow: isPlaying ? '0 0 15px rgba(229, 57, 53, 0.4)' : 'none' }}
@@ -679,15 +689,32 @@ function App() {
                   {isPlaying ? txt.stopAudio : txt.enableAudio}
               </button>
               
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <label style={{ color: '#ccc', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
-                      {txt.masterVol} ({masterVolume} dB)
-                  </label>
-                  <input 
-                      type="range" min="-40" max="0" value={masterVolume} 
-                      onChange={(e) => setMasterVolume(e.target.value)}
-                      style={{ cursor: 'pointer', width: '150px' }}
-                  />
+              <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {/* Slider de Volume */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <label style={{ color: '#ccc', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
+                          {txt.masterVol} ({masterVolume} dB)
+                      </label>
+                      <input 
+                          type="range" min="-40" max="0" value={masterVolume} 
+                          onChange={(e) => setMasterVolume(e.target.value)}
+                          style={{ cursor: 'pointer', width: '130px' }}
+                      />
+                  </div>
+
+                  {/* NOUVEAU : Slider de BPM (Visible uniquement en mode Studio) */}
+                  {appMode === 'studio' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <label style={{ color: 'var(--theme-primary)', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
+                              {txt.tempoBpm} : {currentBpm}
+                          </label>
+                          <input 
+                              type="range" min="60" max="200" value={currentBpm} 
+                              onChange={handleBpmChange}
+                              style={{ cursor: 'pointer', width: '130px', accentColor: 'var(--theme-primary)' }}
+                          />
+                      </div>
+                  )}
               </div>
           </div>
 
@@ -701,7 +728,6 @@ function App() {
                     </select>
                     
                     <div style={{ marginTop: '15px' }}>
-                        <span className="info-badge">⏱️ {activeBrick.bpm} BPM</span>
                         <span className="info-badge">🎵 Mode: {activeBrick.modeName}</span>
                         <span className="info-badge">🎸 Tuning: {activeBrick.tuning}</span>
                     </div>
@@ -719,7 +745,6 @@ function App() {
                         <strong>{txt.magicProg} </strong> <br/><br/>
                         {generateChordsFromNNS(activeBrick.rootValue, activeBrick.modeName, activeProgression).map((c, i) => {
                             const isSelected = clickedChord && clickedChord.nns === c.nns;
-                            // Application du displayMode (Standard vs Chiffres Romains)
                             const chordText = chordDisplayMode === 'nns' ? toRoman(c.nns) : (notation === 'us' ? c.chordNameUS : c.chordNameEU);
                             
                             return (
@@ -733,7 +758,6 @@ function App() {
                         })}
                         {clickedChord && (<button onClick={() => { setClickedChord(null); setCurrentAbsoluteNotes([]); }} style={{marginLeft: '15px', padding: '5px', fontSize: '12px', cursor: 'pointer', backgroundColor: '#444', color: '#fff', border: 'none', borderRadius: '4px'}}>{txt.backRoot}</button>)}
                         
-                        {/* NOUVEAU : Affichage du renversement */}
                         {inversionText && (
                             <div style={{ marginTop: '15px', fontSize: '14px', color: '#90caf9', fontStyle: 'italic' }}>
                                 🎹 {inversionText}
@@ -791,11 +815,9 @@ function App() {
           )}
 
           <div style={{ marginBottom: '25px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
-            {/* Toggle US/EU */}
             <button onClick={() => setNotation('us')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'us' ? 'var(--theme-primary)' : '#333', color: notation === 'us' ? '#000' : '#fff' }}>US (A, B, C)</button>
             <button onClick={() => setNotation('eu')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'eu' ? 'var(--theme-primary)' : '#333', color: notation === 'eu' ? '#000' : '#fff' }}>EU (Do, Ré, Mi)</button>
             
-            {/* NOUVEAU : Toggle Standard / NNS */}
             {appMode === 'studio' && (
                 <>
                     <div style={{ borderLeft: '2px solid #555', margin: '0 10px', height: '30px', display: 'inline-block' }}></div>
