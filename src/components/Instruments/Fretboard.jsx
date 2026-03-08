@@ -23,7 +23,10 @@ export default function Fretboard({ instrument = 'guitar', activeNotes = new Arr
                         {getFrets().map(fret => {
                             const noteValue = (baseNoteValue + fret) % 12;
                             const noteInfo = NOTES.at(noteValue);
-                            const isActive = activeNotes.includes(noteValue);
+                            
+                            // Traduction de nos notes absolues en notes modulo 12 pour le manche
+                            const isActive = activeNotes.some(n => (n % 12) === noteValue);
+                            
                             const hasDot = new Array(3, 5, 7, 9, 12).includes(fret) && stringIndex === Math.floor(strings.length / 2);
                             
                             let roleClass = '';
