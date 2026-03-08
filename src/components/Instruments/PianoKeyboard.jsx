@@ -2,10 +2,10 @@ import React from 'react';
 import './PianoKeyboard.css';
 import { NOTES } from '../../core/theory';
 
-const BLACK_KEYS = new Array(1, 3, 6, 8, 10);
+const BLACK_KEYS = [1, 3, 6, 8, 10];
 
-export default function PianoKeyboard({ activeNotes = new Array(), numOctaves = 3, notation = 'us', rootValue = 0, targetValue = -1 }) {
-    const keys = new Array();
+export default function PianoKeyboard({ activeNotes = [], numOctaves = 3, notation = 'us', rootValue = 0, targetValue = -1, onNoteClick }) {
+    const keys = [];
 
     // Détection auto : Si on a des notes >= 12, c'est qu'on utilise des inversions précises
     const isAbsoluteMode = activeNotes.some(n => n >= 12);
@@ -29,8 +29,17 @@ export default function PianoKeyboard({ activeNotes = new Array(), numOctaves = 
                 else roleClass = 'role-scale';
             }
 
+            // Calcul du nom absolu de la note pour Tone.js (ex: "C3", "F#4")
+            // Le clavier visuel commence à l'octave 3 par défaut
+            const absoluteNoteName = `${noteInfo.us}${octave + 3}`;
+
             keys.push(
-                <div key={`octave-${octave}-note-${i}`} className={`piano-key ${isBlack ? 'black-key' : 'white-key'} ${roleClass}`} title={`${noteInfo.us} / ${noteInfo.eu}`}>
+                <div 
+                    key={`octave-${octave}-note-${i}`} 
+                    className={`piano-key ${isBlack ? 'black-key' : 'white-key'} ${roleClass}`} 
+                    title={`${noteInfo.us} / ${noteInfo.eu}`}
+                    onClick={() => onNoteClick && onNoteClick(absoluteNoteName)}
+                >
                     <div className="note-label">{noteInfo[notation]}</div>
                 </div>
             );
