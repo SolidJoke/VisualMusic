@@ -7,11 +7,24 @@ import PianoRoll from './components/Sequencer/PianoRoll';
 import { getScaleNotes, generateChordsFromNNS, MODES, NOTES, getClosestInversion } from './core/theory';
 import { BRICKS } from './core/bricks';
 
+import * as Tone from 'tone';
+
+// --- NOUVEAU : CRÉATION DU SYNTHÉTISEUR POLYPHONIQUE ---
+// On le place en dehors du composant pour qu'il ne soit créé qu'une seule fois.
+const chordSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" }, // Un son doux qui ressemble un peu à un piano électrique
+    envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 }
+}).toDestination();
+
+
 function App() {
   const [appMode, setAppMode] = useState('studio'); 
   const [notation, setNotation] = useState('us');
 
-  // --- STATES DU MODE STUDIO ---
+  const [isAudioReady, setIsAudioReady] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [masterVolume, setMasterVolume] = useState(-12); 
+
   const [currentBrickIndex, setCurrentBrickIndex] = useState(0);
   const [displayMode, setDisplayMode] = useState('chord'); 
   const [clickedChord, setClickedChord] = useState(null);
@@ -20,11 +33,8 @@ function App() {
   const [useRhythmVariation, setUseRhythmVariation] = useState(false);
   const [currentAbsoluteNotes, setCurrentAbsoluteNotes] = useState(new Array());
 
-  // --- STATES DU MODE DICTIONNAIRE ---
   const [dictRoot, setDictRoot] = useState(0);
   const [dictType, setDictType] = useState('single_note'); 
-
-  // --- NOUVEAU : Filtre de position pour la guitare ---
   const [fretboardZone, setFretboardZone] = useState('all');
 
   const activeBrick = BRICKS.at(Number(currentBrickIndex));
@@ -42,17 +52,60 @@ function App() {
     setCurrentAbsoluteNotes(new Array()); 
   }, [currentBrickIndex, appMode, activeBrick]);
 
-  const handleChordClick = (c) => {
+  useEffect(() => {
+    Tone.Destination.volume.value = masterVolume;
+  }, [masterVolume]);
+
+  const togglePlayback = async () => {
+      if (!isAudioReady) {
+          await Tone.start();
+          Tone.Destination.volume.value = masterVolume; 
+          setIsAudioReady(true);
+      }
+
+      if (isPlaying) {
+          Tone.Transport.pause();
+          setIsPlaying(false);
+      } else {
+          Tone.Transport.bpm.value = activeBrick.bpm;
+          Tone.Transport.start();
+          setIsPlaying(true);
+      }
+  };
+
+  // --- NOUVEAU : LE TRADUCTEUR AUDIO POUR LES ACCORDS ---
+  const handleChordClick = async (c) => {
       setClickedChord(c);
+
+      // Sécurité : si l'utilisateur clique sur un accord avant le bouton Play, on débloque l'audio !
+      if (!isAudioReady) {
+          await Tone.start();
+          Tone.Destination.volume.value = masterVolume;
+          setIsAudioReady(true);
+      }
+
       const rootVal = c.rootNote.value;
       const isMinor = c.nns.includes('-');
       const isDim = c.nns.includes('°') || c.nns.includes('b5');
       let thirdInterval = (isMinor || isDim) ? 3 : 4; 
       let fifthInterval = isDim ? 6 : 7;
       
-      setCurrentAbsoluteNotes(prevNotes => {
-          return getClosestInversion(prevNotes, rootVal, thirdInterval, fifthInterval);
+      // 1. Calcul de l'inversion (Le Voice Leading)
+      const nextNotes = getClosestInversion(currentAbsoluteNotes, rootVal, thirdInterval, fifthInterval);
+      
+      // 2. Traduction pour Tone.js (Exemple : Transforme 0 en "C3", 4 en "E3")
+      const noteNamesArray = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+      const notesToPlay = nextNotes.map(n => {
+          const octave = Math.floor(n / 12) + 3; // +3 pour jouer au milieu du clavier (Medium)
+          const noteName = noteNamesArray[n % 12];
+          return `${noteName}${octave}`;
       });
+
+      // 3. On déclenche le son de l'accord ! (Durée : une demi-mesure "2n")
+      chordSynth.triggerAttackRelease(notesToPlay, "2n");
+
+      // 4. On met à jour l'affichage visuel
+      setCurrentAbsoluteNotes(nextNotes);
   };
 
   let activeNoteValues = new Array();
@@ -106,9 +159,35 @@ function App() {
     <div className="app-container" style={{ maxWidth: '1600px', margin: '0 auto' }}>
       <h1 style={{color: '#fff'}}>🎛️ Vmu : VisualMusic Coach</h1>
       
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '30px', padding: '10px', backgroundColor: '#111', borderRadius: '10px', border: '1px solid #333', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '20px', padding: '10px', backgroundColor: '#111', borderRadius: '10px', border: '1px solid #333', flexWrap: 'wrap' }}>
           <button onClick={() => setAppMode('studio')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'studio' ? 'var(--theme-primary)' : '#222', color: appMode === 'studio' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>🎛️ Mode Studio (Genres)</button>
           <button onClick={() => setAppMode('dictionary')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'dictionary' ? 'var(--theme-primary)' : '#222', color: appMode === 'dictionary' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>📖 Mode Dictionnaire</button>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '25px', marginBottom: '30px', padding: '15px', backgroundColor: '#1a1a1a', borderRadius: '10px', border: `1px solid ${isPlaying ? '#4CAF50' : '#333'}`, transition: 'all 0.3s' }}>
+          <button 
+              onClick={togglePlayback}
+              style={{ padding: '12px 30px', fontSize: '20px', cursor: 'pointer', backgroundColor: isPlaying ? '#e53935' : '#4CAF50', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s', boxShadow: isPlaying ? '0 0 15px rgba(229, 57, 53, 0.4)' : 'none' }}
+          >
+              {isPlaying ? '⏹️ STOP' : '▶️ PLAY'}
+          </button>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <label style={{ color: '#ccc', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
+                  🔊 Volume Master ({masterVolume} dB)
+              </label>
+              <input 
+                  type="range" min="-40" max="0" value={masterVolume} 
+                  onChange={(e) => setMasterVolume(e.target.value)}
+                  style={{ cursor: 'pointer', width: '150px' }}
+              />
+          </div>
+          
+          {!isAudioReady && (
+              <div style={{ color: '#ff9800', fontSize: '13px', fontStyle: 'italic', maxWidth: '200px', lineHeight: '1.4' }}>
+                  👆 Cliquez sur Play une première fois pour autoriser le son du navigateur.
+              </div>
+          )}
       </div>
 
       {appMode === 'studio' && (
@@ -242,7 +321,6 @@ function App() {
                     {appMode === 'studio' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '20px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#ffd700', borderRadius: '50%', boxShadow: '0 0 10px #ffd700' }}></div><span style={{ color: '#ffd700', fontSize: '14px', fontWeight: 'bold' }}>Note Magique (Target)</span></div>
                     )}
-                    {/* C'est ICI qu'on a appliqué la couleur #78909c pour la Gamme ! */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#78909c', borderRadius: '50%' }}></div><span style={{ color: '#ccc', fontSize: '14px' }}>Gamme</span></div>
                   </>
               ) : null}
@@ -264,4 +342,3 @@ function App() {
 }
 
 export default App;
-
