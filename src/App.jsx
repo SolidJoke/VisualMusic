@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import PianoKeyboard from './components/Instruments/PianoKeyboard';
 import Fretboard from './components/Instruments/Fretboard';
@@ -6,15 +6,26 @@ import PianoRoll from './components/Sequencer/PianoRoll';
 
 import { getScaleNotes, generateChordsFromNNS, MODES, NOTES, getClosestInversion } from './core/theory';
 import { BRICKS } from './core/bricks';
-
 import * as Tone from 'tone';
 
-// --- NOUVEAU : CRÉATION DU SYNTHÉTISEUR POLYPHONIQUE ---
-// On le place en dehors du composant pour qu'il ne soit créé qu'une seule fois.
+// --- CRÉATION DES SYNTHÉTISEURS (Notre groupe de musiciens virtuels) ---
 const chordSynth = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: "triangle" }, // Un son doux qui ressemble un peu à un piano électrique
-    envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 }
+    oscillator: { type: "triangle" }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 }
 }).toDestination();
+
+// La Batterie (Volumes ajustés pour un bon mixage)
+const kickSynth = new Tone.MembraneSynth({ volume: -2 }).toDestination();
+const snareSynth = new Tone.NoiseSynth({ volume: -10, noise: { type: 'white' }, envelope: { attack: 0.005, decay: 0.2, sustain: 0 } }).toDestination();
+const hatSynth = new Tone.MetalSynth({ volume: -18, frequency: 200, envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5 }).toDestination();
+
+// Le Bassiste (Réglé avec Sustain à 0 pour la Psytrance et le groove)
+const bassSynth = new Tone.MonoSynth({
+    volume: -6, oscillator: { type: "sawtooth" },
+    envelope: { attack: 0.01, decay: 0.15, sustain: 0, release: 0.1 },
+    filterEnvelope: { attack: 0.01, decay: 0.15, sustain: 0, baseFrequency: 60, octaves: 4 }
+}).toDestination();
+
+const noteNamesArray = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 
 function App() {
@@ -24,6 +35,7 @@ function App() {
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [masterVolume, setMasterVolume] = useState(-12); 
+  const [currentStep, setCurrentStep] = useState(-1); // Le curseur d'animation
 
   const [currentBrickIndex, setCurrentBrickIndex] = useState(0);
   const [displayMode, setDisplayMode] = useState('chord'); 
@@ -38,76 +50,9 @@ function App() {
   const [fretboardZone, setFretboardZone] = useState('all');
 
   const activeBrick = BRICKS.at(Number(currentBrickIndex));
-  
-  useEffect(() => {
-    if (appMode === 'studio') {
-        document.documentElement.style.setProperty('--theme-primary', activeBrick.theme.primary);
-        document.documentElement.style.setProperty('--theme-bg', activeBrick.theme.bg);
-    } else {
-        document.documentElement.style.setProperty('--theme-primary', '#ffd700'); 
-        document.documentElement.style.setProperty('--theme-bg', '#1a1a1a'); 
-    }
-    setClickedChord(null);
-    setUseRhythmVariation(false); 
-    setCurrentAbsoluteNotes(new Array()); 
-  }, [currentBrickIndex, appMode, activeBrick]);
+  const activeDrums = useRhythmVariation && activeBrick.drumTracksVariation ? activeBrick.drumTracksVariation : activeBrick.drumTracks;
 
-  useEffect(() => {
-    Tone.Destination.volume.value = masterVolume;
-  }, [masterVolume]);
-
-  const togglePlayback = async () => {
-      if (!isAudioReady) {
-          await Tone.start();
-          Tone.Destination.volume.value = masterVolume; 
-          setIsAudioReady(true);
-      }
-
-      if (isPlaying) {
-          Tone.Transport.pause();
-          setIsPlaying(false);
-      } else {
-          Tone.Transport.bpm.value = activeBrick.bpm;
-          Tone.Transport.start();
-          setIsPlaying(true);
-      }
-  };
-
-  // --- NOUVEAU : LE TRADUCTEUR AUDIO POUR LES ACCORDS ---
-  const handleChordClick = async (c) => {
-      setClickedChord(c);
-
-      // Sécurité : si l'utilisateur clique sur un accord avant le bouton Play, on débloque l'audio !
-      if (!isAudioReady) {
-          await Tone.start();
-          Tone.Destination.volume.value = masterVolume;
-          setIsAudioReady(true);
-      }
-
-      const rootVal = c.rootNote.value;
-      const isMinor = c.nns.includes('-');
-      const isDim = c.nns.includes('°') || c.nns.includes('b5');
-      let thirdInterval = (isMinor || isDim) ? 3 : 4; 
-      let fifthInterval = isDim ? 6 : 7;
-      
-      // 1. Calcul de l'inversion (Le Voice Leading)
-      const nextNotes = getClosestInversion(currentAbsoluteNotes, rootVal, thirdInterval, fifthInterval);
-      
-      // 2. Traduction pour Tone.js (Exemple : Transforme 0 en "C3", 4 en "E3")
-      const noteNamesArray = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-      const notesToPlay = nextNotes.map(n => {
-          const octave = Math.floor(n / 12) + 3; // +3 pour jouer au milieu du clavier (Medium)
-          const noteName = noteNamesArray[n % 12];
-          return `${noteName}${octave}`;
-      });
-
-      // 3. On déclenche le son de l'accord ! (Durée : une demi-mesure "2n")
-      chordSynth.triggerAttackRelease(notesToPlay, "2n");
-
-      // 4. On met à jour l'affichage visuel
-      setCurrentAbsoluteNotes(nextNotes);
-  };
-
+  // Calcul mathématique de la théorie (comme avant)
   let activeNoteValues = new Array();
   let currentRootValue = 0;
   let targetValue = -1;
@@ -127,33 +72,141 @@ function App() {
               const n1 = scaleNotes.at(0).value;
               const n2 = scaleNotes.at(2).value;
               const n3 = scaleNotes.at(4).value;
-              let absN1 = n1 + 12;
-              let absN2 = n2 + (n2 < n1 ? 24 : 12);
-              let absN3 = n3 + (n3 < n1 ? 24 : 12);
-              activeNoteValues.push(absN1, absN2, absN3);
+              activeNoteValues.push(n1 + 12, n2 + (n2 < n1 ? 24 : 12), n3 + (n3 < n1 ? 24 : 12));
           }
       }
       currentRootValue = clickedChord ? clickedChord.rootNote.value : activeBrick.rootValue;
       targetValue = !clickedChord ? (activeBrick.rootValue + modeData.targetInterval) % 12 : -1;
-
   } else {
       currentRootValue = Number(dictRoot);
-      if (dictType === 'scale_major') {
-          const notes = getScaleNotes(currentRootValue, 'Ionian');
-          notes.forEach(n => activeNoteValues.push(n.value));
-      } else if (dictType === 'scale_minor') {
-          const notes = getScaleNotes(currentRootValue, 'Aeolian');
-          notes.forEach(n => activeNoteValues.push(n.value));
-      } else if (dictType === 'chord_major') {
-          activeNoteValues.push(currentRootValue + 12, currentRootValue + 4 + 12, currentRootValue + 7 + 12);
-      } else if (dictType === 'chord_minor') {
-          activeNoteValues.push(currentRootValue + 12, currentRootValue + 3 + 12, currentRootValue + 7 + 12);
-      } else if (dictType === 'single_note') {
-          activeNoteValues.push(currentRootValue);
-      }
+      if (dictType === 'scale_major') getScaleNotes(currentRootValue, 'Ionian').forEach(n => activeNoteValues.push(n.value));
+      else if (dictType === 'scale_minor') getScaleNotes(currentRootValue, 'Aeolian').forEach(n => activeNoteValues.push(n.value));
+      else if (dictType === 'chord_major') activeNoteValues.push(currentRootValue + 12, currentRootValue + 4 + 12, currentRootValue + 7 + 12);
+      else if (dictType === 'chord_minor') activeNoteValues.push(currentRootValue + 12, currentRootValue + 3 + 12, currentRootValue + 7 + 12);
+      else if (dictType === 'single_note') activeNoteValues.push(currentRootValue);
   }
 
-  const activeDrums = useRhythmVariation && activeBrick.drumTracksVariation ? activeBrick.drumTracksVariation : activeBrick.drumTracks;
+  // REFS : Permettent à la boucle audio de toujours lire la dernière donnée sans se désynchroniser
+  const drumRef = useRef(activeDrums);
+  const melodyRef = useRef(activeBrick.melodyTracks);
+  const rootRef = useRef(currentRootValue);
+
+  drumRef.current = activeDrums;
+  melodyRef.current = activeBrick.melodyTracks;
+  rootRef.current = currentRootValue;
+
+  // CHANGEMENT DE THÈME ET TEMPO
+  useEffect(() => {
+    if (appMode === 'studio') {
+        document.documentElement.style.setProperty('--theme-primary', activeBrick.theme.primary);
+        document.documentElement.style.setProperty('--theme-bg', activeBrick.theme.bg);
+        Tone.Transport.bpm.value = activeBrick.bpm; // Le tempo change direct si on change de genre !
+    } else {
+        document.documentElement.style.setProperty('--theme-primary', '#ffd700'); 
+        document.documentElement.style.setProperty('--theme-bg', '#1a1a1a'); 
+    }
+    setClickedChord(null);
+    setUseRhythmVariation(false); 
+    setCurrentAbsoluteNotes(new Array()); 
+  }, [currentBrickIndex, appMode, activeBrick]);
+
+  useEffect(() => { Tone.Destination.volume.value = masterVolume; }, [masterVolume]);
+
+  // --- LA BOUCLE AUDIO PRINCIPALE (Le Métronome) ---
+  useEffect(() => {
+      let stepCounter = 0;
+      
+      const repeat = (time) => {
+          const drums = drumRef.current;
+          const melodies = melodyRef.current;
+          const rootVal = rootRef.current;
+
+          // 1. Jouer le Kick
+          const kick = drums.find(d => d.name.toLowerCase().includes('kick'));
+          if (kick && kick.activeSteps.includes(stepCounter)) kickSynth.triggerAttackRelease("C1", "8n", time);
+
+          // 2. Jouer la Snare/Clap
+          const snare = drums.find(d => d.name.toLowerCase().includes('snare') || d.name.toLowerCase().includes('clap'));
+          if (snare && snare.activeSteps.includes(stepCounter)) snareSynth.triggerAttackRelease("16n", time);
+
+          // 3. Jouer les Hi-Hats / Cymbales (Gestion de la vélocité)
+          const hat = drums.find(d => d.name.toLowerCase().includes('hat') || d.name.toLowerCase().includes('clock'));
+          if (hat && hat.activeSteps.includes(stepCounter)) {
+              let vel = hat.lowVelocitySteps && hat.lowVelocitySteps.includes(stepCounter) ? 0.3 : 0.8;
+              hatSynth.triggerAttackRelease("32n", time, vel);
+          }
+
+     // 4. Jouer la Basse et les Mélodies (CORRIGÉ)
+          if (melodies && melodies.length > 0) {
+              melodies.forEach(track => {
+                  if (track.activeSteps.includes(stepCounter)) {
+                      // On applique la vélocité réduite si c'est la première note après le kick (Règle Psytrance)
+                      let vel = track.lowVelocitySteps && track.lowVelocitySteps.includes(stepCounter) ? 0.4 : 0.9;
+                      
+                      // On détecte si c'est une basse (Grave, Octave 1) ou une guitare/lead (Aigu, Octave 3)
+                      let octave = track.name.toLowerCase().includes('bass') ? 1 : 3;
+                      let bassNote = `${noteNamesArray[rootVal % 12]}${octave}`; 
+                      
+                      bassSynth.triggerAttackRelease(bassNote, "16n", time, vel);
+                  }
+              });
+          }
+
+          // 5. Animation visuelle UI
+          Tone.Draw.schedule(() => {
+              setCurrentStep(stepCounter);
+          }, time);
+
+          stepCounter = (stepCounter + 1) % 16;
+      };
+
+      // Si le bouton Play est pressé, on programme la boucle toutes les double-croches ("16n")
+      if (isPlaying) {
+          Tone.Transport.scheduleRepeat(repeat, "16n");
+      } else {
+          Tone.Transport.cancel();
+          setCurrentStep(-1);
+          stepCounter = 0;
+      }
+
+      return () => Tone.Transport.cancel(); // Nettoyage quand le composant se met à jour
+  }, [isPlaying]);
+
+  const togglePlayback = async () => {
+      if (!isAudioReady) {
+          await Tone.start();
+          Tone.Destination.volume.value = masterVolume; 
+          setIsAudioReady(true);
+      }
+      if (isPlaying) {
+          Tone.Transport.pause();
+          setIsPlaying(false);
+      } else {
+          Tone.Transport.start();
+          setIsPlaying(true);
+      }
+  };
+
+  const handleChordClick = async (c) => {
+      setClickedChord(c);
+      if (!isAudioReady) {
+          await Tone.start();
+          Tone.Destination.volume.value = masterVolume;
+          setIsAudioReady(true);
+      }
+      const rootVal = c.rootNote.value;
+      const isMinor = c.nns.includes('-');
+      const isDim = c.nns.includes('°') || c.nns.includes('b5');
+      let thirdInterval = (isMinor || isDim) ? 3 : 4; 
+      let fifthInterval = isDim ? 6 : 7;
+      
+      const nextNotes = getClosestInversion(currentAbsoluteNotes, rootVal, thirdInterval, fifthInterval);
+      const notesToPlay = nextNotes.map(n => `${noteNamesArray[n % 12]}${Math.floor(n / 12) + 3}`);
+
+      // On ajoute un tout petit peu de douceur à l'accord
+      chordSynth.triggerAttackRelease(notesToPlay, "2n");
+      setCurrentAbsoluteNotes(nextNotes);
+  };
 
   return (
     <div className="app-container" style={{ maxWidth: '1600px', margin: '0 auto' }}>
@@ -169,7 +222,7 @@ function App() {
               onClick={togglePlayback}
               style={{ padding: '12px 30px', fontSize: '20px', cursor: 'pointer', backgroundColor: isPlaying ? '#e53935' : '#4CAF50', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s', boxShadow: isPlaying ? '0 0 15px rgba(229, 57, 53, 0.4)' : 'none' }}
           >
-              {isPlaying ? '⏹️ STOP' : '▶️ PLAY'}
+              {isPlaying ? '⏹️ STOP AUDIO' : '🔊 ACTIVER L\'AUDIO'}
           </button>
           
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -185,7 +238,7 @@ function App() {
           
           {!isAudioReady && (
               <div style={{ color: '#ff9800', fontSize: '13px', fontStyle: 'italic', maxWidth: '200px', lineHeight: '1.4' }}>
-                  👆 Cliquez sur Play une première fois pour autoriser le son du navigateur.
+                  👆 Cliquez pour lancer la boîte à rythmes et débloquer les accords.
               </div>
           )}
       </div>
@@ -263,7 +316,6 @@ function App() {
           </div>
       )}
 
-      {/* BOUTONS D'AFFICHAGE ET FILTRES */}
       <div style={{ marginBottom: '25px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
         <button onClick={() => setNotation('us')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'us' ? 'var(--theme-primary)' : '#333', color: notation === 'us' ? '#000' : '#fff' }}>US (A, B, C)</button>
         <button onClick={() => setNotation('eu')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'eu' ? 'var(--theme-primary)' : '#333', color: notation === 'eu' ? '#000' : '#fff' }}>EU (Do, Ré, Mi)</button>
@@ -299,23 +351,22 @@ function App() {
                     <button onClick={() => setUseRhythmVariation(true)} style={{ padding: '5px 10px', backgroundColor: useRhythmVariation ? '#666' : '#222', color: '#fff', border: '1px solid #555', cursor: 'pointer' }}>Variation</button>
                 </div>
             </div>
-            <PianoRoll tracks={activeDrums} totalSteps={activeBrick.id === 'breakbeat' ? 16 : 16} />
+            {/* L'INFO currentStep EST TRANSMISE ICI POUR L'ANIMATION */}
+            <PianoRoll tracks={activeDrums} totalSteps={16} currentStep={currentStep} />
             <h3 style={{color: 'var(--theme-primary)', marginTop: '30px'}}>🎹 Séquenceur Mélodique</h3>
-            <PianoRoll tracks={activeBrick.melodyTracks} totalSteps={16} />
+            <PianoRoll tracks={activeBrick.melodyTracks} totalSteps={16} currentStep={currentStep} />
           </div>
       )}
 
       {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'piano' || activeTab === 'guitars') && (
           <div style={{ width: '100%', maxWidth: '1600px', display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', padding: '15px', backgroundColor: '#1e1e1e', borderRadius: '8px', border: '1px solid #333', marginBottom: '15px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#cf6679', borderRadius: '50%' }}></div><span style={{ color: '#ccc', fontSize: '14px' }}>Fondamentale</span></div>
-              
               {dictType !== 'single_note' && (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#64b5f6', borderRadius: '50%' }}></div><span style={{ color: '#ccc', fontSize: '14px' }}>Tierce</span></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#81c784', borderRadius: '50%' }}></div><span style={{ color: '#ccc', fontSize: '14px' }}>Quinte</span></div>
                   </>
               )}
-
               {(appMode === 'studio' && displayMode === 'scale') || dictType.includes('scale') ? (
                   <>
                     {appMode === 'studio' && (

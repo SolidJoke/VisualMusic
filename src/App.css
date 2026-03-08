@@ -83,3 +83,9 @@ h1 {
     transform-origin: center top;
     margin-bottom: 60px; /* Marge pour éviter que les manches ne se chevauchent */
 }
+
+/* --- COULEURS DES SÉQUENCEURS --- */
+.bg-kick { background-color: #ff5252 !important; box-shadow: 0 0 10px #ff5252; }
+.bg-snare { background-color: #448aff !important; box-shadow: 0 0 10px #448aff; }
+.bg-hat { background-color: #ffeb3b !important; box-shadow: 0 0 10px #ffeb3b; }
+.bg-bass { background-color: #69f0ae !important; box-shadow: 0 0 10px #69f0ae; color: #000; }
