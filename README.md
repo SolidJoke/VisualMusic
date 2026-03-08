@@ -9,13 +9,16 @@ Vmu est une application web interactive conçue pour aider les musiciens (début
 - **Modes d'utilisation** : Explorateur Libre (Dictionnaire) et Mode Studio guidé par genres musicaux.
 
 ## Installation et Lancement
-1. Cloner ce dépôt.
+1. Cloner ce dépôt : `git clone https://github.com/SolidJoke/VisualMusic.git`
 2. Lancer `npm install` pour installer les dépendances (dont `tone` et `react`).
 3. Lancer `npm run dev` pour démarrer le serveur de développement local.
 
-## Droits d'auteur et Licence
-**© 2026 Gabriel Resende.**
+## Auteur et Soutien
+**Créé et développé par Gabriel Resende.**
 
+- 💻 **Code source / Contribuer :** [GitHub - VisualMusic](https://github.com/SolidJoke/VisualMusic)
+- ☕ **Soutenir le projet :** Si cette application vous a aidé, vous pouvez m'offrir un café sur [Ko-fi](https://ko-fi.com/gabrielgsdresende).
+
+## Licence
 Ce projet est distribué sous la **Licence MIT**.  
 L'autorisation est accordée, à titre gratuit, à toute personne obtenant une copie de ce logiciel, de le modifier et de l'utiliser sans restriction, sous réserve d'inclure la notification de copyright.
-
