@@ -4,8 +4,7 @@ import PianoKeyboard from './components/Instruments/PianoKeyboard';
 import Fretboard from './components/Instruments/Fretboard';
 import PianoRoll from './components/Sequencer/PianoRoll';
 
-// NOUVEAU : On importe NOTES pour générer notre menu déroulant alphabétique
-import { getScaleNotes, generateChordsFromNNS, MODES, NOTES } from './core/theory';
+import { getScaleNotes, generateChordsFromNNS, MODES, NOTES, getClosestInversion } from './core/theory';
 import { BRICKS } from './core/bricks';
 
 function App() {
@@ -14,14 +13,17 @@ function App() {
 
   // --- STATES DU MODE STUDIO ---
   const [currentBrickIndex, setCurrentBrickIndex] = useState(0);
-  const [displayMode, setDisplayMode] = useState('scale'); 
+  const [displayMode, setDisplayMode] = useState('chord'); 
   const [clickedChord, setClickedChord] = useState(null);
   const [layoutMode, setLayoutMode] = useState('all'); 
   const [activeTab, setActiveTab] = useState('sequencer');
   const [useRhythmVariation, setUseRhythmVariation] = useState(false);
+  
+  // LA MÉMOIRE DE LA MAIN POUR LES INVERSIONS
+  const [currentAbsoluteNotes, setCurrentAbsoluteNotes] = useState(new Array());
 
-  // --- STATES DU MODE DICTIONNAIRE (NOUVEAU) ---
-  const [dictRoot, setDictRoot] = useState(0); // 0 = Do (C) par défaut
+  // --- STATES DU MODE DICTIONNAIRE ---
+  const [dictRoot, setDictRoot] = useState(0);
   const [dictType, setDictType] = useState('single_note'); 
 
   const activeBrick = BRICKS.at(Number(currentBrickIndex));
@@ -36,9 +38,24 @@ function App() {
     }
     setClickedChord(null);
     setUseRhythmVariation(false); 
-  }, [currentBrickIndex, appMode, activeBrick]);
+    setCurrentAbsoluteNotes(new Array()); // On reset la position de la main au changement
+  }, [currentBrickIndex, appMode]);
 
-  // --- LE CERVEAU SÉPARÉ EN DEUX (AIGUILLAGE LOGIQUE) ---
+  // FONCTION APPELÉE AU CLIC SUR UN ACCORD MAGIQUE
+  const handleChordClick = (c) => {
+      setClickedChord(c);
+      const rootVal = c.rootNote.value;
+      const isMinor = c.nns.includes('-');
+      const isDim = c.nns.includes('°') || c.nns.includes('b5');
+      let thirdInterval = (isMinor || isDim) ? 3 : 4; 
+      let fifthInterval = isDim ? 6 : 7;
+      
+      // On calcule et on sauvegarde la meilleure inversion en fonction de la position précédente !
+      setCurrentAbsoluteNotes(prevNotes => {
+          return getClosestInversion(prevNotes, rootVal, thirdInterval, fifthInterval);
+      });
+  };
+
   let activeNoteValues = new Array();
   let currentRootValue = 0;
   let targetValue = -1;
@@ -51,23 +68,25 @@ function App() {
           scaleNotes.forEach(note => { activeNoteValues.push(note.value); });
       } else {
           if (clickedChord) {
-              const rootVal = clickedChord.rootNote.value;
-              const isMinor = clickedChord.nns.includes('-');
-              const isDim = clickedChord.nns.includes('°') || clickedChord.nns.includes('b5');
-              let thirdInterval = (isMinor || isDim) ? 3 : 4; 
-              let fifthInterval = isDim ? 6 : 7;
-              activeNoteValues.push(rootVal, (rootVal + thirdInterval) % 12, (rootVal + fifthInterval) % 12);
+              if (currentAbsoluteNotes.length === 3) {
+                  activeNoteValues.push(currentAbsoluteNotes.at(0), currentAbsoluteNotes.at(1), currentAbsoluteNotes.at(2));
+              }
           } else {
-              activeNoteValues.push(scaleNotes.at(0).value, scaleNotes.at(2).value, scaleNotes.at(4).value);
+              // Accord de base propre sur l'octave 1
+              const n1 = scaleNotes.at(0).value;
+              const n2 = scaleNotes.at(2).value;
+              const n3 = scaleNotes.at(4).value;
+              let absN1 = n1 + 12;
+              let absN2 = n2 + (n2 < n1 ? 24 : 12);
+              let absN3 = n3 + (n3 < n1 ? 24 : 12);
+              activeNoteValues.push(absN1, absN2, absN3);
           }
       }
       currentRootValue = clickedChord ? clickedChord.rootNote.value : activeBrick.rootValue;
       targetValue = !clickedChord ? (activeBrick.rootValue + modeData.targetInterval) % 12 : -1;
 
   } else {
-      // LOGIQUE DU MODE DICTIONNAIRE
       currentRootValue = Number(dictRoot);
-      
       if (dictType === 'scale_major') {
           const notes = getScaleNotes(currentRootValue, 'Ionian');
           notes.forEach(n => activeNoteValues.push(n.value));
@@ -75,9 +94,9 @@ function App() {
           const notes = getScaleNotes(currentRootValue, 'Aeolian');
           notes.forEach(n => activeNoteValues.push(n.value));
       } else if (dictType === 'chord_major') {
-          activeNoteValues.push(currentRootValue, (currentRootValue + 4) % 12, (currentRootValue + 7) % 12);
+          activeNoteValues.push(currentRootValue + 12, currentRootValue + 4 + 12, currentRootValue + 7 + 12);
       } else if (dictType === 'chord_minor') {
-          activeNoteValues.push(currentRootValue, (currentRootValue + 3) % 12, (currentRootValue + 7) % 12);
+          activeNoteValues.push(currentRootValue + 12, currentRootValue + 3 + 12, currentRootValue + 7 + 12);
       } else if (dictType === 'single_note') {
           activeNoteValues.push(currentRootValue);
       }
@@ -90,12 +109,8 @@ function App() {
       <h1 style={{color: '#fff'}}>🎛️ Vmu : VisualMusic Coach</h1>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '30px', padding: '10px', backgroundColor: '#111', borderRadius: '10px', border: '1px solid #333', flexWrap: 'wrap' }}>
-          <button onClick={() => setAppMode('studio')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'studio' ? 'var(--theme-primary)' : '#222', color: appMode === 'studio' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>
-              🎛️ Mode Studio (Genres & Rythmes)
-          </button>
-          <button onClick={() => setAppMode('dictionary')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'dictionary' ? 'var(--theme-primary)' : '#222', color: appMode === 'dictionary' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>
-              📖 Mode Dictionnaire (Notes & Gammes)
-          </button>
+          <button onClick={() => setAppMode('studio')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'studio' ? 'var(--theme-primary)' : '#222', color: appMode === 'studio' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>🎛️ Mode Studio (Genres)</button>
+          <button onClick={() => setAppMode('dictionary')} style={{ padding: '15px 30px', fontSize: '18px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', backgroundColor: appMode === 'dictionary' ? 'var(--theme-primary)' : '#222', color: appMode === 'dictionary' ? '#000' : '#fff', border: 'none', transition: 'all 0.3s' }}>📖 Mode Dictionnaire</button>
       </div>
 
       {appMode === 'studio' && (
@@ -121,14 +136,14 @@ function App() {
                         const isSelected = clickedChord && clickedChord.nns === c.nns;
                         return (
                             <span key={i}>
-                                <button onClick={() => setClickedChord(c)} style={{ background: isSelected ? 'var(--theme-primary)' : '#222', color: isSelected ? '#000' : 'var(--theme-primary)', border: '2px solid var(--theme-primary)', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', margin: '0 5px', transition: 'all 0.2s' }}>
+                                <button onClick={() => handleChordClick(c)} style={{ background: isSelected ? 'var(--theme-primary)' : '#222', color: isSelected ? '#000' : 'var(--theme-primary)', border: '2px solid var(--theme-primary)', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', margin: '0 5px', transition: 'all 0.2s' }}>
                                     {notation === 'us' ? c.chordNameUS : c.chordNameEU}
                                 </button>
                                 {i < activeBrick.nnsProgression.length - 1 ? ' ➜ ' : ''}
                             </span>
                         );
                     })}
-                    {clickedChord && (<button onClick={() => setClickedChord(null)} style={{marginLeft: '15px', padding: '5px', fontSize: '12px', cursor: 'pointer', backgroundColor: '#444', color: '#fff', border: 'none', borderRadius: '4px'}}>🔄 Revenir à la base</button>)}
+                    {clickedChord && (<button onClick={() => { setClickedChord(null); setCurrentAbsoluteNotes(new Array()); }} style={{marginLeft: '15px', padding: '5px', fontSize: '12px', cursor: 'pointer', backgroundColor: '#444', color: '#fff', border: 'none', borderRadius: '4px'}}>🔄 Revenir à la base</button>)}
                 </div>
               </div>
 
@@ -150,14 +165,11 @@ function App() {
       {appMode === 'dictionary' && (
           <div className="dashboard-panel" style={{ textAlign: 'center', maxWidth: '1600px', backgroundColor: '#2a2a2a', border: '1px solid #ffd700' }}>
               <h2 style={{ margin: '0 0 15px 0', color: 'var(--theme-primary)' }}>📖 Explorateur Libre</h2>
-              
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
                   <div>
                       <label style={{ display: 'block', color: '#ccc', marginBottom: '5px' }}>Note de base (Fondamentale)</label>
                       <select value={dictRoot} onChange={(e) => setDictRoot(e.target.value)} style={{ padding: '10px', fontSize: '18px', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#111', color: '#fff', border: '1px solid #555' }}>
-                          {NOTES.map(n => (
-                              <option key={n.value} value={n.value}>{notation === 'us' ? n.us : n.eu}</option>
-                          ))}
+                          {NOTES.map(n => (<option key={n.value} value={n.value}>{notation === 'us' ? n.us : n.eu}</option>))}
                       </select>
                   </div>
                   <div>
@@ -174,12 +186,10 @@ function App() {
           </div>
       )}
 
-
       <div style={{ marginBottom: '25px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button onClick={() => setNotation('us')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'us' ? 'var(--theme-primary)' : '#333', color: notation === 'us' ? '#000' : '#fff' }}>US (A, B, C)</button>
         <button onClick={() => setNotation('eu')} style={{ padding: '8px 16px', cursor: 'pointer', borderRadius: '4px', border: 'none', fontWeight: 'bold', backgroundColor: notation === 'eu' ? 'var(--theme-primary)' : '#333', color: notation === 'eu' ? '#000' : '#fff' }}>EU (Do, Ré, Mi)</button>
         
-        {/* Les boutons Accord/Gamme n'ont de sens qu'en mode Studio ! */}
         {appMode === 'studio' && (
             <>
                 <div style={{ borderLeft: '2px solid #555', margin: '0 10px' }}></div>
@@ -208,7 +218,6 @@ function App() {
           <div style={{ width: '100%', maxWidth: '1600px', display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', padding: '15px', backgroundColor: '#1e1e1e', borderRadius: '8px', border: '1px solid #333', marginBottom: '15px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#cf6679', borderRadius: '50%' }}></div><span style={{ color: '#ccc', fontSize: '14px' }}>Fondamentale</span></div>
               
-              {/* On n'affiche Bleu/Vert que si on ne cherche pas une Note Unique */}
               {dictType !== 'single_note' && (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#64b5f6', borderRadius: '50%' }}></div><span style={{ color: '#ccc', fontSize: '14px' }}>Tierce</span></div>
@@ -228,13 +237,13 @@ function App() {
       )}
 
       {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'piano') && (
-          <PianoKeyboard activeNotes={activeNoteValues} numOctaves={2} notation={notation} rootValue={currentRootValue} targetValue={targetValue} />
+          <PianoKeyboard activeNotes={activeNoteValues} numOctaves={3} notation={notation} rootValue={currentRootValue} targetValue={targetValue} />
       )}
 
       {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'guitars') && (
           <>
-            <Fretboard instrument="guitar" activeNotes={activeNoteValues} notation={notation} rootValue={currentRootValue} targetValue={targetValue} />
-            <Fretboard instrument="bass" activeNotes={activeNoteValues} notation={notation} rootValue={currentRootValue} targetValue={targetValue} />
+            <Fretboard instrument="guitar" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.guitarStrings} rootValue={currentRootValue} targetValue={targetValue} />
+            <Fretboard instrument="bass" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.bassStrings} rootValue={currentRootValue} targetValue={targetValue} />
           </>
       )}
     </div>
