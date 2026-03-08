@@ -1,7 +1,12 @@
+/* src/components/Instruments/Fretboard.css */
+
 .fretboard-container {
-    margin-bottom: 40px;
+    margin-bottom: 30px;
     width: 100%;
-    max-width: 800px;
+    min-width: 800px; /* Force l'instrument à garder sa taille et déclenche le scroll sur mobile */
+    max-width: 1200px; /* Profite du Desktop */
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .fretboard {
@@ -11,12 +16,13 @@
     border: 2px solid #1a110c;
     border-radius: 4px;
     padding: 10px 0;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
 }
 
 .string-row {
     display: flex;
     flex-direction: row;
-    height: 30px;
+    height: 35px; /* Lignes légèrement plus hautes pour cliquer facilement */
     align-items: center;
 }
 
@@ -27,7 +33,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    border-right: 2px solid #999; /* La frette en métal */
+    border-right: 2px solid #999;
 }
 
 .fret:last-child {
@@ -35,9 +41,9 @@
 }
 
 .open-string {
-    border-right: 5px solid #d4c4a8; /* Le sillet (nut) de tête, plus épais */
+    border-right: 5px solid #d4c4a8; /* Sillet */
     background-color: #1e1e1e;
-    flex: 0.5; /* Plus petit visuellement que les autres cases */
+    flex: 0.5;
 }
 
 .string-line {
@@ -51,44 +57,30 @@
 .note-marker {
     position: relative;
     z-index: 2;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background-color: #444;
     color: #fff;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: bold;
     cursor: default;
 }
 
-.note-marker.active {
-    background-color: #cf6679; /* Rouge d'accentuation (Metal) */
-    box-shadow: 0 0 8px #cf6679;
-    color: #000;
-}
-
 .fret-dot {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    background-color: #555;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
+    background-color: #e0d0b0;
+    opacity: 0.8;
     z-index: 0;
 }
 
-/* Espace à gauche pour l'accordage */
-.fretboard {
-    margin-left: 30px; 
-}
-
-/* Couleurs sur les manches de guitare/basse */
-.note-marker.role-root { background-color: #cf6679; box-shadow: 0 0 8px #cf6679; color: #fff; }
-.note-marker.role-third { background-color: #64b5f6; box-shadow: 0 0 8px #64b5f6; color: #000; }
-.note-marker.role-fifth { background-color: #81c784; box-shadow: 0 0 8px #81c784; color: #000; }
-.note-marker.role-scale { background-color: #e0e0e0; box-shadow: 0 0 8px #e0e0e0; color: #000; font-weight: normal; }
+/* Règle spécifique à Fretboard pour la Note Magique */
 .note-marker.role-target { 
     background-color: var(--theme-primary); 
     box-shadow: 0 0 12px var(--theme-primary); 
