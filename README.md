@@ -1,15 +1,21 @@
-# 🎛️ Vmu : VisualMusic Coach
+# Vmu : VisualMusic Coach 🎛️
 
-**VisualMusic Coach (Vmu)** est une application web interactive conçue pour démystifier la théorie musicale, l'harmonie et la production rythmique. Que vous soyez débutant ou musicien curieux, Vmu vous permet de visualiser et de comprendre instantanément comment se construisent les morceaux dans divers genres musicaux.
+Vmu est une application web interactive conçue pour aider les musiciens (débutants comme confirmés) à comprendre la théorie musicale, à visualiser les gammes et les accords sur différents instruments (Piano, Guitare, Basse), et à s'entraîner sur des rythmes générés en temps réel.
 
-## 🌟 Fonctionnalités Principales
+## Fonctionnalités
+- **Moteur Harmonique** : Système de numérotation de Nashville (NNS) et Voice Leading interactif.
+- **Séquenceur Audio** : Boîte à rythmes et synthétiseur de basse intégrés générés en temps réel via Tone.js.
+- **Instruments Visuels** : Piano et manches de guitares dynamiques avec filtres de positions.
+- **Modes d'utilisation** : Explorateur Libre (Dictionnaire) et Mode Studio guidé par genres musicaux.
 
-* **Exploration par Genre :** De la Psytrance au Groove Metal en passant par le Reggae et la Berlin School, découvrez les "recettes" (BPM, modes, accordages) qui font l'identité de chaque style.
-* **Le Système de Nashville (NNS) Visuel :** Comprenez les progressions d'accords non pas comme des lettres figées, mais comme des numéros (1, 4, 5). Cela permet de transposer facilement des émotions dans n'importe quelle tonalité.
-* **Séquenceurs Intégrés :** Visualisez les grilles rythmiques (Drum & Bass) typiques de chaque genre pour comprendre comment le Kick et la Basse interagissent.
-* **Instruments Dynamiques & Code Couleur :** Un clavier de piano et des manches de guitare/basse s'illuminent en temps réel. Les notes sont colorées selon leur rôle harmonique (Fondamentale, Tierce, Quinte, ou Note Magique) pour un apprentissage intuitif.
+## Installation et Lancement
+1. Cloner ce dépôt.
+2. Lancer `npm install` pour installer les dépendances (dont `tone` et `react`).
+3. Lancer `npm run dev` pour démarrer le serveur de développement local.
 
-## 🛠️ Architecture Technique
-Application développée en React.js (Vite) avec une gestion dynamique des thèmes CSS et un moteur mathématique de théorie musicale (calcul des intervalles, modes et fréquences). Conçu pour être réactif, fluide et sans dépendance serveur complexe.
+## Droits d'auteur et Licence
+**© 2026 Gabriel Resende.**
 
-*Développé pour aider les producteurs, les compositeurs et les curieux à "voir" la musique.*
+Ce projet est distribué sous la **Licence MIT**.  
+L'autorisation est accordée, à titre gratuit, à toute personne obtenant une copie de ce logiciel, de le modifier et de l'utiliser sans restriction, sous réserve d'inclure la notification de copyright.
+
