@@ -1,55 +1,37 @@
-// src/components/Sequencer/PianoRoll.jsx
 import React from 'react';
 import './PianoRoll.css';
 
-export default function PianoRoll({ tracks = new Array(), totalSteps = 16 }) {
-    const steps = new Array();
-    for (let i = 0; i < totalSteps; i++) {
-        steps.push(i);
-    }
-
+export default function PianoRoll({ tracks = new Array(), totalSteps = 16, currentStep = -1 }) {
     return (
-        <div className="piano-roll-container">
-            <h3 style={{color: '#ccc', marginTop: 0, marginBottom: '15px'}}>
-                ⏱️ Séquenceur Rythmique ({totalSteps} cases)
-            </h3>
-            
-            <div className="piano-roll-header">
-                <div className="track-label-header">Instrument</div>
-                {steps.map(step => {
-                    const isBeat = step % 4 === 0;
-                    return (
-                        <div key={`header-${step}`} className={`step-header ${isBeat ? 'beat-marker' : ''}`}>
-                            {isBeat ? (step / 4) + 1 : ''}
-                        </div>
-                    );
-                })}
-            </div>
-
+        <div className="piano-roll">
             {tracks.map((track, trackIndex) => (
-                <div key={`track-${trackIndex}`} className="piano-roll-track">
-                    <div className="track-label">{track.name}</div>
-                    
-                    {steps.map(step => {
-                        const isActive = track.activeSteps.includes(step);
-                        // On vérifie si la note doit avoir une vélocité réduite
-                        const isLowVel = track.lowVelocitySteps && track.lowVelocitySteps.includes(step);
-                        const isBeat = step % 4 === 0;
-                        
-                        return (
-                            <div
-                                key={`step-${trackIndex}-${step}`}
-                                className={`step-cell ${isActive ? track.colorClass : ''} ${isBeat ? 'beat-marker' : ''}`}
-                                // L'astuce visuelle : on baisse l'opacité si la vélocité est faible !
-                                style={{ opacity: isLowVel ? 0.4 : 1 }}
-                                title={isLowVel ? "Vélocité réduite (-30%)" : "Vélocité normale"}
-                            >
-                                {isActive ? (isLowVel ? 'v' : 'X') : ''}
-                            </div>
-                        );
-                    })}
+                <div key={trackIndex} className="track-row">
+                    <div className="track-name">{track.name}</div>
+                    <div className="steps-container">
+                        {Array.from({ length: totalSteps }).map((_, stepIndex) => {
+                            const isActive = track.activeSteps.includes(stepIndex);
+                            const isLowVel = track.lowVelocitySteps?.includes(stepIndex);
+                            const isCurrent = currentStep === stepIndex; // NOUVEAU : Détection de la lecture
+
+                            return (
+                                <div 
+                                    key={stepIndex} 
+                                    className={`step ${isActive ? track.colorClass : ''}`}
+                                    style={{ 
+                                        opacity: isActive && isLowVel ? 0.4 : 1,
+                                        // NOUVEAU : Effet visuel quand la tête de lecture passe dessus
+                                        border: isCurrent ? '2px solid #fff' : '1px solid #333',
+                                        boxShadow: isCurrent && isActive ? '0 0 10px #fff' : 'none',
+                                        transform: isCurrent ? 'scale(1.1)' : 'scale(1)',
+                                        transition: 'all 0.1s'
+                                    }}
+                                ></div>
+                            );
+                        })}
+                    </div>
                 </div>
             ))}
         </div>
     );
 }
+
