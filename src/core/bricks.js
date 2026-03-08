@@ -2,7 +2,7 @@
 
 export const BRICKS = [
     // ---------------------------------------------------------
-    // GENRES ORIGINAUX
+    // GENRES ORIGINAUX (5)
     // ---------------------------------------------------------
     {
         name: { fr: "Techno Euphorique", en: "Euphoric Techno", pt: "Techno Eufórico", zh: "欢快 Techno" },
@@ -80,7 +80,7 @@ export const BRICKS = [
     },
 
     // ---------------------------------------------------------
-    // NOUVEAUX GENRES
+    // GENRES ADDITIONNELS (8)
     // ---------------------------------------------------------
     {
         name: { fr: "Hip-Hop Boom Bap", en: "Oldschool Boom Bap", pt: "Hip-Hop Oldschool", zh: "老派嘻哈" },
@@ -88,18 +88,10 @@ export const BRICKS = [
         tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
         effects: { fr: "Rythmique swinguée, basse lourde et chaude.", en: "Swung rhythm, warm heavy bass.", pt: "Ritmo com swing, baixo pesado.", zh: "摇摆节奏，厚重的低音。" },
         examples: { fr: "Caisse claire sur les temps 2 et 4.", en: "Snare on 2 and 4.", pt: "Caixa nos tempos 2 e 4.", zh: "2和4拍上的军鼓。" },
-        theme: { primary: '#fbc02d', bg: '#261b00' }, // Jaune / Marron
+        theme: { primary: '#fbc02d', bg: '#261b00' },
         nnsProgression: ['1-', '4-', '5-', '1-'], nnsProgressionVariation: ['1-', '6', '7', '1-'],
-        drumTracks: [ 
-            { name: 'Kick', activeSteps: [0, 9] }, 
-            { name: 'Snare', activeSteps: [4, 12] }, 
-            { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14], lowVelocitySteps: [2, 6, 10, 14] } 
-        ],
-        drumTracksVariation: [ 
-            { name: 'Kick', activeSteps: [0, 7, 10] }, 
-            { name: 'Snare', activeSteps: [4, 12] }, 
-            { name: 'Hat', activeSteps: [0, 4, 8, 12] } 
-        ],
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 9] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14], lowVelocitySteps: [2, 6, 10, 14] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 7, 10] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 4, 8, 12] } ],
         melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 9] } ],
         melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 4, 7, 10] } ]
     },
@@ -109,39 +101,23 @@ export const BRICKS = [
         tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
         effects: { fr: "Charlestons très rapides (Rolls) et grosse caisse 808 glissante.", en: "Fast hi-hat rolls and gliding 808 kicks.", pt: "Hi-hats muito rápidos e baixo 808.", zh: "快速的踩镲滚奏和滑音 808 底鼓。" },
         examples: { fr: "Ressenti 'Halftime' avec la caisse claire sur le temps 3.", en: "Halftime feel with snare on beat 3.", pt: "Sensação 'Halftime'.", zh: "半拍感觉。" },
-        theme: { primary: '#ff1744', bg: '#1f0005' }, // Rouge sang / Noir
+        theme: { primary: '#ff1744', bg: '#1f0005' },
         nnsProgression: ['1', 'b2', '1', 'b2'], nnsProgressionVariation: ['1', '1', 'b6', '5'],
-        drumTracks: [ 
-            { name: 'Kick', activeSteps: [0, 10] }, 
-            { name: 'Snare', activeSteps: [8] }, // Snare sur le temps 3 (Halftime)
-            { name: 'Hat', activeSteps: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], lowVelocitySteps: [1, 3, 5, 7, 9, 11, 13, 15] } 
-        ],
-        drumTracksVariation: [ 
-            { name: 'Kick', activeSteps: [0, 2, 10, 11] }, 
-            { name: 'Snare', activeSteps: [8] }, 
-            { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } 
-        ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 10] } ], // Sub Bass 808
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 10] }, { name: 'Snare', activeSteps: [8] }, { name: 'Hat', activeSteps: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], lowVelocitySteps: [1, 3, 5, 7, 9, 11, 13, 15] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 2, 10, 11] }, { name: 'Snare', activeSteps: [8] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 10] } ],
         melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 8, 14] } ]
     },
     {
         name: { fr: "Funk Groovy", en: "Groovy Funk", pt: "Funk Clássico", zh: "律动放克" },
         bpm: 105, modeName: "Dorian", rootValue: 4, // E
         tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
-        effects: { fr: "Basse très syncopée (Slap) et guitare rythmique type 'Cocotte'.", en: "Syncopated slap bass and scratchy rhythm guitar.", pt: "Baixo muito sincopado e guitarra rítmica.", zh: "切分音贝司和扫弦吉他。" },
+        effects: { fr: "Basse très syncopée (Slap) et guitare rythmique type 'Cocotte'.", en: "Syncopated slap bass and scratchy rhythm guitar.", pt: "Baixo sincopado e guitarra rítmica.", zh: "切分音贝司和扫弦吉他。" },
         examples: { fr: "Accent sur le premier temps (The One).", en: "Heavy accent on 'The One'.", pt: "Acento forte no tempo 1.", zh: "重音在第一拍。" },
-        theme: { primary: '#ff9100', bg: '#2b1600' }, // Orange funky
+        theme: { primary: '#ff9100', bg: '#2b1600' },
         nnsProgression: ['1-', '4', '1-', '4'], nnsProgressionVariation: ['1-', '1-', '2-', '5'],
-        drumTracks: [ 
-            { name: 'Kick', activeSteps: [0, 8, 14] }, 
-            { name: 'Snare', activeSteps: [4, 12] }, 
-            { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } 
-        ],
-        drumTracksVariation: [ 
-            { name: 'Kick', activeSteps: [0, 7, 10] }, 
-            { name: 'Snare', activeSteps: [4, 9, 12] }, // Ghost note sur le 9
-            { name: 'Hat', activeSteps: [2, 6, 10, 14] } // Contre-temps purs
-        ],
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 8, 14] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 7, 10] }, { name: 'Snare', activeSteps: [4, 9, 12] }, { name: 'Hat', activeSteps: [2, 6, 10, 14] } ],
         melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 7, 10, 14] } ],
         melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 3, 8, 10, 12] } ]
     },
@@ -151,19 +127,11 @@ export const BRICKS = [
         tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
         effects: { fr: "Rythme droit, accords ouverts et basse mélodique.", en: "Straight rhythm, open chords and melodic bass.", pt: "Ritmo reto, acordes abertos.", zh: "直白节奏，开放和弦。" },
         examples: { fr: "Grosse caisse sur 1 et 3, caisse claire sur 2 et 4.", en: "Kick on 1 & 3, Snare on 2 & 4.", pt: "Bumbo no 1 e 3, Caixa no 2 e 4.", zh: "1和3拍底鼓，2和4拍军鼓。" },
-        theme: { primary: '#4dd0e1', bg: '#002226' }, // Bleu ciel rétro
+        theme: { primary: '#4dd0e1', bg: '#002226' },
         nnsProgression: ['1', '4', '5', '4'], nnsProgressionVariation: ['1', 'b7', '4', '1'],
-        drumTracks: [ 
-            { name: 'Kick', activeSteps: [0, 8] }, 
-            { name: 'Snare', activeSteps: [4, 12] }, 
-            { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } 
-        ],
-        drumTracksVariation: [ 
-            { name: 'Kick', activeSteps: [0, 8, 10] }, 
-            { name: 'Snare', activeSteps: [4, 12] }, 
-            { name: 'Crash', activeSteps: [0] } 
-        ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ], // Basse en croches continues (driving bass)
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 8, 10] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Crash', activeSteps: [0] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
         melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 4, 8, 12] } ]
     },
     {
@@ -172,19 +140,11 @@ export const BRICKS = [
         tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
         effects: { fr: "Polyrhythmies, accents décalés créant une illusion de mesure asymétrique.", en: "Polyrhythms, off-beat accents creating odd-meter illusions.", pt: "Polirritmias, acentos deslocados.", zh: "复合节奏，错位重音。" },
         examples: { fr: "Accentuation par groupes de 3 croches (3-3-2).", en: "Accents in groups of 3 (3-3-2 feel).", pt: "Acentuação em grupos de 3.", zh: "3-3-2 节奏感觉。" },
-        theme: { primary: '#ab47bc', bg: '#1c0024' }, // Violet mystique
+        theme: { primary: '#ab47bc', bg: '#1c0024' },
         nnsProgression: ['1', '2', '4', '5'], nnsProgressionVariation: ['1', '3-', '4', '2'],
-        drumTracks: [ 
-            { name: 'Kick', activeSteps: [0, 3, 6, 10, 13] }, // Rythme très cassé
-            { name: 'Snare', activeSteps: [8] }, 
-            { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } 
-        ],
-        drumTracksVariation: [ 
-            { name: 'Kick', activeSteps: [0, 5, 10] }, 
-            { name: 'Snare', activeSteps: [4, 12] }, 
-            { name: 'Hat', activeSteps: [0, 3, 6, 9, 12] } 
-        ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 6, 10, 13] } ], // Suit parfaitement le kick
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 3, 6, 10, 13] }, { name: 'Snare', activeSteps: [8] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 5, 10] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 3, 6, 9, 12] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 6, 10, 13] } ],
         melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ]
     },
     {
@@ -193,40 +153,24 @@ export const BRICKS = [
         tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
         effects: { fr: "Groove constant 'Four-on-the-floor' avec charleston ouvert sur les contre-temps.", en: "Constant 4/4 groove with open hi-hats on offbeats.", pt: "Groove constante 4/4 com hi-hats no contratempo.", zh: "持续的 4/4 律动，反拍开启踩镲。" },
         examples: { fr: "Caisse claire/Clap sur les temps 2 et 4.", en: "Clap/Snare on beats 2 and 4.", pt: "Clap nos tempos 2 e 4.", zh: "2和4拍上的拍手/军鼓。" },
-        theme: { primary: '#64dd17', bg: '#0b1a00' }, // Vert acide club
+        theme: { primary: '#64dd17', bg: '#0b1a00' },
         nnsProgression: ['1-', '7', '6', '7'], nnsProgressionVariation: ['1-', '4-', '5-', '1-'],
-        drumTracks: [ 
-            { name: 'Kick', activeSteps: [0, 4, 8, 12] }, 
-            { name: 'Snare', activeSteps: [4, 12] }, // Fait office de Clap
-            { name: 'Hat', activeSteps: [2, 6, 10, 14] } // Hat ouvert
-        ],
-        drumTracksVariation: [ 
-            { name: 'Kick', activeSteps: [0, 4, 8, 12] }, 
-            { name: 'Snare', activeSteps: [4, 12] }, 
-            { name: 'Hat', activeSteps: [2, 6, 10, 14] },
-            { name: 'Rim', activeSteps: [3, 7, 15] } // Percussions syncopées
-        ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [2, 6, 10, 14] } ], // Basse purement sur les contre-temps (très Deep House)
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [2, 6, 10, 14] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [2, 6, 10, 14] }, { name: 'Rim', activeSteps: [3, 7, 15] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [2, 6, 10, 14] } ],
         melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 3, 8, 11] } ]
     },
     {
         name: { fr: "Thrash / Groove Metal", en: "Groove Metal", pt: "Thrash / Groove Metal", zh: "激流/律动金属" },
-        bpm: 160, modeName: "Locrian", rootValue: 4, // E (Tuning très grave simulé)
+        bpm: 160, modeName: "Locrian", rootValue: 4, // E
         tuning: "Drop D", guitarStrings: ['D2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['D1', 'A1', 'D2', 'G2'],
-        effects: { fr: "Riffs lourds, dissonants, et double pédale agressive (façon Sepultura/Pantera).", en: "Heavy, dissonant riffs and aggressive double kick.", pt: "Riffs pesados e pedal duplo agressivo.", zh: "沉重不和谐的连段和激烈的双底鼓。" },
+        effects: { fr: "Riffs lourds, dissonants, et double pédale agressive.", en: "Heavy, dissonant riffs and aggressive double kick.", pt: "Riffs pesados e pedal duplo agressivo.", zh: "沉重不和谐的连段和激烈的双底鼓。" },
         examples: { fr: "Attaque constante, étouffement des cordes (Palm Mute).", en: "Constant attack, heavy palm muting.", pt: "Ataque constante, palm muting.", zh: "持续的攻击感，手掌闷音。" },
-        theme: { primary: '#d50000', bg: '#1a0000' }, // Rouge profond
-        nnsProgression: ['1°', 'b2', 'b5', '1°'], nnsProgressionVariation: ['1°', 'b5', 'b3', 'b2'], // Accords très sombres
-        drumTracks: [ 
-            { name: 'Kick', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] }, // Double pédale continue en croches
-            { name: 'Snare', activeSteps: [4, 12] },
-            { name: 'Crash', activeSteps: [0] }
-        ],
-        drumTracksVariation: [ 
-            { name: 'Kick', activeSteps: [0, 1, 3, 4, 8, 9, 11, 12] }, // Rythme cassé et brutal (syncopé)
-            { name: 'Snare', activeSteps: [4, 12] }
-        ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ], // Chug en croches
+        theme: { primary: '#d50000', bg: '#1a0000' },
+        nnsProgression: ['1°', 'b2', 'b5', '1°'], nnsProgressionVariation: ['1°', 'b5', 'b3', 'b2'],
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Crash', activeSteps: [0] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 1, 3, 4, 8, 9, 11, 12] }, { name: 'Snare', activeSteps: [4, 12] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
         melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 1, 3, 4, 8, 9, 11, 12] } ]
     },
     {
@@ -235,18 +179,54 @@ export const BRICKS = [
         tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
         effects: { fr: "Rythme de Darbuka (Dum-Tek) et intervalles exotiques avec la seconde mineure et tierce majeure.", en: "Darbuka rhythm (Dum-Tek) and exotic intervals.", pt: "Ritmo de Darbuka e intervalos exóticos.", zh: "达布卡鼓节奏和充满异国情调的音程。" },
         examples: { fr: "Kick grave (Dum) au centre, Rim/Snare aigu (Tek) sur les bords.", en: "Low kick (Dum) center, high Rim (Tek) on edge.", pt: "Bumbo grave (Dum), Rim agudo (Tek).", zh: "低沉底鼓 (Dum)，清脆边击 (Tek)。" },
-        theme: { primary: '#d4af37', bg: '#261e00' }, // Or / Sable
+        theme: { primary: '#d4af37', bg: '#261e00' },
         nnsProgression: ['1', 'b2', '1', '4m'], nnsProgressionVariation: ['1', 'b7m', 'b6', '5'],
-        drumTracks: [ 
-            { name: 'Kick', activeSteps: [0, 7] }, // "Dum"
-            { name: 'Rim', activeSteps: [3, 10, 12] }, // "Tek" (Simule le rythme Maqsum ou Baladi)
-            { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14], lowVelocitySteps: [0, 2, 4, 6, 8, 10, 12, 14] } // Tambourin léger
-        ],
-        drumTracksVariation: [ 
-            { name: 'Kick', activeSteps: [0, 3, 8] }, // Rythme Malfuf
-            { name: 'Rim', activeSteps: [6, 12, 14] }
-        ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 7, 10] } ], // Ligne mélodique hypnotique
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 7] }, { name: 'Rim', activeSteps: [3, 10, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14], lowVelocitySteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 3, 8] }, { name: 'Rim', activeSteps: [6, 12, 14] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 7, 10] } ],
         melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 4, 7, 9, 12] } ]
+    },
+
+    // ---------------------------------------------------------
+    // NOUVEAUX GENRES (3) - DEMANDÉS PAR LE PO
+    // ---------------------------------------------------------
+    {
+        name: { fr: "Pop Moderne (Ballade)", en: "Modern Pop (Ballad)", pt: "Pop Moderno", zh: "现代流行音乐" },
+        bpm: 120, modeName: "Ionian", rootValue: 0, // C
+        tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: { fr: "La progression d'accords la plus célèbre de la Pop mondiale.", en: "The most famous pop chord progression.", pt: "A progressão mais famosa do Pop.", zh: "最著名的流行和弦进行。" },
+        examples: { fr: "1-5-6-4 : Utilisée dans des milliers de hits (Jason Mraz, Adele...).", en: "1-5-6-4: Used in thousands of hits.", pt: "1-5-6-4: Usada em milhares de hits.", zh: "1-5-6-4 : 用于数以千计的热门歌曲中。" },
+        theme: { primary: '#e91e63', bg: '#26000d' }, // Rose Pop
+        nnsProgression: ['1', '5', '6-', '4'], nnsProgressionVariation: ['6-', '4', '1', '5'],
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 8, 10] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 8] } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 8, 14] } ]
+    },
+    {
+        name: { fr: "Funk / Disco (Dance)", en: "Disco Funk", pt: "Disco Funk", zh: "迪斯科放克" },
+        bpm: 115, modeName: "Dorian", rootValue: 4, // E
+        tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: { fr: "Basse syncopée et charleston à contretemps (Style Daft Punk, Stevie Wonder).", en: "Syncopated bass and off-beat hats (Daft Punk style).", pt: "Baixo sincopado e hi-hats no contratempo.", zh: "切分低音和反拍踩镲。" },
+        examples: { fr: "Kick sur tous les temps (Four on the floor), Clap sur 2 et 4.", en: "Four on the floor kick, Clap on 2 and 4.", pt: "Bumbo no 1,2,3,4. Clap no 2 e 4.", zh: "四四拍底鼓，2和4拍拍手。" },
+        theme: { primary: '#9c27b0', bg: '#1c0024' }, // Violet néon
+        nnsProgression: ['1-', '4', '1-', '4'], nnsProgressionVariation: ['1-', 'b3', '4', '5'],
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [2, 6, 10, 14] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [2, 6, 10, 14] }, { name: 'Rim', activeSteps: [7, 15] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 7, 10, 14] } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 4, 7, 10, 12] } ]
+    },
+    {
+        name: { fr: "Classic Rock (Hard Rock)", en: "Classic Rock", pt: "Rock Clássico", zh: "经典摇滚" },
+        bpm: 100, modeName: "Mixolydian", rootValue: 9, // A
+        tuning: "Standard", guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: { fr: "L'attitude Blues-Rock classique et les accords puissants (Style AC/DC, Led Zeppelin).", en: "Classic Blues-Rock attitude and power chords.", pt: "Atitude Blues-Rock e power chords.", zh: "经典的蓝调摇滚态度和强力和弦。" },
+        examples: { fr: "Rythme lourd binaire, grosse caisse qui appuie la fondamentale.", en: "Heavy straight rhythm, kick supports the root.", pt: "Ritmo pesado e reto.", zh: "沉重的二拍子节奏。" },
+        theme: { primary: '#e65100', bg: '#260d00' }, // Orange Cuivré
+        nnsProgression: ['1', '4', '1', '5'], nnsProgressionVariation: ['1', 'b7', '4', '1'],
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 8, 10] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Crash', activeSteps: [0] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 8] } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 4, 8, 12] } ]
     }
 ];
