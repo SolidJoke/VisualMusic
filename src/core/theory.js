@@ -1,31 +1,57 @@
 // src/core/theory.js
 
-export const NOTES = new Array(
+export const NOTES = [
     { value: 0, us: 'C', eu: 'Do' }, { value: 1, us: 'C#', eu: 'Do#' },
     { value: 2, us: 'D', eu: 'Ré' }, { value: 3, us: 'D#', eu: 'Ré#' },
     { value: 4, us: 'E', eu: 'Mi' }, { value: 5, us: 'F', eu: 'Fa' },
     { value: 6, us: 'F#', eu: 'Fa#' }, { value: 7, us: 'G', eu: 'Sol' },
     { value: 8, us: 'G#', eu: 'Sol#' }, { value: 9, us: 'A', eu: 'La' },
     { value: 10, us: 'A#', eu: 'La#' }, { value: 11, us: 'B', eu: 'Si' }
-);
+];
+
+// NEW: Converts a note name (e.g., "C4") to an absolute numeric value (MIDI note number).
+export const getAbsoluteNoteValue = (noteName) => {
+    const noteStr = String(noteName);
+    const letter = noteStr.replace(/[0-9#b]/g, '');
+    const octaveStr = noteStr.replace(/[^0-9]/g, '');
+    const octave = octaveStr ? parseInt(octaveStr, 10) : 4; // Default to octave 4 if not specified
+    
+    let noteValue = (NOTES.find(n => n.us === letter || n.eu === letter) || {}).value;
+
+    if (noteStr.includes('#')) {
+        // Already handled by the NOTES array, but good for robustness
+    } else if (noteStr.includes('b')) {
+        noteValue = (noteValue - 1 + 12) % 12;
+    }
+
+    if (noteValue === undefined) return null; // Note not found
+
+    // MIDI standard: C4 is 60. Our system: C0 is 0. C4 = 12*4 = 48.
+    // Let's adjust to a common system where C4 = 60 to be more standard.
+    // C0=12, C1=24, C2=36, C3=48, C4=60
+    return noteValue + (octave + 1) * 12;
+};
+
 
 export const MODES = {
-    Ionian: { name: "Ionian (Majeur)", emotion: "Joyeux", intervals: new Array(2, 2, 1, 2, 2, 2, 1), targetInterval: 11 },
-    Dorian: { name: "Dorian", emotion: "Nostalgique", intervals: new Array(2, 1, 2, 2, 2, 1, 2), targetInterval: 9 },
-    Phrygian: { name: "Phrygian", emotion: "Exotique, Sombre", intervals: new Array(1, 2, 2, 2, 1, 2, 2), targetInterval: 1 },
-    Lydian: { name: "Lydian", emotion: "Magique, Spatial", intervals: new Array(2, 2, 2, 1, 2, 2, 1), targetInterval: 6 },
-    Mixolydian: { name: "Mixolydian", emotion: "Bluesy, Rock", intervals: new Array(2, 2, 1, 2, 2, 1, 2), targetInterval: 10 },
-    Aeolian: { name: "Aeolian (Mineur)", emotion: "Triste", intervals: new Array(2, 1, 2, 2, 1, 2, 2), targetInterval: 8 },
-    Locrian: { name: "Locrian", emotion: "Instable, Effrayant", intervals: new Array(1, 2, 2, 1, 2, 2, 2), targetInterval: 6 },
-    PhrygianDominant: { name: "Phrygian Dominant", emotion: "Épique", intervals: new Array(1, 3, 1, 2, 1, 2, 2), targetInterval: 1 }
+    Ionian: { name: "Ionian (Majeur)", emotion: "Joyeux", intervals: [2, 2, 1, 2, 2, 2, 1], targetInterval: 11 },
+    Dorian: { name: "Dorian", emotion: "Nostalgique", intervals: [2, 1, 2, 2, 2, 1, 2], targetInterval: 9 },
+    Phrygian: { name: "Phrygian", emotion: "Exotique, Sombre", intervals: [1, 2, 2, 2, 1, 2, 2], targetInterval: 1 },
+    Lydian: { name: "Lydian", emotion: "Magique, Spatial", intervals: [2, 2, 2, 1, 2, 2, 1], targetInterval: 6 },
+    Mixolydian: { name: "Mixolydian", emotion: "Bluesy, Rock", intervals: [2, 2, 1, 2, 2, 1, 2], targetInterval: 10 },
+    Aeolian: { name: "Aeolian (Mineur)", emotion: "Triste", intervals: [2, 1, 2, 2, 1, 2, 2], targetInterval: 8 },
+    Locrian: { name: "Locrian", emotion: "Instable, Effrayant", intervals: [1, 2, 2, 1, 2, 2, 2], targetInterval: 6 },
+    PhrygianDominant: { name: "Phrygian Dominant", emotion: "Épique", intervals: [1, 3, 1, 2, 1, 2, 2], targetInterval: 1 }
 };
 
 export function getScaleNotes(rootValue, modeName) {
-    const mode = Reflect.get(MODES, modeName).intervals;
-    let currentNotes = new Array();
+    const mode = MODES[modeName].intervals;
+    let currentNotes = [];
     let currentIndex = rootValue;
+    let order = 1;
     mode.forEach(interval => {
-        currentNotes.push(NOTES.at(currentIndex % 12));
+        const note = NOTES.at(currentIndex % 12);
+        currentNotes.push({ ...note, order: order++ });
         currentIndex += interval;
     });
     return currentNotes;
@@ -36,14 +62,14 @@ export function generateChordsFromNNS(rootValue, modeName, nnsArray) {
     return nnsArray.map(nnsStr => {
         const isMinor = nnsStr.includes('-');
         const isDim = nnsStr.includes('°');
-        const degreeMatch = nnsStr.match(new RegExp("1|2|3|4|5|6|7"));
-        let degree = degreeMatch ? parseInt(degreeMatch.at(0)) - 1 : 0; 
-        let chordRootNote = scaleNotes.at(degree);
+        const degreeMatch = nnsStr.match(/[1-7]/);
+        let degree = degreeMatch ? parseInt(degreeMatch[0]) - 1 : 0; 
+        let chordRootNote = scaleNotes[degree];
 
         if (nnsStr.includes('b')) {
-            let baseValue = scaleNotes.at(0).value;
-            let alteredValue = (baseValue + degree) % 12;
-            chordRootNote = NOTES.at(alteredValue); 
+            let baseValue = scaleNotes[0].value;
+            let alteredValue = (baseValue + degree) % 12; // This logic might be flawed for modes
+            chordRootNote = NOTES.find(n => n.value === alteredValue); 
         }
 
         let suffix = isMinor ? 'm' : isDim ? 'dim' : '';
@@ -56,42 +82,30 @@ export function generateChordsFromNNS(rootValue, modeName, nnsArray) {
     });
 }
 
-// NOUVEAU : L'Algorithme d'intelligence de Voice Leading (Les Inversions)
 export function getClosestInversion(prevNotes, root, thirdInterval, fifthInterval) {
     const n1 = root;
     const n2 = root + thirdInterval;
     const n3 = root + fifthInterval;
 
-    // Génère les 3 inversions sur l'Octave 0 (Graves)
-    const inv0_0 = new Array(n1, n2, n3);
-    const inv1_0 = new Array(n2, n3, n1 + 12);
-    const inv2_0 = new Array(n3, n1 + 12, n2 + 12);
-
-    // Génère les 3 inversions sur l'Octave 1 (Médiums)
-    const inv0_1 = new Array(n1 + 12, n2 + 12, n3 + 12);
-    const inv1_1 = new Array(n2 + 12, n3 + 12, n1 + 24);
-    const inv2_1 = new Array(n3 + 12, n1 + 24, n2 + 24);
-
-    // Génère les 3 inversions sur l'Octave 2 (Aigus)
-    const inv0_2 = new Array(n1 + 24, n2 + 24, n3 + 24);
-    const inv1_2 = new Array(n2 + 24, n3 + 24, n1 + 36);
-    const inv2_2 = new Array(n3 + 24, n1 + 36, n2 + 36);
-
-    const allInversions = new Array(inv0_0, inv1_0, inv2_0, inv0_1, inv1_1, inv2_1, inv0_2, inv1_2, inv2_2);
-
-    // Si on n'a pas d'accord précédent, on place la main au milieu du clavier
-    if (!prevNotes || prevNotes.length === 0) {
-        return inv0_1; 
+    const allInversions = [];
+    for (let octave = 2; octave < 5; octave++) { // Generate inversions across a few octaves
+        const base = octave * 12;
+        allInversions.push([base + n1, base + n2, base + n3]); // Root position
+        allInversions.push([base + n2, base + n3, base + n1 + 12]); // 1st inversion
+        allInversions.push([base + n3, base + n1 + 12, base + n2 + 12]); // 2nd inversion
     }
 
-    // Sinon, on cherche l'inversion qui nécessite le moins de mouvement des doigts
-    let bestInversion = inv0_1;
-    let minDistance = 9999;
+    if (!prevNotes || prevNotes.length === 0) {
+        return allInversions.find(inv => inv[0] >= 48) || allInversions[0]; // Default to first inv starting around C4
+    }
+
+    let bestInversion = allInversions[0];
+    let minDistance = Infinity;
 
     allInversions.forEach(inv => {
-        let dist = Math.abs(inv.at(0) - prevNotes.at(0)) +
-                   Math.abs(inv.at(1) - prevNotes.at(1)) +
-                   Math.abs(inv.at(2) - prevNotes.at(2));
+        let dist = Math.abs(inv[0] - prevNotes[0]) +
+                   Math.abs(inv[1] - prevNotes[1]) +
+                   Math.abs(inv[2] - prevNotes[2]);
         if (dist < minDistance) {
             minDistance = dist;
             bestInversion = inv;

@@ -1,23 +1,26 @@
 import React from 'react';
 import './PianoKeyboard.css';
-import { NOTES } from '../../core/theory';
+import { NOTES, getAbsoluteNoteValue } from '../../core/theory';
 
 const BLACK_KEYS = [1, 3, 6, 8, 10];
+const WHITE_KEY_WIDTH = 50;
+const OCTAVE_WIDTH = 7 * WHITE_KEY_WIDTH;
+const BLACK_KEY_OFFSETS = { 1: 35, 3: 85, 6: 185, 8: 235, 10: 285 };
 
-export default function PianoKeyboard({ activeNotes = [], numOctaves = 3, notation = 'us', rootValue = 0, targetValue = -1, onNoteClick }) {
+export default function PianoKeyboard({ activeNotes = [], numOctaves = 3, notation = 'us', rootValue = 0, targetValue = -1, onNoteClick, currentlyPlayingNotes = [] }) {
     const keys = [];
-
-    // Détection auto : Si on a des notes >= 12, c'est qu'on utilise des inversions précises
-    const isAbsoluteMode = activeNotes.some(n => n >= 12);
+    let whiteKeyCounter = 0;
 
     for (let octave = 0; octave < numOctaves; octave++) {
         for (let i = 0; i < 12; i++) {
             const noteInfo = NOTES.at(i);
             const isBlack = BLACK_KEYS.includes(i);
-            const absoluteNote = octave * 12 + i;
+            const noteName = `${noteInfo.us}${octave + 2}`; // Start piano at octave 2
+            const absoluteValue = getAbsoluteNoteValue(noteName);
 
-            // En mode dictionnaire, on allume tous les 'i', en mode Studio on cible l'absoluteNote
-            const isActive = isAbsoluteMode ? activeNotes.includes(absoluteNote) : activeNotes.includes(i);
+            const activeNote = activeNotes.find(n => (n.value % 12) === (i % 12));
+            const isActive = !!activeNote;
+            const isPlaying = currentlyPlayingNotes.includes(absoluteValue);
 
             let roleClass = '';
             if (isActive) {
@@ -29,21 +32,28 @@ export default function PianoKeyboard({ activeNotes = [], numOctaves = 3, notati
                 else roleClass = 'role-scale';
             }
 
-            // Calcul du nom absolu de la note pour Tone.js (ex: "C3", "F#4")
-            // Le clavier visuel commence à l'octave 3 par défaut
-            const absoluteNoteName = `${noteInfo.us}${octave + 3}`;
+            const keyStyle = {};
+            if (isBlack) {
+                const offset = BLACK_KEY_OFFSETS[i];
+                if (offset !== undefined) {
+                    keyStyle.left = `${(octave * OCTAVE_WIDTH) + offset}px`;
+                }
+            } else {
+                whiteKeyCounter++;
+            }
 
             keys.push(
                 <div 
                     key={`octave-${octave}-note-${i}`} 
-                    className={`piano-key ${isBlack ? 'black-key' : 'white-key'} ${roleClass}`} 
+                    className={`piano-key ${isBlack ? 'black-key' : 'white-key'} ${roleClass} ${isPlaying ? 'is-playing' : ''}`} 
                     title={`${noteInfo.us} / ${noteInfo.eu}`}
-                    onClick={() => onNoteClick && onNoteClick(absoluteNoteName)}
+                    onClick={() => onNoteClick && onNoteClick(noteName)}
+                    style={keyStyle}
                 >
-                    <div className="note-label">{noteInfo[notation]}</div>
+                    <div className="note-label">{isActive ? (activeNote.order || noteInfo[notation]) : noteInfo[notation]}</div>
                 </div>
             );
         }
     }
-    return <div className="piano-container">{keys}</div>;
+    return <div className="piano-container" style={{width: `${whiteKeyCounter * WHITE_KEY_WIDTH}px`}}>{keys}</div>;
 }
