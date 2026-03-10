@@ -1,28 +1,93 @@
 /* src/components/Instruments/Fretboard.css */
 
+/* NEW: Animation for a note being played */
+@keyframes note-playing-animation {
+    0% {
+        box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.9);
+        transform: scale(1.2);
+    }
+    100% {
+        box-shadow: 0 0 0 18px rgba(255, 215, 0, 0);
+        transform: scale(1);
+    }
+}
+
 .fretboard-container {
     margin-bottom: 30px;
     width: 100%;
-    min-width: 800px; /* Force l'instrument à garder sa taille et déclenche le scroll sur mobile */
-    max-width: 1200px; /* Profite du Desktop */
+    min-width: 800px;
+    max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
 }
 
 .fretboard {
+    position: relative;
     display: flex;
     flex-direction: column;
-    background-color: #2c1e16; /* Couleur bois sombre */
+    background-color: #2c1e16;
     border: 2px solid #1a110c;
     border-radius: 4px;
     padding: 10px 0;
     box-shadow: 0 10px 20px rgba(0,0,0,0.4);
 }
 
+.fret-dots-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: row;
+    z-index: 0;
+    padding: 10px 0;
+}
+
+.dot-fret-cell {
+    position: relative;
+    flex: 1;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-right: 2px solid #999;
+}
+
+.dot-fret-cell:last-child {
+    border-right: none;
+}
+
+.dot-fret-cell.open-string {
+    border-right: 5px solid #d4c4a8;
+    flex: 0.5;
+}
+
+.double-dot-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.fretboard-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #e0d0b0;
+    opacity: 0.8;
+}
+
+.strings-layer {
+    position: relative;
+    z-index: 1;
+}
+
 .string-row {
     display: flex;
     flex-direction: row;
-    height: 35px; /* Lignes légèrement plus hautes pour cliquer facilement */
+    height: 35px;
     align-items: center;
 }
 
@@ -41,7 +106,7 @@
 }
 
 .open-string {
-    border-right: 5px solid #d4c4a8; /* Sillet */
+    border-right: 5px solid #d4c4a8;
     background-color: #1e1e1e;
     flex: 0.5;
 }
@@ -70,17 +135,11 @@
     cursor: default;
 }
 
-.fret-dot {
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background-color: #e0d0b0;
-    opacity: 0.8;
-    z-index: 0;
+/* NEW: Class to trigger the animation */
+.note-marker.is-playing {
+    animation: note-playing-animation 0.5s ease-out forwards;
 }
 
-/* Règle spécifique à Fretboard pour la Note Magique */
 .note-marker.role-target { 
     background-color: var(--theme-primary); 
     box-shadow: 0 0 12px var(--theme-primary); 

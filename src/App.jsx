@@ -4,7 +4,7 @@ import PianoKeyboard from './components/Instruments/PianoKeyboard';
 import Fretboard from './components/Instruments/Fretboard';
 import PianoRoll from './components/Sequencer/PianoRoll';
 
-import { getScaleNotes, generateChordsFromNNS, MODES, NOTES, getClosestInversion } from './core/theory';
+import { getScaleNotes, generateChordsFromNNS, MODES, NOTES, getClosestInversion, getAbsoluteNoteValue } from './core/theory';
 import { BRICKS } from './core/bricks';
 import * as Tone from 'tone';
 
@@ -332,7 +332,7 @@ function App() {
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [masterVolume, setMasterVolume] = useState(-12); 
-  const [currentBpm, setCurrentBpm] = useState(120); // NOUVEAU : État du BPM
+  const [currentBpm, setCurrentBpm] = useState(120);
   const [currentStep, setCurrentStep] = useState(-1);
 
   const [currentBrickIndex, setCurrentBrickIndex] = useState(0);
@@ -342,6 +342,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('sequencer');
   const [currentTheme, setCurrentTheme] = useState('A');
   const [currentAbsoluteNotes, setCurrentAbsoluteNotes] = useState([]);
+  const [currentlyPlayingNotes, setCurrentlyPlayingNotes] = useState([]); // state for playing animation (now with absolute values)
 
   const [dictRoot, setDictRoot] = useState(0);
   const [dictType, setDictType] = useState('single_note'); 
@@ -353,7 +354,7 @@ function App() {
   const activeMelody = currentTheme === 'B' && activeBrick.melodyTracksVariation ? activeBrick.melodyTracksVariation : activeBrick.melodyTracks;
   const activeProgression = currentTheme === 'B' && activeBrick.nnsProgressionVariation ? activeBrick.nnsProgressionVariation : activeBrick.nnsProgression;
 
-  let activeNoteValues = [];
+  let activeNotes = [];
   let currentRootValue = 0;
   let targetValue = -1;
 
@@ -362,26 +363,26 @@ function App() {
       const modeData = Reflect.get(MODES, activeBrick.modeName);
 
       if (displayMode === 'scale') {
-          scaleNotes.forEach(note => { activeNoteValues.push(note.value); });
+          activeNotes = scaleNotes;
       } else {
           if (clickedChord) {
-              if (currentAbsoluteNotes.length === 3) activeNoteValues.push(currentAbsoluteNotes.at(0), currentAbsoluteNotes.at(1), currentAbsoluteNotes.at(2));
+              activeNotes = currentAbsoluteNotes.map((val, idx) => ({ value: val % 12, order: idx + 1, absoluteValue: val }));
           } else {
               const n1 = scaleNotes.at(0).value;
               const n2 = scaleNotes.at(2).value;
               const n3 = scaleNotes.at(4).value;
-              activeNoteValues.push(n1 + 12, n2 + (n2 < n1 ? 24 : 12), n3 + (n3 < n1 ? 24 : 12));
+              activeNotes.push({ value: n1, order: 1, absoluteValue: n1 + 48 }, { value: n2, order: 2, absoluteValue: n2 + (n2 < n1 ? 60 : 48) }, { value: n3, order: 3, absoluteValue: n3 + (n3 < n1 ? 60 : 48) });
           }
       }
       currentRootValue = clickedChord ? clickedChord.rootNote.value : activeBrick.rootValue;
       targetValue = !clickedChord ? (activeBrick.rootValue + modeData.targetInterval) % 12 : -1;
   } else {
       currentRootValue = Number(dictRoot);
-      if (dictType === 'scale_major') getScaleNotes(currentRootValue, 'Ionian').forEach(n => activeNoteValues.push(n.value));
-      else if (dictType === 'scale_minor') getScaleNotes(currentRootValue, 'Aeolian').forEach(n => activeNoteValues.push(n.value));
-      else if (dictType === 'chord_major') activeNoteValues.push(currentRootValue + 12, currentRootValue + 4 + 12, currentRootValue + 7 + 12);
-      else if (dictType === 'chord_minor') activeNoteValues.push(currentRootValue + 12, currentRootValue + 3 + 12, currentRootValue + 7 + 12);
-      else if (dictType === 'single_note') activeNoteValues.push(currentRootValue);
+      if (dictType === 'scale_major') activeNotes = getScaleNotes(currentRootValue, 'Ionian');
+      else if (dictType === 'scale_minor') activeNotes = getScaleNotes(currentRootValue, 'Aeolian');
+      else if (dictType === 'chord_major') activeNotes.push({ value: currentRootValue, order: 1 }, { value: (currentRootValue + 4)%12, order: 3 }, { value: (currentRootValue + 7)%12, order: 5 });
+      else if (dictType === 'chord_minor') activeNotes.push({ value: currentRootValue, order: 1 }, { value: (currentRootValue + 3)%12, order: 'b3' }, { value: (currentRootValue + 7)%12, order: 5 });
+      else if (dictType === 'single_note') activeNotes.push({ value: currentRootValue, order: null });
   }
 
   let inversionText = "";
@@ -414,7 +415,6 @@ function App() {
     if (appMode === 'studio') {
         document.documentElement.style.setProperty('--theme-primary', activeBrick.theme.primary);
         document.documentElement.style.setProperty('--theme-bg', activeBrick.theme.bg);
-        // NOUVEAU : Réinitialise le BPM en fonction du genre choisi
         setCurrentBpm(activeBrick.bpm);
         Tone.Transport.bpm.value = activeBrick.bpm; 
     } else {
@@ -464,9 +464,14 @@ function App() {
               melodies.forEach(track => {
                   if (track.activeSteps.includes(stepCounter)) {
                       let vel = track.lowVelocitySteps && track.lowVelocitySteps.includes(stepCounter) ? 0.4 : 0.9;
-                      let octave = track.name.toLowerCase().includes('bass') ? 1 : 3;
-                      let bassNote = `${noteNamesArray[rootVal % 12]}${octave}`; 
-                      bassSynth.triggerAttackRelease(bassNote, "16n", time, vel);
+                      let octave = track.name.toLowerCase().includes('bass') ? 2 : 4; // Adjusted octaves
+                      let noteName = `${noteNamesArray[rootVal % 12]}${octave}`;
+                      bassSynth.triggerAttackRelease(noteName, "16n", time, vel);
+                      Tone.Draw.schedule(() => {
+                          const absNote = getAbsoluteNoteValue(noteName);
+                          setCurrentlyPlayingNotes([absNote]);
+                          setTimeout(() => setCurrentlyPlayingNotes([]), 150);
+                      }, time);
                   }
               });
           }
@@ -489,7 +494,7 @@ function App() {
       if (!isAudioReady) {
           await Tone.start();
           Tone.Destination.volume.value = masterVolume; 
-          Tone.Transport.bpm.value = currentBpm; // S'assure que le BPM est bien appliqué
+          Tone.Transport.bpm.value = currentBpm;
           setIsAudioReady(true);
       }
       if (isPlaying) {
@@ -501,7 +506,6 @@ function App() {
       }
   };
 
-  // NOUVEAU : Fonction de gestion manuelle du BPM
   const handleBpmChange = (e) => {
       const newBpm = Number(e.target.value);
       setCurrentBpm(newBpm);
@@ -522,10 +526,12 @@ function App() {
       let fifthInterval = isDim ? 6 : 7;
       
       const nextNotes = getClosestInversion(currentAbsoluteNotes, rootVal, thirdInterval, fifthInterval);
-      const notesToPlay = nextNotes.map(n => `${noteNamesArray[n % 12]}${Math.floor(n / 12) + 3}`);
+      const notesToPlay = nextNotes.map(n => `${noteNamesArray[n % 12]}${Math.floor(n / 12) - 1}`);
 
       chordSynth.triggerAttackRelease(notesToPlay, "2n");
       setCurrentAbsoluteNotes(nextNotes);
+      setCurrentlyPlayingNotes(nextNotes);
+      setTimeout(() => setCurrentlyPlayingNotes([]), 500); // Duration of animation
   };
 
   const playDictionaryAudio = async () => {
@@ -536,46 +542,51 @@ function App() {
       }
 
       let notesToPlay = [];
+      let absolutePitches = [];
 
       if (dictType.includes('scale')) {
           const modeName = dictType === 'scale_major' ? 'Ionian' : 'Aeolian';
           const intervals = MODES[modeName].intervals;
-          
-          let currentPitch = Number(dictRoot);
-          let pitches = [currentPitch];
+          let currentPitch = Number(dictRoot) + 4 * 12; // Start scale at octave 4
+          absolutePitches.push(currentPitch);
           
           intervals.forEach(interval => {
               currentPitch += interval;
-              pitches.push(currentPitch);
+              absolutePitches.push(currentPitch);
           });
 
-          for (let i = pitches.length - 2; i >= 0; i--) {
-              pitches.push(pitches[i]);
+          for (let i = absolutePitches.length - 2; i >= 0; i--) {
+              absolutePitches.push(absolutePitches[i]);
           }
 
-          notesToPlay = pitches.map(p => {
-              const noteName = noteNamesArray[p % 12];
-              const octave = Math.floor(p / 12) + 3; 
-              return `${noteName}${octave}`;
-          });
+          notesToPlay = absolutePitches.map(p => `${noteNamesArray[p % 12]}${Math.floor(p / 12)}`);
 
       } else {
-          notesToPlay = activeNoteValues.map(n => {
-              const noteName = noteNamesArray[n % 12];
-              const octave = Math.floor(n / 12) + 3;
-              return `${noteName}${octave}`;
-          });
+          const baseOctave = 4;
+          absolutePitches = activeNotes.map(n => n.value + baseOctave * 12);
+          notesToPlay = absolutePitches.map(p => `${noteNamesArray[p % 12]}${Math.floor(p / 12)}`);
       }
 
       if (dictType.includes('chord')) {
           chordSynth.triggerAttackRelease(notesToPlay, "2n");
+          setCurrentlyPlayingNotes(absolutePitches);
+          setTimeout(() => setCurrentlyPlayingNotes([]), 500);
       } else if (dictType.includes('scale')) {
           const now = Tone.now();
-          notesToPlay.forEach((note, index) => {
-              chordSynth.triggerAttackRelease(note, "8n", now + index * 0.25);
+          absolutePitches.forEach((pitch, index) => {
+              const noteName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
+              chordSynth.triggerAttackRelease(noteName, "8n", now + index * 0.25);
+              Tone.Draw.schedule(() => {
+                  setCurrentlyPlayingNotes([pitch]);
+                  setTimeout(() => setCurrentlyPlayingNotes([]), 250);
+              }, now + index * 0.25);
           });
-      } else {
-          chordSynth.triggerAttackRelease(notesToPlay[0], "2n");
+      } else { // Single note
+          const noteName = `${noteNamesArray[currentRootValue % 12]}4`;
+          const absNote = getAbsoluteNoteValue(noteName);
+          chordSynth.triggerAttackRelease(noteName, "2n");
+          setCurrentlyPlayingNotes([absNote]);
+          setTimeout(() => setCurrentlyPlayingNotes([]), 500);
       }
   };
 
@@ -586,6 +597,9 @@ function App() {
           setIsAudioReady(true);
       }
       chordSynth.triggerAttackRelease(noteName, "8n");
+      const absNote = getAbsoluteNoteValue(noteName);
+      setCurrentlyPlayingNotes([absNote]);
+      setTimeout(() => setCurrentlyPlayingNotes([]), 500);
   };
 
   return (
@@ -690,7 +704,6 @@ function App() {
               </button>
               
               <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {/* Slider de Volume */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <label style={{ color: '#ccc', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
                           {txt.masterVol} ({masterVolume} dB)
@@ -702,7 +715,6 @@ function App() {
                       />
                   </div>
 
-                  {/* NOUVEAU : Slider de BPM (Visible uniquement en mode Studio) */}
                   {appMode === 'studio' && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                           <label style={{ color: 'var(--theme-primary)', fontSize: '13px', marginBottom: '8px', fontWeight: 'bold' }}>
@@ -883,15 +895,15 @@ function App() {
 
           {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'piano') && (
               <div className="scrollable-instrument">
-                  <PianoKeyboard activeNotes={activeNoteValues} numOctaves={3} notation={notation} rootValue={currentRootValue} targetValue={targetValue} onNoteClick={playSingleNote} />
+                  <PianoKeyboard activeNotes={activeNotes} numOctaves={3} notation={notation} rootValue={currentRootValue} targetValue={targetValue} onNoteClick={playSingleNote} currentlyPlayingNotes={currentlyPlayingNotes} />
               </div>
           )}
 
           {(appMode === 'dictionary' || layoutMode === 'all' || activeTab === 'guitars') && (
               <div className="scrollable-instrument">
-                <Fretboard instrument="guitar" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.guitarStrings} rootValue={currentRootValue} targetValue={targetValue} fretboardZone={fretboardZone} onNoteClick={playSingleNote} />
+                <Fretboard instrument="guitar" activeNotes={activeNotes} notation={notation} stringTuning={activeBrick.guitarStrings} rootValue={currentRootValue} targetValue={targetValue} fretboardZone={fretboardZone} onNoteClick={playSingleNote} currentlyPlayingNotes={currentlyPlayingNotes} />
                 <br/>
-                <Fretboard instrument="bass" activeNotes={activeNoteValues} notation={notation} stringTuning={activeBrick.bassStrings} rootValue={currentRootValue} targetValue={targetValue} fretboardZone={fretboardZone} onNoteClick={playSingleNote} />
+                <Fretboard instrument="bass" activeNotes={activeNotes} notation={notation} stringTuning={activeBrick.bassStrings} rootValue={currentRootValue} targetValue={targetValue} fretboardZone={fretboardZone} onNoteClick={playSingleNote} currentlyPlayingNotes={currentlyPlayingNotes} />
               </div>
           )}
       </div>
