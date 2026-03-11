@@ -5,9 +5,10 @@ import { NOTES, getAbsoluteNoteValue } from '../../core/theory';
 const BLACK_KEYS = [1, 3, 6, 8, 10];
 const WHITE_KEY_WIDTH = 50;
 const OCTAVE_WIDTH = 7 * WHITE_KEY_WIDTH;
-const BLACK_KEY_OFFSETS = { 1: 35, 3: 85, 6: 185, 8: 235, 10: 285 };
+const BLACK_KEY_OFFSETS = { 1: 70, 3: 120, 6: 220, 8: 270, 10: 320 };
 
 export default function PianoKeyboard({ activeNotes = [], numOctaves = 3, notation = 'us', rootValue = 0, targetValue = -1, onNoteClick, currentlyPlayingNotes = [] }) {
+    const [showExplanations, setShowExplanations] = React.useState(false);
     const keys = [];
     let whiteKeyCounter = 0;
 
@@ -21,6 +22,11 @@ export default function PianoKeyboard({ activeNotes = [], numOctaves = 3, notati
             const activeNote = activeNotes.find(n => (n.value % 12) === (i % 12));
             const isActive = !!activeNote;
             const isPlaying = currentlyPlayingNotes.includes(absoluteValue);
+            
+            let labelContent = noteInfo[notation];
+            if (isActive && activeNote.order) {
+                labelContent = `${noteInfo[notation]} (${activeNote.order})`;
+            }
 
             let roleClass = '';
             if (isActive) {
@@ -50,10 +56,30 @@ export default function PianoKeyboard({ activeNotes = [], numOctaves = 3, notati
                     onClick={() => onNoteClick && onNoteClick(noteName)}
                     style={keyStyle}
                 >
-                    <div className="note-label">{isActive ? (activeNote.order || noteInfo[notation]) : noteInfo[notation]}</div>
+                    <div className="note-label">{labelContent}</div>
                 </div>
             );
         }
     }
-    return <div className="piano-container" style={{width: `${whiteKeyCounter * WHITE_KEY_WIDTH}px`}}>{keys}</div>;
+    return (
+        <div className="piano-wrapper">
+            {activeNotes.some(n => n.order) && (
+                <div className="explanations-toggle-container">
+                    <button 
+                        className="toggle-explanations-btn" 
+                        onClick={() => setShowExplanations(!showExplanations)}
+                    >
+                        {showExplanations ? 'Masquer les explications' : 'Que signifient les nombres ?'}
+                    </button>
+                    {showExplanations && (
+                        <div className="numbers-explanation">
+                            Les nombres affichés avec les notes correspondent à leur rôle ou degré dans l'accord/la gamme.
+                            <br/>Par exemple, (1) est la fondamentale (racine), (3) la tierce, (5) la quinte, etc.
+                        </div>
+                    )}
+                </div>
+            )}
+            <div className="piano-container" style={{width: `${(whiteKeyCounter * WHITE_KEY_WIDTH) + 40}px`}}>{keys}</div>
+        </div>
+    );
 }
