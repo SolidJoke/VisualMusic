@@ -23,6 +23,24 @@ body {
   padding: 40px 20px;
 }
 
+/* --- GRID LAYOUT --- */
+.main-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 3.5fr 1fr;
+  gap: 30px;
+  width: 100%;
+  max-width: 2560px;
+  margin-top: 20px;
+  align-items: flex-start;
+}
+
+.layout-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0; /* Important pour overflow flex/grid */
+}
+
 h1 {
   color: var(--theme-primary);
   margin-bottom: 5px;
@@ -121,18 +139,20 @@ h1 {
 
 /* Les hacks "transform: scale()" ont été supprimés ici ! */
 
-/* --- RESPONSIVE MOBILE --- */
+/* --- RESPONSIVE MOBILE & TABLETTE --- */
+@media (max-width: 1200px) {
+    .main-layout-grid {
+        grid-template-columns: 1fr;
+    }
+    .layout-col {
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
     .app-container { padding: 15px 10px; }
     h1 { font-size: 22px; }
     .dashboard-panel { padding: 15px; }
     button { font-size: 14px !important; padding: 10px 15px !important; }
     .piano-roll-step { min-width: 28px !important; height: 28px !important; }
-    
-    /* On empile le bloc Audio (Play, Volume, Tempo) pour qu'il prenne moins de place */
-    .app-container > div:nth-child(4) { /* Cible le conteneur des boutons audio */
-        flex-direction: column !important;
-        gap: 20px !important;
-        padding: 20px !important;
-    }
 }
