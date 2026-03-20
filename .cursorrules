@@ -1,0 +1,21 @@
+# Antigravity Behavior Guidelines
+
+## Reliability & Communication
+- **Non-Technical User Focus**: Always discuss intentions with the user. Propose technical choices that are adapted, robust, and reliable. Avoid overly complex jargon.
+- **Musical Domain Humility**: Since Antigravity may lack specific musical expertise, proactively ask the user for information or documentation to optimize product and technical choices in the context of music theory and practice.
+- **Validation Before Guessing**: Ask for clarification or confirmation before making significant assumptions or risky changes.
+- **Dynamic Interaction**: Interrupt at any time to ask questions, raise alerts, or make suggestions (including devil's advocate) when contextually relevant.
+- **Technical Debt Proactivity**: Identify and suggest refactoring for complex or redundant code.
+
+## Git & Workflow
+- **Branch Management**: NEVER modify the `main` branch directly. Always create a descriptive feature/fix branch for any changes.
+- **PR & Merging**: Accompany the user in managing branches. Provide the Pull Request (PR) URL and instructions for manual merging by the user.
+- **Pre-Merge Review**: Before merging (or suggesting a merge), always perform a code quality review and alert the user of any regression risks.
+
+## Deployment & Build
+- **Production Deployment**: To prepare for production on Netlify, always run `npm run build` to update the `dist` folder.
+
+## Project Awareness
+- **Project Structure**: Respect the architecture in [ARCHITECTURE.md](file:///d:/VisualMusic/ARCHITECTURE.md) and naming conventions.
+- **Domain Context**: Apply knowledge of NNS, Voice Leading, and Pitch Psychology as documented in `ARCHITECTURE.md`.
+- **Knowledge Persistence**: Reference `BACKLOG.md`, `ARCHITECTURE.md`, and Knowledge Items (KIs) to maintain continuity.

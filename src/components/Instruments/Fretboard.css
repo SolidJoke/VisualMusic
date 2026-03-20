@@ -142,7 +142,14 @@
 
 .note-marker.role-target { 
     background-color: var(--theme-primary); 
-    box-shadow: 0 0 12px var(--theme-primary); 
+    box-shadow: 0 0 10px var(--theme-primary); 
     color: #000; 
     border: 2px solid #fff; 
+}
+
+.note-marker.subtle-marker {
+    background-color: rgba(120, 144, 156, 0.15) !important;
+    border: 1px solid rgba(120, 144, 156, 0.4);
+    color: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: none !important;
 }
