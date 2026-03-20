@@ -19,7 +19,7 @@ export const getAbsoluteNoteValue = (noteName) => {
     let noteValue = (NOTES.find(n => n.us === letter || n.eu === letter) || {}).value;
 
     if (noteStr.includes('#')) {
-        // Already handled by the NOTES array, but good for robustness
+        noteValue = (noteValue + 1) % 12;
     } else if (noteStr.includes('b')) {
         noteValue = (noteValue - 1 + 12) % 12;
     }
@@ -82,13 +82,13 @@ export function generateChordsFromNNS(rootValue, modeName, nnsArray) {
     });
 }
 
-export function getClosestInversion(prevNotes, root, thirdInterval, fifthInterval) {
+export function getClosestInversion(prevNotes, root, thirdInterval, fifthInterval, octaveOffset = 0) {
     const n1 = root;
     const n2 = root + thirdInterval;
     const n3 = root + fifthInterval;
 
     const allInversions = [];
-    for (let octave = 2; octave < 5; octave++) { // Generate inversions across a few octaves
+    for (let octave = 1; octave <= 7; octave++) { 
         const base = octave * 12;
         allInversions.push([base + n1, base + n2, base + n3]); // Root position
         allInversions.push([base + n2, base + n3, base + n1 + 12]); // 1st inversion
@@ -96,7 +96,8 @@ export function getClosestInversion(prevNotes, root, thirdInterval, fifthInterva
     }
 
     if (!prevNotes || prevNotes.length === 0) {
-        return allInversions.find(inv => inv[0] >= 48) || allInversions[0]; // Default to first inv starting around C4
+        const targetBase = 48 + (octaveOffset * 12);
+        return allInversions.find(inv => inv[0] >= targetBase) || allInversions.find(inv => inv[0] >= 48) || allInversions[parseInt(allInversions.length / 2)];
     }
 
     let bestInversion = allInversions[0];
