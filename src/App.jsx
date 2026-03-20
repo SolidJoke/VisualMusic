@@ -401,6 +401,7 @@ function App() {
   const [contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues] =
     useState([]);
   const [lastClickedContext, setLastClickedContext] = useState(null);
+  const [singlePlayContext, setSinglePlayContext] = useState(null);
 
   const [dictRoot, setDictRoot] = useState(0);
   const [dictType, setDictType] = useState("single_note");
@@ -755,6 +756,7 @@ function App() {
           .map((p, i) => ({ absoluteValue: p, order: i + 1 }));
         setContextualScaleAbsoluteValues(scaleObjs);
         setLastClickedContext(context);
+        setSinglePlayContext(null); // scale playback: path logic handles highlighting
 
         const now = Tone.now();
         absolutePitches.forEach((pitch, index) => {
@@ -778,8 +780,12 @@ function App() {
     chordSynth.triggerAttackRelease(noteName, "8n");
     setContextualScaleAbsoluteValues([]);
     setLastClickedContext(null);
+    setSinglePlayContext(context ?? null); // remember exact fret position
     setCurrentlyPlayingNotes([absNote]);
-    setTimeout(() => setCurrentlyPlayingNotes([]), 500);
+    setTimeout(() => {
+      setCurrentlyPlayingNotes([]);
+      setSinglePlayContext(null);
+    }, 500);
   };
 
   return (
@@ -1152,11 +1158,24 @@ function App() {
                     width: "100%",
                   }}
                 >
-                  {BRICKS.map((brick, index) => (
-                    <option key={index} value={index}>
-                      {brick.name[lang]}
-                    </option>
-                  ))}
+                  <optgroup label="🎷 Jazz & Bossa">
+                    {BRICKS.map((brick, index) => brick._group === 'jazz' && <option key={index} value={index}>{brick.name[lang]}</option>)}
+                  </optgroup>
+                  <optgroup label="🌍 World & Groove">
+                    {BRICKS.map((brick, index) => brick._group === 'world' && <option key={index} value={index}>{brick.name[lang]}</option>)}
+                  </optgroup>
+                  <optgroup label="🎤 Urban & Hip-Hop">
+                    {BRICKS.map((brick, index) => brick._group === 'urban' && <option key={index} value={index}>{brick.name[lang]}</option>)}
+                  </optgroup>
+                  <optgroup label="🎹 Pop & Funk">
+                    {BRICKS.map((brick, index) => brick._group === 'pop' && <option key={index} value={index}>{brick.name[lang]}</option>)}
+                  </optgroup>
+                  <optgroup label="🎸 Rock & Metal">
+                    {BRICKS.map((brick, index) => brick._group === 'rock' && <option key={index} value={index}>{brick.name[lang]}</option>)}
+                  </optgroup>
+                  <optgroup label="🎧 Electronic">
+                    {BRICKS.map((brick, index) => brick._group === 'electronic' && <option key={index} value={index}>{brick.name[lang]}</option>)}
+                  </optgroup>
                 </select>
 
                 <div style={{ marginTop: "15px" }}>
@@ -1171,6 +1190,11 @@ function App() {
                 <div className="effects-text">
                   💡 {activeBrick.effects[lang]}
                 </div>
+                {activeBrick.inspiration?.[lang] && (
+                  <div style={{ color: '#888', fontSize: '13px', marginTop: '6px', fontStyle: 'italic', paddingLeft: '12px' }}>
+                    {activeBrick.inspiration[lang]}
+                  </div>
+                )}
                 <div
                   style={{
                     color: "#aaa",
@@ -1883,6 +1907,7 @@ function App() {
                   contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
                   dictType={appMode === "dictionary" ? dictType : null}
                   lastClickedContext={lastClickedContext}
+                  singlePlayContext={singlePlayContext}
                 />
                 <br />
                 <Fretboard
@@ -1898,6 +1923,7 @@ function App() {
                   contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
                   dictType={appMode === "dictionary" ? dictType : null}
                   lastClickedContext={lastClickedContext}
+                  singlePlayContext={singlePlayContext}
                 />
               </div>
             )}
@@ -2034,7 +2060,7 @@ function App() {
                   />
                 </div>
 
-                {appMode === "studio" && (
+                {(
                   <div
                     style={{
                       display: "flex",

@@ -15,6 +15,7 @@ export default function Fretboard({
   contextualScaleAbsoluteValues = [],
   dictType = null,
   lastClickedContext = null,
+  singlePlayContext = null,
 }) {
   const numFrets = 14;
   const defaultGuitar = ["E2", "A2", "D3", "G3", "B3", "E4"];
@@ -59,6 +60,15 @@ export default function Fretboard({
     if (!dictType?.includes("scale")) return [];
     if (!lastClickedContext) return [];
 
+    // --- Position playing parameters ---
+    // Guitar: 4-fret span (one finger per fret).
+    // Bass: 3-fret span in low positions (frets 0-4, wider frets), 4-fret elsewhere.
+    const getSpan = (fret) => {
+      if (instrument === "bass") return fret <= 4 ? 3 : 4;
+      return 4;
+    };
+    const SHIFT_PENALTY = 80; // Heavy cost for moving out of the position window
+
     let startFret = 5;
     let currentString = 0;
 
@@ -87,6 +97,9 @@ export default function Fretboard({
       }
     }
 
+    // The position window: hand stays within [windowStart, windowStart + span - 1]
+    let windowStart = Math.max(0, startFret - 1);
+
     const path = [];
     path.push({
       stringIndex: currentString,
@@ -102,22 +115,44 @@ export default function Fretboard({
       strings.forEach((rawStringData, sIdx) => {
         const openStringAbsValue = getAbsoluteNoteValue(rawStringData);
         const f = targetAbs - openStringAbsValue;
-        if (f >= 0 && f <= numFrets) {
-          const fretJump = Math.abs(f - startFret);
-          const stringDiff = Math.abs(sIdx - currentString);
+        if (f < 0 || f > numFrets) return;
 
-          let cost = fretJump * 10 + stringDiff * 2;
-          if (sIdx > currentString) cost += 50;
+        const span = getSpan(windowStart);
+        const windowEnd = windowStart + span - 1;
+        const inWindow = f >= windowStart && f <= windowEnd;
 
-          if (cost < minCost) {
-            minCost = cost;
-            best = { stringIndex: sIdx, fret: f, absoluteValue: targetAbs };
-          }
+        // Position-playing cost function:
+        // - Being inside the window is free (no span penalty)
+        // - Being outside triggers a shift penalty
+        // - Prefer strings close to current, slightly favour moving toward higher strings
+        const spanPenalty = inWindow ? 0 : SHIFT_PENALTY + Math.abs(f - windowStart) * 5;
+        const stringDiff = Math.abs(sIdx - currentString);
+        const backtrack = sIdx < currentString ? 15 : 0;
+
+        const cost = spanPenalty + stringDiff * 3 + backtrack;
+
+        if (cost < minCost) {
+          minCost = cost;
+          best = {
+            stringIndex: sIdx,
+            fret: f,
+            absoluteValue: targetAbs,
+            causesShift: !inWindow,
+            newWindowStart: inWindow ? windowStart : Math.max(0, f - 1),
+          };
         }
       });
 
       if (best) {
-        path.push(best);
+        // If this note requires a position shift, update the window
+        if (best.causesShift) {
+          windowStart = best.newWindowStart;
+        }
+        path.push({
+          stringIndex: best.stringIndex,
+          fret: best.fret,
+          absoluteValue: best.absoluteValue,
+        });
         currentString = best.stringIndex;
       }
     }
@@ -193,6 +228,19 @@ export default function Fretboard({
                   let isSubtle = false;
                   let isPlayingInContext =
                     currentlyPlayingNotes.includes(absoluteValue);
+
+                  // Fix: if a singlePlayContext is active for this instrument,
+                  // restrict the highlight to the exact (string, fret) that was clicked.
+                  // This prevents all occurrences of the same pitch from lighting up.
+                  if (
+                    isPlayingInContext &&
+                    singlePlayContext !== null &&
+                    singlePlayContext.instrument === instrument
+                  ) {
+                    isPlayingInContext =
+                      singlePlayContext.stringIndex === stringIndex &&
+                      singlePlayContext.fret === fret;
+                  }
 
                   if (hasContextualScale) {
                     const ctxNote = contextualScaleAbsoluteValues.find(
