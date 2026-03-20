@@ -9,7 +9,7 @@
 
 ## Git & Workflow
 - **Branch Management**: NEVER modify the `main` branch directly. Always create a descriptive feature/fix branch for any changes.
-- **PR & Merging**: Accompany the user in managing branches. Provide the Pull Request (PR) URL and instructions for manual merging by the user.
+- **PR & Merging**: Accompany the user in managing branches. I must do everything possible to prepare the merge (pushing, checking status, etc.). Finally, I provide the Pull Request (PR) URL **in plain text (not a markdown link)** for easy copying by the user.
 - **Pre-Merge Review**: Before merging (or suggesting a merge), always perform a code quality review and alert the user of any regression risks.
 
 ## Deployment & Build
