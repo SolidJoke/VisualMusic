@@ -37,8 +37,8 @@ export const BRICKS = [
         nnsProgression: ['1-', '6', '7', '1-'], nnsProgressionVariation: ['1-', 'b3', '4', '5'],
         drumTracks: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] } ],
         drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] }, { name: 'Hat', activeSteps: [2, 6, 10, 14] } ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15], lowVelocitySteps: [1, 5, 9, 13] } ],
-        melodyTracksVariation: [ { name: 'Bass', activeSteps: [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15], lowVelocitySteps: [1, 5, 9, 13], pitchSteps: { 1: 'R', 2: '8va', 3: '5', 5: 'R', 6: '8va', 7: '5', 9: 'R', 10: '8va', 11: '5', 13: 'R', 14: '8va', 15: '5' } } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15], pitchSteps: { 1: 'R', 2: '5', 3: '8va', 5: 'R', 6: '5', 7: '8va', 9: 'R', 10: '5', 11: '8va', 13: 'R', 14: '5', 15: '8va' } } ]
     },
     {
         name: { fr: "Metal Épique", en: "Epic Metal", pt: "Metal Épico", zh: "史诗金属" },
@@ -118,8 +118,8 @@ export const BRICKS = [
         nnsProgression: ['1-', '4', '1-', '4'], nnsProgressionVariation: ['1-', '1-', '2-', '5'],
         drumTracks: [ { name: 'Kick', activeSteps: [0, 8, 14] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
         drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 7, 10] }, { name: 'Snare', activeSteps: [4, 9, 12] }, { name: 'Hat', activeSteps: [2, 6, 10, 14] } ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 7, 10, 14] } ],
-        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 3, 8, 10, 12] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 7, 10, 14], pitchSteps: { 0: 'R', 3: '5', 7: 'R', 10: 'b7', 14: '5' } } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 3, 8, 10, 12], pitchSteps: { 0: 'R', 2: '3', 3: '5', 8: 'R', 10: 'b7', 12: '8va' } } ]
     },
     {
         name: { fr: "Rock 60s (Pop Rock)", en: "60s Rock", pt: "Rock Anos 60", zh: "60年代摇滚" },
@@ -255,8 +255,8 @@ export const BRICKS = [
             { name: 'Rim', activeSteps: [3, 7, 12, 15] },
             { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14], lowVelocitySteps: [0, 4, 8, 12] }
         ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11] } ],
-        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 6, 8, 12, 14] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11], pitchSteps: { 0: 'R', 3: '5', 8: 'R', 11: '3' } } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 6, 8, 12, 14], pitchSteps: { 0: 'R', 2: '5', 6: 'R', 8: '3', 12: 'R', 14: '5' } } ]
     },
     {
         name: { fr: "Jazz Standard (Swing)", en: "Jazz Standard (Swing)", pt: "Jazz Standard", zh: "爵士乐标准曲" },
@@ -365,7 +365,7 @@ export const BRICKS = [
             { name: 'Snare', activeSteps: [4, 6, 12, 14], lowVelocitySteps: [6, 14] },
             { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] }
         ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11] } ],
-        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 6, 8, 12, 14] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11], pitchSteps: { 0: 'R', 3: '5', 8: 'R', 11: 'b7' } } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 2, 6, 8, 12, 14], pitchSteps: { 0: 'R', 2: '3', 6: '5', 8: 'R', 12: 'b7', 14: '8va' } } ]
     }
 ];

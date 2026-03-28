@@ -3,6 +3,7 @@ import "./App.css";
 import PianoKeyboard from "./components/Instruments/PianoKeyboard";
 import Fretboard from "./components/Instruments/Fretboard";
 import PianoRoll from "./components/Sequencer/PianoRoll";
+import DAWHelper from "./components/Sequencer/DAWHelper";
 
 import {
   getScaleNotes,
@@ -15,36 +16,16 @@ import {
 import { BRICKS } from "./core/bricks";
 import * as Tone from "tone";
 
-const chordSynth = new Tone.PolySynth(Tone.Synth, {
-  oscillator: { type: "triangle" },
-  envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 },
-}).toDestination();
-
-const kickSynth = new Tone.MembraneSynth({ volume: -2 }).toDestination();
-const snareSynth = new Tone.NoiseSynth({
-  volume: -10,
-  noise: { type: "white" },
-  envelope: { attack: 0.005, decay: 0.2, sustain: 0 },
-}).toDestination();
-const hatFilter = new Tone.Filter(7000, "highpass").toDestination();
-const hatSynth = new Tone.NoiseSynth({
-  volume: -12,
-  noise: { type: "white" },
-  envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.01 },
-}).connect(hatFilter);
-
-const bassSynth = new Tone.MonoSynth({
-  volume: -6,
-  oscillator: { type: "sawtooth" },
-  envelope: { attack: 0.01, decay: 0.15, sustain: 0, release: 0.1 },
-  filterEnvelope: {
-    attack: 0.01,
-    decay: 0.15,
-    sustain: 0,
-    baseFrequency: 60,
-    octaves: 4,
-  },
-}).toDestination();
+import {
+  chordSynth,
+  kickSynth,
+  snareSynth,
+  hatSynth,
+  bassSynth,
+  applyGenrePreset,
+  initPianoSampler,
+  getPianoSynth,
+} from "./audio/AudioEngine";
 
 const noteNamesArray = [
   "C",
@@ -520,6 +501,8 @@ function App() {
       );
       setCurrentBpm(activeBrick.bpm);
       Tone.Transport.bpm.value = activeBrick.bpm;
+      // Apply genre-specific instrument presets
+      applyGenrePreset(activeBrick._group);
     } else {
       document.documentElement.style.setProperty("--theme-primary", "#ffd700");
       document.documentElement.style.setProperty("--theme-bg", "#1a1a1a");
@@ -612,6 +595,8 @@ function App() {
       await Tone.start();
       Tone.Destination.volume.value = masterVolume;
       Tone.Transport.bpm.value = currentBpm;
+      initPianoSampler();
+      if (appMode === "studio") applyGenrePreset(activeBrick._group);
       setIsAudioReady(true);
     }
     if (isPlaying) {
@@ -629,7 +614,7 @@ function App() {
     Tone.Transport.bpm.value = newBpm;
   };
 
-  const handleChordClick = async (c) => {
+  const handleChordClick = async (c, chordIndexInProgression) => {
     setClickedChord(c);
     if (!isAudioReady) {
       await Tone.start();
@@ -642,8 +627,11 @@ function App() {
     let thirdInterval = isMinor || isDim ? 3 : 4;
     let fifthInterval = isDim ? 6 : 7;
 
+    // Reset voice-leading on first chord of progression to prevent octave drift
+    const prevNotes = chordIndexInProgression === 0 ? [] : currentAbsoluteNotes;
+
     const nextNotes = getClosestInversion(
-      currentAbsoluteNotes,
+      prevNotes,
       rootVal,
       thirdInterval,
       fifthInterval,
@@ -652,7 +640,7 @@ function App() {
       (n) => `${noteNamesArray[n % 12]}${Math.floor(n / 12) - 1}`,
     );
 
-    chordSynth.triggerAttackRelease(notesToPlay, "2n");
+    getPianoSynth().triggerAttackRelease(notesToPlay, "2n");
     setCurrentAbsoluteNotes(nextNotes);
     setCurrentlyPlayingNotes(nextNotes);
     setTimeout(() => setCurrentlyPlayingNotes([]), 500); // Duration of animation
@@ -695,7 +683,7 @@ function App() {
     }
 
     if (dictType.includes("chord")) {
-      chordSynth.triggerAttackRelease(notesToPlay, "2n");
+      getPianoSynth().triggerAttackRelease(notesToPlay, "2n");
       setCurrentlyPlayingNotes(absolutePitches);
       setTimeout(() => setCurrentlyPlayingNotes([]), 500);
     } else if (dictType.includes("scale")) {
@@ -704,7 +692,7 @@ function App() {
       const stepTime = noteDuration / 2;
       absolutePitches.forEach((pitch, index) => {
         const noteName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
-        chordSynth.triggerAttackRelease(noteName, "8n", now + index * stepTime);
+        getPianoSynth().triggerAttackRelease(noteName, "8n", now + index * stepTime);
         Tone.Draw.schedule(
           () => {
             setCurrentlyPlayingNotes([pitch]);
@@ -720,7 +708,7 @@ function App() {
       // Single note
       const noteName = `${noteNamesArray[currentRootValue % 12]}4`;
       const absNote = getAbsoluteNoteValue(noteName);
-      chordSynth.triggerAttackRelease(noteName, "2n");
+      getPianoSynth().triggerAttackRelease(noteName, "2n");
       setCurrentlyPlayingNotes([absNote]);
       setTimeout(() => setCurrentlyPlayingNotes([]), 500);
     }
@@ -761,7 +749,7 @@ function App() {
         const now = Tone.now();
         absolutePitches.forEach((pitch, index) => {
           const nName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
-          chordSynth.triggerAttackRelease(nName, "8n", now + index * stepTime);
+          getPianoSynth().triggerAttackRelease(nName, "8n", now + index * stepTime);
           Tone.Draw.schedule(
             () => {
               setCurrentlyPlayingNotes([pitch]);
@@ -777,7 +765,7 @@ function App() {
       }
     }
 
-    chordSynth.triggerAttackRelease(noteName, "8n");
+    getPianoSynth().triggerAttackRelease(noteName, "8n");
     setContextualScaleAbsoluteValues([]);
     setLastClickedContext(null);
     setSinglePlayContext(context ?? null); // remember exact fret position
@@ -1347,7 +1335,7 @@ function App() {
                           style={{ display: "flex", alignItems: "center" }}
                         >
                           <button
-                            onClick={() => handleChordClick(c)}
+                            onClick={() => handleChordClick(c, i)}
                             style={{
                               background: isSelected
                                 ? "var(--theme-primary)"
@@ -1737,6 +1725,13 @@ function App() {
                       currentStep={currentStep}
                     />
                   </div>
+                  <DAWHelper
+                    drumTracks={activeDrums}
+                    melodyTracks={activeMelody}
+                    bpm={currentBpm}
+                    genreName={activeBrick.name[lang] || activeBrick.name.en}
+                    lang={lang}
+                  />
                 </div>
               )}
 

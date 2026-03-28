@@ -1,11 +1,18 @@
 import React from 'react';
 import './PianoRoll.css';
 
-export default function PianoRoll({ tracks = new Array(), totalSteps = 16, currentStep = -1 }) {
+/**
+ * PianoRoll — Step sequencer display with velocity & pitch indicators
+ *
+ * Props:
+ * - tracks: Array of { name, activeSteps, lowVelocitySteps?, pitchSteps? }
+ * - totalSteps: number (default 16)
+ * - currentStep: number (-1 = none)
+ */
+export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1 }) {
     return (
         <div className="piano-roll">
             {tracks.map((track, trackIndex) => {
-                // On déduit la classe CSS depuis le nom (ex: "Kick" -> "bg-kick")
                 const colorClass = `bg-${track.name.toLowerCase()}`;
 
                 return (
@@ -14,22 +21,31 @@ export default function PianoRoll({ tracks = new Array(), totalSteps = 16, curre
                         <div className="steps-container">
                             {Array.from({ length: totalSteps }).map((_, stepIndex) => {
                                 const isActive = track.activeSteps.includes(stepIndex);
-                                // Utilisation du chaînage optionnel (?.) pour éviter les crashs si lowVelocitySteps est indéfini
                                 const isLowVel = track.lowVelocitySteps?.includes(stepIndex);
                                 const isCurrent = currentStep === stepIndex;
+                                const pitchLabel = track.pitchSteps?.[stepIndex] || null;
+
+                                // Build CSS classes
+                                const classes = [
+                                    'step',
+                                    isActive ? colorClass : '',
+                                    isActive && isLowVel ? 'step--ghost' : '',
+                                    isCurrent ? 'step--current' : '',
+                                ].filter(Boolean).join(' ');
 
                                 return (
-                                    <div 
-                                        key={stepIndex} 
-                                        className={`step ${isActive ? colorClass : ''}`}
-                                        style={{ 
-                                            opacity: isActive && isLowVel ? 0.4 : 1,
-                                            border: isCurrent ? '2px solid #fff' : '1px solid #333',
-                                            boxShadow: isCurrent && isActive ? '0 0 10px #fff' : 'none',
-                                            transform: isCurrent ? 'scale(1.1)' : 'scale(1)',
-                                            transition: 'all 0.1s'
-                                        }}
-                                    ></div>
+                                    <div
+                                        key={stepIndex}
+                                        className={classes}
+                                        title={isActive ? buildTooltip(track.name, stepIndex, isLowVel, pitchLabel) : ''}
+                                    >
+                                        {isActive && isLowVel && (
+                                            <span className="step__ghost-label">👻</span>
+                                        )}
+                                        {isActive && pitchLabel && (
+                                            <span className="step__pitch-label">{pitchLabel}</span>
+                                        )}
+                                    </div>
                                 );
                             })}
                         </div>
@@ -38,4 +54,14 @@ export default function PianoRoll({ tracks = new Array(), totalSteps = 16, curre
             })}
         </div>
     );
+}
+
+/**
+ * Build a descriptive tooltip for a step.
+ */
+function buildTooltip(trackName, stepIndex, isGhost, pitchLabel) {
+    const parts = [`${trackName} — Step ${stepIndex + 1}`];
+    if (isGhost) parts.push('Velocity: Ghost (low)');
+    if (pitchLabel) parts.push(`Pitch: ${pitchLabel}`);
+    return parts.join(' | ');
 }
