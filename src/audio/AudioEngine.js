@@ -223,6 +223,51 @@ export const hatSynth = new Tone.NoiseSynth({
   },
 }).connect(hatFilter);
 
+// ─── Dictionary & Fretboard Playback Router ──────────────────────────
+
+/**
+ * Plays a note or chord using the selected instrument, enforcing realistic physical ranges.
+ * @param {'piano'|'guitar'|'bass'} instrument 
+ * @param {string|string[]} notes 
+ * @param {string|number} duration 
+ * @param {number} [time]
+ */
+export function playDictionaryNote(instrument, notes, duration, time) {
+  const noteArray = Array.isArray(notes) ? notes : [notes];
+
+  const filteredNotes = noteArray.filter(noteName => {
+    try {
+      const midi = Tone.Frequency(noteName).toMidi();
+      if (instrument === "bass") {
+        // Bass range: E1 (28) to G4 (67)
+        return midi >= 28 && midi <= 67;
+      } else if (instrument === "guitar") {
+        // Guitar range: E2 (40) to C6 (84)
+        return midi >= 40 && midi <= 84;
+      } else if (instrument === "piano") {
+        // Piano range: A0 (21) to C8 (108)
+        return midi >= 21 && midi <= 108;
+      }
+      return true;
+    } catch {
+      return false; // Invalid note format
+    }
+  });
+
+  if (filteredNotes.length === 0) return; // Physically impossible note = silence
+
+  if (instrument === "bass") {
+    // bassSynth is MonoSynth; we only play the root/lowest note of a chord
+    // Sort array by midi value to find the lowest note
+    const lowestNote = filteredNotes.sort((a,b) => Tone.Frequency(a).toMidi() - Tone.Frequency(b).toMidi())[0];
+    bassSynth.triggerAttackRelease(lowestNote, duration, time);
+  } else if (instrument === "guitar") {
+    getGuitarSynth().triggerAttackRelease(filteredNotes, duration, time);
+  } else {
+    getPianoSynth().triggerAttackRelease(filteredNotes, duration, time);
+  }
+}
+
 // ─── Bass ────────────────────────────────────────────────────────────
 
 let currentBassPreset = BASS_PRESETS.electronic;
