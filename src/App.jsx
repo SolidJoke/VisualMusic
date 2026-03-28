@@ -27,7 +27,9 @@ import {
   getPianoSynth,
   setInstrumentVolume,
   playDictionaryNote,
+  masterAnalyser,
 } from "./audio/AudioEngine";
+import AudioVisualizer from "./components/Visualizer/AudioVisualizer";
 
 const noteNamesArray = [
   "C",
@@ -1432,6 +1434,10 @@ function App() {
             className="layout-col layout-center"
             style={{ alignItems: "center" }}
           >
+            {/* Reactive Audio Visualizer Header */}
+            <div style={{ width: "100%", marginBottom: "15px" }}>
+              <AudioVisualizer analyser={masterAnalyser} height="80px" />
+            </div>
             {layoutMode === "tabs" && (
               <div
                 style={{
