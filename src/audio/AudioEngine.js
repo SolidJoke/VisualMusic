@@ -24,7 +24,8 @@ export const instrumentVols = {
   bass: new Tone.Volume(0).connect(limiter),
   kick: new Tone.Volume(0).connect(limiter),
   snare: new Tone.Volume(0).connect(limiter),
-  hat: new Tone.Volume(0).connect(limiter)
+  hat: new Tone.Volume(0).connect(limiter),
+  guitar: new Tone.Volume(0).connect(limiter)
 };
 
 /**
@@ -41,6 +42,17 @@ export function setInstrumentVolume(instrument, dbValue) {
 const pianoReverb = new Tone.Reverb({ decay: 1.5, wet: 0.15 }).connect(instrumentVols.piano);
 const pianoChorus = new Tone.Chorus({ frequency: 0.5, delayTime: 3.5, depth: 0.15, wet: 0.1 }).connect(pianoReverb);
 pianoChorus.start();
+
+const guitarReverb = new Tone.Reverb({ decay: 2.0, wet: 0.2 }).connect(instrumentVols.guitar);
+const guitarChorus = new Tone.Chorus({ frequency: 2, delayTime: 2.5, depth: 0.3, wet: 0.15 }).connect(guitarReverb);
+guitarChorus.start();
+
+export const guitarSynth = new Tone.PolySynth(Tone.PluckSynth, {
+  attackNoise: 1,
+  dampening: 4000,
+  resonance: 0.7,
+}).connect(guitarChorus);
+
 
 // ─── Piano ───────────────────────────────────────────────────────────
 
