@@ -15,8 +15,14 @@
 import * as Tone from "tone";
 import { DRUM_PRESETS, BASS_PRESETS, PIANO_PRESET } from "./InstrumentPresets";
 
-// ─── Safety: Hard Limiter ────────────────────────────────────────────
-const limiter = new Tone.Limiter(-1).toDestination();
+// ─── Safety & Analysis: Hard Limiter and FFT ──────────────────────────
+const limiter = new Tone.Limiter(-1);
+const masterAnalyser = new Tone.Analyser({
+  type: "fft",
+  size: 64, // 64 bins for a chunky, sleek visualizer
+  smoothing: 0.8,
+});
+limiter.chain(masterAnalyser, Tone.Destination);
 
 // ─── Mixing Nodes ────────────────────────────────────────────────────
 export const instrumentVols = {
@@ -346,4 +352,4 @@ export function applyGenrePreset(group) {
 }
 
 // ─── Exports ─────────────────────────────────────────────────────────
-export { limiter };
+export { limiter, masterAnalyser };
