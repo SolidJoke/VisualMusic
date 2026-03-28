@@ -47,7 +47,31 @@ const guitarReverb = new Tone.Reverb({ decay: 2.0, wet: 0.2 }).connect(instrumen
 const guitarChorus = new Tone.Chorus({ frequency: 2, delayTime: 2.5, depth: 0.3, wet: 0.15 }).connect(guitarReverb);
 guitarChorus.start();
 
-export const guitarSynth = new Tone.PolySynth(Tone.PluckSynth, {
+class CustomPolyPluckSynth {
+  constructor(options, maxVoices = 6) {
+    this.voices = [];
+    this.currentVoice = 0;
+    this.output = new Tone.Volume(0);
+    for (let i = 0; i < maxVoices; i++) {
+      this.voices.push(new Tone.PluckSynth(options).connect(this.output));
+    }
+  }
+
+  triggerAttackRelease(notes, duration, time, velocity) {
+    const noteArray = Array.isArray(notes) ? notes : [notes];
+    noteArray.forEach((note) => {
+      this.voices[this.currentVoice].triggerAttack(note, time, velocity);
+      this.currentVoice = (this.currentVoice + 1) % this.voices.length;
+    });
+  }
+
+  connect(destination) {
+    this.output.connect(destination);
+    return this;
+  }
+}
+
+export const guitarSynth = new CustomPolyPluckSynth({
   attackNoise: 1,
   dampening: 4000,
   resonance: 0.7,

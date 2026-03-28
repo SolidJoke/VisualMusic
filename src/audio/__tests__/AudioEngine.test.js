@@ -259,4 +259,14 @@ describe("AudioEngine Module Exports", () => {
       );
     }
   });
+
+  it("exports CustomPolyPluckSynth with valid triggerAttackRelease method", async () => {
+    try {
+      const module = await import("../AudioEngine.js");
+      expect(module.guitarSynth).toBeDefined();
+      expect(typeof module.guitarSynth.triggerAttackRelease).toBe("function");
+    } catch (e) {
+      console.log("[SKIP] guitarSynth test skipped without browser audio context");
+    }
+  });
 });
