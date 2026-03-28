@@ -28,6 +28,7 @@ import {
   setInstrumentVolume,
   getGuitarSynth,
   initGuitarSampler,
+  playDictionaryNote,
 } from "./audio/AudioEngine";
 
 const noteNamesArray = [
@@ -80,6 +81,7 @@ function App() {
 
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackInstrument, setPlaybackInstrument] = useState("piano");
   const [masterVolume, setMasterVolume] = useState(-12);
   const [currentBpm, setCurrentBpm] = useState(120);
   const [instrumentVolumes, setInstrumentVolumes] = useState({
@@ -415,10 +417,8 @@ function App() {
       );
     }
 
-    const activeSynth = activeTab === "guitars" ? getGuitarSynth() : getPianoSynth();
-
     if (dictType.includes("chord")) {
-      activeSynth.triggerAttackRelease(notesToPlay, "2n");
+      playDictionaryNote(playbackInstrument, notesToPlay, "2n");
       setCurrentlyPlayingNotes(absolutePitches);
       setTimeout(() => setCurrentlyPlayingNotes([]), 500);
     } else if (dictType.includes("scale")) {
@@ -427,7 +427,7 @@ function App() {
       const stepTime = noteDuration / 2;
       absolutePitches.forEach((pitch, index) => {
         const noteName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
-        activeSynth.triggerAttackRelease(noteName, "8n", now + index * stepTime);
+        playDictionaryNote(playbackInstrument, noteName, "8n", now + index * stepTime);
         Tone.Draw.schedule(
           () => {
             setCurrentlyPlayingNotes([pitch]);
@@ -443,7 +443,7 @@ function App() {
       // Single note
       const noteName = `${noteNamesArray[currentRootValue % 12]}4`;
       const absNote = getAbsoluteNoteValue(noteName);
-      activeSynth.triggerAttackRelease(noteName, "2n");
+      playDictionaryNote(playbackInstrument, noteName, "2n");
       setCurrentlyPlayingNotes([absNote]);
       setTimeout(() => setCurrentlyPlayingNotes([]), 500);
     }
@@ -481,11 +481,10 @@ function App() {
         setLastClickedContext(context);
         setSinglePlayContext(null); // scale playback: path logic handles highlighting
 
-        const activeSynth = activeTab === "guitars" ? getGuitarSynth() : getPianoSynth();
         const now = Tone.now();
         absolutePitches.forEach((pitch, index) => {
           const nName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
-          activeSynth.triggerAttackRelease(nName, "8n", now + index * stepTime);
+          playDictionaryNote(playbackInstrument, nName, "8n", now + index * stepTime);
           Tone.Draw.schedule(
             () => {
               setCurrentlyPlayingNotes([pitch]);
@@ -501,8 +500,7 @@ function App() {
       }
     }
 
-    const activeSynth = activeTab === "guitars" ? getGuitarSynth() : getPianoSynth();
-    activeSynth.triggerAttackRelease(noteName, "8n");
+    playDictionaryNote(playbackInstrument, noteName, "8n");
     setContextualScaleAbsoluteValues([]);
     setLastClickedContext(null);
     setSinglePlayContext(context ?? null); // remember exact fret position
@@ -1313,6 +1311,41 @@ function App() {
                   EU (Do,Ré)
                 </button>
               </div>
+
+              {/* GLOBAL INSTRUMENT SELECTOR */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  marginTop: "10px"
+                }}
+              >
+                {[
+                  { id: "piano", label: "🎹 Piano" },
+                  { id: "guitar", label: "🎸 Guit./Bass" },
+                  { id: "bass", label: "🎸 Basse" }
+                ].map((inst) => (
+                  <button
+                    key={inst.id}
+                    onClick={() => setPlaybackInstrument(inst.id)}
+                    style={{
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                      borderRadius: "4px",
+                      border: "none",
+                      fontWeight: "bold",
+                      backgroundColor:
+                        playbackInstrument === inst.id ? "var(--theme-primary)" : "#333",
+                      color: playbackInstrument === inst.id ? "#000" : "#fff",
+                    }}
+                  >
+                    {inst.label}
+                  </button>
+                ))}
+              </div>
+
               {appMode === "studio" && (
                 <div
                   style={{
