@@ -26,8 +26,6 @@ import {
   initPianoSampler,
   getPianoSynth,
   setInstrumentVolume,
-  getGuitarSynth,
-  initGuitarSampler,
   playDictionaryNote,
 } from "./audio/AudioEngine";
 
@@ -80,6 +78,7 @@ function App() {
   const [showTheory, setShowTheory] = useState(false);
 
   const [isAudioReady, setIsAudioReady] = useState(false);
+  const playTokenRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackInstrument, setPlaybackInstrument] = useState("piano");
   const [masterVolume, setMasterVolume] = useState(-12);
@@ -417,27 +416,36 @@ function App() {
       );
     }
 
+    // Cancel any ongoing dictionary/fretboard sequence
+    playTokenRef.current += 1;
+    const currentToken = playTokenRef.current;
+    
+    // Immediately clear UI to prevent visual overlap
+    setCurrentlyPlayingNotes([]);
+
     if (dictType.includes("chord")) {
       playDictionaryNote(playbackInstrument, notesToPlay, "2n");
       setCurrentlyPlayingNotes(absolutePitches);
-      setTimeout(() => setCurrentlyPlayingNotes([]), 500);
+      setTimeout(() => {
+        if (playTokenRef.current === currentToken) setCurrentlyPlayingNotes([]);
+      }, 500);
     } else if (dictType.includes("scale")) {
-      const now = Tone.now();
       const noteDuration = 60 / currentBpm;
       const stepTime = noteDuration / 2;
+      
       absolutePitches.forEach((pitch, index) => {
-        const noteName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
-        playDictionaryNote(playbackInstrument, noteName, "8n", now + index * stepTime);
-        Tone.Draw.schedule(
-          () => {
-            setCurrentlyPlayingNotes([pitch]);
-            setTimeout(
-              () => setCurrentlyPlayingNotes([]),
-              Math.max(stepTime * 1000 - 50, 50),
-            );
-          },
-          now + index * stepTime,
-        );
+        setTimeout(() => {
+          if (playTokenRef.current !== currentToken) return; // Abort if a new sequence started
+          
+          const noteName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
+          playDictionaryNote(playbackInstrument, noteName, "8n");
+          setCurrentlyPlayingNotes([pitch]);
+          
+          setTimeout(() => {
+            if (playTokenRef.current === currentToken) setCurrentlyPlayingNotes([]);
+          }, Math.max(stepTime * 1000 - 50, 50));
+          
+        }, index * stepTime * 1000);
       });
     } else {
       // Single note
@@ -445,7 +453,9 @@ function App() {
       const absNote = getAbsoluteNoteValue(noteName);
       playDictionaryNote(playbackInstrument, noteName, "2n");
       setCurrentlyPlayingNotes([absNote]);
-      setTimeout(() => setCurrentlyPlayingNotes([]), 500);
+      setTimeout(() => {
+        if (playTokenRef.current === currentToken) setCurrentlyPlayingNotes([]);
+      }, 500);
     }
   };
 
@@ -472,6 +482,13 @@ function App() {
 
     const absNote = getAbsoluteNoteValue(noteName);
 
+    // Cancel any ongoing dictionary/fretboard sequence
+    playTokenRef.current += 1;
+    const currentToken = playTokenRef.current;
+
+    // Clear UI state to prepare for new note/scale
+    setCurrentlyPlayingNotes([]);
+
     if (appMode === "dictionary" && dictType.includes("scale")) {
       if (absNote % 12 === Number(dictRoot)) {
         const modeName = dictType === "scale_major" ? "Ionian" : "Aeolian";
@@ -495,20 +512,20 @@ function App() {
         setLastClickedContext(context);
         setSinglePlayContext(null); // scale playback: path logic handles highlighting
 
-        const now = Tone.now();
         absolutePitches.forEach((pitch, index) => {
-          const nName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
-          playDictionaryNote(playbackInstrument, nName, "8n", now + index * stepTime);
-          Tone.Draw.schedule(
-            () => {
-              setCurrentlyPlayingNotes([pitch]);
-              setTimeout(
-                () => setCurrentlyPlayingNotes([]),
-                Math.max(stepTime * 1000 - 50, 50),
-              );
-            },
-            now + index * stepTime,
-          );
+          setTimeout(() => {
+            if (playTokenRef.current !== currentToken) return; // Abort if interrupted
+
+            const nName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
+            playDictionaryNote(playbackInstrument, nName, "8n");
+            
+            setCurrentlyPlayingNotes([pitch]);
+            
+            setTimeout(() => {
+              if (playTokenRef.current === currentToken) setCurrentlyPlayingNotes([]);
+            }, Math.max(stepTime * 1000 - 50, 50));
+
+          }, index * stepTime * 1000);
         });
         return;
       }
@@ -520,8 +537,10 @@ function App() {
     setSinglePlayContext(context ?? null); // remember exact fret position
     setCurrentlyPlayingNotes([absNote]);
     setTimeout(() => {
-      setCurrentlyPlayingNotes([]);
-      setSinglePlayContext(null);
+      if (playTokenRef.current === currentToken) {
+        setCurrentlyPlayingNotes([]);
+        setSinglePlayContext(null);
+      }
     }, 500);
   };
 
