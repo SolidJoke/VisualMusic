@@ -26,6 +26,7 @@ import {
   initPianoSampler,
   getPianoSynth,
   setInstrumentVolume,
+  guitarSynth,
 } from "./audio/AudioEngine";
 
 const noteNamesArray = [
@@ -86,6 +87,7 @@ function App() {
     hat: -8,
     bass: -6,
     piano: 0,
+    guitar: 0,
   });
   const [isPianoReady, setIsPianoReady] = useState(false);
   const [currentStep, setCurrentStep] = useState(-1);
@@ -409,8 +411,10 @@ function App() {
       );
     }
 
+    const activeSynth = activeTab === "guitars" ? guitarSynth : getPianoSynth();
+
     if (dictType.includes("chord")) {
-      getPianoSynth().triggerAttackRelease(notesToPlay, "2n");
+      activeSynth.triggerAttackRelease(notesToPlay, "2n");
       setCurrentlyPlayingNotes(absolutePitches);
       setTimeout(() => setCurrentlyPlayingNotes([]), 500);
     } else if (dictType.includes("scale")) {
@@ -419,7 +423,7 @@ function App() {
       const stepTime = noteDuration / 2;
       absolutePitches.forEach((pitch, index) => {
         const noteName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
-        getPianoSynth().triggerAttackRelease(noteName, "8n", now + index * stepTime);
+        activeSynth.triggerAttackRelease(noteName, "8n", now + index * stepTime);
         Tone.Draw.schedule(
           () => {
             setCurrentlyPlayingNotes([pitch]);
@@ -435,7 +439,7 @@ function App() {
       // Single note
       const noteName = `${noteNamesArray[currentRootValue % 12]}4`;
       const absNote = getAbsoluteNoteValue(noteName);
-      getPianoSynth().triggerAttackRelease(noteName, "2n");
+      activeSynth.triggerAttackRelease(noteName, "2n");
       setCurrentlyPlayingNotes([absNote]);
       setTimeout(() => setCurrentlyPlayingNotes([]), 500);
     }
@@ -473,10 +477,11 @@ function App() {
         setLastClickedContext(context);
         setSinglePlayContext(null); // scale playback: path logic handles highlighting
 
+        const activeSynth = activeTab === "guitars" ? guitarSynth : getPianoSynth();
         const now = Tone.now();
         absolutePitches.forEach((pitch, index) => {
           const nName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
-          getPianoSynth().triggerAttackRelease(nName, "8n", now + index * stepTime);
+          activeSynth.triggerAttackRelease(nName, "8n", now + index * stepTime);
           Tone.Draw.schedule(
             () => {
               setCurrentlyPlayingNotes([pitch]);
@@ -492,7 +497,8 @@ function App() {
       }
     }
 
-    getPianoSynth().triggerAttackRelease(noteName, "8n");
+    const activeSynth = activeTab === "guitars" ? guitarSynth : getPianoSynth();
+    activeSynth.triggerAttackRelease(noteName, "8n");
     setContextualScaleAbsoluteValues([]);
     setLastClickedContext(null);
     setSinglePlayContext(context ?? null); // remember exact fret position
@@ -1846,6 +1852,7 @@ function App() {
                   { id: "hat", label: "🎩 Hat" },
                   { id: "bass", label: "🎸 Bass" },
                   { id: "piano", label: "🎹 Piano" },
+                  { id: "guitar", label: "🎸 Guitar" },
                 ].map((inst) => (
                   <div key={inst.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, minWidth: "60px" }}>
                     <label style={{ fontSize: "11px", color: "#ccc", marginBottom: "4px", whiteSpace: "nowrap" }}>

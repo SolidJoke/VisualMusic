@@ -24,7 +24,8 @@ export const instrumentVols = {
   bass: new Tone.Volume(0).connect(limiter),
   kick: new Tone.Volume(0).connect(limiter),
   snare: new Tone.Volume(0).connect(limiter),
-  hat: new Tone.Volume(0).connect(limiter)
+  hat: new Tone.Volume(0).connect(limiter),
+  guitar: new Tone.Volume(0).connect(limiter)
 };
 
 /**
@@ -41,6 +42,41 @@ export function setInstrumentVolume(instrument, dbValue) {
 const pianoReverb = new Tone.Reverb({ decay: 1.5, wet: 0.15 }).connect(instrumentVols.piano);
 const pianoChorus = new Tone.Chorus({ frequency: 0.5, delayTime: 3.5, depth: 0.15, wet: 0.1 }).connect(pianoReverb);
 pianoChorus.start();
+
+const guitarReverb = new Tone.Reverb({ decay: 2.0, wet: 0.2 }).connect(instrumentVols.guitar);
+const guitarChorus = new Tone.Chorus({ frequency: 2, delayTime: 2.5, depth: 0.3, wet: 0.15 }).connect(guitarReverb);
+guitarChorus.start();
+
+class CustomPolyPluckSynth {
+  constructor(options, maxVoices = 6) {
+    this.voices = [];
+    this.currentVoice = 0;
+    this.output = new Tone.Volume(0);
+    for (let i = 0; i < maxVoices; i++) {
+      this.voices.push(new Tone.PluckSynth(options).connect(this.output));
+    }
+  }
+
+  triggerAttackRelease(notes, duration, time, velocity) {
+    const noteArray = Array.isArray(notes) ? notes : [notes];
+    noteArray.forEach((note) => {
+      this.voices[this.currentVoice].triggerAttack(note, time, velocity);
+      this.currentVoice = (this.currentVoice + 1) % this.voices.length;
+    });
+  }
+
+  connect(destination) {
+    this.output.connect(destination);
+    return this;
+  }
+}
+
+export const guitarSynth = new CustomPolyPluckSynth({
+  attackNoise: 1,
+  dampening: 4000,
+  resonance: 0.7,
+}).connect(guitarChorus);
+
 
 // ─── Piano ───────────────────────────────────────────────────────────
 
