@@ -449,6 +449,20 @@ function App() {
     }
   };
 
+  /**
+   * Auto-selects the playback instrument when tapping a hardware UI element,
+   * then delegates to playSingleNote. The context object already has `instrument`
+   * set by Fretboard.jsx ({ instrument: "guitar"|"bass" }) and by PianoKeyboard.jsx
+   * ({ instrument: "piano" }). We just synchronise the state selector.
+   */
+  const autoPlayNote = (noteName, context = null) => {
+    // Auto-switch the global selector to match the clicked instrument UI
+    if (context?.instrument && context.instrument !== playbackInstrument) {
+      setPlaybackInstrument(context.instrument);
+    }
+    playSingleNote(noteName, context);
+  };
+
   const playSingleNote = async (noteName, context = null) => {
     if (!isAudioReady) {
       await Tone.start();
@@ -1647,7 +1661,7 @@ function App() {
                   notation={notation}
                   rootValue={currentRootValue}
                   targetValue={targetValue}
-                  onNoteClick={playSingleNote}
+                  onNoteClick={autoPlayNote}
                   currentlyPlayingNotes={currentlyPlayingNotes}
                   contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
                   dictType={appMode === "dictionary" ? dictType : null}
@@ -1667,7 +1681,7 @@ function App() {
                   rootValue={currentRootValue}
                   targetValue={targetValue}
                   fretboardZone={fretboardZone}
-                  onNoteClick={playSingleNote}
+                  onNoteClick={autoPlayNote}
                   currentlyPlayingNotes={currentlyPlayingNotes}
                   contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
                   dictType={appMode === "dictionary" ? dictType : null}
@@ -1683,7 +1697,7 @@ function App() {
                   rootValue={currentRootValue}
                   targetValue={targetValue}
                   fretboardZone={fretboardZone}
-                  onNoteClick={playSingleNote}
+                  onNoteClick={autoPlayNote}
                   currentlyPlayingNotes={currentlyPlayingNotes}
                   contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
                   dictType={appMode === "dictionary" ? dictType : null}
