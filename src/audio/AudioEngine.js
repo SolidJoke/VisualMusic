@@ -40,8 +40,8 @@ export function setInstrumentVolume(instrument, dbValue) {
 
 // ─── Effects Bus ─────────────────────────────────────────────────────
 const pianoReverb = new Tone.Reverb({ decay: 1.5, wet: 0.15 }).connect(instrumentVols.piano);
+// Chorus is disabled for natural piano sound
 const pianoChorus = new Tone.Chorus({ frequency: 0.5, delayTime: 3.5, depth: 0.15, wet: 0.1 }).connect(pianoReverb);
-pianoChorus.start();
 
 const guitarReverb = new Tone.Reverb({ decay: 2.0, wet: 0.2 }).connect(instrumentVols.guitar);
 const guitarChorus = new Tone.Chorus({ frequency: 2, delayTime: 2.5, depth: 0.3, wet: 0.15 }).connect(guitarReverb);
@@ -135,7 +135,7 @@ export function initPianoSampler(onReady) {
         pianoSamplerReady = false;
         if (onReady) onReady(); // Treat as "ready" via fallback
       },
-    }).connect(pianoChorus);
+    }).connect(pianoReverb);
   } catch (err) {
     console.warn("[AudioEngine] Piano Sampler init error, using fallback:", err);
   }
