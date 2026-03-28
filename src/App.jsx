@@ -26,7 +26,8 @@ import {
   initPianoSampler,
   getPianoSynth,
   setInstrumentVolume,
-  guitarSynth,
+  getGuitarSynth,
+  initGuitarSampler,
 } from "./audio/AudioEngine";
 
 const noteNamesArray = [
@@ -325,7 +326,10 @@ function App() {
       Tone.Destination.volume.value = masterVolume;
       Tone.Transport.bpm.value = currentBpm;
       initPianoSampler(() => setIsPianoReady(true));
-      if (appMode === "studio") applyGenrePreset(activeBrick._group);
+      initGuitarSampler();
+      if (appMode === "studio" && typeof activeBrick !== "undefined" && activeBrick) {
+         applyGenrePreset(activeBrick._group);
+      }
       setIsAudioReady(true);
     }
     if (isPlaying) {
@@ -411,7 +415,7 @@ function App() {
       );
     }
 
-    const activeSynth = activeTab === "guitars" ? guitarSynth : getPianoSynth();
+    const activeSynth = activeTab === "guitars" ? getGuitarSynth() : getPianoSynth();
 
     if (dictType.includes("chord")) {
       activeSynth.triggerAttackRelease(notesToPlay, "2n");
@@ -477,7 +481,7 @@ function App() {
         setLastClickedContext(context);
         setSinglePlayContext(null); // scale playback: path logic handles highlighting
 
-        const activeSynth = activeTab === "guitars" ? guitarSynth : getPianoSynth();
+        const activeSynth = activeTab === "guitars" ? getGuitarSynth() : getPianoSynth();
         const now = Tone.now();
         absolutePitches.forEach((pitch, index) => {
           const nName = `${noteNamesArray[pitch % 12]}${Math.floor(pitch / 12)}`;
@@ -497,7 +501,7 @@ function App() {
       }
     }
 
-    const activeSynth = activeTab === "guitars" ? guitarSynth : getPianoSynth();
+    const activeSynth = activeTab === "guitars" ? getGuitarSynth() : getPianoSynth();
     activeSynth.triggerAttackRelease(noteName, "8n");
     setContextualScaleAbsoluteValues([]);
     setLastClickedContext(null);

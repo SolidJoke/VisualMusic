@@ -260,11 +260,13 @@ describe("AudioEngine Module Exports", () => {
     }
   });
 
-  it("exports CustomPolyPluckSynth with valid triggerAttackRelease method", async () => {
+  it("exports getGuitarSynth and initGuitarSampler methods", async () => {
     try {
       const module = await import("../AudioEngine.js");
-      expect(module.guitarSynth).toBeDefined();
-      expect(typeof module.guitarSynth.triggerAttackRelease).toBe("function");
+      expect(module.getGuitarSynth).toBeDefined();
+      expect(typeof module.getGuitarSynth).toBe("function");
+      expect(module.initGuitarSampler).toBeDefined();
+      expect(typeof module.initGuitarSampler).toBe("function");
     } catch (e) {
       console.log("[SKIP] guitarSynth test skipped without browser audio context");
     }

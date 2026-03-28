@@ -47,35 +47,53 @@ const guitarReverb = new Tone.Reverb({ decay: 2.0, wet: 0.2 }).connect(instrumen
 const guitarChorus = new Tone.Chorus({ frequency: 2, delayTime: 2.5, depth: 0.3, wet: 0.15 }).connect(guitarReverb);
 guitarChorus.start();
 
-class CustomPolyPluckSynth {
-  constructor(options, maxVoices = 6) {
-    this.voices = [];
-    this.currentVoice = 0;
-    this.output = new Tone.Volume(0);
-    for (let i = 0; i < maxVoices; i++) {
-      this.voices.push(new Tone.PluckSynth(options).connect(this.output));
-    }
-  }
+// ─── Guitar ──────────────────────────────────────────────────────────
 
-  triggerAttackRelease(notes, duration, time, velocity) {
-    const noteArray = Array.isArray(notes) ? notes : [notes];
-    noteArray.forEach((note) => {
-      this.voices[this.currentVoice].triggerAttack(note, time, velocity);
-      this.currentVoice = (this.currentVoice + 1) % this.voices.length;
-    });
-  }
+const guitarFallback = new Tone.PolySynth(Tone.FMSynth, {
+  harmonicity: 3.0,
+  modulationIndex: 10,
+  oscillator: { type: "sine" },
+  envelope: { attack: 0.001, decay: 2, sustain: 0.1, release: 2 },
+  modulation: { type: "square" },
+  modulationEnvelope: { attack: 0.002, decay: 0.2, sustain: 0, release: 0.2 },
+}).connect(guitarChorus);
 
-  connect(destination) {
-    this.output.connect(destination);
-    return this;
+let guitarSampler = null;
+let guitarSamplerReady = false;
+
+export function initGuitarSampler(onReady) {
+  if (guitarSampler) return;
+
+  try {
+    guitarSampler = new Tone.Sampler({
+      urls: {
+        C2: "C2.mp3", E2: "E2.mp3", G2: "G2.mp3",
+        C3: "C3.mp3", E3: "E3.mp3", G3: "G3.mp3",
+        C4: "C4.mp3", E4: "E4.mp3", G4: "G4.mp3",
+        C5: "C5.mp3", E5: "E5.mp3", G5: "G5.mp3",
+        C6: "C6.mp3",
+      },
+      baseUrl: "/samples/guitar/",
+      volume: -2,
+      onload: () => {
+        guitarSamplerReady = true;
+        console.log("[AudioEngine] Guitar Sampler loaded ✓");
+        if (onReady) onReady();
+      },
+      onerror: (err) => {
+        console.warn("[AudioEngine] Guitar Sampler failed to load, using fallback:", err);
+        guitarSamplerReady = false;
+        if (onReady) onReady();
+      },
+    }).connect(guitarReverb);
+  } catch (err) {
+    console.warn("[AudioEngine] Guitar Sampler init error, using fallback:", err);
   }
 }
 
-export const guitarSynth = new CustomPolyPluckSynth({
-  attackNoise: 1,
-  dampening: 4000,
-  resonance: 0.7,
-}).connect(guitarChorus);
+export function getGuitarSynth() {
+  return guitarSamplerReady && guitarSampler ? guitarSampler : guitarFallback;
+}
 
 
 // ─── Piano ───────────────────────────────────────────────────────────
