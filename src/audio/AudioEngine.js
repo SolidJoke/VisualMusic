@@ -18,8 +18,27 @@ import { DRUM_PRESETS, BASS_PRESETS, PIANO_PRESET } from "./InstrumentPresets";
 // ─── Safety: Hard Limiter ────────────────────────────────────────────
 const limiter = new Tone.Limiter(-1).toDestination();
 
+// ─── Mixing Nodes ────────────────────────────────────────────────────
+export const instrumentVols = {
+  piano: new Tone.Volume(0).connect(limiter),
+  bass: new Tone.Volume(0).connect(limiter),
+  kick: new Tone.Volume(0).connect(limiter),
+  snare: new Tone.Volume(0).connect(limiter),
+  hat: new Tone.Volume(0).connect(limiter)
+};
+
+/**
+ * Set the volume (in dB) for a specific instrument.
+ * range: roughly -30 to 6
+ */
+export function setInstrumentVolume(instrument, dbValue) {
+  if (instrumentVols[instrument]) {
+    instrumentVols[instrument].volume.value = dbValue;
+  }
+}
+
 // ─── Effects Bus ─────────────────────────────────────────────────────
-const pianoReverb = new Tone.Reverb({ decay: 1.5, wet: 0.15 }).connect(limiter);
+const pianoReverb = new Tone.Reverb({ decay: 1.5, wet: 0.15 }).connect(instrumentVols.piano);
 const pianoChorus = new Tone.Chorus({ frequency: 0.5, delayTime: 3.5, depth: 0.15, wet: 0.1 }).connect(pianoReverb);
 pianoChorus.start();
 
@@ -40,7 +59,7 @@ let pianoSamplerReady = false;
  * Initialize the piano sampler. Call once after user gesture (Tone.start).
  * Falls back to PolySynth if loading fails.
  */
-export function initPianoSampler() {
+export function initPianoSampler(onReady) {
   if (pianoSampler) return; // already initialized
 
   const baseUrl = "https://nbrosowsky.github.io/tonern-piano/Salamander/";
@@ -73,10 +92,12 @@ export function initPianoSampler() {
       onload: () => {
         pianoSamplerReady = true;
         console.log("[AudioEngine] Piano Sampler loaded ✓");
+        if (onReady) onReady();
       },
       onerror: (err) => {
         console.warn("[AudioEngine] Piano Sampler failed to load, using fallback:", err);
         pianoSamplerReady = false;
+        if (onReady) onReady(); // Treat as "ready" via fallback
       },
     }).connect(pianoChorus);
   } catch (err) {
@@ -103,20 +124,20 @@ export const kickSynth = new Tone.MembraneSynth({
   pitchDecay: currentDrumPreset.kick.pitchDecay,
   octaves: currentDrumPreset.kick.octaves,
   volume: currentDrumPreset.kick.volume,
-}).connect(limiter);
+}).connect(instrumentVols.kick);
 
 // Snare: layered NoiseSynth + MembraneSynth for body+snap
 const snareNoise = new Tone.NoiseSynth({
   volume: currentDrumPreset.snare.noiseVolume,
   noise: { type: currentDrumPreset.snare.noiseType },
   envelope: { attack: 0.003, decay: currentDrumPreset.snare.decay, sustain: 0 },
-}).connect(limiter);
+}).connect(instrumentVols.snare);
 
 const snareBody = new Tone.MembraneSynth({
   pitchDecay: currentDrumPreset.snare.membranePitchDecay,
   octaves: 3,
   volume: currentDrumPreset.snare.membraneVolume,
-}).connect(limiter);
+}).connect(instrumentVols.snare);
 
 // Combined snare trigger
 export const snareSynth = {
@@ -135,7 +156,7 @@ export const snareSynth = {
 const hatFilter = new Tone.Filter(
   currentDrumPreset.hat.filterFreq,
   currentDrumPreset.hat.filterType,
-).connect(limiter);
+).connect(instrumentVols.hat);
 
 export const hatSynth = new Tone.NoiseSynth({
   volume: currentDrumPreset.hat.volume,
@@ -168,7 +189,7 @@ export const bassSynth = new Tone.MonoSynth({
     baseFrequency: currentBassPreset.filterFreq,
     octaves: 4,
   },
-}).connect(limiter);
+}).connect(instrumentVols.bass);
 
 // ─── Genre Switching ─────────────────────────────────────────────────
 

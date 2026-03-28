@@ -25,6 +25,7 @@ import {
   applyGenrePreset,
   initPianoSampler,
   getPianoSynth,
+  setInstrumentVolume,
 } from "./audio/AudioEngine";
 
 const noteNamesArray = [
@@ -62,296 +63,8 @@ const toRoman = (nnsStr) => {
   return prefix + roman + suffix;
 };
 
-const translations = {
-  fr: {
-    title: "🎛️ Vmu : VisualMusic Coach",
-    about: "ℹ️ À propos",
-    studioMode: "🎛️ Mode Studio (Genres)",
-    dictMode: "📖 Mode Dictionnaire",
-    enableAudio: "🔊 ACTIVER L'AUDIO",
-    stopAudio: "⏹️ STOP AUDIO",
-    masterVol: "🔊 Volume",
-    tempoBpm: "⏱️ Tempo (BPM)",
-    styleSelection: "1. Sélection du Style",
-    theme: "Thème (Rythme & Accords) :",
-    varA: "Variation A",
-    varB: "Variation B",
-    magicProg: "Progression Magique :",
-    backRoot: "🔄 Revenir à la base",
-    showAll: "👁️ Tout afficher",
-    focusMode: "🔍 Mode Focus",
-    tabDrums: "🥁 Séquenceurs",
-    tabPiano: "🎹 Piano",
-    tabGuitars: "🎸 Guitares",
-    freeExplorer: "📖 Explorateur Libre",
-    rootNote: "Note de base (Fondamentale)",
-    structType: "Type de structure",
-    singleNote: "Note Unique (Apprendre le manche)",
-    chordMaj: "Accord Majeur (1-3-5)",
-    chordMin: "Accord Mineur (1-b3-5)",
-    scaleMaj: "Gamme Majeure (Ionian)",
-    scaleMin: "Gamme Mineure (Aeolian)",
-    chord: "🎸 Accord",
-    scale: "🎹 Gamme",
-    guitarPos: "Position Guitare :",
-    posAll: "Toutes les cases",
-    posOpen: "Ouverte (0-4)",
-    posMid: "Milieu (5-9)",
-    posHigh: "Aiguë (10-14)",
-    drumMachine: "🥁 Boîte à Rythmes",
-    melodicSeq: "🎹 Séquenceur Mélodique",
-    labelRoot: "Fondamentale",
-    labelThird: "Tierce",
-    labelFifth: "Quinte",
-    labelScale: "Gamme",
-    labelTarget: "Note Magique (Target)",
-    aboutDesc:
-      "Une application web interactive conçue pour aider les musiciens à comprendre la théorie musicale, à visualiser les gammes et les accords, et à s'entraîner sur des rythmes générés en temps réel.",
-    createdBy: "Créé et développé par Gabriel Resende.",
-    kofi: "☕ M'offrir un café sur Ko-fi",
-    github: "💻 Voir le code sur GitHub",
-    listen: "🎵 Écouter",
-    guideTheoryBtn: "💡 Guide & Théorie",
-    theoryModalTitle: "📖 Théorie Musicale & Guide",
-    guideTitle: "💡 Guide d'Improvisation (La Méthode du Drone)",
-    guide1:
-      "Étape 1 (Le Drone) : Joue la Fondamentale (Rouge) dans les graves et laisse-la résonner. Cela crée ton centre de gravité musical.",
-    guide2:
-      "Étape 2 (L'Exploration) : Avec l'autre main, promène-toi librement sur les notes de la Gamme (Bleu-gris). Écoute comment chaque note sonne par rapport à ta fondamentale.",
-    guide3:
-      "Étape 3 (La Couleur) : Insiste sur la Note Magique (Dorée) ! C'est la note caractéristique qui donne à ce mode son émotion unique.",
-    modesEmotionTitle: "🎭 Topographie des Émotions (Les Modes)",
-    modeIonian: "Majeur Joyeux, Triomphant, Lumineux.",
-    modeDorian: "Mineur Nostalgique, Héroïque, Jazzy.",
-    modePhrygian: "Mineur Sombre, Exotique, Flamenco.",
-    modeLydian: "Majeur Magique, Flottant, Rêveur.",
-    modeMixolydian: "Majeur Bluesy, Rock, Entraînant.",
-    modeAeolian: "Mineur Triste, Mélancolique, Épique.",
-    modeLocrian: "Diminué Tendu, Instable, Cauchemardesque.",
-    displayStandard: "Noms d'Accords",
-    displayNNS: "Degrés Romains",
-    invRoot: "Accord joué : État fondamental",
-    invFirst: "Accord joué : 1er renversement (Tierce à la basse)",
-    invSecond: "Accord joué : 2ème renversement (Quinte à la basse)",
-    invUnknown: "Accord joué : Voicing personnalisé",
-  },
-  en: {
-    title: "🎛️ Vmu: VisualMusic Coach",
-    about: "ℹ️ About",
-    studioMode: "🎛️ Studio Mode (Genres)",
-    dictMode: "📖 Dictionary Mode",
-    enableAudio: "🔊 ENABLE AUDIO",
-    stopAudio: "⏹️ STOP AUDIO",
-    masterVol: "🔊 Volume",
-    tempoBpm: "⏱️ Tempo (BPM)",
-    styleSelection: "1. Style Selection",
-    theme: "Theme (Rhythm & Chords):",
-    varA: "Variation A",
-    varB: "Variation B",
-    magicProg: "Magic Progression:",
-    backRoot: "🔄 Back to root",
-    showAll: "👁️ Show All",
-    focusMode: "🔍 Focus Mode",
-    tabDrums: "🥁 Sequencers",
-    tabPiano: "🎹 Piano",
-    tabGuitars: "🎸 Guitars",
-    freeExplorer: "📖 Free Explorer",
-    rootNote: "Root Note",
-    structType: "Structure Type",
-    singleNote: "Single Note (Fretboard learning)",
-    chordMaj: "Major Chord (1-3-5)",
-    chordMin: "Minor Chord (1-b3-5)",
-    scaleMaj: "Major Scale (Ionian)",
-    scaleMin: "Minor Scale (Aeolian)",
-    chord: "🎸 Chord",
-    scale: "🎹 Scale",
-    guitarPos: "Guitar Position:",
-    posAll: "All frets",
-    posOpen: "Open (0-4)",
-    posMid: "Mid (5-9)",
-    posHigh: "High (10-14)",
-    drumMachine: "🥁 Drum Machine",
-    melodicSeq: "🎹 Melodic Sequencer",
-    labelRoot: "Root",
-    labelThird: "Third",
-    labelFifth: "Fifth",
-    labelScale: "Scale",
-    labelTarget: "Magic Note (Target)",
-    aboutDesc:
-      "An interactive web app designed to help musicians understand music theory, visualize scales and chords, and practice over real-time generated rhythms.",
-    createdBy: "Created and developed by Gabriel Resende.",
-    kofi: "☕ Buy me a coffee on Ko-fi",
-    github: "💻 View code on GitHub",
-    listen: "🎵 Listen",
-    guideTheoryBtn: "💡 Guide & Theory",
-    theoryModalTitle: "📖 Music Theory & Guide",
-    guideTitle: "💡 Improvisation Guide (The Drone Method)",
-    guide1:
-      "Step 1 (The Drone): Play the Root Note (Red) in the low register and let it ring. This creates your musical center of gravity.",
-    guide2:
-      "Step 2 (Exploration): With your other hand, wander freely over the Scale notes (Blue-grey). Listen to how each note sounds against your root.",
-    guide3:
-      "Step 3 (The Color): Emphasize the Magic Note (Gold)! This is the Character Tone that gives this mode its unique emotion.",
-    modesEmotionTitle: "🎭 Topography of Emotions (Modes)",
-    modeIonian: "Major Happy, Triumphant, Bright.",
-    modeDorian: "Minor Nostalgic, Heroic, Jazzy.",
-    modePhrygian: "Minor Dark, Exotic, Flamenco.",
-    modeLydian: "Major Magic, Floating, Dreamy.",
-    modeMixolydian: "Major Bluesy, Rock, Driving.",
-    modeAeolian: "Minor Sad, Melancholic, Epic.",
-    modeLocrian: "Diminished Tense, Unstable, Nightmarish.",
-    displayStandard: "Chord Names",
-    displayNNS: "Roman Numerals",
-    invRoot: "Current Voicing: Root Position",
-    invFirst: "Current Voicing: 1st Inversion (Third in bass)",
-    invSecond: "Current Voicing: 2nd Inversion (Fifth in bass)",
-    invUnknown: "Current Voicing: Custom",
-  },
-  pt: {
-    title: "🎛️ Vmu: VisualMusic Coach",
-    about: "ℹ️ Sobre",
-    studioMode: "🎛️ Modo Estúdio (Gêneros)",
-    dictMode: "📖 Modo Dicionário",
-    enableAudio: "🔊 ATIVAR ÁUDIO",
-    stopAudio: "⏹️ PARAR ÁUDIO",
-    masterVol: "🔊 Volume",
-    tempoBpm: "⏱️ Tempo (BPM)",
-    styleSelection: "1. Seleção de Estilo",
-    theme: "Tema (Ritmo e Acordes):",
-    varA: "Variação A",
-    varB: "Variação B",
-    magicProg: "Progressão Mágica:",
-    backRoot: "🔄 Voltar à tônica",
-    showAll: "👁️ Mostrar Tudo",
-    focusMode: "🔍 Modo Foco",
-    tabDrums: "🥁 Sequenciadores",
-    tabPiano: "🎹 Piano",
-    tabGuitars: "🎸 Guitarras",
-    freeExplorer: "📖 Explorador Livre",
-    rootNote: "Nota Fundamental (Tônica)",
-    structType: "Tipo de estrutura",
-    singleNote: "Nota Única (Aprender o braço)",
-    chordMaj: "Acorde Maior (1-3-5)",
-    chordMin: "Acorde Menor (1-b3-5)",
-    scaleMaj: "Escala Maior (Jônio)",
-    scaleMin: "Escala Menor (Eólio)",
-    chord: "🎸 Acorde",
-    scale: "🎹 Escala",
-    guitarPos: "Posição da Guitarra:",
-    posAll: "Todas as casas",
-    posOpen: "Aberta (0-4)",
-    posMid: "Meio (5-9)",
-    posHigh: "Aguda (10-14)",
-    drumMachine: "🥁 Caixa de Ritmos",
-    melodicSeq: "🎹 Sequenciador Melódico",
-    labelRoot: "Tônica",
-    labelThird: "Terça",
-    labelFifth: "Quinta",
-    labelScale: "Escala",
-    labelTarget: "Nota Mágica (Alvo)",
-    aboutDesc:
-      "Um aplicativo web interativo projetado para ajudar músicos a entender a teoria musical, visualizar escalas e acordes e praticar sobre ritmos gerados em tempo real.",
-    createdBy: "Criado e desenvolvido por Gabriel Resende.",
-    kofi: "☕ Pague-me um café no Ko-fi",
-    github: "💻 Ver código no GitHub",
-    listen: "🎵 Ouvir",
-    guideTheoryBtn: "💡 Guia e Teoria",
-    theoryModalTitle: "📖 Teoria Musical e Guia",
-    guideTitle: "💡 Guia de Improvisação (Método Drone)",
-    guide1:
-      "Passo 1 (O Drone): Toque a Nota Fundamental (Vermelha) nos graves e deixe soar. Isso cria seu centro de gravidade musical.",
-    guide2:
-      "Passo 2 (A Exploração): Com a outra mão, passeie livremente pelas notas da Escala (Azul-acinzentado). Ouça como cada nota soa em relação à tônica.",
-    guide3:
-      "Passo 3 (A Cor): Destaque a Nota Mágica (Dourada)! É a nota característica que dá a esse modo sua emoção única.",
-    modesEmotionTitle: "🎭 Topografia das Emoções (Modos)",
-    modeIonian: "Maior Alegre, Triunfante, Brilhante.",
-    modeDorian: "Menor Nostálgico, Heróico, Jazzy.",
-    modePhrygian: "Menor Sombrio, Exótico, Flamenco.",
-    modeLydian: "Maior Mágico, Flutuante, Sonhador.",
-    modeMixolydian: "Maior Bluesy, Rock, Animado.",
-    modeAeolian: "Menor Triste, Melancólico, Épico.",
-    modeLocrian: "Diminuto Tenso, Instável.",
-    displayStandard: "Nomes dos Acordes",
-    displayNNS: "Graus Romanos",
-    invRoot: "Acorde atual: Estado fundamental",
-    invFirst: "Acorde atual: 1ª Inversão (Terça no baixo)",
-    invSecond: "Acorde atual: 2ª Inversão (Quinta no baixo)",
-    invUnknown: "Acorde atual: Voicing personalizado",
-  },
-  zh: {
-    title: "🎛️ Vmu: 视觉音乐教练",
-    about: "ℹ️ 关于",
-    studioMode: "🎛️ 工作室模式 (流派)",
-    dictMode: "📖 字典模式",
-    enableAudio: "🔊 开启音频",
-    stopAudio: "⏹️ 停止音频",
-    masterVol: "🔊 音量",
-    tempoBpm: "⏱️ 速度 (BPM)",
-    styleSelection: "1. 风格选择",
-    theme: "主题 (节奏与和弦):",
-    varA: "变体 A",
-    varB: "变体 B",
-    magicProg: "魔法和弦进行:",
-    backRoot: "🔄 返回根音",
-    showAll: "👁️ 显示全部",
-    focusMode: "🔍 专注模式",
-    tabDrums: "🥁 音序器",
-    tabPiano: "🎹 钢琴",
-    tabGuitars: "🎸 吉他",
-    freeExplorer: "📖 自由探索器",
-    rootNote: "根音 (Root)",
-    structType: "结构类型",
-    singleNote: "单音 (学习指板)",
-    chordMaj: "大三和弦 (1-3-5)",
-    chordMin: "小三和弦 (1-b3-5)",
-    scaleMaj: "大调音阶 (Ionian)",
-    scaleMin: "小调音阶 (Aeolian)",
-    chord: "🎸 和弦",
-    scale: "🎹 音阶",
-    guitarPos: "吉他把位:",
-    posAll: "所有品格",
-    posOpen: "开放把位 (0-4)",
-    posMid: "中把位 (5-9)",
-    posHigh: "高把位 (10-14)",
-    drumMachine: "🥁 鼓机",
-    melodicSeq: "🎹 旋律音序器",
-    labelRoot: "根音",
-    labelThird: "三音",
-    labelFifth: "五音",
-    labelScale: "音阶",
-    labelTarget: "魔法音符 (目标)",
-    aboutDesc:
-      "一个互动的Web应用程序，旨在帮助音乐家理解音乐理论，可视化音阶和和弦，并跟随实时生成的节奏进行练习。",
-    createdBy: "由 Gabriel Resende 创建和开发。",
-    kofi: "☕ 在 Ko-fi 上请我喝杯咖啡",
-    github: "💻 在 GitHub 上查看代码",
-    listen: "🎵 听",
-    guideTheoryBtn: "💡 指南与理论",
-    theoryModalTitle: "📖 音乐理论与指南",
-    guideTitle: "💡 即兴演奏指南 (持续音方法)",
-    guide1:
-      "第一步 (持续音): 在低音区弹奏根音 (红色) 并让它持续发声。这创造了你的音乐重心。",
-    guide2:
-      "第二步 (探索): 用另一只手在音阶音符 (蓝灰色) 上自由游走。聆听每个音符与根音的碰撞。",
-    guide3:
-      "第三步 (色彩): 强调魔法音符 (金色)！这是赋予该调式独特情感的特征音。",
-    modesEmotionTitle: "🎭 情感地形图 (调式)",
-    modeIonian: "大调 快乐，凯旋，明亮。",
-    modeDorian: "小调 怀旧，英雄，爵士。",
-    modePhrygian: "小调 黑暗，异国情调，弗拉门戈。",
-    modeLydian: "大调 神奇，漂浮，梦幻。",
-    modeMixolydian: "大调 蓝调，摇滚，驱动。",
-    modeAeolian: "小调 悲伤，忧郁，史诗。",
-    modeLocrian: "减音阶 紧张，不稳定，噩梦般。",
-    displayStandard: "和弦名称",
-    displayNNS: "罗马数字",
-    invRoot: "当前和弦: 原位",
-    invFirst: "当前和弦: 第一转位 (三音在低音)",
-    invSecond: "当前和弦: 第二转位 (五音在低音)",
-    invUnknown: "当前和弦: 自定义",
-  },
-};
+
+import { translations } from "./i18n/translations";
 
 function App() {
   const [lang, setLang] = useState("fr");
@@ -367,7 +80,21 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [masterVolume, setMasterVolume] = useState(-12);
   const [currentBpm, setCurrentBpm] = useState(120);
+  const [instrumentVolumes, setInstrumentVolumes] = useState({
+    kick: -3,
+    snare: -5,
+    hat: -8,
+    bass: -6,
+    piano: 0,
+  });
+  const [isPianoReady, setIsPianoReady] = useState(false);
   const [currentStep, setCurrentStep] = useState(-1);
+
+  const handleInstrumentVolumeChange = (instrument, value) => {
+    const val = Number(value);
+    setInstrumentVolumes((prev) => ({ ...prev, [instrument]: val }));
+    setInstrumentVolume(instrument, val);
+  };
 
   const [currentBrickIndex, setCurrentBrickIndex] = useState(0);
   const [displayMode, setDisplayMode] = useState("chord");
@@ -595,7 +322,7 @@ function App() {
       await Tone.start();
       Tone.Destination.volume.value = masterVolume;
       Tone.Transport.bpm.value = currentBpm;
-      initPianoSampler();
+      initPianoSampler(() => setIsPianoReady(true));
       if (appMode === "studio") applyGenrePreset(activeBrick._group);
       setIsAudioReady(true);
     }
@@ -2087,6 +1814,53 @@ function App() {
                     />
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* NEW HORIZONTAL MIXER STRIP */}
+            <div
+              className="dashboard-panel"
+              style={{
+                padding: "15px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                backgroundColor: "#1a1a1a",
+                borderRadius: "8px",
+                border: "1px solid #333",
+                boxSizing: "border-box",
+              }}
+            >
+              <h3 style={{ margin: 0, color: "var(--theme-primary)", fontSize: "14px", display: "flex", alignItems: "center", gap: "10px" }}>
+                <span>🔊 Mix</span>
+                {isAudioReady && !isPianoReady && (
+                  <span style={{ fontSize: "11px", color: "#aaa", fontStyle: "italic", animation: "pulse 1.5s infinite" }}>
+                    🎹 Loading piano...
+                  </span>
+                )}
+              </h3>
+              <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", justifyContent: "space-between" }}>
+                {[
+                  { id: "kick", label: "🥁 Kick" },
+                  { id: "snare", label: "🥁 Snare" },
+                  { id: "hat", label: "🎩 Hat" },
+                  { id: "bass", label: "🎸 Bass" },
+                  { id: "piano", label: "🎹 Piano" },
+                ].map((inst) => (
+                  <div key={inst.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, minWidth: "60px" }}>
+                    <label style={{ fontSize: "11px", color: "#ccc", marginBottom: "4px", whiteSpace: "nowrap" }}>
+                      {inst.label}
+                    </label>
+                    <input
+                      type="range"
+                      min="-30"
+                      max="6"
+                      value={instrumentVolumes[inst.id]}
+                      onChange={(e) => handleInstrumentVolumeChange(inst.id, e.target.value)}
+                      style={{ cursor: "pointer", width: "100%", accentColor: "var(--theme-primary)" }}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
