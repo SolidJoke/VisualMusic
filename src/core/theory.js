@@ -34,14 +34,98 @@ export const getAbsoluteNoteValue = (noteName) => {
 
 
 export const MODES = {
-    Ionian: { name: "Ionian (Majeur)", emotion: "Joyeux", intervals: [2, 2, 1, 2, 2, 2, 1], targetInterval: 11 },
-    Dorian: { name: "Dorian", emotion: "Nostalgique", intervals: [2, 1, 2, 2, 2, 1, 2], targetInterval: 9 },
-    Phrygian: { name: "Phrygian", emotion: "Exotique, Sombre", intervals: [1, 2, 2, 2, 1, 2, 2], targetInterval: 1 },
-    Lydian: { name: "Lydian", emotion: "Magique, Spatial", intervals: [2, 2, 2, 1, 2, 2, 1], targetInterval: 6 },
-    Mixolydian: { name: "Mixolydian", emotion: "Bluesy, Rock", intervals: [2, 2, 1, 2, 2, 1, 2], targetInterval: 10 },
-    Aeolian: { name: "Aeolian (Mineur)", emotion: "Triste", intervals: [2, 1, 2, 2, 1, 2, 2], targetInterval: 8 },
-    Locrian: { name: "Locrian", emotion: "Instable, Effrayant", intervals: [1, 2, 2, 1, 2, 2, 2], targetInterval: 6 },
-    PhrygianDominant: { name: "Phrygian Dominant", emotion: "Épique", intervals: [1, 3, 1, 2, 1, 2, 2], targetInterval: 1 }
+    Ionian: { 
+        name: "Ionian (Majeur)", 
+        emotion: "Joyeux, Triomphant, Lumineux", 
+        description: "La base de la musique populaire. Stable et résolu.",
+        intervals: [2, 2, 1, 2, 2, 2, 1], 
+        targetInterval: 11,
+        magicNote: null
+    },
+    Dorian: { 
+        name: "Dorian", 
+        emotion: "Nostalgique, Jazzy, Sophistiqué, Funky", 
+        description: "Utilisé pour des grooves hypnotiques.",
+        intervals: [2, 1, 2, 2, 2, 1, 2], 
+        targetInterval: 9,
+        magicNote: "6te Majeure"
+    },
+    Phrygian: { 
+        name: "Phrygian", 
+        emotion: "Sombre, Exotique, Metal", 
+        description: "Idéal pour le Metal et le Flamenco.",
+        intervals: [1, 2, 2, 2, 1, 2, 2], 
+        targetInterval: 1,
+        magicNote: "2nde bémol"
+    },
+    Lydian: { 
+        name: "Lydian", 
+        emotion: "Flottant, Magique, Spatial", 
+        description: "Très utilisé dans les musiques de films.",
+        intervals: [2, 2, 2, 1, 2, 2, 1], 
+        targetInterval: 6,
+        magicNote: "4te augmentée"
+    },
+    Mixolydian: { 
+        name: "Mixolydian", 
+        emotion: "Bluesy, Rock, Rebelle", 
+        description: "Le mode du Rock classique et du Blues.",
+        intervals: [2, 2, 1, 2, 2, 1, 2], 
+        targetInterval: 10,
+        magicNote: "7ème bémol"
+    },
+    Aeolian: { 
+        name: "Aeolian (Mineur)", 
+        emotion: "Triste, Mélancolique, Sentimental", 
+        description: "Le mineur naturel par excellence.",
+        intervals: [2, 1, 2, 2, 1, 2, 2], 
+        targetInterval: 8,
+        magicNote: null
+    },
+    Locrian: { 
+        name: "Locrian", 
+        emotion: "Extrêmement tendu, Instable", 
+        description: "Crée un sentiment de chaos et d'insécurité.",
+        intervals: [1, 2, 2, 1, 2, 2, 2], 
+        targetInterval: 6,
+        magicNote: "5te diminuée"
+    },
+    PhrygianDominant: { 
+        name: "Phrygian Dominant", 
+        emotion: "Épique, Oriental", 
+        description: "Très typé Moyen-Orient et Metal.",
+        intervals: [1, 3, 1, 2, 1, 2, 2], 
+        targetInterval: 1,
+        magicNote: "3ce Majeure"
+    }
+};
+
+// ---------------------------------------------------------
+// FINGERING DATABASE (GUITAR & BASS)
+// ---------------------------------------------------------
+
+export const FINGERING_SHAPES = {
+    guitar: {
+        CAGED: {
+            // Numbers 1-4 = fingers, O = Open, X = Muted
+            C: { strings: ['X', 3, 2, 'O', 1, 'O'], offset: 0 },
+            A: { strings: ['X', 'O', 2, 3, 4, 'O'], offset: 0 },
+            G: { strings: [3, 2, 'O', 'O', 'O', 4], offset: 0 },
+            E: { strings: ['O', 2, 3, 1, 'O', 'O'], offset: 0 },
+            D: { strings: ['X', 'X', 'O', 1, 3, 2], offset: 0 }
+        },
+        PowerChords: {
+            E_form: { strings: [1, 3, 4, 'X', 'X', 'X'], span: 2 },
+            A_form: { strings: ['X', 1, 3, 4, 'X', 'X'], span: 2 }
+        }
+    },
+    bass: {
+        Standard: {
+            Root: { strings: [1, 'X', 'X', 'X'] },
+            Root5: { strings: [1, 3, 'X', 'X'] }, // Root + 5th (Power Chord style)
+            Arpeggio: { strings: [2, 1, 4, 'X'] }  // 1, 3, 5 pattern
+        }
+    }
 };
 
 export function getScaleNotes(rootValue, modeName) {
@@ -60,24 +144,42 @@ export function getScaleNotes(rootValue, modeName) {
 export function generateChordsFromNNS(rootValue, modeName, nnsArray) {
     const scaleNotes = getScaleNotes(rootValue, modeName);
     return nnsArray.map(nnsStr => {
-        const isMinor = nnsStr.includes('-');
-        const isDim = nnsStr.includes('°');
+        // NNS Notation: 1, 2-, 3-, 4, 5, 6-, 7°
+        const isMinor = nnsStr.includes('-') || nnsStr.includes('m');
+        const isDim = nnsStr.includes('°') || nnsStr.includes('dim');
+        const isMajor = !isMinor && !isDim;
+        
         const degreeMatch = nnsStr.match(/[1-7]/);
         let degree = degreeMatch ? parseInt(degreeMatch[0]) - 1 : 0; 
         let chordRootNote = scaleNotes[degree];
 
+        // Handle flat degrees (e.g., b2, b7)
         if (nnsStr.includes('b')) {
-            let baseValue = scaleNotes[0].value;
-            let alteredValue = (baseValue + degree) % 12; // This logic might be flawed for modes
-            chordRootNote = NOTES.find(n => n.value === alteredValue); 
+            // Find chromatic distance from root
+            let semitonesFromRoot = 0;
+            const modeIntervals = MODES[modeName].intervals;
+            for(let i=0; i<degree; i++) semitonesFromRoot += modeIntervals[i];
+            
+            let alteredValue = (rootValue + semitonesFromRoot - 1 + 12) % 12;
+            chordRootNote = NOTES.find(n => n.value === alteredValue);
         }
 
         let suffix = isMinor ? 'm' : isDim ? 'dim' : '';
+        
+        // Define Harmonic Role
+        let role = "";
+        const roleDegree = degree + 1;
+        if (roleDegree === 1) role = "Tonic (Repos, Maison)";
+        else if (roleDegree === 4) role = "Subdominant (Départ, Aventure)";
+        else if (roleDegree === 5) role = "Dominant (Tension maximale)";
+        else if (roleDegree === 6 && isMinor) role = "Relative Minor (Profondeur)";
+
         return {
             nns: nnsStr,
             chordNameUS: `${chordRootNote.us}${suffix}`,
             chordNameEU: `${chordRootNote.eu}${suffix}`,
-            rootNote: chordRootNote
+            rootNote: chordRootNote,
+            role: role
         };
     });
 }
