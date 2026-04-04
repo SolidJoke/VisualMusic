@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import "./App.css";
 import PianoKeyboard from "./components/Instruments/PianoKeyboard";
 import Fretboard from "./components/Instruments/Fretboard";
 import PianoRoll from "./components/Sequencer/PianoRoll";
 import DAWHelper from "./components/Sequencer/DAWHelper";
+import MixerStrip from "./components/Audio/MixerStrip";
+import DictionaryPanel from "./components/Panels/DictionaryPanel";
+import { useSequencer } from "./audio/useSequencer";
+import { translations } from "./i18n/translations";
 
 import {
   getScaleNotes,
@@ -13,6 +17,7 @@ import {
   getClosestInversion,
   getAbsoluteNoteValue,
 } from "./core/theory";
+import { getGuitarFingering, getBassFingering } from "./core/fingeringLogic";
 import { BRICKS } from "./core/bricks";
 import * as Tone from "tone";
 
@@ -47,6 +52,7 @@ const noteNamesArray = [
 ];
 
 const toRoman = (nnsStr) => {
+  if (!nnsStr || typeof nnsStr !== 'string') return "";
   const map = { 1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI", 7: "VII" };
   const baseNum = nnsStr.match(/[1-7]/)?.[0] || "1";
   let roman = map[baseNum];
@@ -67,40 +73,20 @@ const toRoman = (nnsStr) => {
 };
 
 
-import { translations } from "./i18n/translations";
-
 function App() {
   const [lang, setLang] = useState("fr");
-  const txt = translations[lang];
+  const txt = (translations && translations[lang]) || {};
 
   const [appMode, setAppMode] = useState("studio");
   const [notation, setNotation] = useState("us");
   const [chordDisplayMode, setChordDisplayMode] = useState("standard");
   const [showAbout, setShowAbout] = useState(false);
   const [showTheory, setShowTheory] = useState(false);
+  const [showFingering, setShowFingering] = useState(false);
+  const [fingeringMode, setFingeringMode] = useState("numeric"); // "numeric" (1-4) or "anatomic" (I,M,A,m)
 
-  const [isAudioReady, setIsAudioReady] = useState(false);
   const playTokenRef = useRef(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [playbackInstrument, setPlaybackInstrument] = useState("piano");
-  const [masterVolume, setMasterVolume] = useState(-12);
-  const [currentBpm, setCurrentBpm] = useState(120);
-  const [instrumentVolumes, setInstrumentVolumes] = useState({
-    kick: -3,
-    snare: -5,
-    hat: -8,
-    bass: -6,
-    piano: 0,
-    guitar: 0,
-  });
-  const [isPianoReady, setIsPianoReady] = useState(false);
-  const [currentStep, setCurrentStep] = useState(-1);
-
-  const handleInstrumentVolumeChange = (instrument, value) => {
-    const val = Number(value);
-    setInstrumentVolumes((prev) => ({ ...prev, [instrument]: val }));
-    setInstrumentVolume(instrument, val);
-  };
 
   const [currentBrickIndex, setCurrentBrickIndex] = useState(0);
   const [displayMode, setDisplayMode] = useState("chord");
@@ -120,6 +106,21 @@ function App() {
   const [dictRoot, setDictRoot] = useState(0);
   const [dictType, setDictType] = useState("single_note");
   const [fretboardZone, setFretboardZone] = useState("all");
+
+  // --- Expert Fingering Logic ---
+  const guitarFingering = useMemo(() => {
+    if (!showFingering || !clickedChord) return null;
+    const rootVal = clickedChord.rootNote.value;
+    const isMinor = clickedChord.nns.includes("-");
+    return getGuitarFingering(rootVal, isMinor);
+  }, [showFingering, clickedChord]);
+
+  const bassFingering = useMemo(() => {
+    if (!showFingering || !clickedChord) return null;
+    const rootVal = clickedChord.rootNote.value;
+    const isMinor = clickedChord.nns.includes("-");
+    return getBassFingering(rootVal, isMinor);
+  }, [showFingering, clickedChord]);
 
   const activeBrick = BRICKS.at(Number(currentBrickIndex));
 
@@ -211,16 +212,28 @@ function App() {
     else if (bassNoteClass === fifthVal) inversionText = txt.invSecond;
     else inversionText = txt.invUnknown;
   }
-
-  const drumRef = useRef(activeDrums);
-  const melodyRef = useRef(activeMelody);
-  const rootRef = useRef(currentRootValue);
-  const appModeRef = useRef(appMode);
-
-  drumRef.current = activeDrums;
-  melodyRef.current = activeMelody;
-  rootRef.current = currentRootValue;
-  appModeRef.current = appMode;
+  const {
+    isAudioReady,
+    setIsAudioReady,
+    isPlaying,
+    masterVolume,
+    setMasterVolume,
+    currentBpm,
+    setCurrentBpm,
+    instrumentVolumes,
+    handleInstrumentVolumeChange,
+    currentStep,
+    togglePlayback,
+    handleBpmChange,
+    isPianoReady
+  } = useSequencer({
+    appMode,
+    activeBrick,
+    activeDrums,
+    activeMelody,
+    currentRootValue,
+    setCurrentlyPlayingNotes,
+  });
 
   useEffect(() => {
     if (appMode === "studio") {
@@ -232,9 +245,10 @@ function App() {
         "--theme-bg",
         activeBrick.theme.bg,
       );
-      setCurrentBpm(activeBrick.bpm);
-      Tone.Transport.bpm.value = activeBrick.bpm;
-      // Apply genre-specific instrument presets
+      if (setCurrentBpm && Tone.Transport) {
+        setCurrentBpm(activeBrick.bpm);
+        Tone.Transport.bpm.value = activeBrick.bpm;
+      }
       applyGenrePreset(activeBrick._group);
     } else {
       document.documentElement.style.setProperty("--theme-primary", "#ffd700");
@@ -243,112 +257,7 @@ function App() {
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
     setCurrentTheme("A");
-  }, [currentBrickIndex, appMode, activeBrick]);
-
-  useEffect(() => {
-    Tone.Destination.volume.value = masterVolume;
-  }, [masterVolume]);
-
-  useEffect(() => {
-    let stepCounter = 0;
-
-    const repeat = (time) => {
-      Tone.Draw.schedule(() => setCurrentStep(stepCounter), time);
-
-      if (appModeRef.current === "dictionary") {
-        stepCounter = (stepCounter + 1) % 16;
-        return;
-      }
-
-      const drums = drumRef.current;
-      const melodies = melodyRef.current;
-      const rootVal = rootRef.current;
-
-      if (drums && drums.length > 0) {
-        drums.forEach((track) => {
-          if (track.activeSteps.includes(stepCounter)) {
-            let vel =
-              track.lowVelocitySteps &&
-              track.lowVelocitySteps.includes(stepCounter)
-                ? 0.3
-                : 0.8;
-            let name = track.name.toLowerCase();
-
-            if (name.includes("kick")) {
-              kickSynth.triggerAttackRelease("C1", "8n", time, vel);
-            } else if (
-              name.includes("snare") ||
-              name.includes("clap") ||
-              name.includes("rim")
-            ) {
-              snareSynth.triggerAttackRelease("16n", time, vel);
-            } else {
-              hatSynth.triggerAttackRelease("32n", time, vel);
-            }
-          }
-        });
-      }
-
-      if (melodies && melodies.length > 0) {
-        melodies.forEach((track) => {
-          if (track.activeSteps.includes(stepCounter)) {
-            let vel =
-              track.lowVelocitySteps &&
-              track.lowVelocitySteps.includes(stepCounter)
-                ? 0.4
-                : 0.9;
-            let octave = track.name.toLowerCase().includes("bass") ? 2 : 4; // Adjusted octaves
-            let noteName = `${noteNamesArray[rootVal % 12]}${octave}`;
-            bassSynth.triggerAttackRelease(noteName, "16n", time, vel);
-            Tone.Draw.schedule(() => {
-              const absNote = getAbsoluteNoteValue(noteName);
-              setCurrentlyPlayingNotes([absNote]);
-              setTimeout(() => setCurrentlyPlayingNotes([]), 150);
-            }, time);
-          }
-        });
-      }
-
-      stepCounter = (stepCounter + 1) % 16;
-    };
-
-    if (isPlaying) {
-      Tone.Transport.scheduleRepeat(repeat, "16n");
-    } else {
-      Tone.Transport.cancel();
-      setCurrentStep(-1);
-      stepCounter = 0;
-    }
-
-    return () => Tone.Transport.cancel();
-  }, [isPlaying]);
-
-  const togglePlayback = async () => {
-    if (!isAudioReady) {
-      await Tone.start();
-      Tone.Destination.volume.value = masterVolume;
-      Tone.Transport.bpm.value = currentBpm;
-      initPianoSampler(() => setIsPianoReady(true));
-      initGuitarSampler();
-      if (appMode === "studio" && typeof activeBrick !== "undefined" && activeBrick) {
-         applyGenrePreset(activeBrick._group);
-      }
-      setIsAudioReady(true);
-    }
-    if (isPlaying) {
-      Tone.Transport.pause();
-      setIsPlaying(false);
-    } else {
-      Tone.Transport.start();
-      setIsPlaying(true);
-    }
-  };
-
-  const handleBpmChange = (e) => {
-    const newBpm = Number(e.target.value);
-    setCurrentBpm(newBpm);
-    Tone.Transport.bpm.value = newBpm;
-  };
+  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm]);
 
   const handleChordClick = async (c, chordIndexInProgression) => {
     setClickedChord(c);
@@ -768,33 +677,54 @@ function App() {
             >
               <li>
                 <strong style={{ color: "#fff" }}>Ionian :</strong>{" "}
-                {txt.modeIonian}
+                {MODES.Ionian.emotion} — {MODES.Ionian.description}
               </li>
               <li>
                 <strong style={{ color: "#fff" }}>Dorian :</strong>{" "}
-                {txt.modeDorian}
+                {MODES.Dorian.emotion} (Note magique : {MODES.Dorian.magicNote})
               </li>
               <li>
                 <strong style={{ color: "#fff" }}>Phrygian :</strong>{" "}
-                {txt.modePhrygian}
+                {MODES.Phrygian.emotion} (Note magique : {MODES.Phrygian.magicNote})
               </li>
               <li>
                 <strong style={{ color: "#fff" }}>Lydian :</strong>{" "}
-                {txt.modeLydian}
+                {MODES.Lydian.emotion} (Note magique : {MODES.Lydian.magicNote})
               </li>
               <li>
                 <strong style={{ color: "#fff" }}>Mixolydian :</strong>{" "}
-                {txt.modeMixolydian}
+                {MODES.Mixolydian.emotion} (Note magique : {MODES.Mixolydian.magicNote})
               </li>
               <li>
                 <strong style={{ color: "#fff" }}>Aeolian :</strong>{" "}
-                {txt.modeAeolian}
+                {MODES.Aeolian.emotion}
               </li>
               <li>
                 <strong style={{ color: "#fff" }}>Locrian :</strong>{" "}
-                {txt.modeLocrian}
+                {MODES.Locrian.emotion}
+              </li>
+              <li>
+                <strong style={{ color: "#fff" }}>Phrygian Dominant :</strong>{" "}
+                {MODES.PhrygianDominant.emotion}
               </li>
             </ul>
+
+            <h3
+              style={{
+                color: "var(--theme-primary)",
+                borderBottom: "1px solid #444",
+                paddingBottom: "10px",
+                marginTop: "30px"
+              }}
+            >
+              Nashville Number System (NNS)
+            </h3>
+            <p style={{ color: "#ccc", fontSize: "14px" }}>
+              Le NNS remplace les noms de notes par des fonctions :
+              <br />• <strong>1, 4, 5</strong> : Accords Majeurs (Repos, Départ, Tension).
+              <br />• <strong>2-, 3-, 6-</strong> : Accords Mineurs.
+              <br />• <strong>6-</strong> : La relative mineure (Profondeur).
+            </p>
           </div>
         </div>
       )}
@@ -925,6 +855,9 @@ function App() {
                   <optgroup label="🎤 Urban & Hip-Hop">
                     {BRICKS.map((brick, index) => brick._group === 'urban' && <option key={index} value={index}>{brick.name[lang]}</option>)}
                   </optgroup>
+                  <optgroup label="🎓 Progressions Expertes (NNS)">
+                    {BRICKS.map((brick, index) => brick._group === 'expert_progressions' && <option key={index} value={index}>{brick.name[lang] || brick.name.en}</option>)}
+                  </optgroup>
                   <optgroup label="🎹 Pop & Funk">
                     {BRICKS.map((brick, index) => brick._group === 'pop' && <option key={index} value={index}>{brick.name[lang]}</option>)}
                   </optgroup>
@@ -938,15 +871,15 @@ function App() {
 
                 <div style={{ marginTop: "15px" }}>
                   <span className="info-badge">
-                    🎵 Mode: {activeBrick.modeName}
+                    🎵 Mode: {activeBrick.modeName} ({MODES[activeBrick.modeName]?.emotion})
                   </span>
                   <span className="info-badge">
-                    🎸 Tuning: {activeBrick.tuning}
+                    🎸 Tuning: {activeBrick.tuning || "Standard"}
                   </span>
                 </div>
 
                 <div className="effects-text">
-                  💡 {activeBrick.effects[lang]}
+                  💡 {activeBrick.effects?.[lang] || ""}
                 </div>
                 {activeBrick.inspiration?.[lang] && (
                   <div style={{ color: '#888', fontSize: '13px', marginTop: '6px', fontStyle: 'italic', paddingLeft: '12px' }}>
@@ -963,7 +896,7 @@ function App() {
                     paddingLeft: "12px",
                   }}
                 >
-                  🎧 {activeBrick.examples[lang]}
+                  🎧 {activeBrick.examples?.[lang] || ""}
                 </div>
 
                 <div
@@ -1094,10 +1027,12 @@ function App() {
                         clickedChord && clickedChord.nns === c.nns;
                       const chordText =
                         chordDisplayMode === "nns"
-                          ? toRoman(c.nns)
-                          : notation === "us"
-                            ? c.chordNameUS
-                            : c.chordNameEU;
+                          ? c.nns
+                          : chordDisplayMode === "roman"
+                            ? toRoman(c.nns)
+                            : notation === "us"
+                              ? c.chordNameUS
+                              : c.chordNameEU;
 
                       return (
                         <span
@@ -1106,6 +1041,7 @@ function App() {
                         >
                           <button
                             onClick={() => handleChordClick(c, i)}
+                            title={c.role}
                             style={{
                               background: isSelected
                                 ? "var(--theme-primary)"
@@ -1172,123 +1108,15 @@ function App() {
             )}
 
             {appMode === "dictionary" && (
-              <div
-                className="dashboard-panel"
-                style={{
-                  textAlign: "center",
-                  backgroundColor: "#2a2a2a",
-                  border: "1px solid var(--theme-primary)",
-                  width: "100%",
-                  boxSizing: "border-box",
-                  maxWidth: "none",
-                  margin: "0",
-                }}
-              >
-                <h2
-                  style={{
-                    margin: "0 0 15px 0",
-                    color: "var(--theme-primary)",
-                  }}
-                >
-                  {txt.freeExplorer}
-                </h2>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                    gap: "20px",
-                  }}
-                >
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        color: "#ccc",
-                        marginBottom: "5px",
-                      }}
-                    >
-                      {txt.rootNote}
-                    </label>
-                    <select
-                      value={dictRoot}
-                      onChange={(e) => setDictRoot(e.target.value)}
-                      style={{
-                        padding: "10px",
-                        fontSize: "18px",
-                        width: "100%",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        backgroundColor: "#111",
-                        color: "#fff",
-                        border: "1px solid #555",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      {NOTES.map((n) => (
-                        <option key={n.value} value={n.value}>
-                          {notation === "us" ? n.us : n.eu}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        color: "#ccc",
-                        marginBottom: "5px",
-                      }}
-                    >
-                      {txt.structType}
-                    </label>
-                    <select
-                      value={dictType}
-                      onChange={(e) => setDictType(e.target.value)}
-                      style={{
-                        padding: "10px",
-                        fontSize: "18px",
-                        width: "100%",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        backgroundColor: "#111",
-                        color: "#fff",
-                        border: "1px solid #555",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      <option value="single_note">{txt.singleNote}</option>
-                      <option value="chord_major">{txt.chordMaj}</option>
-                      <option value="chord_minor">{txt.chordMin}</option>
-                      <option value="scale_major">{txt.scaleMaj}</option>
-                      <option value="scale_minor">{txt.scaleMin}</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  onClick={playDictionaryAudio}
-                  style={{
-                    marginTop: "25px",
-                    padding: "12px",
-                    width: "100%",
-                    fontSize: "16px",
-                    fontWeight: "bold",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    backgroundColor: "var(--theme-primary)",
-                    color: "#000",
-                    border: "none",
-                    transition: "transform 0.1s",
-                  }}
-                  onMouseDown={(e) =>
-                    (e.target.style.transform = "scale(0.95)")
-                  }
-                  onMouseUp={(e) => (e.target.style.transform = "scale(1)")}
-                >
-                  {txt.listen}
-                </button>
-              </div>
+              <DictionaryPanel
+                dictRoot={dictRoot}
+                setDictRoot={setDictRoot}
+                dictType={dictType}
+                setDictType={setDictType}
+                notation={notation}
+                playDictionaryAudio={playDictionaryAudio}
+                txt={txt}
+              />
             )}
 
             {/* NEW LEFT CONTROL PANEL ADDED HERE */}
@@ -1345,6 +1173,95 @@ function App() {
                 >
                   EU (Do,Ré)
                 </button>
+              </div>
+
+              {/* NNS / CHORD DISPLAY TOGGLE */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "5px",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  marginTop: "5px"
+                }}
+              >
+                {[
+                  { id: "standard", label: "Chord" },
+                  { id: "nns", label: "NNS (1,4,5)" },
+                  { id: "roman", label: "Roman (I,IV,V)" }
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setChordDisplayMode(m.id)}
+                    style={{
+                      padding: "6px 10px",
+                      cursor: "pointer",
+                      borderRadius: "4px",
+                      border: "1px solid #444",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      backgroundColor:
+                        chordDisplayMode === m.id ? "var(--theme-primary)" : "#222",
+                      color: chordDisplayMode === m.id ? "#000" : "#ccc",
+                    }}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* FINGERING TOGGLE */}
+              <div style={{ textAlign: "center", marginTop: "10px" }}>
+                 <button
+                    onClick={() => setShowFingering(!showFingering)}
+                    style={{
+                      padding: "10px 20px",
+                      cursor: "pointer",
+                      borderRadius: "20px",
+                      border: showFingering ? "2px solid var(--theme-primary)" : "1px solid #555",
+                      fontWeight: "bold",
+                      backgroundColor: showFingering ? "var(--theme-primary)" : "transparent",
+                      color: showFingering ? "#000" : "#fff",
+                      transition: "all 0.3s ease",
+                      fontSize: "14px",
+                      width: "80%"
+                    }}
+                  >
+                    {showFingering ? "✅ Mode Doigté (Expert)" : "🎓 Voir Doigtés (Expert)"}
+                  </button>
+                  {showFingering && (
+                    <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "8px" }}>
+                      {[
+                        { id: "numeric", label: "1-2-3-4" },
+                        { id: "anatomic", label: "I-M-A-m" },
+                      ].map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => setFingeringMode(m.id)}
+                          style={{
+                            padding: "4px 12px",
+                            cursor: "pointer",
+                            borderRadius: "12px",
+                            border: fingeringMode === m.id ? "2px solid var(--theme-primary)" : "1px solid #555",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            backgroundColor: fingeringMode === m.id ? "var(--theme-primary)" : "transparent",
+                            color: fingeringMode === m.id ? "#000" : "#ccc",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p style={{ color: "#888", fontSize: "11px", marginTop: "6px" }}>
+                    {showFingering
+                      ? fingeringMode === "numeric"
+                        ? "Doigtés 1-4 : Index, Majeur, Annulaire, Auriculaire"
+                        : "I=Index, M=Majeur, A=Annulaire, m=Auriculaire"
+                      : "Affiche quel doigt utiliser sur le manche"}
+                  </p>
               </div>
 
               {/* GLOBAL INSTRUMENT SELECTOR */}
@@ -1538,7 +1455,7 @@ function App() {
                     drumTracks={activeDrums}
                     melodyTracks={activeMelody}
                     bpm={currentBpm}
-                    genreName={activeBrick.name[lang] || activeBrick.name.en}
+                    genreName={activeBrick.name?.[lang] || activeBrick.name?.en || ""}
                     lang={lang}
                   />
                 </div>
@@ -1702,7 +1619,7 @@ function App() {
                   instrument="guitar"
                   activeNotes={activeNotes}
                   notation={notation}
-                  stringTuning={activeBrick.guitarStrings}
+                  stringTuning={activeBrick.guitarStrings || ['E2', 'A2', 'D3', 'G3', 'B3', 'E4']}
                   rootValue={currentRootValue}
                   targetValue={targetValue}
                   fretboardZone={fretboardZone}
@@ -1712,13 +1629,16 @@ function App() {
                   dictType={appMode === "dictionary" ? dictType : null}
                   lastClickedContext={lastClickedContext}
                   singlePlayContext={singlePlayContext}
+                  showFingering={showFingering}
+                  fingeringMode={fingeringMode}
+                  fingering={guitarFingering}
                 />
                 <br />
                 <Fretboard
                   instrument="bass"
                   activeNotes={activeNotes}
                   notation={notation}
-                  stringTuning={activeBrick.bassStrings}
+                  stringTuning={activeBrick.bassStrings || ['E1', 'A1', 'D2', 'G2']}
                   rootValue={currentRootValue}
                   targetValue={targetValue}
                   fretboardZone={fretboardZone}
@@ -1728,6 +1648,9 @@ function App() {
                   dictType={appMode === "dictionary" ? dictType : null}
                   lastClickedContext={lastClickedContext}
                   singlePlayContext={singlePlayContext}
+                  showFingering={showFingering}
+                  fingeringMode={fingeringMode}
+                  fingering={bassFingering}
                 />
               </div>
             )}
@@ -1899,53 +1822,11 @@ function App() {
               </div>
             </div>
 
-            {/* NEW HORIZONTAL MIXER STRIP */}
-            <div
-              className="dashboard-panel"
-              style={{
-                padding: "15px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-                backgroundColor: "#1a1a1a",
-                borderRadius: "8px",
-                border: "1px solid #333",
-                boxSizing: "border-box",
-              }}
-            >
-              <h3 style={{ margin: 0, color: "var(--theme-primary)", fontSize: "14px", display: "flex", alignItems: "center", gap: "10px" }}>
-                <span>🔊 Mix</span>
-                {isAudioReady && !isPianoReady && (
-                  <span style={{ fontSize: "11px", color: "#aaa", fontStyle: "italic", animation: "pulse 1.5s infinite" }}>
-                    🎹 Loading piano...
-                  </span>
-                )}
-              </h3>
-              <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", justifyContent: "space-between" }}>
-                {[
-                  { id: "kick", label: "🥁 Kick" },
-                  { id: "snare", label: "🥁 Snare" },
-                  { id: "hat", label: "🎩 Hat" },
-                  { id: "bass", label: "🎸 Bass" },
-                  { id: "piano", label: "🎹 Piano" },
-                  { id: "guitar", label: "🎸 Guitar" },
-                ].map((inst) => (
-                  <div key={inst.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, minWidth: "60px" }}>
-                    <label style={{ fontSize: "11px", color: "#ccc", marginBottom: "4px", whiteSpace: "nowrap" }}>
-                      {inst.label}
-                    </label>
-                    <input
-                      type="range"
-                      min="-30"
-                      max="6"
-                      value={instrumentVolumes[inst.id]}
-                      onChange={(e) => handleInstrumentVolumeChange(inst.id, e.target.value)}
-                      style={{ cursor: "pointer", width: "100%", accentColor: "var(--theme-primary)" }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MixerStrip
+              instrumentVolumes={instrumentVolumes}
+              handleInstrumentVolumeChange={handleInstrumentVolumeChange}
+              isPlaying={isPlaying}
+            />
 
             {/* NEW RIGHT CONTROL PANEL ADDED HERE */}
             <div

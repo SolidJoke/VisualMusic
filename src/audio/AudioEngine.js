@@ -16,22 +16,20 @@ import * as Tone from "tone";
 import { DRUM_PRESETS, BASS_PRESETS, PIANO_PRESET } from "./InstrumentPresets";
 
 // ─── Safety & Analysis: Hard Limiter and FFT ──────────────────────────
-const limiter = new Tone.Limiter(-1);
-const masterAnalyser = new Tone.Analyser({
+// const limiter = new Tone.Limiter({ threshold: -1 }); // Crashes on Tone.js v15 module load
+export const masterAnalyser = new Tone.Analyser({
   type: "fft",
   size: 64, // 64 bins for a chunky, sleek visualizer
-  smoothing: 0.8,
 });
-limiter.chain(masterAnalyser, Tone.Destination);
 
 // ─── Mixing Nodes ────────────────────────────────────────────────────
 export const instrumentVols = {
-  piano: new Tone.Volume(0).connect(limiter),
-  bass: new Tone.Volume(0).connect(limiter),
-  kick: new Tone.Volume(0).connect(limiter),
-  snare: new Tone.Volume(0).connect(limiter),
-  hat: new Tone.Volume(0).connect(limiter),
-  guitar: new Tone.Volume(0).connect(limiter)
+  piano: new Tone.Volume(0).connect(masterAnalyser),
+  bass: new Tone.Volume(0).connect(masterAnalyser),
+  kick: new Tone.Volume(0).connect(masterAnalyser),
+  snare: new Tone.Volume(0).connect(masterAnalyser),
+  hat: new Tone.Volume(0).connect(masterAnalyser),
+  guitar: new Tone.Volume(0).connect(masterAnalyser)
 };
 
 /**
@@ -351,5 +349,6 @@ export function applyGenrePreset(group) {
   });
 }
 
+masterAnalyser.connect(Tone.Destination);
+
 // ─── Exports ─────────────────────────────────────────────────────────
-export { limiter, masterAnalyser };

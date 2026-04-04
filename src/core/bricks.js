@@ -2,6 +2,65 @@
 
 export const BRICKS = [
     // ---------------------------------------------------------
+    // PROGRESSIONS STANDARDS - EXPERTISE (5)
+    // ---------------------------------------------------------
+    {
+        name: { fr: "Pop Moderne (4 Accords)", en: "Modern Pop (4 Chords)", pt: "Pop Moderno (4 Acordes)", zh: "现代流行 (4和弦)" },
+        _group: 'expert_progressions', bpm: 120, modeName: "Ionian", rootValue: 0, tuning: "Standard",
+        guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: { fr: "La boucle d'accords la plus célèbre du monde. Évoque un voyage résilient.", en: "The world's most famous chord loop. Evokes a resilient journey.", pt: "O loop de acordes mais famoso do mundo.", zh: "世界上最著名的和弦循环。" },
+        examples: { fr: "Utilisée par : Let It Be, No Woman No Cry, Someone Like You, With or Without You.", en: "Used by: Let It Be, No Woman No Cry, Someone Like You, With or Without You.", pt: "Usada em: Let It Be, No Woman No Cry.", zh: "使用于: Let It Be, No Woman No Cry." },
+        nnsProgression: ['1', '5', '6-', '4'], 
+        theme: { primary: '#e91e63', bg: '#26000d' },
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 8, 14] } ]
+    },
+    {
+        name: { fr: "Rock / Blues (Basique)", en: "Rock / Blues (Basic)", pt: "Rock / Blues (Básico)", zh: "摇滚 / 蓝调 (基础)" },
+        _group: 'expert_progressions', bpm: 100, modeName: "Mixolydian", rootValue: 7, tuning: "Standard",
+        guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: { fr: "La fondation du Rock'n'Roll et du Blues. Simple et efficace.", en: "The foundation of Rock'n'Roll and Blues. Simple and effective.", pt: "A fundação do Rock'n'Roll e do Blues.", zh: "摇滚和蓝调的基础。" },
+        examples: { fr: "Utilisée par : Johnny B. Goode, La Bamba, Twist and Shout.", en: "Used by: Johnny B. Goode, La Bamba, Twist and Shout.", pt: "Usada em: Johnny B. Goode, La Bamba.", zh: "使用于: Johnny B. Goode, La Bamba." },
+        nnsProgression: ['1', '4', '5'], 
+        theme: { primary: '#e65100', bg: '#260d00' },
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12] } ]
+    },
+    {
+        name: { fr: "Ballade Doo-Wop (50s)", en: "Doo-Wop Ballad (50s)", pt: "Balada Doo-Wop (Anos 50)", zh: "Doo-Wop 民谣 (50年代)" },
+        _group: 'expert_progressions', bpm: 85, modeName: "Ionian", rootValue: 2, tuning: "Standard",
+        guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: { fr: "Son rétro et romantique des années 50.", en: "Retro and romantic 50s sound.", pt: "Som retrô e romântico dos anos 50.", zh: "50年代复古浪漫之声。" },
+        examples: { fr: "Utilisée par : Stand By Me, Earth Angel, Blue Moon.", en: "Used by: Stand By Me, Earth Angel, Blue Moon.", pt: "Usada em: Stand By Me, Earth Angel.", zh: "使用于: Stand By Me, Earth Angel." },
+        nnsProgression: ['1', '6-', '4', '5'], 
+        theme: { primary: '#4dd0e1', bg: '#002226' },
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11] } ]
+    },
+    {
+        name: { fr: "Boucle Funk/Disco", en: "Funk/Disco Loop", pt: "Loop Funk/Disco", zh: "Funk/Disco 循环" },
+        _group: 'expert_progressions', bpm: 115, modeName: "Dorian", rootValue: 4, tuning: "Standard",
+        guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: { fr: "Hypnotique et dansant. Basé sur le mode Dorien.", en: "Hypnotic and dancing. Based on the Dorian mode.", pt: "Hipnótico e dançante. Baseado no modo Dórico.", zh: "催眠而舞动。基于多利亚调式。" },
+        examples: { fr: "Utilisée par : Get Lucky (Daft Punk), Billie Jean (Michael Jackson).", en: "Used by: Get Lucky (Daft Punk), Billie Jean (Michael Jackson).", pt: "Usada em: Get Lucky, Billie Jean.", zh: "使用于: Get Lucky, Billie Jean." },
+        nnsProgression: ['1-', '4'], 
+        theme: { primary: '#9c27b0', bg: '#1c0024' },
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [2, 6, 10, 14] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 7, 10, 14] } ]
+    },
+    {
+        name: { fr: "Turnaround Jazz (ii-V-I)", en: "Jazz Turnaround (ii-V-I)", pt: "Turnaround Jazz (ii-V-I)", zh: "爵士回转 (ii-V-I)" },
+        _group: 'expert_progressions', bpm: 120, modeName: "Dorian", rootValue: 2, tuning: "Standard",
+        guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
+        effects: { fr: "La progression ultime pour créer une tension sophistiquée qui se résout parfaitement.", en: "The ultimate progression for creating sophisticated tension that resolves perfectly.", pt: "A progressão definitiva para criar tensão sofisticada.", zh: "创造精致张力的终极进行。" },
+        examples: { fr: "Utilisée par : Autumn Leaves, Fly Me to the Moon, All The Things You Are.", en: "Used by: Autumn Leaves, Fly Me to the Moon, All The Things You Are.", pt: "Usada em: Autumn Leaves, Fly Me to the Moon.", zh: "使用于: Autumn Leaves, Fly Me to the Moon." },
+        nnsProgression: ['2-', '5', '1'], 
+        theme: { primary: '#ffca28', bg: '#1a1500' },
+        drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12] } ]
+    },
+
+    // ---------------------------------------------------------
     // GENRES ORIGINAUX (5)
     // ---------------------------------------------------------
     {
