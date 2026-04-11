@@ -67,12 +67,45 @@ describe('fingeringLogic', () => {
       expect(Object.values(map[5]).every(v => v === 'X')).toBe(true);
     });
 
-    it('should return open D shape for D major (rootValue=2)', () => {
+    it( 'should return open D shape for D major (rootValue=2)', () => {
       const result = getGuitarFingering(2, false);
       expect(result).not.toBeNull();
       const map = result.fingeringMap;
       expect(Object.values(map[5]).every(v => v === 'X')).toBe(true);
       expect(Object.values(map[4]).every(v => v === 'X')).toBe(true);
+      expect(map[3][0]).toBe('O'); // D open
+    });
+
+    it('should return open Dm shape for D minor (rootValue=2)', () => {
+      const result = getGuitarFingering(2, true);
+      const map = result.fingeringMap;
+      expect(map[3][0]).toBe('O');
+      expect(map[2][2]).toBe(2);
+      expect(map[0][1]).toBe(1);
+    });
+
+    it('should return open A shape for A major (rootValue=9)', () => {
+      const result = getGuitarFingering(9, false);
+      const map = result.fingeringMap;
+      expect(map[4][0]).toBe('O'); // A open
+      expect(map[3][2]).toBe(1);
+      expect(map[2][2]).toBe(2);
+      expect(map[1][2]).toBe(3);
+      expect(map[0][0]).toBe('O'); // High E open
+    });
+
+    it('should use "O" label for all open strings in open shapes', () => {
+      const openRoots = [0, 2, 4, 7, 9];
+      openRoots.forEach(root => {
+        [true, false].forEach(isMinor => {
+          const res = getGuitarFingering(root, isMinor);
+          Object.values(res.fingeringMap).forEach(stringMap => {
+            if (stringMap[0] !== undefined && stringMap[0] !== 'X') {
+              expect(stringMap[0]).toBe('O');
+            }
+          });
+        });
+      });
     });
 
     it('should handle all 12 root values without crashing', () => {

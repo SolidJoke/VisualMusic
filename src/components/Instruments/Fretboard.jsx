@@ -133,7 +133,8 @@ export default function Fretboard({
                     contextualScaleAbsoluteValues.length > 0;
                   const hasPath = activePath.length > 0;
 
-                  const isGuitarFingeringActive = showFingering && instrument === "guitar" && fingering;
+                  // Only apply voicing masking when in chord (not scale) mode
+                  const isGuitarFingeringActive = showFingering && instrument === "guitar" && fingering && !isScaleMode;
 
                   if (isGuitarFingeringActive) {
                     const fingerAtLocation = fingering[stringIndex]?.[fret];
@@ -256,7 +257,7 @@ export default function Fretboard({
                             transition: "opacity 0.3s",
                           }}
                         >
-                          {showFingering && fingering?.[stringIndex]?.[fret] 
+                          {showFingering && !isScaleMode && fingering?.[stringIndex]?.[fret] 
                             ? (() => {
                                 const raw = fingering[stringIndex][fret];
                                 const labels = fingeringMode === 'anatomic' ? FINGER_LABELS.anatomic : FINGER_LABELS.numeric;

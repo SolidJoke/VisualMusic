@@ -87,6 +87,28 @@ const GUITAR_SHAPES = {
       0: { fret: 0, finger: 'O' },
     }),
   },
+  // A major open (X-0-2-2-2-0)
+  open_A: {
+    build: () => ({
+      5: null,
+      4: { fret: 0, finger: 'O' },
+      3: { fret: 2, finger: 1 },
+      2: { fret: 2, finger: 2 },
+      1: { fret: 2, finger: 3 },
+      0: { fret: 0, finger: 'O' },
+    }),
+  },
+  // Dm open (X-X-0-2-3-1)
+  open_Dm: {
+    build: () => ({
+      5: null,
+      4: null,
+      3: { fret: 0, finger: 'O' },
+      2: { fret: 2, finger: 2 },
+      1: { fret: 3, finger: 3 },
+      0: { fret: 1, finger: 1 },
+    }),
+  },
   open_G: {
     build: () => ({
       5: { fret: 3, finger: 2 },
@@ -184,11 +206,11 @@ export function getGuitarFingering(rootValue, isMinor, rootString = null) {
   // If no rootString is forced, check for open chord shapes first
   if (rootString === null) {
     const openChords = {
-      0:  { major: 'open_C', minor: null },       // C
-      2:  { major: null, minor: 'open_Dm' },       // D
-      4:  { major: 'open_E', minor: 'open_Em' },   // E
-      7:  { major: 'open_G', minor: null },         // G
-      9:  { major: null, minor: 'open_Am' },        // A
+      0:  { major: 'open_C',  minor: null      },  // C
+      2:  { major: 'open_D',  minor: 'open_Dm' },  // D
+      4:  { major: 'open_E',  minor: 'open_Em' },  // E
+      7:  { major: 'open_G',  minor: null      },  // G
+      9:  { major: 'open_A',  minor: 'open_Am' },  // A
     };
 
     const openOption = openChords[rootValue];
@@ -199,12 +221,7 @@ export function getGuitarFingering(rootValue, isMinor, rootString = null) {
       }
     }
 
-    if (rootValue === 2 && !isMinor) {
-      return analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES.open_D.build()));
-    }
-    if (rootValue === 9 && !isMinor) {
-      return analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES.open_Am.build())); // Open A proxy
-    }
+    // D major is now handled via openChords above, no extra case needed.
   }
 
   // Open string values

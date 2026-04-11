@@ -85,6 +85,47 @@
 - [x] **6.6 — Tests unitaires** : Couvrir `getGuitarFingering` avec le paramètre `rootString`,
       les cas "out of range" (frette > 14), et les cas de spanning > 4 frettes.
 
+## Phase 6b : Correction Doigtés Guitare (P2b) 🚨 ACTIF — Prêt pour Fix
+
+> **Contexte :** Une passe QA (Gemini Flash, 2026-04-11) a identifié plusieurs bugs critiques dans
+> la logique de doigtés et son rendu. Les tâches suivantes sont documentées pour qu'un autre
+> modèle (ou une nouvelle session) puisse les prendre en charge sans perdre de contexte.
+>
+> **Fichiers concernés :**
+> - `src/core/fingeringLogic.js` (logique de calcul)
+> - `src/components/Instruments/Fretboard.jsx` (rendu visuel)
+
+- [x] **6b.1 — BUG CRITIQUE : La Majeur retourne un La Mineur (open_Am)**
+      **Fichier :** `fingeringLogic.js`, ligne ~206
+      **Problème :** `if (rootValue === 9 && !isMinor)` retourne `open_Am` au lieu d'un accord majeur.
+      **Fix :** Ajout de la forme `open_A` (X-0-2-2-2-0) et correction de la condition de retour.
+
+- [x] **6b.2 — Doigts affichés sur cordes à vide (fret 0 = "O")**
+      **Fichier :** `fingeringLogic.js`
+      **Problème :** Certaines cordes marquées `fret: 0, finger: 1` recevaient un numéro de doigt.
+      **Fix :** Toutes les formes `open_*` utilisent désormais `finger: 'O'` pour les frettes 0.
+
+- [ ] **6b.3 — Visualisation barré inexistante (illusion des "5 doigts")**
+      **Fichier :** `Fretboard.jsx`
+      **Problème :** Les formes barrées affichent 5 points distincts, trompant l'utilisateur.
+      **Fix attendu :** Afficher une barre reliant les notes d'un même doigt (doigt 1) sur une même frette.
+      **Priorité :** Moyenne — UX, pas bloquant.
+
+- [x] **6b.4 — Mode Expert sur Gammes affiche "1" sur toutes les notes**
+      **Fichier :** `Fretboard.jsx`
+      **Problème :** Les gammes affichaient un label de doigt "1" sur chaque note.
+      **Fix :** Les labels de doigts sont désormais masqués en mode Scale.
+
+- [x] **6b.5 — Priorité aux formes ouvertes insuffisante dans getGuitarFingering**
+      **Fichier :** `fingeringLogic.js`
+      **Problème :** Do Majeur privilégiait un barré au lieu de la forme ouverte standard.
+      **Fix :** Complétion du dictionnaire `openChords` et priorité forcée aux formes ouvertes.
+
+- [ ] **6b.6 — Mettre à jour les tests unitaires après les corrections**
+      **Fichier :** `src/core/__tests__/fingeringLogic.test.js`
+      **Fix attendu :** Ajouter des cas de test pour les nouvelles formes ouvertes et vérifier les labels 'O'.
+      **Status :** AppRoot.test.jsx a été patché pour éviter les crashs Tone.js, mais reste à valider.
+
 ## Phase 7 : Polish & Production (P3)
 - [ ] Build production bundle and validate on Netlify.
 - [ ] Performance audit (React profiler, unnecessary re-renders in Fretboard).

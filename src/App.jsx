@@ -115,7 +115,7 @@ function App() {
     if (appMode === "dictionary") {
       // In dictionary mode, we don't have clickedChord. We use dictRoot/currentRootValue
       if (dictType.includes("scale")) return null; // Only for chords
-      rootVal = currentRootValue;
+      rootVal = dictRoot;
       isMinor = dictType === "minor" || dictType.includes("min") || dictType.includes("-");
     } else {
       if (!clickedChord) return null;
@@ -123,14 +123,14 @@ function App() {
       isMinor = clickedChord.nns.includes("-");
     }
     return getGuitarFingering(rootVal, isMinor, selectedRootString);
-  }, [showFingering, clickedChord, selectedRootString, appMode, currentRootValue, dictType]);
+  }, [showFingering, clickedChord, selectedRootString, appMode, dictRoot, dictType]);
 
   const bassFingering = useMemo(() => {
     if (!showFingering) return null;
     let rootVal, isMinor;
     if (appMode === "dictionary") {
       if (dictType.includes("scale")) return null;
-      rootVal = currentRootValue;
+      rootVal = dictRoot;
       isMinor = dictType === "minor" || dictType.includes("min") || dictType.includes("-");
     } else {
       if (!clickedChord) return null;
@@ -138,7 +138,7 @@ function App() {
       isMinor = clickedChord.nns.includes("-");
     }
     return getBassFingering(rootVal, isMinor);
-  }, [showFingering, clickedChord, appMode, currentRootValue, dictType]);
+  }, [showFingering, clickedChord, appMode, dictRoot, dictType]);
 
   const activeBrick = BRICKS.at(Number(currentBrickIndex));
 
