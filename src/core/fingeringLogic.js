@@ -127,69 +127,111 @@ const GUITAR_SHAPES = {
       0: { fret: 2, finger: 2 },
     }),
   },
-  open_Dm: {
-    build: () => ({
-      5: null,
-      4: null,
-      3: { fret: 0, finger: 'O' },
-      2: { fret: 2, finger: 2 },
-      1: { fret: 3, finger: 3 },
-      0: { fret: 1, finger: 1 },
+  // D-shape barre (root on D string)
+  major_D: {
+    build: (f) => ({
+      5: null, // muted
+      4: null, // muted
+      3: { fret: f, finger: 1 },
+      2: { fret: f + 2, finger: 2 },
+      1: { fret: f + 3, finger: 4 },
+      0: { fret: f + 2, finger: 3 },
+    }),
+  },
+  minor_D: {
+    build: (f) => ({
+      5: null, // muted
+      4: null, // muted
+      3: { fret: f, finger: 1 },
+      2: { fret: f + 2, finger: 3 },
+      1: { fret: f + 3, finger: 4 },
+      0: { fret: f + 1, finger: 2 },
     }),
   },
 };
+
+function analyzeVoicing(fingeringMap) {
+  let minFret = 99;
+  let maxFret = -1;
+  let outOfRange = false;
+
+  for (const strIdx in fingeringMap) {
+    for (const fretStr in fingeringMap[strIdx]) {
+      const val = fingeringMap[strIdx][fretStr];
+      if (val !== 'X' && val !== 'O') {
+        const fret = parseInt(fretStr, 10);
+        if (fret > 14) outOfRange = true;
+        if (fret > 0) {
+          if (fret < minFret) minFret = fret;
+          if (fret > maxFret) maxFret = fret;
+        }
+      }
+    }
+  }
+
+  const difficultStretch = (maxFret !== -1 && minFret !== 99) ? (maxFret - minFret > 4) : false;
+  return { fingeringMap, outOfRange, difficultStretch };
+}
 
 /**
  * Determines the best guitar fingering for a given chord.
  * @param {number} rootValue - Chromatic value of the chord root (0-11, C=0)
  * @param {boolean} isMinor - Whether the chord is minor
- * @returns {Object|null} Fingering object { [stringIndex]: { [fret]: finger } }
- *   compatible with the Fretboard component's existing rendering logic.
+ * @param {number|null} rootString - Optional forced string index for the root (5=E, 4=A, 3=D)
+ * @returns {Object} Rich fingering object { fingeringMap, outOfRange, difficultStretch }
  */
-export function getGuitarFingering(rootValue, isMinor) {
-  // Check for open chord shapes first (only available for specific roots)
-  const openChords = {
-    // rootValue: { major: shapeName, minor: shapeName }
-    0:  { major: 'open_C', minor: null },       // C
-    2:  { major: null, minor: 'open_Dm' },       // D
-    4:  { major: 'open_E', minor: 'open_Em' },   // E
-    7:  { major: 'open_G', minor: null },         // G
-    9:  { major: null, minor: 'open_Am' },        // A
-  };
+export function getGuitarFingering(rootValue, isMinor, rootString = null) {
+  // If no rootString is forced, check for open chord shapes first
+  if (rootString === null) {
+    const openChords = {
+      0:  { major: 'open_C', minor: null },       // C
+      2:  { major: null, minor: 'open_Dm' },       // D
+      4:  { major: 'open_E', minor: 'open_Em' },   // E
+      7:  { major: 'open_G', minor: null },         // G
+      9:  { major: null, minor: 'open_Am' },        // A
+    };
 
-  // Try open shape first
-  const openOption = openChords[rootValue];
-  if (openOption) {
-    const shapeName = isMinor ? openOption.minor : openOption.major;
-    if (shapeName && GUITAR_SHAPES[shapeName]) {
-      return shapeToFingeringObj(GUITAR_SHAPES[shapeName].build());
+    const openOption = openChords[rootValue];
+    if (openOption) {
+      const shapeName = isMinor ? openOption.minor : openOption.major;
+      if (shapeName && GUITAR_SHAPES[shapeName]) {
+        return analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES[shapeName].build()));
+      }
+    }
+
+    if (rootValue === 2 && !isMinor) {
+      return analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES.open_D.build()));
+    }
+    if (rootValue === 9 && !isMinor) {
+      return analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES.open_Am.build())); // Open A proxy
     }
   }
 
-  // Also D major open shape
-  if (rootValue === 2 && !isMinor) {
-    return shapeToFingeringObj(GUITAR_SHAPES.open_D.build());
-  }
-  // A major open shape
-  if (rootValue === 9 && !isMinor) {
-    return shapeToFingeringObj(GUITAR_SHAPES.open_Am.build()); // Actually we need open_A...
-    // Fallback to A-shape barre at fret 0
+  // Open string values
+  const stringOpenValues = {
+    5: 4,  // Low E
+    4: 9,  // A
+    3: 2,  // D
+  };
+
+  // Determine which string to anchor on
+  let targetString = rootString;
+  if (targetString === null || ![5, 4, 3].includes(targetString)) {
+    // Default logic: prefer E or A string based on lowest fret
+    let rootFretE = (rootValue - stringOpenValues[5] + 12) % 12;
+    let rootFretA = (rootValue - stringOpenValues[4] + 12) % 12;
+    targetString = (rootFretE <= rootFretA || rootFretE <= 4) ? 5 : 4;
   }
 
-  // Moveable barre shapes
-  // E string: note value at open = 4 (E)
-  let rootFretE = (rootValue - 4 + 12) % 12;
-  // A string: note value at open = 9 (A)
-  let rootFretA = (rootValue - 9 + 12) % 12;
+  const rootFret = (rootValue - stringOpenValues[targetString] + 12) % 12;
+  
+  let shapeName = '';
+  if (targetString === 5) shapeName = isMinor ? 'minor_E' : 'major_E';
+  else if (targetString === 4) shapeName = isMinor ? 'minor_A' : 'major_A';
+  else if (targetString === 3) shapeName = isMinor ? 'minor_D' : 'major_D';
 
-  // Prefer whichever gives a lower fret position
-  if (rootFretE <= rootFretA || rootFretE <= 4) {
-    const shapeName = isMinor ? 'minor_E' : 'major_E';
-    return shapeToFingeringObj(GUITAR_SHAPES[shapeName].build(rootFretE));
-  } else {
-    const shapeName = isMinor ? 'minor_A' : 'major_A';
-    return shapeToFingeringObj(GUITAR_SHAPES[shapeName].build(rootFretA));
-  }
+  const shape = GUITAR_SHAPES[shapeName].build(rootFret);
+  return analyzeVoicing(shapeToFingeringObj(shape));
 }
 
 /**

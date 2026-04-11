@@ -106,21 +106,39 @@ function App() {
   const [dictRoot, setDictRoot] = useState(0);
   const [dictType, setDictType] = useState("single_note");
   const [fretboardZone, setFretboardZone] = useState("all");
+  const [selectedRootString, setSelectedRootString] = useState(null);
 
   // --- Expert Fingering Logic ---
   const guitarFingering = useMemo(() => {
-    if (!showFingering || !clickedChord) return null;
-    const rootVal = clickedChord.rootNote.value;
-    const isMinor = clickedChord.nns.includes("-");
-    return getGuitarFingering(rootVal, isMinor);
-  }, [showFingering, clickedChord]);
+    if (!showFingering) return null;
+    let rootVal, isMinor;
+    if (appMode === "dictionary") {
+      // In dictionary mode, we don't have clickedChord. We use dictRoot/currentRootValue
+      if (dictType.includes("scale")) return null; // Only for chords
+      rootVal = currentRootValue;
+      isMinor = dictType === "minor" || dictType.includes("min") || dictType.includes("-");
+    } else {
+      if (!clickedChord) return null;
+      rootVal = clickedChord.rootNote.value;
+      isMinor = clickedChord.nns.includes("-");
+    }
+    return getGuitarFingering(rootVal, isMinor, selectedRootString);
+  }, [showFingering, clickedChord, selectedRootString, appMode, currentRootValue, dictType]);
 
   const bassFingering = useMemo(() => {
-    if (!showFingering || !clickedChord) return null;
-    const rootVal = clickedChord.rootNote.value;
-    const isMinor = clickedChord.nns.includes("-");
+    if (!showFingering) return null;
+    let rootVal, isMinor;
+    if (appMode === "dictionary") {
+      if (dictType.includes("scale")) return null;
+      rootVal = currentRootValue;
+      isMinor = dictType === "minor" || dictType.includes("min") || dictType.includes("-");
+    } else {
+      if (!clickedChord) return null;
+      rootVal = clickedChord.rootNote.value;
+      isMinor = clickedChord.nns.includes("-");
+    }
     return getBassFingering(rootVal, isMinor);
-  }, [showFingering, clickedChord]);
+  }, [showFingering, clickedChord, appMode, currentRootValue, dictType]);
 
   const activeBrick = BRICKS.at(Number(currentBrickIndex));
 
@@ -1614,7 +1632,48 @@ function App() {
             {(appMode === "dictionary" ||
               layoutMode === "all" ||
               activeTab === "guitars") && (
-              <div className="scrollable-instrument" style={{ width: "100%" }}>
+              <div className="scrollable-instrument" style={{ width: "100%", paddingLeft: "35px" }}>
+                {showFingering && ((appMode === "studio" && clickedChord) || (appMode === "dictionary" && !dictType.includes("scale"))) && (
+                  <div style={{ marginBottom: "15px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "center", marginLeft: "-35px" }}>
+                      <span style={{ color: "#d4c4a8", fontSize: "14px", fontWeight: "bold" }}>Fondamentale sur :</span>
+                      {[
+                        { idx: 5, label: "E", openVal: 4 },
+                        { idx: 4, label: "A", openVal: 9 },
+                        { idx: 3, label: "D", openVal: 2 },
+                      ].map(str => {
+                        const rootVal = appMode === "dictionary" ? currentRootValue : clickedChord.rootNote.value;
+                        const rootInThisString = (rootVal - str.openVal + 12) % 12;
+                        const fretText = rootInThisString === 0 ? "à vide" : `fr.${rootInThisString}`;
+                        const isActive = selectedRootString === str.idx;
+                        return (
+                          <button
+                            key={str.idx}
+                            onClick={() => setSelectedRootString(isActive ? null : str.idx)}
+                            style={{
+                              padding: "5px 12px",
+                              background: isActive ? "var(--theme-primary)" : "#222",
+                              color: isActive ? "#fff" : "#ccc",
+                              border: `1px solid ${isActive ? "var(--theme-primary)" : "#555"}`,
+                              borderRadius: "15px",
+                              cursor: "pointer",
+                              fontSize: "12px",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            {str.label} ({fretText})
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {guitarFingering?.outOfRange && (
+                       <div style={{ color: "#e74c3c", fontSize: "13px", fontWeight: "bold" }}>⚠️ Ce voicing a des notes inaccessibles (frette &gt; 14)</div>
+                    )}
+                    {guitarFingering?.difficultStretch && !guitarFingering?.outOfRange && (
+                       <div style={{ color: "#f39c12", fontSize: "13px", fontWeight: "bold" }}>⚠️ Ce voicing requiert un grand écart — difficile</div>
+                    )}
+                  </div>
+                )}
                 <Fretboard
                   instrument="guitar"
                   activeNotes={activeNotes}
@@ -1631,7 +1690,7 @@ function App() {
                   singlePlayContext={singlePlayContext}
                   showFingering={showFingering}
                   fingeringMode={fingeringMode}
-                  fingering={guitarFingering}
+                  fingering={guitarFingering?.fingeringMap}
                 />
                 <br />
                 <Fretboard
@@ -1889,6 +1948,7 @@ function App() {
                 </div>
               )}
 
+              {appMode !== "dictionary" && (
               <div
                 style={{
                   display: "flex",
@@ -1923,6 +1983,7 @@ function App() {
                   {txt.focusMode}
                 </button>
               </div>
+              )}
 
               {(appMode === "dictionary" ||
                 layoutMode === "all" ||
