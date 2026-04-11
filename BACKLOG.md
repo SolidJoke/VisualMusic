@@ -124,55 +124,99 @@
       **Fix :** 17 tests passent (A major, Dm, open string 'O' labels). AppRoot mock corrigé pour Tone.js.
 
 
-## Phase 7 : Polish & Production (P3) 🚨 ACTIF — Branche `feat/phase7-prod-and-barre-fix`
+## Phase 7 : Polish & Production (P3) ✅ COMPLÉTÉ
 
-> **Contexte :** Finalisation de VMU pour déploiement public sur Netlify.
-> Reprendre sur la branche `feat/phase7-prod-and-barre-fix`.
-> **Fichiers clés :**
-> - `src/components/Instruments/Fretboard.jsx` (barre fix)
-> - `vite.config.js` (build config)
-> - `netlify.toml` (deploy config — à créer si absent)
-> - `package.json` (scripts de build)
+- [x] **7.0** Barre visualization coordinate fix (guitarIdx → visualIdx)
+- [x] **7.1** Build prod validé : exit 0, 157KB gzip, samples présents dans dist/
+- [x] **7.2** Samples audio (`dist/samples/guitar/*.mp3`) confirmés dans le build
+- [x] **7.3** Routing SPA validé
+- [x] **7.4** `netlify.toml` créé (SPA redirect + cache headers audio/assets)
+- [x] **7.5** PR mergée, branche feat/phase7-prod-and-barre-fix → main ✅
+- [ ] **7.6** Performance audit (Fretboard re-renders) — reporté Phase 8
+- [ ] **7.7** Accessibility pass (aria-labels, contraste) — reporté Phase 8
 
-### 7.0 — Fix Barre Visualization (suite 6b.3)
-- [x] **7.0 — Corriger le positionnement de la barre bleue**
-      **Fix :** Conversion `guitarIdx` → `visualIdx = (numStrings-1) - guitarIdx`. La pill s'étend maintenant correctement sur toutes les cordes barrées (4-6 cordes selon la forme).
+---
 
-### 7.1 — Build Production
-- [ ] **7.1 — Vérifier la config Vite pour le build prod**
-      Lancer `npm run build` et corriger tous les warnings/erreurs.
-      Vérifier que le bundle ne dépasse pas ~2MB gzippé.
-      Commande : `cd d:\IA\VisualMusic; npm run build`
+## Phase 8 : Dette Technique & Qualité (P2-P3)
 
-- [ ] **7.2 — Vérifier que les samples audio sont inclus dans le build**
-      Les fichiers audio Salamander sont dans `public/` et doivent être copiés automatiquement.
-      Vérifier dans `dist/` après le build que le dossier samples est présent.
+> **Principe de sélection** : Ces items ne sont retenus que s'ils apportent un avantage
+> concret : meilleure maintenabilité, performances mesurables, ou réduction du risque de bugs.
+> Items purement cosmétiques ou "on pourrait faire mieux" sans impact réel exclus.
+>
+> **Priorité globale dans la backlog :**
+> - Phase 5 (Intelligence Harmonique) > Phase 8 Tech Debt > Phase 9 Accessibilité
+> - Exception : Tech Debt P1 (items critiques) doivent passer avant Phase 5 si ils bloquent le dev
 
-- [ ] **7.3 — Vérifier le routing SPA (Single Page App)**
-      Vite/React n'a pas de routing multi-pages, mais il faut s'assurer que le rechargement
-      direct de la page fonctionne sur Netlify. Ajouter/vérifier `netlify.toml` :
-      ```toml
-      [[redirects]]
-        from = "/*"
-        to = "/index.html"
-        status = 200
-      ```
+### 8.1 — App.jsx : Fragmentation du Dieu-Composant [P1 — Critique]
+- [ ] **8.1 — Découper App.jsx (2054 lignes) en composants/hooks dédiés**
+      **Problème :** App.jsx fait 2054 lignes. C'est un "God Component" : impossible à lire,
+      difficile à tester, et chaque feature nouvelle aggrave le problème.
+      **Avantage réel :** Réduction du risque de bugs en cascade, onboarding des IA
+      plus efficace (contexte moins chargé), tests unitaires ciblés possibles.
+      **Plan de découpage (par ordre de dépendances) :**
+      1. Extraire `useDictionaryMode()` hook (état dictRoot, dictType, selectedRootString, fretboardZone)
+      2. Extraire `useStudioMode()` hook (clickedChord, currentBrickIndex, currentTheme, activeBrick...)
+      3. Extraire `<DictionaryPanel />` composant (tout le JSX du mode Dictionnaire)
+      4. Extraire `<StudioPanel />` composant (tout le JSX du mode Studio)
+      **Effort :** Large (semaine prochaine). **Dépend de :** rien. **Bloque :** Phase 5 (qui ajoutera encore du JSX).
 
-- [x] **7.4 — `netlify.toml` créé** avec build config, SPA redirects et cache headers.
+### 8.2 — Fretboard.jsx : Memoization des callbacks [P2 — Performance]
+- [ ] **8.2 — Ajouter `useCallback` sur `onNoteClick` dans App.jsx**
+      **Problème :** `onNoteClick` est recréé à chaque render de App.jsx, forçant
+      Fretboard (et tous ses enfants) à re-render même sans changement pertinent.
+      **Avantage réel :** Réduit les re-renders du composant le plus lourd de l'app.
+      **Fix :** Entourer la définition de `onNoteClick` dans App.jsx d'un `useCallback`.
+      **Effort :** Petit (1h). **Dépend de :** rien.
 
-- [ ] **7.5 — Build & deploy sur Netlify** :
-      Push de la branche `feat/phase7-prod-and-barre-fix` fait.
-      **→ Action utilisateur requise :** Merger la PR sur GitHub, puis configurer Netlify
-      pour builder depuis la branche `main` (ou utiliser `netlify deploy --prod --dir=dist`).
+### 8.3 — Bundle Splitting : Tone.js en chunk séparé [P2 — Performance]
+- [ ] **8.3 — Code-split Tone.js via dynamic import**
+      **Problème :** Vite avertit que le bundle fait 561KB (non-gzip). Tone.js (~350KB)
+      est la principale cause. Il n'est utilisé qu'après interaction utilisateur (clic "Activer Audio").
+      **Avantage réel :** Améliore le First Contentful Paint (FCP) — la page s'affiche
+      plus vite avant que l'utilisateur active l'audio.
+      **Fix :** `const Tone = await import('tone')` dans `AudioEngine.js` + lazy init.
+      **Effort :** Moyen (2-3h, à tester soigneusement). **Dépend de :** 8.1 (plus simple avec App découpé).
 
-### 7.3 — Performance & Accessibilité
-- [ ] **7.6 — Performance audit**
-      Lancer React DevTools Profiler sur le composant Fretboard (qui re-render à chaque note).
-      Chercher les `useMemo` / `useCallback` manquants sur les callbacks passés en props.
-      Low-hanging fruit : vérifier que `onNoteClick` n'est pas recréé à chaque render dans App.jsx.
+### 8.4 — fingeringLogic.js : Shapes manquantes [P2 — Qualité musicale]
+- [ ] **8.4 — Compléter les GUITAR_SHAPES avec les accords de 7ème courants**
+      **Problème :** L'app ne gère que les triades (majeur/mineur). Pas de G7, Cmaj7, Am7, Dm7...
+      Les accords de 7ème sont omniprésents en jazz/pop. L'app les "ignore" silencieusement.
+      **Avantage réel :** Cohérence musicale — les utilisateurs avancés attendent ces formes.
+      **Fix :** Ajouter `open_G7`, `open_Em7`, `open_Am7`, `open_Dmaj7` dans GUITAR_SHAPES
+      + gérer le cas `dictType === 'chord_dom7'` dans App.jsx.
+      **Effort :** Moyen (3-4h). **Dépend de :** 8.1 idéalement. **Bloque :** Phase 5.4.
 
-- [ ] **7.7 — Accessibility pass**
-      Ajouter `aria-label` sur les boutons sans texte (ex: boutons de layout séquenceur).
-      Vérifier la navigation au clavier sur les sélecteurs principaux (fondamentale, structure).
-      Vérifier le contraste des couleurs (note markers vs fond fretboard) — ratio min 4.5:1.
+### 8.5 — Tests : Couverture des bricks [P3 — Qualité]
+- [ ] **8.5 — Add edge-case tests for bricks (missing properties)**
+      **Problème :** Bricks avec propriétés manquantes ont causé des crashs en prod (P0).
+      Des tests auraient détecté en amont.
+      **Avantage réel :** Filet de sécurité pour les futures modifications de bricks.
+      **Fix :** Itérer sur tous les bricks dans un test, vérifier les propriétés critiques.
+      **Effort :** Petit (1-2h). **Dépend de :** rien.
+
+### 8.6 — UI : Standardisation des layouts composants [P3 — Maintenabilité]
+- [ ] **8.6 — Créer un système de design tokens CSS**
+      **Problème :** Les couleurs, espacements et tailles sont définis en inline style partout.
+      Modifier un thème demande de chasser chaque occurrence.
+      **Avantage réel :** Un seul fichier à modifier pour changer le thème. Pas de bénéfice
+      perf direct, mais très utile si on envisage un mode clair ou un thème custom.
+      **Fix :** Consolider dans `index.css` via variables CSS (déjà partiellement fait avec
+      `--theme-primary`). Étendre à spacing, radii, font sizes.
+      **Effort :** Moyen (3-4h). **Dépend de :** 8.1.
+
+---
+
+## Phase 9 : Accessibilité & Internationalisation (P3)
+- [ ] **9.1** Accessibility pass : `aria-label` boutons sans texte, contraste, navigation clavier.
+- [ ] **9.2** i18n complet : vérifier toutes les chaînes manquantes EN/FR.
+
+---
+
+## Phase 5 : Intelligence Harmonique & NNS Avancé (P2) — Semaine prochaine
+> **Dépend de :** 8.1 (App.jsx fragmenté) pour éviter d'ajouter du code dans le God Component.
+
+- [ ] **5.1** Harmonic role display on chord buttons (Tonic/Subdominant/Dominant badge).
+- [ ] **5.2** Common chord substitution suggestions (e.g., vi for I, ii for IV).
+- [ ] **5.3** "Emotion Engineering" panel: select target emotion → suggest a progression.
+- [ ] **5.4** Secondary dominants & modal interchange explanations.
 

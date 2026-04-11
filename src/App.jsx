@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./App.css";
 import PianoKeyboard from "./components/Instruments/PianoKeyboard";
 import Fretboard from "./components/Instruments/Fretboard";
@@ -394,13 +394,17 @@ function App() {
    * set by Fretboard.jsx ({ instrument: "guitar"|"bass" }) and by PianoKeyboard.jsx
    * ({ instrument: "piano" }). We just synchronise the state selector.
    */
-  const autoPlayNote = (noteName, context = null) => {
+  // Stable ref to playSingleNote so autoPlayNote can be memoized without
+  // listing all of playSingleNote's dependencies.
+  const playSingleNoteRef = useRef(null);
+
+  const autoPlayNote = useCallback((noteName, context = null) => {
     // Auto-switch the global selector to match the clicked instrument UI
     if (context?.instrument && context.instrument !== playbackInstrument) {
       setPlaybackInstrument(context.instrument);
     }
-    playSingleNote(noteName, context);
-  };
+    playSingleNoteRef.current?.(noteName, context);
+  }, [playbackInstrument]);
 
   const playSingleNote = async (noteName, context = null) => {
     if (!isAudioReady) {
@@ -472,6 +476,9 @@ function App() {
       }
     }, 500);
   };
+
+  // Keep ref in sync on every render so the memoized autoPlayNote always calls latest version
+  playSingleNoteRef.current = playSingleNote;
 
   return (
     <div
