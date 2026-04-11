@@ -18,76 +18,116 @@ describe('fingeringLogic', () => {
     it('should return an open C shape for C major (rootValue=0)', () => {
       const result = getGuitarFingering(0, false);
       expect(result).not.toBeNull();
+      const map = result.fingeringMap;
       // Open C: string 5 (low E) should be muted (X everywhere)
-      expect(result[5]).toBeDefined();
-      expect(Object.values(result[5]).every(v => v === 'X')).toBe(true);
+      expect(map[5]).toBeDefined();
+      expect(Object.values(map[5]).every(v => v === 'X')).toBe(true);
       // String 4 (A) should have fret 3, finger 3
-      expect(result[4][3]).toBe(3);
+      expect(map[4][3]).toBe(3);
       // String 2 (G) should be open (fret 0, O)
-      expect(result[2][0]).toBe('O');
+      expect(map[2][0]).toBe('O');
     });
 
     it('should return an open E shape for E major (rootValue=4)', () => {
       const result = getGuitarFingering(4, false);
       expect(result).not.toBeNull();
-      // Open E: string 5 (low E) is open
-      expect(result[5][0]).toBe('O');
-      // String 4 (A) fret 2
-      expect(result[4][2]).toBe(2);
+      const map = result.fingeringMap;
+      expect(map[5][0]).toBe('O');
+      expect(map[4][2]).toBe(2);
     });
 
     it('should return an open Em shape for E minor (rootValue=4)', () => {
       const result = getGuitarFingering(4, true);
       expect(result).not.toBeNull();
-      // Open Em: string 2 (G) is open
-      expect(result[2][0]).toBe('O');
-      // Low E is also open
-      expect(result[5][0]).toBe('O');
+      const map = result.fingeringMap;
+      expect(map[2][0]).toBe('O');
+      expect(map[5][0]).toBe('O');
     });
 
     it('should return a barre shape for F major (rootValue=5)', () => {
       const result = getGuitarFingering(5, false);
       expect(result).not.toBeNull();
-      // F major = E-shape barre at fret 1
-      // Low E (5) at fret 1, finger 1 (barre)
-      expect(result[5][1]).toBe(1);
-      // High E (0) at fret 1, finger 1 (barre)
-      expect(result[0][1]).toBe(1);
+      const map = result.fingeringMap;
+      expect(map[5][1]).toBe(1);
+      expect(map[0][1]).toBe(1);
     });
 
     it('should return a minor barre shape for F minor (rootValue=5)', () => {
       const result = getGuitarFingering(5, true);
       expect(result).not.toBeNull();
-      // Fm = E-minor-shape barre at fret 1
-      // G string (2) at fret 1 (barre), not fret 2
-      expect(result[2][1]).toBe(1);
+      const map = result.fingeringMap;
+      expect(map[2][1]).toBe(1);
     });
 
     it('should return an A-shape barre for Bb major (rootValue=10)', () => {
       const result = getGuitarFingering(10, false);
       expect(result).not.toBeNull();
-      // Bb = A-shape barre at fret 1
-      // A string (4): fret 1, finger 1
-      expect(result[4][1]).toBe(1);
-      // Low E (5) should be muted
-      expect(Object.values(result[5]).every(v => v === 'X')).toBe(true);
+      const map = result.fingeringMap;
+      expect(map[4][1]).toBe(1);
+      expect(Object.values(map[5]).every(v => v === 'X')).toBe(true);
     });
 
-    it('should return open D shape for D major (rootValue=2)', () => {
+    it( 'should return open D shape for D major (rootValue=2)', () => {
       const result = getGuitarFingering(2, false);
       expect(result).not.toBeNull();
-      // Open D: strings 5 and 4 are muted
-      expect(Object.values(result[5]).every(v => v === 'X')).toBe(true);
-      expect(Object.values(result[4]).every(v => v === 'X')).toBe(true);
+      const map = result.fingeringMap;
+      expect(Object.values(map[5]).every(v => v === 'X')).toBe(true);
+      expect(Object.values(map[4]).every(v => v === 'X')).toBe(true);
+      expect(map[3][0]).toBe('O'); // D open
+    });
+
+    it('should return open Dm shape for D minor (rootValue=2)', () => {
+      const result = getGuitarFingering(2, true);
+      const map = result.fingeringMap;
+      expect(map[3][0]).toBe('O');
+      expect(map[2][2]).toBe(2);
+      expect(map[0][1]).toBe(1);
+    });
+
+    it('should return open A shape for A major (rootValue=9)', () => {
+      const result = getGuitarFingering(9, false);
+      const map = result.fingeringMap;
+      expect(map[4][0]).toBe('O'); // A open
+      expect(map[3][2]).toBe(1);
+      expect(map[2][2]).toBe(2);
+      expect(map[1][2]).toBe(3);
+      expect(map[0][0]).toBe('O'); // High E open
+    });
+
+    it('should use "O" label for all open strings in open shapes', () => {
+      const openRoots = [0, 2, 4, 7, 9];
+      openRoots.forEach(root => {
+        [true, false].forEach(isMinor => {
+          const res = getGuitarFingering(root, isMinor);
+          Object.values(res.fingeringMap).forEach(stringMap => {
+            if (stringMap[0] !== undefined && stringMap[0] !== 'X') {
+              expect(stringMap[0]).toBe('O');
+            }
+          });
+        });
+      });
     });
 
     it('should handle all 12 root values without crashing', () => {
       for (let root = 0; root < 12; root++) {
         const major = getGuitarFingering(root, false);
         const minor = getGuitarFingering(root, true);
-        expect(major).not.toBeNull();
-        expect(minor).not.toBeNull();
+        expect(major.fingeringMap).toBeDefined();
+        expect(minor.fingeringMap).toBeDefined();
       }
+    });
+
+    it('should respect forced rootString parameter (voicing anchoring)', () => {
+      // F major rootValue = 5
+      // Anchored on E string (5): Fret 1
+      const onE = getGuitarFingering(5, false, 5);
+      expect(onE.fingeringMap[5][1]).toBe(1);
+      // Anchored on A string (4): Fret 8
+      const onA = getGuitarFingering(5, false, 4);
+      expect(onA.fingeringMap[4][8]).toBe(1);
+      // Anchored on D string (3): Fret 3
+      const onD = getGuitarFingering(5, false, 3);
+      expect(onD.fingeringMap[3][3]).toBe(1);
     });
   });
 

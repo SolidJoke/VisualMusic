@@ -122,7 +122,7 @@ export default function Fretboard({
                     }
                     return n.value % 12 === noteValue;
                   });
-                  const isActive = !!activeNote;
+                  let isActive = !!activeNote;
                   const isPlaying =
                     currentlyPlayingNotes.includes(absoluteValue);
                   const inZone = isFretInZone(fret);
@@ -132,6 +132,20 @@ export default function Fretboard({
                     contextualScaleAbsoluteValues &&
                     contextualScaleAbsoluteValues.length > 0;
                   const hasPath = activePath.length > 0;
+
+                  // Only apply voicing masking when in chord (not scale) mode
+                  const isGuitarFingeringActive = showFingering && instrument === "guitar" && fingering && !isScaleMode;
+
+                  if (isGuitarFingeringActive) {
+                    const fingerAtLocation = fingering[stringIndex]?.[fret];
+                    const isFingeredNode = fingerAtLocation && fingerAtLocation !== 'X' && fingerAtLocation !== 'O';
+                    const isOpenAndTargeted = fret === 0 && fingerAtLocation === 'O';
+                    const isPartOfVoicing = isFingeredNode || isOpenAndTargeted;
+                    
+                    if (!isPartOfVoicing) {
+                      isActive = false;
+                    }
+                  }
 
                   let orderToDisplay = null;
                   let isSubtle = false;
@@ -214,14 +228,24 @@ export default function Fretboard({
                         <div
                           style={{
                             position: "absolute",
-                            left: "-30px",
-                            color: "#d4c4a8",
-                            fontWeight: "bold",
-                            fontSize: "13px",
+                            left: "-35px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
                             zIndex: 2,
                           }}
                         >
-                          {noteInfo[notation]}
+                          <span style={{ color: "#d4c4a8", fontWeight: "bold", fontSize: "13px" }}>
+                            {noteInfo[notation]}
+                          </span>
+                          {isGuitarFingeringActive && (() => {
+                             const stringFingering = fingering?.[stringIndex] || {};
+                             const hasX = Object.values(stringFingering).includes('X');
+                             const hasO = stringFingering[0] === 'O';
+                             if (hasX) return <span style={{ color: "#e74c3c", fontWeight: "bold", fontSize: "14px" }}>X</span>;
+                             if (hasO) return <span style={{ color: "#2ecc71", fontWeight: "bold", fontSize: "14px" }}>O</span>;
+                             return null;
+                          })()}
                         </div>
                       )}
                       {isActive && (
@@ -233,7 +257,7 @@ export default function Fretboard({
                             transition: "opacity 0.3s",
                           }}
                         >
-                          {showFingering && fingering?.[stringIndex]?.[fret] 
+                          {showFingering && !isScaleMode && fingering?.[stringIndex]?.[fret] 
                             ? (() => {
                                 const raw = fingering[stringIndex][fret];
                                 const labels = fingeringMode === 'anatomic' ? FINGER_LABELS.anatomic : FINGER_LABELS.numeric;
