@@ -161,12 +161,10 @@
       **Effort :** Large (semaine prochaine). **Dépend de :** rien. **Bloque :** Phase 5 (qui ajoutera encore du JSX).
 
 ### 8.2 — Fretboard.jsx : Memoization des callbacks [P2 — Performance]
-- [ ] **8.2 — Ajouter `useCallback` sur `onNoteClick` dans App.jsx**
-      **Problème :** `onNoteClick` est recréé à chaque render de App.jsx, forçant
-      Fretboard (et tous ses enfants) à re-render même sans changement pertinent.
-      **Avantage réel :** Réduit les re-renders du composant le plus lourd de l'app.
-      **Fix :** Entourer la définition de `onNoteClick` dans App.jsx d'un `useCallback`.
-      **Effort :** Petit (1h). **Dépend de :** rien.
+- [x] **8.2 — `useCallback` sur `autoPlayNote` dans App.jsx** ✅
+      **Fix :** Pattern ref (`playSingleNoteRef`) + useCallback([playbackInstrument]).
+      Fretboard et PianoKeyboard ne re-renderent plus sur chaque state change de App.
+      Build validé, branche `chore/quickwins-8.2-8.5`.
 
 ### 8.3 — Bundle Splitting : Tone.js en chunk séparé [P2 — Performance]
 - [ ] **8.3 — Code-split Tone.js via dynamic import**
@@ -187,12 +185,10 @@
       **Effort :** Moyen (3-4h). **Dépend de :** 8.1 idéalement. **Bloque :** Phase 5.4.
 
 ### 8.5 — Tests : Couverture des bricks [P3 — Qualité]
-- [ ] **8.5 — Add edge-case tests for bricks (missing properties)**
-      **Problème :** Bricks avec propriétés manquantes ont causé des crashs en prod (P0).
-      Des tests auraient détecté en amont.
-      **Avantage réel :** Filet de sécurité pour les futures modifications de bricks.
-      **Fix :** Itérer sur tous les bricks dans un test, vérifier les propriétés critiques.
-      **Effort :** Petit (1-2h). **Dépend de :** rien.
+- [x] **8.5 — Tests edge-case des bricks** ✅
+      **Fix :** 242 tests sur tous les bricks (name, effects, examples, bpm, nnsProgression,
+      theme, drumTracks, melodyTracks, + champs expert_progressions).
+      Branche `chore/quickwins-8.2-8.5`.
 
 ### 8.6 — UI : Standardisation des layouts composants [P3 — Maintenabilité]
 - [ ] **8.6 — Créer un système de design tokens CSS**
