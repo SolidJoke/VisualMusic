@@ -74,6 +74,42 @@ export default function Fretboard({
     numFrets,
   ]);
 
+  // Compute barre positions: frets where finger 1 covers 2+ consecutive strings
+  const barreData = useMemo(() => {
+    if (!fingering || !showFingering) return [];
+    const isScaleMode = dictType?.includes('scale');
+    if (isScaleMode) return [];
+
+    // fingering format: { [stringIndex]: { [fret]: finger } }
+    // strings is reversed (high E = index 0, low E = index last)
+    // We need to find frets where finger=1 on multiple strings
+    const fretFingerOneStrings = {}; // { fret: [stringIndex, ...] }
+
+    Object.entries(fingering).forEach(([strIdxStr, fretMap]) => {
+      const strIdx = parseInt(strIdxStr, 10);
+      Object.entries(fretMap).forEach(([fretStr, finger]) => {
+        const fret = parseInt(fretStr, 10);
+        if (fret > 0 && finger === 1) {
+          if (!fretFingerOneStrings[fret]) fretFingerOneStrings[fret] = [];
+          fretFingerOneStrings[fret].push(strIdx);
+        }
+      });
+    });
+
+    const barres = [];
+    Object.entries(fretFingerOneStrings).forEach(([fretStr, strIndices]) => {
+      if (strIndices.length >= 2) {
+        barres.push({
+          fret: parseInt(fretStr, 10),
+          minString: Math.min(...strIndices),
+          maxString: Math.max(...strIndices),
+          count: strIndices.length,
+        });
+      }
+    });
+    return barres;
+  }, [fingering, showFingering, dictType]);
+
   const renderDots = () => {
     const fretsWithDots = [3, 5, 7, 9, 12];
     return (
@@ -98,6 +134,52 @@ export default function Fretboard({
     );
   };
 
+  // Render barre indicators — vertical pill connecting strings fretted by finger 1
+  // Uses CSS absolute positioning relative to .fretboard
+  const renderBarres = () => {
+    if (barreData.length === 0) return null;
+    const numStrings = strings.length;
+    const STRING_HEIGHT = 35; // matches .string-row height in CSS
+    const FRETBOARD_PADDING = 10; // matches padding-top in .fretboard
+    const OPEN_STRING_FLEX = 0.5;
+    // Each fret takes flex:1, open string takes flex:0.5
+    // We approximate fret width as 100% / (numFrets + 0.5) per fret
+    // Position = (fret - 0.5) / (numFrets + 0.5) so it's centered in the fret cell
+    const totalFlex = numFrets + OPEN_STRING_FLEX;
+
+    return barreData.map(({ fret, minString, maxString }) => {
+      const leftPct = ((fret - 0.5 + OPEN_STRING_FLEX) / totalFlex) * 100;
+      const widthPct = (0.7 / totalFlex) * 100; // pill width
+
+      // strings array is reversed: index 0 = high E, last = low E
+      // minString/maxString are original stringIndex (0=high E in reversed array)
+      const topPx = FRETBOARD_PADDING + minString * STRING_HEIGHT + STRING_HEIGHT * 0.2;
+      const heightPx = (maxString - minString) * STRING_HEIGHT + STRING_HEIGHT * 0.6;
+
+      return (
+        <div
+          key={`barre-f${fret}`}
+          title={`Barré (doigt 1) à la case ${fret}`}
+          style={{
+            position: 'absolute',
+            left: `${leftPct}%`,
+            top: `${topPx}px`,
+            width: `${widthPct}%`,
+            minWidth: '18px',
+            height: `${heightPx}px`,
+            backgroundColor: 'rgba(96, 165, 250, 0.35)',
+            border: '2px solid rgba(96, 165, 250, 0.8)',
+            borderRadius: '12px',
+            zIndex: 3,
+            pointerEvents: 'none',
+            transform: 'translateX(-50%)',
+            boxShadow: '0 0 8px rgba(96, 165, 250, 0.4)',
+          }}
+        />
+      );
+    });
+  };
+
   return (
     <div className={`fretboard-container instrument-${instrument}`}>
       <h3 style={{ color: "#ccc", marginBottom: "10px" }}>
@@ -107,6 +189,7 @@ export default function Fretboard({
       </h3>
       <div className="fretboard">
         {renderDots()}
+        {renderBarres()}
         <div className="strings-layer">
           {strings.map((rawStringData, stringIndex) => {
             const openStringAbsValue = getAbsoluteNoteValue(rawStringData);
