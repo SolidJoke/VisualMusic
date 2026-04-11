@@ -105,11 +105,9 @@
       **Problème :** Certaines cordes marquées `fret: 0, finger: 1` recevaient un numéro de doigt.
       **Fix :** Toutes les formes `open_*` utilisent désormais `finger: 'O'` pour les frettes 0.
 
-- [ ] **6b.3 — Visualisation barré inexistante (illusion des "5 doigts")**
+- [x] **6b.3 — Visualisation barré** (illusion des "5 doigts")
       **Fichier :** `Fretboard.jsx`
-      **Problème :** Les formes barrées affichent 5 points distincts, trompant l'utilisateur.
-      **Fix attendu :** Afficher une barre reliant les notes d'un même doigt (doigt 1) sur une même frette.
-      **Priorité :** Moyenne — UX, pas bloquant.
+      **Fix :** Pill bleue (barré indicator) positionnée sur la frette barrée, reliant les cordes couvertes par le doigt 1. Tooltip au survol. Mergé dans `feat/barre-visualization`.
 
 - [x] **6b.4 — Mode Expert sur Gammes affiche "1" sur toutes les notes**
       **Fichier :** `Fretboard.jsx`
@@ -121,12 +119,60 @@
       **Problème :** Do Majeur privilégiait un barré au lieu de la forme ouverte standard.
       **Fix :** Complétion du dictionnaire `openChords` et priorité forcée aux formes ouvertes.
 
-- [ ] **6b.6 — Mettre à jour les tests unitaires après les corrections**
-      **Fichier :** `src/core/__tests__/fingeringLogic.test.js`
-      **Fix attendu :** Ajouter des cas de test pour les nouvelles formes ouvertes et vérifier les labels 'O'.
-      **Status :** AppRoot.test.jsx a été patché pour éviter les crashs Tone.js, mais reste à valider.
+- [x] **6b.6 — Tests unitaires mis à jour**
+      **Fichier :** `fingeringLogic.test.js` + `AppRoot.test.jsx`
+      **Fix :** 17 tests passent (A major, Dm, open string 'O' labels). AppRoot mock corrigé pour Tone.js.
 
-## Phase 7 : Polish & Production (P3)
-- [ ] Build production bundle and validate on Netlify.
-- [ ] Performance audit (React profiler, unnecessary re-renders in Fretboard).
-- [ ] Accessibility pass (keyboard navigation, ARIA labels).
+
+## Phase 7 : Polish & Production (P3) 🚨 ACTIF — Branche `feat/phase7-prod-and-barre-fix`
+
+> **Contexte :** Finalisation de VMU pour déploiement public sur Netlify.
+> Reprendre sur la branche `feat/phase7-prod-and-barre-fix`.
+> **Fichiers clés :**
+> - `src/components/Instruments/Fretboard.jsx` (barre fix)
+> - `vite.config.js` (build config)
+> - `netlify.toml` (deploy config — à créer si absent)
+> - `package.json` (scripts de build)
+
+### 7.0 — Fix Barre Visualization (suite 6b.3)
+- [x] **7.0 — Corriger le positionnement de la barre bleue**
+      **Fix :** Conversion `guitarIdx` → `visualIdx = (numStrings-1) - guitarIdx`. La pill s'étend maintenant correctement sur toutes les cordes barrées (4-6 cordes selon la forme).
+
+### 7.1 — Build Production
+- [ ] **7.1 — Vérifier la config Vite pour le build prod**
+      Lancer `npm run build` et corriger tous les warnings/erreurs.
+      Vérifier que le bundle ne dépasse pas ~2MB gzippé.
+      Commande : `cd d:\IA\VisualMusic; npm run build`
+
+- [ ] **7.2 — Vérifier que les samples audio sont inclus dans le build**
+      Les fichiers audio Salamander sont dans `public/` et doivent être copiés automatiquement.
+      Vérifier dans `dist/` après le build que le dossier samples est présent.
+
+- [ ] **7.3 — Vérifier le routing SPA (Single Page App)**
+      Vite/React n'a pas de routing multi-pages, mais il faut s'assurer que le rechargement
+      direct de la page fonctionne sur Netlify. Ajouter/vérifier `netlify.toml` :
+      ```toml
+      [[redirects]]
+        from = "/*"
+        to = "/index.html"
+        status = 200
+      ```
+
+- [x] **7.4 — `netlify.toml` créé** avec build config, SPA redirects et cache headers.
+
+- [ ] **7.5 — Build & deploy sur Netlify** :
+      Push de la branche `feat/phase7-prod-and-barre-fix` fait.
+      **→ Action utilisateur requise :** Merger la PR sur GitHub, puis configurer Netlify
+      pour builder depuis la branche `main` (ou utiliser `netlify deploy --prod --dir=dist`).
+
+### 7.3 — Performance & Accessibilité
+- [ ] **7.6 — Performance audit**
+      Lancer React DevTools Profiler sur le composant Fretboard (qui re-render à chaque note).
+      Chercher les `useMemo` / `useCallback` manquants sur les callbacks passés en props.
+      Low-hanging fruit : vérifier que `onNoteClick` n'est pas recréé à chaque render dans App.jsx.
+
+- [ ] **7.7 — Accessibility pass**
+      Ajouter `aria-label` sur les boutons sans texte (ex: boutons de layout séquenceur).
+      Vérifier la navigation au clavier sur les sélecteurs principaux (fondamentale, structure).
+      Vérifier le contraste des couleurs (note markers vs fond fretboard) — ratio min 4.5:1.
+
