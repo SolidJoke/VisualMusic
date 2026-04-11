@@ -148,17 +148,34 @@
 > - Exception : Tech Debt P1 (items critiques) doivent passer avant Phase 5 si ils bloquent le dev
 
 ### 8.1 — App.jsx : Fragmentation du Dieu-Composant [P1 — Critique]
-- [ ] **8.1 — Découper App.jsx (2054 lignes) en composants/hooks dédiés**
-      **Problème :** App.jsx fait 2054 lignes. C'est un "God Component" : impossible à lire,
-      difficile à tester, et chaque feature nouvelle aggrave le problème.
-      **Avantage réel :** Réduction du risque de bugs en cascade, onboarding des IA
-      plus efficace (contexte moins chargé), tests unitaires ciblés possibles.
-      **Plan de découpage (par ordre de dépendances) :**
-      1. Extraire `useDictionaryMode()` hook (état dictRoot, dictType, selectedRootString, fretboardZone)
-      2. Extraire `useStudioMode()` hook (clickedChord, currentBrickIndex, currentTheme, activeBrick...)
-      3. Extraire `<DictionaryPanel />` composant (tout le JSX du mode Dictionnaire)
-      4. Extraire `<StudioPanel />` composant (tout le JSX du mode Studio)
-      **Effort :** Large (semaine prochaine). **Dépend de :** rien. **Bloque :** Phase 5 (qui ajoutera encore du JSX).
+> **Approche technique & TDD** : 
+> App.jsx contient ~50 variables d'état imbriquées. Extraire le code sans filet risque de casser le mode Séquenceur (Studio) ou le mode Dictionnaire.
+> **Stratégie** : 1) Figer les comportements via des tests d'intégration. 2) Introduire un `AppContext` robuste pour la state machine globale. 3) Extraire les hooks `useDictionaryMode` et `useStudioMode` en TDD. 4) Extraire le JSX final.
+
+- [ ] **8.1.1 — TDD : Tests d'intégration App.jsx (Le Filet de Sécurité)**
+      **Action :** Créer `App.integration.test.jsx`. Simuler les flux critiques utilisateur.
+      - *Test 1* : Clic sur bouton "Mode Studio" -> vérifie l'affichage du Séquenceur.
+      - *Test 2* : Clic sur bouton "Mode Dictionnaire" -> sélection note "C" + "Majeur" -> vérifie que Fretboard reçoit les bonnes props.
+      - *Test 3* : Toggle "Basse/Guitare" -> vérifie la propagation de la prop "instrument".
+
+- [ ] **8.1.2 — Architecture : Création de `AppContext` & `useGlobalState`**
+      **Action :** Les props comme `playbackInstrument`, `appMode` (studio/dictionary), `isAudioReady` n'ont pas à être prop-drillées.
+      Créer `src/context/AppContext.jsx` avec un `useReducer` pour gérer les transactions d'état globales prop-drilling-free.
+
+- [ ] **8.1.3 — TDD : Extraction `useDictionaryMode`**
+      **Action :** Écrire `useDictionaryMode.test.js`. Tester les transitions d'état (`dictRoot`, `dictType`, `selectedRootString`).
+      Extraire la logique de App.jsx vers `src/hooks/useDictionaryMode.js`.
+
+- [ ] **8.1.4 — TDD : Extraction `useStudioMode`**
+      **Action :** Écrire `useStudioMode.test.js`. Tester la logique complexe (ex: `currentBrickIndex`, `clickedChord`, `currentTheme`).
+      Extraire vers `src/hooks/useStudioMode.js`.
+
+- [ ] **8.1.5 — UX/Refactor : Extraction UI `<DictionaryPanel />`**
+      **Action :** Créer `src/components/Panels/DictionaryPanel.jsx`. Lui injecter `useDictionaryMode()`.
+
+- [ ] **8.1.6 — UX/Refactor : Extraction UI `<StudioPanel />`**
+      **Action :** Créer `src/components/Panels/StudioPanel.jsx`. Lui injecter `useStudioMode()`.
+      **Check final :** Lancer les tests de 8.1.1, ils doivent tous passer au vert.
 
 ### 8.2 — Fretboard.jsx : Memoization des callbacks [P2 — Performance]
 - [x] **8.2 — `useCallback` sur `autoPlayNote` dans App.jsx** ✅
@@ -167,22 +184,19 @@
       Build validé, branche `chore/quickwins-8.2-8.5`.
 
 ### 8.3 — Bundle Splitting : Tone.js en chunk séparé [P2 — Performance]
-- [ ] **8.3 — Code-split Tone.js via dynamic import**
-      **Problème :** Vite avertit que le bundle fait 561KB (non-gzip). Tone.js (~350KB)
-      est la principale cause. Il n'est utilisé qu'après interaction utilisateur (clic "Activer Audio").
-      **Avantage réel :** Améliore le First Contentful Paint (FCP) — la page s'affiche
-      plus vite avant que l'utilisateur active l'audio.
-      **Fix :** `const Tone = await import('tone')` dans `AudioEngine.js` + lazy init.
-      **Effort :** Moyen (2-3h, à tester soigneusement). **Dépend de :** 8.1 (plus simple avec App découpé).
+- [ ] **8.3.1 — Isoler la limite dynamique**
+      **Action :** Tone.js fait ~350KB et bloque le First Contentful Paint.
+      Créer un pattern de Lazy Initialization dans `AudioEngine.js` :
+      `let Tone; const initAudio = async () => { if (!Tone) { Tone = await import('tone'); } }`
+      **Vérification :** Le build `npm run build` doit montrer un chunk séparé pour Tone.js et le chunk principal (`index.js`) doit repasser sous la barre des 150KB gzip.
 
-### 8.4 — fingeringLogic.js : Shapes manquantes [P2 — Qualité musicale]
-- [ ] **8.4 — Compléter les GUITAR_SHAPES avec les accords de 7ème courants**
-      **Problème :** L'app ne gère que les triades (majeur/mineur). Pas de G7, Cmaj7, Am7, Dm7...
-      Les accords de 7ème sont omniprésents en jazz/pop. L'app les "ignore" silencieusement.
-      **Avantage réel :** Cohérence musicale — les utilisateurs avancés attendent ces formes.
-      **Fix :** Ajouter `open_G7`, `open_Em7`, `open_Am7`, `open_Dmaj7` dans GUITAR_SHAPES
-      + gérer le cas `dictType === 'chord_dom7'` dans App.jsx.
-      **Effort :** Moyen (3-4h). **Dépend de :** 8.1 idéalement. **Bloque :** Phase 5.4.
+### 8.4 — fingeringLogic.js : Shapes manquantes (Accords 7ème) [P2 — Qualité musicale]
+- [ ] **8.4.1 — TDD : Ajout des structures 7ème**
+      **Action :** Modifier `src/core/fingeringLogic.test.js`. Ajouter les tests pour `G7`, `Cmaj7`, `Am7`, `Dm7` et `E7`.
+- [ ] **8.4.2 — Données : Enrichir `GUITAR_SHAPES`**
+      **Action :** Ajouter les objets d'empreintes (ex: `open_G7: { 0: {0:1}, 1:{0:'O'}, 2:{0:'O'}, 3:{0:'O'}, 4:{2:2}, 5:{3:3} }`).
+- [ ] **8.4.3 — UI : Mapper les inputs dictionnaire**
+      **Action :** Dans le composant de vue Dictionnaire, relier les sélecteurs de `dictType` (ex: `chord_dom7`, `chord_min7`) à la logique `isMinor` et `is7th` passée à `getGuitarFingering`.
 
 ### 8.5 — Tests : Couverture des bricks [P3 — Qualité]
 - [x] **8.5 — Tests edge-case des bricks** ✅
@@ -191,28 +205,52 @@
       Branche `chore/quickwins-8.2-8.5`.
 
 ### 8.6 — UI : Standardisation des layouts composants [P3 — Maintenabilité]
-- [ ] **8.6 — Créer un système de design tokens CSS**
-      **Problème :** Les couleurs, espacements et tailles sont définis en inline style partout.
-      Modifier un thème demande de chasser chaque occurrence.
-      **Avantage réel :** Un seul fichier à modifier pour changer le thème. Pas de bénéfice
-      perf direct, mais très utile si on envisage un mode clair ou un thème custom.
-      **Fix :** Consolider dans `index.css` via variables CSS (déjà partiellement fait avec
-      `--theme-primary`). Étendre à spacing, radii, font sizes.
-      **Effort :** Moyen (3-4h). **Dépend de :** 8.1.
+- [ ] **8.6.1 — CSS Design Tokens**
+      **Action :** Extraire toutes les couleurs (`#e91e63`, `#260d00`, etc.), les espacements (gap, padding) et le z-index dans du `:root` CSS contextuel (`src/App.css` ou `index.css`).
+      **Objectif :** Permettre un mode sombre/clair facile et nettoyer le code React des `style={{...}}` excessifs.
 
 ---
 
-## Phase 9 : Accessibilité & Internationalisation (P3)
-- [ ] **9.1** Accessibility pass : `aria-label` boutons sans texte, contraste, navigation clavier.
-- [ ] **9.2** i18n complet : vérifier toutes les chaînes manquantes EN/FR.
+## Phase 9 : Accessibilité (A11y) & Internationalisation (P3)
+> **Approche technique** : Viser le standard WCAG 2.1 AA. L'accessibilité clavier est primordiale pour les musiciens qui manipulent leur instrument en même temps.
+
+- [ ] **9.1 — Audit & Sémantique (Axe-core)**
+      **Action :** Remplacer les `<div onClick>` non-accessibles par des `<button>` transparents. Assurer le focus management (outline visible, tabIndex correct).
+- [ ] **9.2 — Screen Readers Support**
+      **Action :** Ajouter des `aria-label` descriptifs (ex: `aria-label="Accord Do Majeur, Rôle Tonique"` au lieu de juste "C").
+- [ ] **9.3 — Traduction Exhaustive**
+      **Action :** Parcourir les labels restants en dur dans l'UI (Dictionnaire, Paramètres, Notifications) et les router vers `translations.js`.
 
 ---
 
-## Phase 5 : Intelligence Harmonique & NNS Avancé (P2) — Semaine prochaine
-> **Dépend de :** 8.1 (App.jsx fragmenté) pour éviter d'ajouter du code dans le God Component.
+## Phase 5 : Intelligence Harmonique & NNS Avancé (P2)
+> **Dépendances :** 
+> - Nécessite **8.1** (App.jsx fragmenté) pour éviter d'ajouter du JSX lourd dans le God Component.
+> - Nécessite **8.4** (Formes d'accords de 7ème) pour que les substitutions avancées (ex: `V7`) puissent s'afficher sur la guitare.
+>
+> **Approche UX/UI** : Le Séquenceur et le Dictionnaire sont déjà chargés. L'Intelligence Harmonique doit être optionnelle et non-intrusive.
+> **Proposition UX** : Ajouter un Toggle "Mode Assistant Harmonique". Quand actif, le clic sur un accord dans le séquenceur n'ouvre pas le menu standard de sélection de note, mais un "Harmonic HUD" (tiroir bas ou modal transparente) suggérant des substitutions et affichant le rôle.
 
-- [ ] **5.1** Harmonic role display on chord buttons (Tonic/Subdominant/Dominant badge).
-- [ ] **5.2** Common chord substitution suggestions (e.g., vi for I, ii for IV).
-- [ ] **5.3** "Emotion Engineering" panel: select target emotion → suggest a progression.
-- [ ] **5.4** Secondary dominants & modal interchange explanations.
+- [ ] **5.1 — TDD : Core Harmonic Logic (Pure JS)**
+      **Action :** Créer `src/core/harmonicLogic.js` et `harmonicLogic.test.js`.
+      **Tâches TDD :**
+      - `getHarmonicRole(nnsStr, modeName)` -> Retourne 'Tonic', 'Subdominant', 'Dominant'.
+      - `getSubstitutions(nnsStr, modeName)` -> Fonction retournant un array d'objets `[{ nns: '6-', type: 'relative_minor', tension: 'low' }, ...]`.
+      - `getSecondaryDominant(nnsStr)` -> Calcul de l'accord V/x.
+
+- [ ] **5.2 — UI : Badges de Rôles Harmoniques**
+      **Action :** Modifier `<ProgressionBuilder>` / `<PianoRollBase>`.
+      Si le toggle "Assistant" est actif, afficher un badge (ex: point coloré ou lettrine T/S/D) sur les blocs d'accords. Les couleurs doivent respecter l'accessibilité psychologique (Tonic = Vert/Stable, Subdominant = Bleu/Mouvement, Dominant = Rouge/Tension).
+
+- [ ] **5.3 — UI/UX : Le "Harmonic HUD" (Substitutions)**
+      **Action :** Créer un composant `<HarmonicHUD />`. Au lieu du simple sélecteur de note actuel, ce HUD propose à l'utilisateur :
+      "Au lieu de jouer *Fa Majeur (IV)*, tu pourrais essayer :"
+      - *Ré Mineur (ii)* : "Plus doux, garde la même fonction d'approche."
+      - *Si Bémol Majeur (bVII)* : "Emprunt au mode mineur, couleur épique."
+      Le composant appelle les fonctions pures créées en 5.1.
+
+- [ ] **5.4 — Produit : "Emotion Engineering" (Le Guide Ultime)**
+      **Action :** Remplacer les simples listes de "Modes" par un panel "Ingénieur Émotionnel".
+      - Input : Je veux une progression "Mélancolique mais pleine d'espoir".
+      - Output : L'app compile une combinaison de mode (Lydien) + une dynamique rythmique, et peuple la timeline Séquenceur.
 
