@@ -42,6 +42,18 @@ export function setInstrumentVolume(instrument, dbValue) {
   }
 }
 
+export function setBpm(bpm) {
+  Tone.Transport.bpm.value = bpm;
+}
+
+export async function startAudioEngine() {
+  await Tone.start();
+}
+
+export function setMasterVolume(vol) {
+  Tone.Destination.volume.value = vol;
+}
+
 // ─── Effects Bus ─────────────────────────────────────────────────────
 const pianoReverb = new Tone.Reverb({ decay: 1.5, wet: 0.15 }).connect(instrumentVols.piano);
 // Chorus is disabled for natural piano sound

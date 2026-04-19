@@ -18,16 +18,16 @@ export default function MixerStrip({ instrumentVolumes, handleInstrumentVolumeCh
         display: "flex",
         flexDirection: "column",
         gap: "10px",
-        backgroundColor: "#1a1a1a",
+        backgroundColor: "var(--bg-panel)",
         borderRadius: "8px",
-        border: `1px solid ${isPlaying ? "#4CAF50" : "#333"}`,
+        border: `1px solid ${isPlaying ? "#4CAF50" : "var(--border-default)"}`,
         boxSizing: "border-box",
         width: "100%",
         boxShadow: isPlaying ? "0 0 15px rgba(76, 175, 80, 0.2)" : "none",
         transition: "all 0.3s",
       }}
     >
-      <h3 style={{ margin: "0 0 10px 0", color: "#ccc", fontSize: "16px" }}>🎚️ Mixer Volumes</h3>
+      <h3 style={{ margin: "0 0 10px 0", color: "var(--text-secondary)", fontSize: "16px" }}>🎚️ Mixer Volumes</h3>
       <div
         style={{
           display: "flex",
@@ -45,10 +45,10 @@ export default function MixerStrip({ instrumentVolumes, handleInstrumentVolumeCh
               alignItems: "center",
               flex: "1 1 min-content",
               minWidth: "60px",
-              backgroundColor: "#222",
+              backgroundColor: "var(--bg-overlay)",
               padding: "10px",
               borderRadius: "6px",
-              border: "1px solid #444",
+              border: "1px solid var(--border-muted)",
             }}
           >
             <div
@@ -75,10 +75,10 @@ export default function MixerStrip({ instrumentVolumes, handleInstrumentVolumeCh
                 }}
               />
             </div>
-            <span style={{ color: "#fff", fontSize: "11px", fontWeight: "bold", textAlign: "center" }}>
+            <span style={{ color: "var(--text-bright)", fontSize: "11px", fontWeight: "bold", textAlign: "center" }}>
               {inst.label}
             </span>
-            <span style={{ color: "#888", fontSize: "10px" }}>
+            <span style={{ color: "var(--text-faint)", fontSize: "10px" }}>
               {instrumentVolumes[inst.id]} dB
             </span>
           </div>

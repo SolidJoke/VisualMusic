@@ -1,17 +1,59 @@
-/* src/App.css */
-
-/* --- VARIABLES DYNAMIQUES --- */
+/* --- DESIGN TOKENS --- */
 :root {
+  /* Thème primaire (dynamique via JS) */
   --theme-primary: #bb86fc;
-  --theme-bg: #121212;
-  --theme-panel: #1e1e1e;
+  --theme-primary-dim: rgba(187, 134, 252, 0.15);
+
+  /* Arrière-plans (du plus sombre au plus clair) */
+  --bg-deep:    #0d0d0d;
+  --bg-base:    #121212;
+  --bg-panel:   #1a1a1a;
+  --bg-surface: #1e1e1e;
+  --bg-raised:  #2a2a2a;
+  --bg-overlay: #111111;
+
+  /* Bordures */
+  --border-subtle:  #222;
+  --border-default: #333;
+  --border-muted:   #444;
+  --border-dim:     #555;
+
+  /* Texte */
+  --text-primary:   #e0e0e0;
+  --text-secondary: #ccc;
+  --text-muted:     #999;
+  --text-faint:     #888;
+  --text-dim:       #666;
+  --text-bright:    #fff;
+
+  /* Couleurs sémantiques (accords, roles) */
+  --role-root:   #cf6679;
+  --role-third:  #64b5f6;
+  --role-fifth:  #81c784;
+  --role-scale:  #78909c;
+  --role-target: #ffd700;
+
+  /* Couleurs d'état */
+  --color-error:   #e74c3c;
+  --color-warning: #f39c12;
+  --color-success: #2ecc71;
+  --color-info:    #90caf9;
+
+  /* Séquenceur (couleurs des pistes) */
+  --seq-kick:  #ff5252;
+  --seq-snare: #448aff;
+  --seq-hat:   #ffeb3b;
+  --seq-bass:  #69f0ae;
+  --seq-rim:   #ff9800;
+  --seq-crash: #e0e0e0;
 }
+
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--theme-bg);
-  color: #e0e0e0;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   transition: background-color 0.5s ease;
 }
@@ -50,26 +92,26 @@ h1 {
 
 /* --- PANNEAUX ET BADGES --- */
 .dashboard-panel {
-  background-color: var(--theme-panel);
+  background-color: var(--bg-surface);
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
   width: 100%;
-  max-width: 1200px; /* Élargi pour les écrans Desktop ! */
-  border: 1px solid #333;
+  max-width: 1200px;
+  border: 1px solid var(--border-default);
   box-shadow: 0 5px 15px rgba(0,0,0,0.5);
   transition: background-color 0.5s ease, border-color 0.5s ease;
 }
 
 .info-badge {
   display: inline-block;
-  background-color: #333;
+  background-color: var(--bg-raised);
   padding: 5px 12px;
   border-radius: 4px;
   margin: 5px;
   font-size: 12px;
-  color: #ccc;
-  border: 1px solid #444;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-muted);
 }
 
 .effects-text {
@@ -80,20 +122,20 @@ h1 {
 }
 
 /* --- MARQUEURS DE NOTES (PIANO & GUITARE) --- */
-.role-root, .piano-key.role-root { background-color: #cf6679 !important; color: #fff !important; }
-.note-marker.role-root { background-color: #cf6679; border: 2px solid #fff; box-shadow: 0 0 10px #cf6679; }
+.role-root, .piano-key.role-root { background-color: var(--role-root) !important; color: var(--text-bright) !important; }
+.note-marker.role-root { background-color: var(--role-root); border: 2px solid var(--text-bright); box-shadow: 0 0 10px var(--role-root); }
 
-.role-third, .piano-key.role-third { background-color: #64b5f6 !important; color: #fff !important; }
-.note-marker.role-third { background-color: #64b5f6; border: 1px solid #fff; }
+.role-third, .piano-key.role-third { background-color: var(--role-third) !important; color: var(--text-bright) !important; }
+.note-marker.role-third { background-color: var(--role-third); border: 1px solid var(--text-bright); }
 
-.role-fifth, .piano-key.role-fifth { background-color: #81c784 !important; color: #fff !important; }
-.note-marker.role-fifth { background-color: #81c784; border: 1px solid #fff; }
+.role-fifth, .piano-key.role-fifth { background-color: var(--role-fifth) !important; color: var(--text-bright) !important; }
+.note-marker.role-fifth { background-color: var(--role-fifth); border: 1px solid var(--text-bright); }
 
-.role-scale, .piano-key.role-scale { background-color: #78909c !important; color: #fff !important; }
-.note-marker.role-scale { background-color: #78909c; border: 1px solid #546e7a; }
+.role-scale, .piano-key.role-scale { background-color: var(--role-scale) !important; color: var(--text-bright) !important; }
+.note-marker.role-scale { background-color: var(--role-scale); border: 1px solid #546e7a; }
 
 .role-target, .piano-key.role-target { background-color: var(--theme-primary) !important; color: #000 !important; box-shadow: inset 0 0 15px rgba(255,255,255,0.5); }
-.note-marker.role-target { background-color: var(--theme-primary); box-shadow: 0 0 15px var(--theme-primary); color: #000; font-weight: bold; border: 2px solid #fff; }
+.note-marker.role-target { background-color: var(--theme-primary); box-shadow: 0 0 15px var(--theme-primary); color: #000; font-weight: bold; border: 2px solid var(--text-bright); }
 
 /* --- SÉQUENCEUR (PIANO ROLL) --- */
 .piano-roll-container {
@@ -107,8 +149,8 @@ h1 {
 .piano-roll-step {
   min-width: 35px;
   height: 35px;
-  background-color: #2a2a2a;
-  border: 2px solid #111;
+  background-color: var(--bg-raised);
+  border: 2px solid var(--bg-overlay);
   border-radius: 6px;
   transition: all 0.1s ease;
   position: relative;
@@ -117,24 +159,85 @@ h1 {
 .piano-roll-step.active { background-color: var(--theme-primary); box-shadow: 0 0 12px var(--theme-primary); border-color: #fff; }
 .piano-roll-step.current { transform: scale(1.1); border-color: #fff; z-index: 10; filter: brightness(1.4); }
 
-.bg-kick.active { background-color: #ff5252 !important; box-shadow: 0 0 15px #ff5252; }
-.bg-snare.active { background-color: #448aff !important; box-shadow: 0 0 15px #448aff; }
-.bg-hat.active { background-color: #ffeb3b !important; box-shadow: 0 0 15px #ffeb3b; }
-.bg-bass.active { background-color: #69f0ae !important; box-shadow: 0 0 15px #69f0ae; color: #000; }
-.bg-rim.active { background-color: #ff9800 !important; box-shadow: 0 0 15px #ff9800; }
-.bg-crash.active { background-color: #e0e0e0 !important; box-shadow: 0 0 15px #e0e0e0; }
+.bg-kick.active  { background-color: var(--seq-kick)  !important; box-shadow: 0 0 15px var(--seq-kick); }
+.bg-snare.active { background-color: var(--seq-snare) !important; box-shadow: 0 0 15px var(--seq-snare); }
+.bg-hat.active   { background-color: var(--seq-hat)   !important; box-shadow: 0 0 15px var(--seq-hat); }
+.bg-bass.active  { background-color: var(--seq-bass)  !important; box-shadow: 0 0 15px var(--seq-bass); color: #000; }
+.bg-rim.active   { background-color: var(--seq-rim)   !important; box-shadow: 0 0 15px var(--seq-rim); }
+.bg-crash.active { background-color: var(--seq-crash) !important; box-shadow: 0 0 15px var(--seq-crash); }
 
 /* --- CONTENEURS D'INSTRUMENTS (SCROLLABLES) --- */
 .scrollable-instrument {
     width: 100%;
     overflow-x: auto;
-    padding-top: 15px; /* Évite de couper le haut des titres/ombres */
-    padding-bottom: 25px; /* Évite de couper les ombres du bas */
+    padding-top: 15px;
+    padding-bottom: 25px;
     -webkit-overflow-scrolling: touch;
-    
-    /* Scrollbar personnalisée (plus discrète) */
     scrollbar-width: thin;
-    scrollbar-color: var(--theme-primary) #222;
+    scrollbar-color: var(--theme-primary) var(--border-subtle);
+}
+
+/* --- BOUTONS UTILITAIRES (Design System) --- */
+
+/* Bouton de sélection (notation, layout…) */
+.btn-toggle {
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  border: none;
+  font-weight: bold;
+  font-size: 13px;
+  background-color: var(--bg-raised);
+  color: var(--text-secondary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn-toggle--active {
+  background-color: var(--theme-primary);
+  color: #000;
+}
+.btn-toggle:hover:not(.btn-toggle--active) {
+  background-color: var(--border-muted);
+  color: var(--text-bright);
+}
+
+/* Bouton d'onglet (tabs séquenceur) */
+.btn-tab {
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 1px solid var(--border-dim);
+  font-weight: bold;
+  font-size: 13px;
+  background-color: var(--bg-raised);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+.btn-tab--active {
+  background-color: var(--theme-primary);
+  color: #000;
+  border-color: var(--theme-primary);
+}
+.btn-tab:hover:not(.btn-tab--active) {
+  background-color: var(--border-muted);
+  color: var(--text-bright);
+}
+
+/* Bouton segment (choix parmi N options côte à côte) */
+.btn-segment {
+  flex: 1;
+  padding: 10px 6px;
+  font-size: 14px;
+  font-weight: normal;
+  cursor: pointer;
+  border: none;
+  background-color: var(--bg-overlay);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+.btn-segment--active {
+  font-weight: bold;
+  background-color: var(--theme-primary);
+  color: #000;
 }
 
 /* Les hacks "transform: scale()" ont été supprimés ici ! */

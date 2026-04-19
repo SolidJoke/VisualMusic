@@ -217,3 +217,80 @@ export function getClosestInversion(prevNotes, root, thirdInterval, fifthInterva
 
     return bestInversion;
 }
+
+export const SCALE_CATEGORIES = {
+  diatonic: { labelKey: "catDiatonic", order: 1 },
+  pentatonic: { labelKey: "catPentatonic", order: 2 },
+  blues: { labelKey: "catBlues", order: 3 },
+  exotic: { labelKey: "catExotic", order: 4 },
+  symmetric: { labelKey: "catSymmetric", order: 5 },
+};
+
+const makeScale = (key, category, intervals) => ({
+  key,
+  category,
+  intervals,
+  noteCount: intervals.length,
+  emotion: { fr: "", en: "", pt: "", zh: "" },
+  description: { fr: "", en: "", pt: "", zh: "" }
+});
+
+export const SCALES = {
+  scale_major: makeScale('scale_major', "diatonic", [2, 2, 1, 2, 2, 2, 1]),
+  scale_minor: makeScale('scale_minor', "diatonic", [2, 1, 2, 2, 1, 2, 2]),
+  scale_harmonic_minor: makeScale('scale_harmonic_minor', "diatonic", [2, 1, 2, 2, 1, 3, 1]),
+  scale_melodic_minor: makeScale('scale_melodic_minor', "diatonic", [2, 1, 2, 2, 2, 2, 1]),
+  scale_dorian: makeScale('scale_dorian', "diatonic", [2, 1, 2, 2, 2, 1, 2]),
+  scale_phrygian: makeScale('scale_phrygian', "diatonic", [1, 2, 2, 2, 1, 2, 2]),
+  scale_lydian: makeScale('scale_lydian', "diatonic", [2, 2, 2, 1, 2, 2, 1]),
+  scale_mixolydian: makeScale('scale_mixolydian', "diatonic", [2, 2, 1, 2, 2, 1, 2]),
+  scale_locrian: makeScale('scale_locrian', "diatonic", [1, 2, 2, 1, 2, 2, 2]),
+  scale_phrygian_dominant: makeScale('scale_phrygian_dominant', "diatonic", [1, 3, 1, 2, 1, 2, 2]),
+  scale_pentatonic_major: makeScale('scale_pentatonic_major', "pentatonic", [2, 2, 3, 2, 3]),
+  scale_pentatonic_minor: makeScale('scale_pentatonic_minor', "pentatonic", [3, 2, 2, 3, 2]),
+  scale_blues_minor: makeScale('scale_blues_minor', "blues", [3, 2, 1, 1, 3, 2]),
+  scale_blues_major: makeScale('scale_blues_major', "blues", [2, 1, 1, 3, 2, 3]),
+  scale_hirajoshi: makeScale('scale_hirajoshi', "exotic", [2, 1, 4, 1, 4]),
+  scale_hungarian_minor: makeScale('scale_hungarian_minor', "exotic", [2, 1, 3, 1, 1, 3, 1]),
+  scale_whole_tone: makeScale('scale_whole_tone', "symmetric", [2, 2, 2, 2, 2, 2]),
+  scale_chromatic: makeScale('scale_chromatic', "symmetric", [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+};
+
+export const resolveScaleIntervals = (dictType) => {
+    if (!dictType || typeof dictType !== 'string' || !dictType.startsWith('scale_')) return null;
+    return SCALES[dictType] || null;
+};
+
+export const getScaleNotesGeneric = (rootValue, intervals) => {
+    if (!intervals) return [];
+    let currentNotes = [];
+    let currentIndex = rootValue;
+    let order = 1;
+    intervals.forEach(interval => {
+        const note = NOTES.at(currentIndex % 12);
+        currentNotes.push({ ...note, order: order++ });
+        currentIndex += interval;
+    });
+    return currentNotes;
+};
+
+export const toRoman = (nnsStr) => {
+  if (!nnsStr || typeof nnsStr !== 'string') return "";
+  const map = { 1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI", 7: "VII" };
+  const baseNum = nnsStr.match(/[1-7]/)?.[0] || "1";
+  let roman = map[baseNum];
+  const isMinor = nnsStr.includes("-") || nnsStr.includes("m");
+  const isDim = nnsStr.includes("°") || nnsStr.includes("b5") || nnsStr.includes("dim");
+
+  if (isMinor || isDim) roman = roman.toLowerCase();
+
+  let prefix =
+    nnsStr.includes("b") && !nnsStr.includes("b5")
+      ? "b"
+      : nnsStr.includes("#")
+        ? "#"
+        : "";
+  let suffix = isDim ? "°" : isMinor ? "m" : "";
+
+  return prefix + roman + suffix;
+};

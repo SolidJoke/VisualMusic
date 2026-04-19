@@ -73,7 +73,7 @@ export default function AudioVisualizer({ analyser, width = "100%", height = "60
   }, [analyser]);
 
   return (
-    <div style={{ width, height, borderRadius: "6px", overflow: "hidden", border: "1px solid #333", backgroundColor: "#121212" }}>
+    <div style={{ width, height, borderRadius: "6px", overflow: "hidden", border: "1px solid var(--border-default)", backgroundColor: "var(--bg-base)" }}>
       <canvas
         ref={canvasRef}
         style={{ width: "100%", height: "100%", display: "block" }}
