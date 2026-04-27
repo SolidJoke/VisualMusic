@@ -41,16 +41,12 @@ const StudioPanel = ({
       <select
         value={currentBrickIndex}
         onChange={(e) => setCurrentBrickIndex(e.target.value)}
+        className="select-premium"
         style={{
-          padding: "10px",
-          fontSize: "18px",
-          borderRadius: "4px",
-          cursor: "pointer",
-          backgroundColor: "var(--bg-overlay)",
-          color: "var(--theme-primary)",
-          border: "1px solid var(--theme-primary)",
-          fontWeight: "bold",
           width: "100%",
+          fontSize: "1.1rem",
+          fontWeight: "bold",
+          color: "var(--accent)"
         }}
       >
         <optgroup label="🎷 Jazz & Bossa">
@@ -81,7 +77,7 @@ const StudioPanel = ({
           🎵 Mode: {activeBrick.modeName} ({MODES[activeBrick.modeName]?.emotion})
         </span>
         <span className="info-badge">
-          🎸 Tuning: {activeBrick.tuning || "Standard"}
+          🎸 {txt.tuningLabel || "Tuning:"} {activeBrick.tuning || "Standard"}
         </span>
       </div>
 
@@ -107,13 +103,10 @@ const StudioPanel = ({
       </div>
 
       <div
+        className="glass-panel"
         style={{
           marginTop: "20px",
-          color: "var(--text-primary)",
-          fontSize: "15px",
-          backgroundColor: "var(--bg-overlay)",
-          padding: "15px",
-          borderRadius: "4px",
+          padding: "20px",
           boxSizing: "border-box",
         }}
       >
@@ -174,15 +167,7 @@ const StudioPanel = ({
                 setChordOctaveOffset(Number(e.target.value));
                 setCurrentAbsoluteNotes([]);
               }}
-              style={{
-                padding: "6px",
-                fontSize: "13px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                backgroundColor: "var(--bg-overlay)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border-dim)",
-              }}
+              className="select-premium"
             >
               <option value={-2}>-2 Oct.</option>
               <option value={-1}>-1 Oct.</option>
@@ -226,20 +211,9 @@ const StudioPanel = ({
                 <button
                   onClick={() => handleChordClick(c, i)}
                   title={c.role}
+                  className={`btn-premium${isSelected ? " active" : ""}`}
                   style={{
-                    background: isSelected
-                      ? "var(--theme-primary)"
-                      : "#222",
-                    color: isSelected
-                      ? "#000"
-                      : "var(--theme-primary)",
-                    border: "2px solid var(--theme-primary)",
-                    borderRadius: "6px",
-                    padding: "6px 12px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
                     fontSize: "16px",
-                    transition: "all 0.2s",
                     flexShrink: 0,
                   }}
                 >
@@ -261,15 +235,7 @@ const StudioPanel = ({
                 setClickedChord(null);
                 setCurrentAbsoluteNotes([]);
               }}
-              style={{
-                padding: "5px 10px",
-                fontSize: "12px",
-                cursor: "pointer",
-                backgroundColor: "var(--border-muted)",
-                color: "var(--text-primary)",
-                border: "none",
-                borderRadius: "4px",
-              }}
+              className="btn-premium"
             >
               {txt.backRoot}
             </button>

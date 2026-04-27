@@ -23,99 +23,40 @@ const PlaybackPanel = ({
 }) => {
   return (
     <div className="layout-col layout-right">
-      <div
-        className="dashboard-panel"
-        style={{
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "15px",
-          backgroundColor: "var(--bg-overlay)",
-          width: "100%",
-          boxSizing: "border-box",
-          maxWidth: "none",
-          margin: "0",
-        }}
-      >
+      <div className="glass-panel app-mode-selector">
         <button
           onClick={() => setAppMode("studio")}
-          className={`btn-toggle${appMode === "studio" ? " btn-toggle--active" : ""}`}
-          style={{ width: "100%", padding: "15px", fontSize: "16px" }}
+          className={`btn-premium${appMode === "studio" ? " active" : ""}`}
+          style={{ width: "100%", padding: "12px", fontSize: "1rem" }}
         >
           {txt.studioMode}
         </button>
         <button
           onClick={() => setAppMode("dictionary")}
-          className={`btn-toggle${appMode === "dictionary" ? " btn-toggle--active" : ""}`}
-          style={{ width: "100%", padding: "15px", fontSize: "16px" }}
+          className={`btn-premium${appMode === "dictionary" ? " active" : ""}`}
+          style={{ width: "100%", padding: "12px", fontSize: "1rem" }}
         >
           {txt.dictMode}
         </button>
       </div>
 
-      <div
-        className="dashboard-panel"
-        style={{
-          padding: "25px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "25px",
-          backgroundColor: "var(--bg-panel)",
-          border: `1px solid ${isPlaying ? "#4CAF50" : "var(--border-default)"}`,
-          boxShadow: isPlaying ? "0 0 15px rgba(76, 175, 80, 0.4)" : "none",
-          width: "100%",
-          boxSizing: "border-box",
-          maxWidth: "none",
-          margin: "0",
-        }}
-      >
+      <div className={`glass-panel playback-controls${isPlaying ? " is-playing" : ""}`}>
         <button
           onClick={togglePlayback}
+          className="btn-premium playback-toggle-btn"
           style={{
-            padding: "15px",
+            backgroundColor: isPlaying ? "var(--color-error)" : "var(--color-success)",
+            color: "var(--text-bright)",
             width: "100%",
-            fontSize: "18px",
-            cursor: "pointer",
-            backgroundColor: isPlaying ? "#e53935" : "#4CAF50",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            fontWeight: "bold",
-            display: "flex",
-            justifyContent: "center",
-            transition: "all 0.2s",
-            boxShadow: isPlaying
-              ? "0 0 15px rgba(229, 57, 53, 0.4)"
-              : "none",
+            fontSize: "1.1rem",
           }}
         >
           {isPlaying ? txt.stopAudio : txt.enableAudio}
         </button>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "25px",
-            width: "100%",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-            }}
-          >
-            <label
-              style={{
-                color: "#ccc",
-                fontSize: "14px",
-                marginBottom: "8px",
-                fontWeight: "bold",
-              }}
-            >
+        <div className="sliders-group">
+          <div className="slider-item">
+            <label className="section-label">
               {txt.masterVol} ({masterVolume} dB)
             </label>
             <input
@@ -124,25 +65,12 @@ const PlaybackPanel = ({
               max="0"
               value={masterVolume}
               onChange={(e) => setMasterVolume(e.target.value)}
-              style={{ cursor: "pointer", width: "100%" }}
+              className="premium-slider"
             />
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-            }}
-          >
-            <label
-              style={{
-                color: "var(--theme-primary)",
-                fontSize: "14px",
-                marginBottom: "8px",
-                fontWeight: "bold",
-              }}
-            >
+          <div className="slider-item">
+            <label className="section-label accent">
               {txt.tempoBpm} : {currentBpm}
             </label>
             <input
@@ -151,11 +79,7 @@ const PlaybackPanel = ({
               max="200"
               value={currentBpm}
               onChange={handleBpmChange}
-              style={{
-                cursor: "pointer",
-                width: "100%",
-                accentColor: "var(--theme-primary)",
-              }}
+              className="premium-slider accent"
             />
           </div>
         </div>
@@ -167,39 +91,18 @@ const PlaybackPanel = ({
         isPlaying={isPlaying}
       />
 
-      {/* NEW RIGHT CONTROL PANEL ADDED HERE */}
-      <div
-        className="dashboard-panel"
-        style={{
-          padding: "15px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px",
-          backgroundColor: "var(--bg-panel)",
-          border: "1px solid var(--border-default)",
-          width: "100%",
-          boxSizing: "border-box",
-          maxWidth: "none",
-          margin: "0",
-        }}
-      >
+      <div className="glass-panel secondary-controls">
         {appMode === "studio" && (
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              justifyContent: "center",
-            }}
-          >
+          <div className="controls-group">
             <button
               onClick={() => setDisplayMode("chord")}
-              className={`btn-toggle${displayMode === "chord" ? " btn-toggle--active" : ""}`}
+              className={`btn-premium${displayMode === "chord" ? " active" : ""}`}
             >
               {txt.chord}
             </button>
             <button
               onClick={() => setDisplayMode("scale")}
-              className={`btn-toggle${displayMode === "scale" ? " btn-toggle--active" : ""}`}
+              className={`btn-premium${displayMode === "scale" ? " active" : ""}`}
             >
               {txt.scale}
             </button>
@@ -207,24 +110,18 @@ const PlaybackPanel = ({
         )}
 
         {appMode !== "dictionary" && (
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              justifyContent: "center",
-            }}
-          >
+          <div className="controls-group">
             <button
               onClick={() => setLayoutMode("all")}
-              className={`btn-toggle${layoutMode === "all" ? " btn-toggle--active" : ""}`}
-              style={{ borderRadius: "20px" }}
+              className={`btn-premium${layoutMode === "all" ? " active" : ""}`}
+              style={{ borderRadius: "var(--radius-xl)" }}
             >
               {txt.showAll}
             </button>
             <button
               onClick={() => setLayoutMode("tabs")}
-              className={`btn-toggle${layoutMode === "tabs" ? " btn-toggle--active" : ""}`}
-              style={{ borderRadius: "20px" }}
+              className={`btn-premium${layoutMode === "tabs" ? " active" : ""}`}
+              style={{ borderRadius: "var(--radius-xl)" }}
             >
               {txt.focusMode}
             </button>
@@ -234,29 +131,15 @@ const PlaybackPanel = ({
         {(appMode === "dictionary" ||
           layoutMode === "all" ||
           activeTab === "guitars") && (
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ color: "#ccc", fontWeight: "bold" }}>
+          <div className="select-group">
+            <span className="section-label">
               {txt.guitarPos}
             </span>
             <select
               value={fretboardZone}
               onChange={(e) => setFretboardZone(e.target.value)}
-              style={{
-                padding: "8px",
-                fontSize: "14px",
-                borderRadius: "4px",
-                cursor: "pointer",
-                backgroundColor: "var(--bg-overlay)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border-dim)",
-              }}
+              className="select-premium"
+              style={{ width: "100%" }}
             >
               <option value="all">{txt.posAll}</option>
               <option value="open">{txt.posOpen}</option>

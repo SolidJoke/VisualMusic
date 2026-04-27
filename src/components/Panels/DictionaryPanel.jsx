@@ -1,5 +1,5 @@
 import React from "react";
-import { NOTES, SCALES, SCALE_CATEGORIES } from "../../core/theory";
+import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord } from "../../core/theory";
 
 // Map dictType keys to translation keys for scale names
 const SCALE_LABEL_MAP = {
@@ -23,25 +23,48 @@ const SCALE_LABEL_MAP = {
   scale_chromatic: "scaleChromatic",
 };
 
+// Map chord dictType keys to translation keys
+const CHORD_LABEL_MAP = {
+  chord_major: "chordMaj",
+  chord_minor: "chordMin",
+  chord_dim: "chordDim",
+  chord_aug: "chordAug",
+  chord_sus2: "chordSus2",
+  chord_sus4: "chordSus4",
+  chord_maj7: "chordMaj7",
+  chord_m7: "chordM7",
+  chord_7: "chord7",
+  chord_dim7: "chordDim7",
+  chord_m7b5: "chordM7b5",
+  chord_add9: "chordAdd9",
+  chord_9: "chord9",
+  chord_m9: "chordM9",
+};
+
 // Group scales by category, sorted by category order
 function getGroupedScales() {
   const groups = {};
   Object.entries(SCALES).forEach(([key, scale]) => {
-    if (!groups[scale.category]) {
-      groups[scale.category] = [];
-    }
+    if (!groups[scale.category]) groups[scale.category] = [];
     groups[scale.category].push(key);
   });
-
-  // Sort categories by their defined order
   return Object.entries(SCALE_CATEGORIES)
     .sort(([, a], [, b]) => a.order - b.order)
     .filter(([cat]) => groups[cat])
-    .map(([cat, meta]) => ({
-      category: cat,
-      labelKey: meta.labelKey,
-      scales: groups[cat],
-    }));
+    .map(([cat, meta]) => ({ category: cat, labelKey: meta.labelKey, items: groups[cat] }));
+}
+
+// Group chords by category, sorted by category order
+function getGroupedChords() {
+  const groups = {};
+  Object.entries(CHORDS).forEach(([key, chord]) => {
+    if (!groups[chord.category]) groups[chord.category] = [];
+    groups[chord.category].push(key);
+  });
+  return Object.entries(CHORD_CATEGORIES)
+    .sort(([, a], [, b]) => a.order - b.order)
+    .filter(([cat]) => groups[cat])
+    .map(([cat, meta]) => ({ category: cat, labelKey: meta.labelKey, items: groups[cat] }));
 }
 
 export default function DictionaryPanel({
@@ -68,72 +91,34 @@ export default function DictionaryPanel({
   };
 
   const groupedScales = getGroupedScales();
+  const groupedChords = getGroupedChords();
 
-  // Get the current scale's emotion for the info tooltip
-  const currentScale = SCALES[dictType];
-  const emotionText = currentScale
-    ? currentScale.emotion[lang] || currentScale.emotion.en
+  // Get the current item's emotion for the info tooltip (works for both scales and chords)
+  const currentItem = SCALES[dictType] || CHORDS[dictType] || null;
+  const emotionText = currentItem
+    ? currentItem.emotion[lang] || currentItem.emotion.en
     : null;
-  const descriptionText = currentScale
-    ? currentScale.description[lang] || currentScale.description.en
+  const descriptionText = currentItem
+    ? currentItem.description[lang] || currentItem.description.en
     : null;
 
-  const selectStyle = {
-    padding: "10px",
-    fontSize: "18px",
-    width: "100%",
-    borderRadius: "4px",
-    cursor: "pointer",
-    backgroundColor: "var(--bg-overlay)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border-dim)",
-    boxSizing: "border-box",
-  };
-
-  const labelStyle = {
-    display: "block",
-    color: "#ccc",
-    marginBottom: "5px",
-  };
+  const recommendedScales = family === "chord" ? getRecommendedScalesForChord(dictType) : [];
 
   return (
-    <div
-      className="dashboard-panel"
-      style={{
-        textAlign: "center",
-        backgroundColor: "var(--bg-raised)",
-        border: "1px solid var(--theme-primary)",
-        width: "100%",
-        boxSizing: "border-box",
-        maxWidth: "none",
-        margin: "0",
-        padding: "15px",
-        borderRadius: "8px",
-      }}
-    >
-      <h2
-        style={{
-          margin: "0 0 15px 0",
-          color: "var(--theme-primary)",
-        }}
-      >
+    <div className="glass-panel dict-panel">
+      <h2 className="dict-panel__title accent-text">
         {txt.freeExplorer}
       </h2>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "stretch",
-          gap: "20px",
-        }}
-      >
+
+      <div className="dict-panel__controls">
+
         {/* Root note selector */}
-        <div>
-          <label style={labelStyle}>{txt.rootNote}</label>
+        <div className="select-group">
+          <label className="field-label">{txt.rootNote}</label>
           <select
             value={dictRoot}
             onChange={(e) => setDictRoot(e.target.value)}
-            style={selectStyle}
+            className="select-premium"
           >
             {NOTES.map((n) => (
               <option key={n.value} value={n.value}>
@@ -144,9 +129,9 @@ export default function DictionaryPanel({
         </div>
 
         {/* Family selector (Note / Chord / Scale) */}
-        <div>
-          <label style={labelStyle}>{txt.structType}</label>
-          <div style={{ display: "flex", gap: "4px", borderRadius: "6px", overflow: "hidden", border: "1px solid var(--border-dim)" }}>
+        <div className="select-group">
+          <label className="field-label">{txt.structType}</label>
+          <div className="btn-segment-group">
             {[
               { key: "note", label: txt.familyNote || "🎵 Note" },
               { key: "chord", label: txt.familyChord || "🎸 Accords" },
@@ -165,32 +150,76 @@ export default function DictionaryPanel({
 
         {/* Sub-selector: Chord type */}
         {family === "chord" && (
-          <div>
+          <div className="select-group">
             <select
               value={dictType}
               onChange={(e) => setDictType(e.target.value)}
-              style={selectStyle}
+              className="select-premium"
             >
-              <option value="chord_major">{txt.chordMaj}</option>
-              <option value="chord_minor">{txt.chordMin}</option>
+              {groupedChords.map((group) => (
+                <optgroup
+                  key={group.category}
+                  label={txt[group.labelKey] || group.category}
+                >
+                  {group.items.map((chordKey) => (
+                    <option key={chordKey} value={chordKey}>
+                      {txt[CHORD_LABEL_MAP[chordKey]] || CHORDS[chordKey]?.key || chordKey}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
+
+            {/* Emotion/description card for chords */}
+            {emotionText && (
+              <div className="dict-panel__emotion-card">
+                <div className="dict-panel__emotion-title">
+                  🎭 {emotionText}
+                </div>
+                {descriptionText && (
+                  <div className="dict-panel__emotion-desc">
+                    {descriptionText}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Recommended Scales */}
+            {recommendedScales.length > 0 && (
+              <div className="dict-panel__recommended">
+                <div className="dict-panel__recommended-label">
+                  {txt.recommendedScales || "Recommended scales:"}
+                </div>
+                <div className="dict-panel__recommended-tags">
+                  {recommendedScales.map(scaleKey => (
+                    <button
+                      key={scaleKey}
+                      onClick={() => setDictType(scaleKey)}
+                      className="tag-btn"
+                    >
+                      {txt[SCALE_LABEL_MAP[scaleKey]] || scaleKey}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Sub-selector: Scale type with optgroups */}
         {family === "scale" && (
-          <div>
+          <div className="select-group">
             <select
               value={dictType}
               onChange={(e) => setDictType(e.target.value)}
-              style={selectStyle}
+              className="select-premium"
             >
               {groupedScales.map((group) => (
                 <optgroup
                   key={group.category}
                   label={txt[group.labelKey] || group.category}
                 >
-                  {group.scales.map((scaleKey) => (
+                  {group.items.map((scaleKey) => (
                     <option key={scaleKey} value={scaleKey}>
                       {txt[SCALE_LABEL_MAP[scaleKey]] || scaleKey}
                     </option>
@@ -199,30 +228,14 @@ export default function DictionaryPanel({
               ))}
             </select>
 
-            {/* C.3 — Emotion/description tooltip */}
+            {/* Emotion/description card for scales */}
             {emotionText && (
-              <div
-                style={{
-                  marginTop: "10px",
-                  padding: "10px 12px",
-                  backgroundColor: "var(--bg-panel)",
-                  borderRadius: "6px",
-                  borderLeft: "3px solid var(--theme-primary)",
-                  textAlign: "left",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "var(--theme-primary)",
-                    fontWeight: "bold",
-                    marginBottom: "4px",
-                  }}
-                >
+              <div className="dict-panel__emotion-card">
+                <div className="dict-panel__emotion-title">
                   🎭 {emotionText}
                 </div>
                 {descriptionText && (
-                  <div style={{ fontSize: "12px", color: "#999" }}>
+                  <div className="dict-panel__emotion-desc">
                     {descriptionText}
                   </div>
                 )}
@@ -230,25 +243,14 @@ export default function DictionaryPanel({
             )}
           </div>
         )}
+
       </div>
 
       <button
         onClick={playDictionaryAudio}
-        style={{
-          marginTop: "25px",
-          padding: "12px",
-          width: "100%",
-          fontSize: "16px",
-          fontWeight: "bold",
-          borderRadius: "8px",
-          cursor: "pointer",
-          backgroundColor: "var(--theme-primary)",
-          color: "#000",
-          border: "none",
-          transition: "transform 0.1s",
-        }}
-        onMouseDown={(e) => (e.target.style.transform = "scale(0.95)")}
-        onMouseUp={(e) => (e.target.style.transform = "scale(1)")}
+        className="btn-premium btn-premium--full btn-premium--listen"
+        onMouseDown={(e) => e.currentTarget.classList.add("is-pressed")}
+        onMouseUp={(e) => e.currentTarget.classList.remove("is-pressed")}
       >
         {txt.listen}
       </button>

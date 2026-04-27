@@ -66,6 +66,108 @@ const GUITAR_SHAPES = {
       0: { fret: f, finger: 1 },
     }),
   },
+  // Extended E-shape
+  maj7_E: {
+    build: (f) => ({
+      5: { fret: f, finger: 1 },
+      4: null,
+      3: { fret: f + 1, finger: 2 },
+      2: { fret: f + 1, finger: 3 },
+      1: { fret: f, finger: 1 },
+      0: null,
+    }),
+  },
+  m7_E: {
+    build: (f) => ({
+      5: { fret: f, finger: 1 },
+      4: null,
+      3: { fret: f, finger: 1 },
+      2: { fret: f, finger: 1 },
+      1: { fret: f, finger: 1 },
+      0: null,
+    }),
+  },
+  dom7_E: {
+    build: (f) => ({
+      5: { fret: f, finger: 1 },
+      4: { fret: f + 2, finger: 3 },
+      3: { fret: f, finger: 1 },
+      2: { fret: f + 1, finger: 2 },
+      1: { fret: f, finger: 1 },
+      0: { fret: f, finger: 1 },
+    }),
+  },
+  m7b5_E: {
+    build: (f) => ({
+      5: { fret: f, finger: 2 },
+      4: null,
+      3: { fret: f, finger: 3 },
+      2: { fret: f, finger: 4 },
+      1: { fret: f - 1, finger: 1 },
+      0: null,
+    }),
+  },
+  dim7_E: {
+    build: (f) => ({
+      5: { fret: f, finger: 2 },
+      4: null,
+      3: { fret: f - 1, finger: 1 },
+      2: { fret: f, finger: 3 },
+      1: { fret: f - 1, finger: 1 },
+      0: null,
+    }),
+  },
+  // Extended A-shape
+  maj7_A: {
+    build: (f) => ({
+      5: null,
+      4: { fret: f, finger: 1 },
+      3: { fret: f + 2, finger: 3 },
+      2: { fret: f + 1, finger: 2 },
+      1: { fret: f + 2, finger: 4 },
+      0: { fret: f, finger: 1 },
+    }),
+  },
+  m7_A: {
+    build: (f) => ({
+      5: null,
+      4: { fret: f, finger: 1 },
+      3: { fret: f + 2, finger: 3 },
+      2: { fret: f, finger: 1 },
+      1: { fret: f + 1, finger: 2 },
+      0: { fret: f, finger: 1 },
+    }),
+  },
+  dom7_A: {
+    build: (f) => ({
+      5: null,
+      4: { fret: f, finger: 1 },
+      3: { fret: f + 2, finger: 3 },
+      2: { fret: f, finger: 1 },
+      1: { fret: f + 2, finger: 4 },
+      0: { fret: f, finger: 1 },
+    }),
+  },
+  m7b5_A: {
+    build: (f) => ({
+      5: null,
+      4: { fret: f, finger: 1 },
+      3: { fret: f + 1, finger: 2 },
+      2: { fret: f, finger: 1 },
+      1: { fret: f + 1, finger: 3 },
+      0: null,
+    }),
+  },
+  dim7_A: {
+    build: (f) => ({
+      5: null,
+      4: { fret: f, finger: 1 },
+      3: { fret: f + 1, finger: 2 },
+      2: { fret: f - 1, finger: 1 },
+      1: { fret: f + 1, finger: 3 },
+      0: null,
+    }),
+  },
   // Open chord shapes (fret 0 only)
   open_C: {
     build: () => ({
@@ -198,13 +300,18 @@ function analyzeVoicing(fingeringMap) {
 /**
  * Determines the best guitar fingering for a given chord.
  * @param {number} rootValue - Chromatic value of the chord root (0-11, C=0)
- * @param {boolean} isMinor - Whether the chord is minor
+ * @param {string} chordType - Type of the chord (e.g. 'chord_major', 'chord_m7')
  * @param {number|null} rootString - Optional forced string index for the root (5=E, 4=A, 3=D)
  * @returns {Object} Rich fingering object { fingeringMap, outOfRange, difficultStretch }
  */
-export function getGuitarFingering(rootValue, isMinor, rootString = null) {
-  // If no rootString is forced, check for open chord shapes first
-  if (rootString === null) {
+export function getGuitarFingering(rootValue, chordType = 'chord_major', rootString = null) {
+  // Determine simple triad equivalents for open chords
+  const isMinorLike = chordType === 'chord_minor' || chordType === 'chord_m7' || chordType === 'chord_m9' || chordType === 'chord_m7b5';
+  const isBasicMajor = chordType === 'chord_major';
+  const isBasicMinor = chordType === 'chord_minor';
+
+  // If no rootString is forced, check for open chord shapes first (only for basic triads)
+  if (rootString === null && (isBasicMajor || isBasicMinor)) {
     const openChords = {
       0:  { major: 'open_C',  minor: null      },  // C
       2:  { major: 'open_D',  minor: 'open_Dm' },  // D
@@ -215,13 +322,11 @@ export function getGuitarFingering(rootValue, isMinor, rootString = null) {
 
     const openOption = openChords[rootValue];
     if (openOption) {
-      const shapeName = isMinor ? openOption.minor : openOption.major;
+      const shapeName = isMinorLike ? openOption.minor : openOption.major;
       if (shapeName && GUITAR_SHAPES[shapeName]) {
         return analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES[shapeName].build()));
       }
     }
-
-    // D major is now handled via openChords above, no extra case needed.
   }
 
   // Open string values
@@ -242,10 +347,25 @@ export function getGuitarFingering(rootValue, isMinor, rootString = null) {
 
   const rootFret = (rootValue - stringOpenValues[targetString] + 12) % 12;
   
-  let shapeName = '';
-  if (targetString === 5) shapeName = isMinor ? 'minor_E' : 'major_E';
-  else if (targetString === 4) shapeName = isMinor ? 'minor_A' : 'major_A';
-  else if (targetString === 3) shapeName = isMinor ? 'minor_D' : 'major_D';
+  // Map chordType to shape suffix
+  let shapeSuffix = 'major'; // default
+  if (chordType === 'chord_minor') shapeSuffix = 'minor';
+  else if (chordType === 'chord_maj7') shapeSuffix = 'maj7';
+  else if (chordType === 'chord_m7' || chordType === 'chord_m9') shapeSuffix = 'm7';
+  else if (chordType === 'chord_7' || chordType === 'chord_9' || chordType === 'chord_add9') shapeSuffix = 'dom7';
+  else if (chordType === 'chord_m7b5') shapeSuffix = 'm7b5';
+  else if (chordType === 'chord_dim7' || chordType === 'chord_dim') shapeSuffix = 'dim7';
+  else if (isMinorLike) shapeSuffix = 'minor';
+
+  let shapeName = `${shapeSuffix}_E`;
+  if (targetString === 5) shapeName = `${shapeSuffix}_E`;
+  else if (targetString === 4) shapeName = `${shapeSuffix}_A`;
+  else if (targetString === 3) shapeName = isMinorLike ? 'minor_D' : 'major_D'; // Fallback for D string
+
+  // If the specific shape doesn't exist, fallback to major/minor
+  if (!GUITAR_SHAPES[shapeName]) {
+    shapeName = isMinorLike ? (targetString === 5 ? 'minor_E' : 'minor_A') : (targetString === 5 ? 'major_E' : 'major_A');
+  }
 
   const shape = GUITAR_SHAPES[shapeName].build(rootFret);
   return analyzeVoicing(shapeToFingeringObj(shape));
@@ -254,44 +374,54 @@ export function getGuitarFingering(rootValue, isMinor, rootString = null) {
 /**
  * Determines the best bass fingering for a given chord.
  * Bass pattern: Root (1=Index) on E string, Fifth (3=Ring) on A string.
- * For minor chords, also shows the minor 3rd (2=Middle) on A string.
+ * Adapts to extended chords (adds 7th, etc).
  * @param {number} rootValue - Chromatic value (0-11)
- * @param {boolean} isMinor - Whether the chord is minor
+ * @param {string} chordType - Type of the chord (e.g. 'chord_major', 'chord_m7')
  * @returns {Object|null} Fingering object
  */
-export function getBassFingering(rootValue, isMinor) {
-  // Bass strings reversed: [G2, D2, A1, E1] → index 3 = low E
-  // Index 0: G, 1: D, 2: A, 3: E
-  const rootFret = (rootValue - 4 + 12) % 12; // E string open = 4 (E)
+export function getBassFingering(rootValue, chordType = 'chord_major', rootString = null) {
+  // Bass strings reversed: index 0:G, 1:D, 2:A, 3:E
+  const stringOpenValues = {
+    3: 4,  // E1
+    2: 9,  // A1
+    1: 2,  // D2
+    0: 7   // G2
+  };
 
+  // Determine which string to anchor on (default to E or A)
+  let targetString = rootString;
+  if (targetString === null || ![3, 2, 1].includes(targetString)) {
+    let rootFretE = (rootValue - stringOpenValues[3] + 12) % 12;
+    let rootFretA = (rootValue - stringOpenValues[2] + 12) % 12;
+    targetString = (rootFretE <= rootFretA || rootFretE <= 4) ? 3 : 2;
+  }
+
+  const rootFret = (rootValue - stringOpenValues[targetString] + 12) % 12;
   const fingeringObj = {};
-  const f = rootFret;
 
-  // Root on E string (index 3): finger 1 (Index)
-  fingeringObj[3] = { [f]: 1 };
+  // 1. Root
+  fingeringObj[targetString] = { [rootFret]: 1 };
 
-  // Fifth on A string (index 2): 2 frets up = perfect 5th, finger 3 (Ring)
-  fingeringObj[2] = { [f + 2]: 3 };
-
-  if (isMinor) {
-    // Minor 3rd is 3 semitones above root
-    // On A string: minor 3rd fret = rootFret - 1 (one fret below fifth)
-    // Using finger 2 (Middle)
-    const minorThirdOnA = (rootValue + 3 - 9 + 12) % 12; // A string open = 9
-    if (minorThirdOnA >= 0 && minorThirdOnA <= 14) {
-      // Add minor 3rd on A string alongside the fifth
-      fingeringObj[2] = { ...fingeringObj[2], [minorThirdOnA]: 2 };
+  // 2. Fifth (if string above exists)
+  if (targetString > 0) {
+    const isDim5 = chordType === 'chord_m7b5' || chordType === 'chord_dim' || chordType === 'chord_dim7';
+    const fifthFret = isDim5 ? rootFret + 1 : rootFret + 2;
+    if (fifthFret <= 14) {
+      fingeringObj[targetString - 1] = { [fifthFret]: 3 };
     }
-    // Octave on D string (index 1): same fret as root + 2 on D, finger 4 (Pinky)
-    const octaveOnD = (rootValue - 2 + 12) % 12; // D string open = 2
-    if (octaveOnD >= 0 && octaveOnD <= 14) {
-      fingeringObj[1] = { [octaveOnD]: 4 };
-    }
-  } else {
-    // Major: Octave on D string (index 1), finger 4 (Pinky)
-    const octaveOnD = (rootValue - 2 + 12) % 12; // D string open = 2
-    if (octaveOnD >= 0 && octaveOnD <= 14) {
-      fingeringObj[1] = { [octaveOnD]: 4 };
+  }
+
+  // 3. Octave (if string 2 above exists)
+  if (targetString > 1) {
+    const octaveFret = rootFret + 2;
+    if (octaveFret <= 14) {
+      // If we already have something on this string (the 5th), we might skip or replace.
+      // But typically for root on E, 5th is on A, Octave is on D.
+      // String index: E=3, A=2, D=1, G=0.
+      // If root on 3, 5th on 2, Octave on 1. Correct.
+      if (!fingeringObj[targetString - 2]) {
+        fingeringObj[targetString - 2] = { [octaveFret]: 4 };
+      }
     }
   }
 

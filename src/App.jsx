@@ -26,6 +26,8 @@ import {
   resolveScaleIntervals,
   getScaleNotesGeneric,
   toRoman,
+  resolveChordSemitones,
+  resolveNnsToChordType,
 } from "./core/theory";
 import { getGuitarFingering, getBassFingering } from "./core/fingeringLogic";
 import { BRICKS } from "./core/bricks";
@@ -85,40 +87,40 @@ function App() {
     dictRoot, setDictRoot,
     dictType, setDictType,
     fretboardZone, setFretboardZone,
-    selectedRootString, setSelectedRootString
+    selectedRootStringGuitar, setSelectedRootStringGuitar,
+    selectedRootStringBass, setSelectedRootStringBass
   } = useDictionaryState();
+
+
 
   // --- Expert Fingering Logic ---
   const guitarFingering = useMemo(() => {
-    if (!showFingering) return null;
-    let rootVal, isMinor;
+    let rootVal, chordType;
     if (appMode === "dictionary") {
-      // In dictionary mode, we don't have clickedChord. We use dictRoot/currentRootValue
-      if (dictType.includes("scale")) return null; // Only for chords
+      if (!dictType.includes("chord")) return null; // Only for chords
       rootVal = dictRoot;
-      isMinor = dictType === "minor" || dictType.includes("min") || dictType.includes("-");
+      chordType = dictType;
     } else {
       if (!clickedChord) return null;
       rootVal = clickedChord.rootNote.value;
-      isMinor = clickedChord.nns.includes("-");
+      chordType = resolveNnsToChordType(clickedChord.nns);
     }
-    return getGuitarFingering(rootVal, isMinor, selectedRootString);
-  }, [showFingering, clickedChord, selectedRootString, appMode, dictRoot, dictType]);
+    return getGuitarFingering(rootVal, chordType, selectedRootStringGuitar);
+  }, [clickedChord, selectedRootStringGuitar, appMode, dictRoot, dictType]);
 
   const bassFingering = useMemo(() => {
-    if (!showFingering) return null;
-    let rootVal, isMinor;
+    let rootVal, chordType;
     if (appMode === "dictionary") {
-      if (dictType.includes("scale")) return null;
+      if (!dictType.includes("chord")) return null;
       rootVal = dictRoot;
-      isMinor = dictType === "minor" || dictType.includes("min") || dictType.includes("-");
+      chordType = dictType;
     } else {
       if (!clickedChord) return null;
       rootVal = clickedChord.rootNote.value;
-      isMinor = clickedChord.nns.includes("-");
+      chordType = resolveNnsToChordType(clickedChord.nns);
     }
-    return getBassFingering(rootVal, isMinor);
-  }, [showFingering, clickedChord, appMode, dictRoot, dictType]);
+    return getBassFingering(rootVal, chordType, selectedRootStringBass);
+  }, [clickedChord, selectedRootStringBass, appMode, dictRoot, dictType]);
 
   const activeBrick = BRICKS.at(Number(currentBrickIndex));
 
@@ -177,18 +179,27 @@ function App() {
     const scaleData = resolveScaleIntervals(dictType);
     if (scaleData) {
       activeNotes = getScaleNotesGeneric(currentRootValue, scaleData.intervals);
-    } else if (dictType === "chord_major") {
-      activeNotes.push(
-        { value: currentRootValue, order: 1 },
-        { value: (currentRootValue + 4) % 12, order: 3 },
-        { value: (currentRootValue + 7) % 12, order: 5 },
-      );
-    } else if (dictType === "chord_minor") {
-      activeNotes.push(
-        { value: currentRootValue, order: 1 },
-        { value: (currentRootValue + 3) % 12, order: "b3" },
-        { value: (currentRootValue + 7) % 12, order: 5 },
-      );
+    } else if (dictType.includes("chord")) {
+      const chordData = resolveChordSemitones(dictType);
+      if (chordData) {
+        // Approximate interval mapping for UI labels (1, 3, 5, 7, 9, etc.)
+        const getOrderLabel = (index, semitone) => {
+          if (index === 0) return 1;
+          if (semitone === 3) return "b3";
+          if (semitone === 4) return 3;
+          if (semitone === 6) return "b5";
+          if (semitone === 7) return 5;
+          if (semitone === 10) return "b7";
+          if (semitone === 11) return 7;
+          if (semitone > 12) return 9;
+          return index + 2; // fallback
+        };
+
+        activeNotes = chordData.semitones.map((semi, i) => ({
+          value: (currentRootValue + semi) % 12,
+          order: getOrderLabel(i, semi),
+        }));
+      }
     } else if (dictType === "single_note") {
       activeNotes.push({ value: currentRootValue, order: null });
     }
@@ -254,7 +265,10 @@ function App() {
     dictRoot,
     dictType,
     playbackInstrument,
-    setPlaybackInstrument
+    setPlaybackInstrument,
+    guitarFingering,
+    bassFingering,
+    activeBrick
   });
 
   useEffect(() => {
@@ -464,8 +478,10 @@ function App() {
             showFingering={showFingering}
             fingeringMode={fingeringMode}
             clickedChord={clickedChord}
-            selectedRootString={selectedRootString}
-            setSelectedRootString={setSelectedRootString}
+            selectedRootStringGuitar={selectedRootStringGuitar}
+            setSelectedRootStringGuitar={setSelectedRootStringGuitar}
+            selectedRootStringBass={selectedRootStringBass}
+            setSelectedRootStringBass={setSelectedRootStringBass}
             guitarFingering={guitarFingering}
             bassFingering={bassFingering}
             fretboardZone={fretboardZone}

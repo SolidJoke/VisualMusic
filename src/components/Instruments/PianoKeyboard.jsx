@@ -1,7 +1,6 @@
 import React from "react";
 import "./PianoKeyboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
-
 const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 const BLACK_KEYS = [1, 3, 6, 8, 10];
 const WHITE_KEY_WIDTH = 50;
@@ -24,6 +23,8 @@ export default function PianoKeyboard({
   currentlyPlayingNotes = [],
   contextualScaleAbsoluteValues = [],
   dictType = null,
+  lang = "fr",
+  txt = {},
 }) {
   const [showExplanations, setShowExplanations] = React.useState(false);
   const keys = [];
@@ -151,7 +152,7 @@ export default function PianoKeyboard({
             key={`octave-${octave}-note-${i}`}
             className={`piano-key white-key ${roleClass} ${subtleClass} ${isPlaying ? "is-playing" : ""}`}
             title={`${noteInfo.us} / ${noteInfo.eu}`}
-            onClick={() => onNoteClick && onNoteClick(noteName)}
+            onClick={() => onNoteClick && onNoteClick(noteName, { instrument: "piano" })}
           >
             <div className="note-label">
               {renderKeyLabel(
@@ -178,16 +179,14 @@ export default function PianoKeyboard({
             onClick={() => setShowExplanations(!showExplanations)}
           >
             {showExplanations
-              ? "Masquer les explications"
-              : "Que signifient les nombres ?"}
+              ? (txt.hideExplanations || "Masquer les explications")
+              : (txt.whatDoNumbersMean || "Que signifient les nombres ?")}
           </button>
           {showExplanations && (
             <div className="numbers-explanation">
-              Les nombres affichés avec les notes correspondent à leur rôle ou
-              degré dans l'accord/la gamme.
+              {txt.numbersExplanation1 || "Les nombres affichés avec les notes correspondent à leur rôle ou degré dans l'accord/la gamme."}
               <br />
-              Par exemple, (1) est la fondamentale (racine), (3) la tierce, (5)
-              la quinte, etc.
+              {txt.numbersExplanation2 || "Par exemple, (1) est la fondamentale (racine), (3) la tierce, (5) la quinte, etc."}
             </div>
           )}
         </div>

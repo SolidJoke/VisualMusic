@@ -214,9 +214,9 @@ export default function Fretboard({
                   const hasPath = activePath.length > 0;
 
                   // Only apply voicing masking when in chord (not scale) mode
-                  const isGuitarFingeringActive = showFingering && instrument === "guitar" && fingering && !isScaleMode;
+                  const isVoicingMaskActive = (instrument === "guitar" || instrument === "bass") && fingering && !isScaleMode;
 
-                  if (isGuitarFingeringActive) {
+                  if (isVoicingMaskActive) {
                     const fingerAtLocation = fingering[stringIndex]?.[fret];
                     const isFingeredNode = fingerAtLocation && fingerAtLocation !== 'X' && fingerAtLocation !== 'O';
                     const isOpenAndTargeted = fret === 0 && fingerAtLocation === 'O';
@@ -318,7 +318,7 @@ export default function Fretboard({
                           <span style={{ color: "#d4c4a8", fontWeight: "bold", fontSize: "13px" }}>
                             {noteInfo[notation]}
                           </span>
-                          {isGuitarFingeringActive && (() => {
+                          {isVoicingMaskActive && (() => {
                              const stringFingering = fingering?.[stringIndex] || {};
                              const hasX = Object.values(stringFingering).includes('X');
                              const hasO = stringFingering[0] === 'O';

@@ -29,8 +29,10 @@ const InstrumentView = ({
   showFingering,
   fingeringMode,
   clickedChord,
-  selectedRootString,
-  setSelectedRootString,
+  selectedRootStringGuitar,
+  setSelectedRootStringGuitar,
+  selectedRootStringBass,
+  setSelectedRootStringBass,
   guitarFingering,
   bassFingering,
   fretboardZone,
@@ -38,6 +40,7 @@ const InstrumentView = ({
   singlePlayContext,
   txt
 }) => {
+  const isScaleMode = (appMode === "dictionary" && dictType?.includes("scale"));
   return (
     <div
       className="layout-col layout-center"
@@ -51,19 +54,19 @@ const InstrumentView = ({
         <div style={{ width: "100%", display: "flex", gap: "10px", marginBottom: "20px", justifyContent: "center", flexWrap: "wrap" }}>
           <button
             onClick={() => setActiveTab("sequencer")}
-            className={`btn-tab${activeTab === "sequencer" ? " btn-tab--active" : ""}`}
+            className={`btn-premium${activeTab === "sequencer" ? " active" : ""}`}
           >
             {txt.tabDrums}
           </button>
           <button
             onClick={() => setActiveTab("piano")}
-            className={`btn-tab${activeTab === "piano" ? " btn-tab--active" : ""}`}
+            className={`btn-premium${activeTab === "piano" ? " active" : ""}`}
           >
             {txt.tabPiano}
           </button>
           <button
             onClick={() => setActiveTab("guitars")}
-            className={`btn-tab${activeTab === "guitars" ? " btn-tab--active" : ""}`}
+            className={`btn-premium${activeTab === "guitars" ? " active" : ""}`}
           >
             {txt.tabGuitars}
           </button>
@@ -73,13 +76,11 @@ const InstrumentView = ({
       {appMode === "studio" &&
         (layoutMode === "all" || activeTab === "sequencer") && (
           <div
+            className="glass-panel"
             style={{
               width: "100%",
               marginBottom: "30px",
-              backgroundColor: "var(--bg-panel)",
-              padding: "15px",
-              borderRadius: "8px",
-              border: "1px solid var(--border-default)",
+              padding: "20px",
               boxSizing: "border-box",
             }}
           >
@@ -120,6 +121,7 @@ const InstrumentView = ({
         activeTab === "piano" ||
         activeTab === "guitars") && (
         <div
+          className="glass-panel"
           style={{
             width: "100%",
             display: "flex",
@@ -127,9 +129,6 @@ const InstrumentView = ({
             gap: "20px",
             flexWrap: "wrap",
             padding: "15px",
-            backgroundColor: "var(--bg-surface)",
-            borderRadius: "8px",
-            border: "1px solid var(--border-default)",
             marginBottom: "15px",
             boxSizing: "border-box",
           }}
@@ -261,6 +260,8 @@ const InstrumentView = ({
             currentlyPlayingNotes={currentlyPlayingNotes}
             contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
             dictType={appMode === "dictionary" ? dictType : null}
+            lang={lang}
+            txt={txt}
           />
         </div>
       )}
@@ -269,10 +270,11 @@ const InstrumentView = ({
         layoutMode === "all" ||
         activeTab === "guitars") && (
         <div className="scrollable-instrument" style={{ width: "100%", paddingLeft: "35px" }}>
-          {showFingering && ((appMode === "studio" && clickedChord) || (appMode === "dictionary" && !dictType.includes("scale"))) && (
+          {/* Guitar Position Selectors */}
+          {showFingering && !isScaleMode && ((appMode === "studio" && clickedChord) || appMode === "dictionary") && (
             <div style={{ marginBottom: "15px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
               <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "center", marginLeft: "-35px" }}>
-                <span style={{ color: "#d4c4a8", fontSize: "14px", fontWeight: "bold" }}>{txt.rootStringLabel}</span>
+                <span style={{ color: "#d4c4a8", fontSize: "14px", fontWeight: "bold" }}>Guitar: {txt.rootStringLabel}</span>
                 {[
                   { idx: 5, label: "E", openVal: 4 },
                   { idx: 4, label: "A", openVal: 9 },
@@ -281,21 +283,13 @@ const InstrumentView = ({
                   const rootVal = appMode === "dictionary" ? currentRootValue : clickedChord.rootNote.value;
                   const rootInThisString = (rootVal - str.openVal + 12) % 12;
                   const fretText = rootInThisString === 0 ? txt.fretOpen : `${txt.fretPrefix}${rootInThisString}`;
-                  const isActive = selectedRootString === str.idx;
+                  const isActive = selectedRootStringGuitar === str.idx;
                   return (
                     <button
                       key={str.idx}
-                      onClick={() => setSelectedRootString(isActive ? null : str.idx)}
-                      style={{
-                        padding: "5px 12px",
-                        background: isActive ? "var(--theme-primary)" : "#222",
-                        color: isActive ? "#fff" : "#ccc",
-                        border: `1px solid ${isActive ? "var(--theme-primary)" : "#555"}`,
-                        borderRadius: "15px",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        transition: "all 0.2s"
-                      }}
+                      className={`btn-premium${isActive ? " active" : ""}`}
+                      onClick={() => setSelectedRootStringGuitar(isActive ? null : str.idx)}
+                      style={{ padding: "5px 12px", fontSize: "12px", borderRadius: "15px" }}
                     >
                       {str.label} ({fretText})
                     </button>
@@ -310,6 +304,7 @@ const InstrumentView = ({
               )}
             </div>
           )}
+
           <Fretboard
             instrument="guitar"
             activeNotes={activeNotes}
@@ -328,7 +323,38 @@ const InstrumentView = ({
             fingeringMode={fingeringMode}
             fingering={guitarFingering?.fingeringMap}
           />
+          
           <br />
+
+          {/* Bass Position Selectors */}
+          {showFingering && !isScaleMode && ((appMode === "studio" && clickedChord) || appMode === "dictionary") && (
+            <div style={{ marginBottom: "15px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "center", marginLeft: "-35px" }}>
+                <span style={{ color: "#d4c4a8", fontSize: "14px", fontWeight: "bold" }}>Bass: {txt.rootStringLabel}</span>
+                {[
+                  { idx: 3, label: "E", openVal: 4 },
+                  { idx: 2, label: "A", openVal: 9 },
+                  { idx: 1, label: "D", openVal: 2 },
+                ].map(str => {
+                  const rootVal = appMode === "dictionary" ? currentRootValue : clickedChord.rootNote.value;
+                  const rootInThisString = (rootVal - str.openVal + 12) % 12;
+                  const fretText = rootInThisString === 0 ? txt.fretOpen : `${txt.fretPrefix}${rootInThisString}`;
+                  const isActive = selectedRootStringBass === str.idx;
+                  return (
+                    <button
+                      key={str.idx}
+                      className={`btn-premium${isActive ? " active" : ""}`}
+                      onClick={() => setSelectedRootStringBass(isActive ? null : str.idx)}
+                      style={{ padding: "5px 12px", fontSize: "12px", borderRadius: "15px" }}
+                    >
+                      {str.label} ({fretText})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <Fretboard
             instrument="bass"
             activeNotes={activeNotes}

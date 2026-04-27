@@ -137,6 +137,18 @@
 
 ---
 
+## Phase 11b : Ajustements Voicings & UX Basse (Prêt pour Gemini Flash)
+
+> **Contexte :** Suite à la validation de la Phase 11, deux défauts d'expérience utilisateur (UX) et de rendu sonore ont été identifiés sur les instruments à cordes.
+> **Consigne :** Ces correctifs doivent être appliqués par le modèle léger (Flash).
+
+- [x] **11b.1 — Limiter la polyphonie en mode explorateur (Non-Expert)** ✅
+      **Fix :** Dans `usePlaybackHandlers.js`, l'audio est désormais généré à partir des octaves précises du voicing calculé pour la guitare/basse. En mode dictionnaire (Piano), une inversion piano intelligente est utilisée.
+- [x] **11b.2 — UX Basse : Séparer et enrichir les sélecteurs de position ("Fondamentale sur")** ✅
+      **Fix :** `InstrumentView.jsx` affiche désormais des contrôles de position distincts pour Guitar et Bass. Les positions sont calculées dynamiquement sur toutes les cordes disponibles pour la fondamentale jusqu'à la frette 14.
+- [x] **11b.3 — Clarifier le rendu des accords à la Basse** ✅
+      **Fix :** `getBassFingering` dans `fingeringLogic.js` a été simplifié pour se concentrer sur Fondamentale / Quinte / Octave, évitant les formes injouables et clarifiant le rendu visuel.
+
 ## Phase 8 : Dette Technique & Qualité (P2-P3)
 
 > **Principe de sélection** : Ces items ne sont retenus que s'ils apportent un avantage
