@@ -15,37 +15,23 @@ const ControlPanel = ({
   txt
 }) => {
   return (
-    <div
-      className="dashboard-panel"
-      style={{
-        padding: "15px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "15px",
-        backgroundColor: "var(--bg-panel)",
-        border: "1px solid var(--border-default)",
-        width: "100%",
-        boxSizing: "border-box",
-        maxWidth: "none",
-        margin: "0",
-      }}
-    >
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+    <div className="glass-panel control-panel-container">
+      <div className="controls-group">
         <button
           onClick={() => setNotation("us")}
-          className={`btn-toggle${notation === "us" ? " btn-toggle--active" : ""}`}
+          className={`btn-premium${notation === "us" ? " active" : ""}`}
         >
           US (A,B,C)
         </button>
         <button
           onClick={() => setNotation("eu")}
-          className={`btn-toggle${notation === "eu" ? " btn-toggle--active" : ""}`}
+          className={`btn-premium${notation === "eu" ? " active" : ""}`}
         >
           EU (Do,Ré)
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", justifyContent: "center", marginTop: "5px" }}>
+      <div className="controls-group">
         {[
           { id: "standard", label: "Chord" },
           { id: "nns", label: "NNS (1,4,5)" },
@@ -54,8 +40,8 @@ const ControlPanel = ({
           <button
             key={m.id}
             onClick={() => setChordDisplayMode(m.id)}
-            className={`btn-toggle${chordDisplayMode === m.id ? " btn-toggle--active" : ""}`}
-            style={{ fontSize: "12px", padding: "6px 10px" }}
+            className={`btn-premium${chordDisplayMode === m.id ? " active" : ""}`}
+            style={{ fontSize: "0.75rem" }}
           >
             {m.label}
           </button>
@@ -63,26 +49,16 @@ const ControlPanel = ({
       </div>
 
       {/* FINGERING TOGGLE */}
-      <div style={{ textAlign: "center", marginTop: "10px" }}>
+      <div className="fingering-controls">
          <button
             onClick={() => setShowFingering(!showFingering)}
-            style={{
-              padding: "10px 20px",
-              cursor: "pointer",
-              borderRadius: "20px",
-              border: showFingering ? "2px solid var(--theme-primary)" : "1px solid #555",
-              fontWeight: "bold",
-              backgroundColor: showFingering ? "var(--theme-primary)" : "transparent",
-              color: showFingering ? "#000" : "#fff",
-              transition: "all 0.3s ease",
-              fontSize: "14px",
-              width: "80%"
-            }}
+            className={`btn-premium fingering-main-btn${showFingering ? " active" : ""}`}
+            style={{ width: "100%", borderRadius: "var(--radius-xl)" }}
           >
             {showFingering ? txt.fingeringToggleOn : txt.fingeringToggleOff}
           </button>
           {showFingering && (
-            <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "8px" }}>
+            <div className="fingering-sub-modes">
               {[
                 { id: "numeric", label: txt.fingeringNumeric },
                 { id: "anatomic", label: txt.fingeringAnatomic },
@@ -90,24 +66,15 @@ const ControlPanel = ({
                 <button
                   key={m.id}
                   onClick={() => setFingeringMode(m.id)}
-                  style={{
-                    padding: "4px 12px",
-                    cursor: "pointer",
-                    borderRadius: "12px",
-                    border: fingeringMode === m.id ? "2px solid var(--theme-primary)" : "1px solid #555",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                    backgroundColor: fingeringMode === m.id ? "var(--theme-primary)" : "transparent",
-                    color: fingeringMode === m.id ? "#000" : "#ccc",
-                    transition: "all 0.2s ease",
-                  }}
+                  className={`btn-premium${fingeringMode === m.id ? " active" : ""}`}
+                  style={{ padding: "4px 10px", fontSize: "0.7rem", borderRadius: "var(--radius-md)" }}
                 >
                   {m.label}
                 </button>
               ))}
             </div>
           )}
-          <p style={{ color: "#888", fontSize: "11px", marginTop: "6px" }}>
+          <p className="fingering-desc">
             {showFingering
               ? fingeringMode === "numeric"
                 ? txt.fingeringNumericDesc
@@ -116,7 +83,7 @@ const ControlPanel = ({
           </p>
       </div>
 
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center", marginTop: "10px" }}>
+      <div className="controls-group">
         {[
           { id: "piano", label: txt.instPiano },
           { id: "guitar", label: txt.instGuitarBass },
@@ -125,7 +92,7 @@ const ControlPanel = ({
           <button
             key={inst.id}
             onClick={() => setPlaybackInstrument(inst.id)}
-            className={`btn-toggle${playbackInstrument === inst.id ? " btn-toggle--active" : ""}`}
+            className={`btn-premium${playbackInstrument === inst.id ? " active" : ""}`}
           >
             {inst.label}
           </button>

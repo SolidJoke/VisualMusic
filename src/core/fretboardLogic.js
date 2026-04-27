@@ -16,7 +16,7 @@ export function calcActivePath({
     contextualScaleAbsoluteValues.length === 0
   )
     return [];
-  if (!dictType?.includes("scale")) return [];
+  if (!dictType?.includes("scale") && !dictType?.includes("chord")) return [];
   if (!lastClickedContext) return [];
 
   // --- Position playing parameters ---

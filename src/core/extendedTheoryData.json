@@ -1,0 +1,106 @@
+{
+  "extendedChords": [
+    { "suffix": "M", "name": "Major Triad", "intervals": [0, 4, 7] },
+    { "suffix": "m", "name": "Minor Triad", "intervals": [0, 3, 7] },
+    { "suffix": "dim", "name": "Diminished Triad", "intervals": [0, 3, 6] },
+    { "suffix": "aug", "name": "Augmented Triad", "intervals": [0, 4, 8] },
+    { "suffix": "sus2", "name": "Suspended 2nd", "intervals": [0, 2, 7] },
+    { "suffix": "sus4", "name": "Suspended 4th", "intervals": [0, 5, 7] },
+    { "suffix": "add9", "name": "Added 9th", "intervals": [0, 4, 7, 14] },
+    { "suffix": "add11", "name": "Added 11th", "intervals": [0, 4, 7, 17] },
+    { "suffix": "M7", "name": "Major 7th", "intervals": [0, 4, 7, 11] },
+    { "suffix": "m7", "name": "Minor 7th", "intervals": [0, 3, 7, 10] },
+    { "suffix": "7", "name": "Dominant 7th", "intervals": [0, 4, 7, 10] },
+    { "suffix": "m7b5", "name": "Half-Diminished 7th", "intervals": [0, 3, 6, 10] },
+    { "suffix": "dim7", "name": "Fully Diminished 7th", "intervals": [0, 3, 6, 9] },
+    { "suffix": "mM7", "name": "Minor-Major 7th", "intervals": [0, 3, 7, 11] },
+    { "suffix": "9", "name": "Dominant 9th", "intervals": [0, 4, 7, 10, 14] },
+    { "suffix": "M9", "name": "Major 9th", "intervals": [0, 4, 7, 11, 14] },
+    { "suffix": "m9", "name": "Minor 9th", "intervals": [0, 3, 7, 10, 14] },
+    { "suffix": "11", "name": "Dominant 11th", "intervals": [0, 4, 7, 10, 14, 17] },
+    { "suffix": "13", "name": "Dominant 13th", "intervals": [0, 4, 7, 10, 14, 17, 21] },
+    { "suffix": "7b9", "name": "Dominant 7th Flat 9", "intervals": [0, 4, 7, 10, 13] },
+    { "suffix": "7#9", "name": "Dominant 7th Sharp 9", "intervals": [0, 4, 7, 10, 15] },
+    { "suffix": "7#11", "name": "Dominant 7th Sharp 11", "intervals": [0, 4, 7, 10, 14, 18] },
+    { "suffix": "7b13", "name": "Dominant 7th Flat 13", "intervals": [0, 4, 7, 10, 14, 20] }
+  ],
+  "extendedScales": [
+    { "id": "ionian", "name": "Major (Ionian)", "intervals": [0, 2, 4, 5, 7, 9, 11] },
+    { "id": "dorian", "name": "Dorian", "intervals": [0, 2, 3, 5, 7, 9, 10] },
+    { "id": "phrygian", "name": "Phrygian", "intervals": [0, 1, 3, 5, 7, 8, 10] },
+    { "id": "lydian", "name": "Lydian", "intervals": [0, 2, 4, 6, 7, 9, 11] },
+    { "id": "mixolydian", "name": "Mixolydian", "intervals": [0, 2, 4, 5, 7, 9, 10] },
+    { "id": "aeolian", "name": "Natural Minor (Aeolian)", "intervals": [0, 2, 3, 5, 7, 8, 10] },
+    { "id": "locrian", "name": "Locrian", "intervals": [0, 1, 3, 5, 6, 8, 10] },
+    { "id": "harmonic_minor", "name": "Harmonic Minor", "intervals": [0, 2, 3, 5, 7, 8, 11] },
+    { "id": "melodic_minor", "name": "Melodic Minor", "intervals": [0, 2, 3, 5, 7, 9, 11] },
+    { "id": "pentatonic_major", "name": "Major Pentatonic", "intervals": [0, 2, 4, 7, 9] },
+    { "id": "pentatonic_minor", "name": "Minor Pentatonic", "intervals": [0, 3, 5, 7, 10] },
+    { "id": "blues", "name": "Blues Hexatonic", "intervals": [0, 3, 5, 6, 7, 10] },
+    { "id": "whole_tone", "name": "Whole Tone", "intervals": [0, 2, 4, 6, 8, 10] },
+    { "id": "diminished_hw", "name": "Diminished (Half-Whole)", "intervals": [0, 1, 3, 4, 6, 7, 9, 10] },
+    { "id": "diminished_wh", "name": "Diminished (Whole-Half)", "intervals": [0, 2, 3, 5, 6, 8, 9, 11] }
+  ],
+  "axiomRules": {
+    "substitutions": [
+      {
+        "type": "Tritone Substitution",
+        "description": "Remplace un accord de Dominante (ex: G7) par un autre accord de Dominante situé à 6 demi-tons (Db7).",
+        "rule": {
+          "targetType": "7",
+          "offsetSemitones": 6,
+          "resultType": "7"
+        }
+      },
+      {
+        "type": "Diatonic Substitution (Tonic function)",
+        "description": "Remplace l'accord de tonique par le degré iii ou vi, qui partagent des notes cibles.",
+        "rule": {
+          "targetDegree": "I",
+          "replacements": ["iii", "vi"]
+        }
+      },
+      {
+        "type": "Relative Minor/Major",
+        "description": "Passe d'un accord majeur à son mineur relatif situé 3 demi-tons plus bas.",
+        "rule": {
+          "targetType": "M",
+          "offsetSemitones": -3,
+          "resultType": "m"
+        }
+      }
+    ],
+    "progressions": [
+      {
+        "id": "jazz_251_maj",
+        "name": "Majeur II-V-I",
+        "degrees": ["ii7", "V7", "IMaj7"],
+        "rootIntervals": [2, 7, 0]
+      },
+      {
+        "id": "jazz_251_min",
+        "name": "Mineur ii-V-i",
+        "degrees": ["iim7b5", "V7alt", "im7"],
+        "rootIntervals": [2, 7, 0]
+      },
+      {
+        "id": "pop_1564",
+        "name": "Pop Standard I-V-vi-IV",
+        "degrees": ["I", "V", "vi", "IV"],
+        "rootIntervals": [0, 7, 9, 5]
+      },
+      {
+        "id": "jazz_turnaround",
+        "name": "Turnaround Jazz I-vi-ii-V",
+        "degrees": ["IMaj7", "vi7", "ii7", "V7"],
+        "rootIntervals": [0, 9, 2, 7]
+      },
+      {
+        "id": "rnb_436",
+        "name": "R&B / Neo-Soul IV-iii-vi",
+        "degrees": ["IVMaj7", "iiim7", "vim7"],
+        "rootIntervals": [5, 4, 9]
+      }
+    ]
+  }
+}
