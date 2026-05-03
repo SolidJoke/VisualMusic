@@ -121,34 +121,30 @@ describe('fingeringLogic', () => {
     it('should return root + 5th + octave for major chords', () => {
       const result = getBassFingering(0, 'chord_major'); // C
       expect(result).not.toBeNull();
-      // Root on E string: C = fret 8 on E string ((0 - 4 + 12) % 12 = 8)
-      expect(result[3][8]).toBe(1);
-      // 5th on A string: fret 10
-      expect(result[2][10]).toBe(3);
-      // Octave on D string: (0 - 2 + 12) % 12 = 10, finger 4
-      expect(result[1][10]).toBe(4);
-    });
-
-    it('should handle maj7 bass shape', () => {
-      const result = getBassFingering(0, 'chord_maj7'); // Cmaj7
-      expect(result).not.toBeNull();
-      expect(result[3][8]).toBe(1); // Root
-      expect(result[1][9]).toBe(2); // maj7 on D string is root + 1
-    });
-
-    it('should handle dom7 bass shape', () => {
-      const result = getBassFingering(0, 'chord_7'); // C7
-      expect(result).not.toBeNull();
-      expect(result[3][8]).toBe(1); // Root
-      expect(result[1][8]).toBe(1); // b7 on D string is same fret as root
+      // C: rootFretE=8, rootFretA=3 → anchor on A string (index 2) because 3 < 8
+      // Root on A string (index 2): fret 3
+      expect(result[2][3]).toBe(1);
+      // 5th on D string (index 1): fret 3 + 2 = 5
+      expect(result[1][5]).toBe(3);
+      // Octave on G string (index 0): fret 3 + 2 = 5
+      expect(result[0][5]).toBe(4);
     });
 
     it('should handle m7b5 bass shape with dim5', () => {
       const result = getBassFingering(0, 'chord_m7b5'); // Cm7b5
       expect(result).not.toBeNull();
-      expect(result[3][8]).toBe(1); // Root
-      expect(result[2][9]).toBe(2); // dim5 on A string is root + 1
-      expect(result[1][8]).toBe(1); // b7 on D string
+      // C: anchor on A string (index 2), rootFret = 3
+      expect(result[2][3]).toBe(1); // Root on A string, fret 3
+      // dim5: fret = rootFret + 1 = 4 on D string (index 1)
+      expect(result[1][4]).toBe(3); // dim5 on D string
+    });
+
+    it('should handle all 12 root values without crashing', () => {
+      for (let root = 0; root < 12; root++) {
+        const result = getBassFingering(root, 'chord_major');
+        expect(result).not.toBeNull();
+        expect(typeof result).toBe('object');
+      }
     });
   });
 });

@@ -15,6 +15,8 @@ import { usePlaybackHandlers } from "./hooks/usePlaybackHandlers";
 import { translations } from "./i18n/translations";
 import AboutModal from "./components/Modals/AboutModal";
 import TheoryModal from "./components/Modals/TheoryModal";
+import { AppProvider } from "./context/AppContext";
+import { getInversionType, getChordIntervalLabel } from "./core/harmonyEngine";
 
 import {
   getScaleNotes,
@@ -182,22 +184,9 @@ function App() {
     } else if (dictType.includes("chord")) {
       const chordData = resolveChordSemitones(dictType);
       if (chordData) {
-        // Approximate interval mapping for UI labels (1, 3, 5, 7, 9, etc.)
-        const getOrderLabel = (index, semitone) => {
-          if (index === 0) return 1;
-          if (semitone === 3) return "b3";
-          if (semitone === 4) return 3;
-          if (semitone === 6) return "b5";
-          if (semitone === 7) return 5;
-          if (semitone === 10) return "b7";
-          if (semitone === 11) return 7;
-          if (semitone > 12) return 9;
-          return index + 2; // fallback
-        };
-
         activeNotes = chordData.semitones.map((semi, i) => ({
           value: (currentRootValue + semi) % 12,
-          order: getOrderLabel(i, semi),
+          order: getChordIntervalLabel(i, semi),
         }));
       }
     } else if (dictType === "single_note") {
@@ -205,21 +194,18 @@ function App() {
     }
   }
 
+  // Inversion label — derived from bass note position vs root/third/fifth
   let inversionText = "";
   if (clickedChord && currentAbsoluteNotes.length > 0) {
-    const bassNoteClass = currentAbsoluteNotes[0] % 12;
-    const rootVal = clickedChord.rootNote.value;
-    const isMinor = clickedChord.nns.includes("-");
-    const isDim =
-      clickedChord.nns.includes("°") || clickedChord.nns.includes("b5");
-
-    const thirdVal = (rootVal + (isMinor || isDim ? 3 : 4)) % 12;
-    const fifthVal = (rootVal + (isDim ? 6 : 7)) % 12;
-
-    if (bassNoteClass === rootVal) inversionText = txt.invRoot;
-    else if (bassNoteClass === thirdVal) inversionText = txt.invFirst;
-    else if (bassNoteClass === fifthVal) inversionText = txt.invSecond;
-    else inversionText = txt.invUnknown;
+    const invType = getInversionType(
+      currentAbsoluteNotes[0],
+      clickedChord.rootNote.value,
+      clickedChord.nns,
+    );
+    if (invType === 'root')    inversionText = txt.invRoot    || 'Fondamental';
+    else if (invType === 'first')  inversionText = txt.invFirst   || '1er renversement';
+    else if (invType === 'second') inversionText = txt.invSecond  || '2e renversement';
+    else                           inversionText = txt.invUnknown || '?';
   }
   const {
     isAudioReady,
@@ -298,6 +284,7 @@ function App() {
   // Handlers implemented via usePlaybackHandlers
 
   return (
+    <AppProvider lang={lang} txt={txt} notation={notation}>
     <div
       className="app-container"
       style={{
@@ -433,6 +420,7 @@ function App() {
                 playDictionaryAudio={playDictionaryAudio}
                 txt={txt}
                 lang={lang}
+                guitarFingering={α13}
               />
             )}
 
@@ -537,6 +525,7 @@ function App() {
         </div>
       </footer>
     </div>
+    </AppProvider>
   );
 }
 

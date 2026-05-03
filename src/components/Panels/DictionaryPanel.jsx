@@ -1,5 +1,6 @@
 import React from "react";
-import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord } from "../../core/theory";
+import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord, resolveChordSemitones } from "../../core/theory";
+import VoicingAlert from "../Intelligence/VoicingAlert";
 
 // Map dictType keys to translation keys for scale names
 const SCALE_LABEL_MAP = {
@@ -76,6 +77,7 @@ export default function DictionaryPanel({
   playDictionaryAudio,
   txt,
   lang,
+  guitarFingering,   // { fingeringMap, outOfRange, difficultStretch } from App.jsx
 }) {
   // Derive family from dictType
   const family = dictType === "single_note"
@@ -202,6 +204,19 @@ export default function DictionaryPanel({
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Voicing Alert — non-blocking analysis banner */}
+            {guitarFingering && (
+              <VoicingAlert
+                fingeringMap={guitarFingering.fingeringMap}
+                instrument="guitar"
+                rootValue={Number(dictRoot)}
+                intervals={(() => {
+                  const chordData = resolveChordSemitones(dictType);
+                  return chordData ? chordData.semitones : null;
+                })()}
+              />
             )}
           </div>
         )}
