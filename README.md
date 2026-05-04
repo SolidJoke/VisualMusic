@@ -2,44 +2,63 @@
 
 🌍 **[Jouer à Vmu en ligne (Live Demo)](https://visualmusiccoach.netlify.app)**
 
-Vmu est une application web interactive innovante conçue pour aider les musiciens (guitaristes, bassistes, pianistes et producteurs) à comprendre la théorie musicale de manière visuelle et auditive. Apprenez l'improvisation, maîtrisez le manche de votre instrument, et entraînez-vous sur des rythmes générés en temps réel !
+Vmu est une application web interactive conçue pour aider les musiciens (guitaristes, bassistes, pianistes et producteurs) à maîtriser la théorie musicale de manière visuelle et auditive. Apprenez l'improvisation, maîtrisez le manche de votre instrument, et composez sur des séquences intelligentes générées en temps réel.
 
 ---
 
-## 🚀 Fonctionnalités Principales
+## 🚀 Fonctionnalités Clés
 
-### 🎹 Moteur Harmonique & NNS (Nashville Number System)
-Vmu décode la matrice des tubes mondiaux ! L'application utilise le **Nashville Number System (NNS)** pour afficher la structure des progressions d'accords (ex: la fameuse boucle `1 - 5 - 6- - 4` de la Pop moderne). D'un simple clic, basculez entre la notation standard (A, B, C) ou l'analyse en chiffres romains (I, IV, vi) pour comprendre la fonction de chaque accord dans son contexte.
+### 🎹 Intelligence Harmonique & NNS
+Vmu utilise le **Nashville Number System (NNS)** pour décoder la structure des progressions d'accords. Basculez instantanément entre notation standard (A, B, C) et analyse fonctionnelle (I, IV, vi) pour comprendre le rôle de chaque accord.
 
-### 🧠 Psychologie des Modes (Topographie des Émotions)
-La musique est une affaire de couleurs émotionnelles. Vmu catégorise et vous enseigne la psychologie derrière chaque Mode Musical :
-* **Ionian (Majeur) :** Joyeux, Triomphant (Pop Moderne, Techno)
-* **Dorian :** Nostalgique, Jazzy (Funk, Disco, Psytrance)
-* **Phrygian :** Sombre, Exotique (Trap, Metal)
-* **Mixolydian :** Bluesy, Entraînant (Classic Rock)
-* **Aeolian (Mineur) :** Mélancolique, Épique (House, Boom Bap)
+### 🌊 Séquenceur Avancé (64 Steps)
+Le séquenceur supporte désormais des cycles de **64 pas**, permettant des progressions d'accords riches et évolutives (ex: loops de 4 mesures). Le rendu visuel adaptatif affiche les blocs de durée réelle pour chaque accord.
 
-### 🎼 Voice Leading Automatique
-Ne sautez plus brutalement d'un accord à l'autre ! Le moteur algorithmique de Vmu gère automatiquement le **Voice Leading**. Lorsque vous naviguez dans une progression, l'application calcule le renversement (Inversion) le plus proche mathématiquement pour assurer une transition fluide et professionnelle, et vous indique quel renversement est actuellement joué (ex: *1er renversement, Tierce à la basse*).
+### 🎸 Doigtés Anatomiques & Voicings
+Visualisez vos gammes et accords sur Piano, Guitare (6 cordes) et Basse (4 cordes).
+*   **Guitare** : Support des formes ouvertes (CAGED) et des barrés avec visualisation du doigté (1-4 ou I-M-A-m).
+*   **Basse** : Patterns optimisés (Fondamentale-Quinte-Octave) adaptés aux genres musicaux.
+*   **Ancrage** : Choisissez la corde de départ de vos accords pour explorer différentes positions sur le manche.
 
-### 🥁 Séquenceur & Boîte à Rythmes Temps Réel (Tone.js)
-Plus de 15 styles musicaux authentiques intégrés (Hip-hop, House, Rock, Metal, Reggae, Oriental, etc.). Manipulez le BPM en direct et entraînez-vous au rythme d'une vraie section basse/batterie qui suit vos changements d'accords !
+### 🧠 Psychologie des Modes & Genres
+Plus de 20 genres musicaux (Psytrance, Jazz, Metal, Lo-Fi, etc.) avec des presets audio dédiés. La logique mélodique gère désormais les **intervalles relatifs** (ex: basse Psytrance alternant octave et quinte) pour un rendu professionnel.
 
-### 🎸 Instruments Interactifs (Cliquables)
-Visualisez vos gammes et vos accords simultanément sur un Piano, une Guitare (6 cordes) et une Basse (4 cordes). Les composants sont 100% interactifs : cliquez sur une touche ou une case pour jouer la note exacte à la bonne octave !
+### 💻 Export & Intégration DAW
+Le **DAW Helper** intégré fournit un glossaire complet et des instructions pour reproduire les séquences dans votre logiciel favori (Ableton, FL Studio, Logic). Supporte les notations de hauteur (Pitches) et de vélocité.
 
 ---
 
 ## 🛠️ Stack Technique
 
-* **Framework :** React.js (Vite)
-* **Audio Engine :** Tone.js
-* **Architecture :** Composants modulaires (PianoKeyboard, Fretboard, PianoRoll)
-* **CSS :** Variables dynamiques injectées selon le genre musical sélectionné.
+*   **Core :** React 18 (Vite)
+*   **Audio :** Tone.js (Moteur d'échantillonnage + Synthèse soustractive)
+*   **Qualité :** Vitest (Tests unitaires), Puppeteer (Stress tests E2E)
+*   **Stabilité :** Script d'intégrité custom contre la corruption de code.
 
-## 🤝 Contribuer
+## 👨‍💻 Pour les Développeurs
 
-Créé et développé par Gabriel Resende.  
-N'hésitez pas à forker ce projet, ouvrir une PR ou soumettre une *issue* !
+```bash
+# Installation
+npm install
 
-☕ **[M'offrir un café sur Ko-fi](https://ko-fi.com/gabrielgsdresende)**
+# Lancer en mode dev
+npm run dev
+
+# Vérifier l'intégrité du code (détection de caractères corrompus)
+npm run check
+
+# Lancer les tests unitaires
+npm test
+
+# Build de production
+npm run build
+```
+
+---
+
+## 🤝 Crédits & Contribution
+
+Créé et développé par **Gabriel Resende**.  
+Ce projet est open-source. N'hésitez pas à forker, ouvrir une PR ou soumettre une *issue* !
+
+☕ **[Soutenir le projet sur Ko-fi](https://ko-fi.com/gabrielgsdresende)**
