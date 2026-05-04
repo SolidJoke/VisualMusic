@@ -14,6 +14,7 @@ export function useStudioState() {
   
   const [lastClickedContext, setLastClickedContext] = useState(null);
   const [singlePlayContext, setSinglePlayContext] = useState(null);
+  const [visualFocus, setVisualFocus] = useState("chords");
 
   return {
     currentBrickIndex, setCurrentBrickIndex,
@@ -25,6 +26,7 @@ export function useStudioState() {
     chordOctaveOffset, setChordOctaveOffset,
     contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues,
     lastClickedContext, setLastClickedContext,
-    singlePlayContext, setSinglePlayContext
+    singlePlayContext, setSinglePlayContext,
+    visualFocus, setVisualFocus
   };
 }

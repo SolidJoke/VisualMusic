@@ -88,8 +88,8 @@ export default function Fretboard({
 
     Object.entries(fingering).forEach(([strIdxStr, fretMap]) => {
       const guitarIdx = parseInt(strIdxStr, 10);
-      // Convert guitar index to visual row index (0 = top of displayed fretboard)
-      const visualIdx = (numStrings - 1) - guitarIdx;
+      // stringIndex matches guitarIdx (0 = High E at top, 5 = Low E at bottom)
+      const visualIdx = guitarIdx;
       Object.entries(fretMap).forEach(([fretStr, finger]) => {
         const fret = parseInt(fretStr, 10);
         if (fret > 0 && finger === 1) {

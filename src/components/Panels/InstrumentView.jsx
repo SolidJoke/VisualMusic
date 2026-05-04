@@ -5,6 +5,8 @@ import DAWHelper from "../Sequencer/DAWHelper";
 import PianoKeyboard from "../Instruments/PianoKeyboard";
 import Fretboard from "../Instruments/Fretboard";
 
+import { useAppContext } from '../../context/AppContext';
+
 const InstrumentView = ({
   masterAnalyser,
   layoutMode,
@@ -14,15 +16,15 @@ const InstrumentView = ({
   displayMode,
   activeDrums,
   activeMelody,
+  activeChordTrack,
   currentStep,
   currentBpm,
   activeBrick,
-  lang,
   dictType,
   currentRootValue,
   targetValue,
   activeNotes,
-  notation,
+  fretboardActiveNotes,
   autoPlayNote,
   currentlyPlayingNotes,
   contextualScaleAbsoluteValues,
@@ -38,9 +40,16 @@ const InstrumentView = ({
   fretboardZone,
   lastClickedContext,
   singlePlayContext,
-  txt
+  harmonicMode,
+  visualFocus = "chords"
 }) => {
+  const { lang, txt, notation } = useAppContext();
   const isScaleMode = (appMode === "dictionary" && dictType?.includes("scale"));
+
+  // Filter playing notes based on focus
+  const pianoPlayingNotes = (visualFocus === "bass" || visualFocus === "both") ? currentlyPlayingNotes : [];
+  const fretboardPlayingNotes = (visualFocus === "bass" || visualFocus === "both") ? currentlyPlayingNotes : [];
+
   return (
     <div
       className="layout-col layout-center"
@@ -90,10 +99,22 @@ const InstrumentView = ({
             <div className="scrollable-instrument">
               <PianoRoll
                 tracks={activeDrums}
-                totalSteps={16}
+                totalSteps={64}
                 currentStep={currentStep}
               />
             </div>
+
+            <h3 style={{ color: "var(--theme-primary)", marginTop: "30px" }}>
+              🎹 {txt.harmonicSeq || "Harmonic Sequencer"}
+            </h3>
+            <div className="scrollable-instrument">
+              <PianoRoll
+                tracks={[activeChordTrack]}
+                totalSteps={64}
+                currentStep={currentStep}
+              />
+            </div>
+
             <h3
               style={{ color: "var(--theme-primary)", marginTop: "30px" }}
             >
@@ -102,7 +123,7 @@ const InstrumentView = ({
             <div className="scrollable-instrument">
               <PianoRoll
                 tracks={activeMelody}
-                totalSteps={16}
+                totalSteps={64}
                 currentStep={currentStep}
               />
             </div>
@@ -257,11 +278,12 @@ const InstrumentView = ({
             rootValue={currentRootValue}
             targetValue={targetValue}
             onNoteClick={autoPlayNote}
-            currentlyPlayingNotes={currentlyPlayingNotes}
+            currentlyPlayingNotes={pianoPlayingNotes}
             contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
             dictType={appMode === "dictionary" ? dictType : null}
             lang={lang}
             txt={txt}
+            harmonicMode={harmonicMode}
           />
         </div>
       )}
@@ -276,9 +298,9 @@ const InstrumentView = ({
               <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "center", marginLeft: "-35px" }}>
                 <span style={{ color: "#d4c4a8", fontSize: "14px", fontWeight: "bold" }}>Guitar: {txt.rootStringLabel}</span>
                 {[
-                  { idx: 5, label: "E", openVal: 4 },
-                  { idx: 4, label: "A", openVal: 9 },
-                  { idx: 3, label: "D", openVal: 2 },
+                  { idx: 5, label: notation === "eu" ? "Mi" : "E", openVal: 4 },
+                  { idx: 4, label: notation === "eu" ? "La" : "A", openVal: 9 },
+                  { idx: 3, label: notation === "eu" ? "Ré" : "D", openVal: 2 },
                 ].map(str => {
                   const rootVal = appMode === "dictionary" ? currentRootValue : clickedChord.rootNote.value;
                   const rootInThisString = (rootVal - str.openVal + 12) % 12;
@@ -302,19 +324,23 @@ const InstrumentView = ({
               {guitarFingering?.difficultStretch && !guitarFingering?.outOfRange && (
                   <div style={{ color: "#f39c12", fontSize: "13px", fontWeight: "bold" }}>{txt.warningDifficultStretch}</div>
               )}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+                <div style={{ width: "20px", height: "10px", backgroundColor: "rgba(96, 165, 250, 0.3)", border: "2px solid rgba(96, 165, 250, 0.85)", borderRadius: "4px" }}></div>
+                <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}> = Barré</span>
+              </div>
             </div>
           )}
 
           <Fretboard
             instrument="guitar"
-            activeNotes={activeNotes}
+            activeNotes={fretboardActiveNotes || activeNotes}
             notation={notation}
             stringTuning={activeBrick.guitarStrings || ['E2', 'A2', 'D3', 'G3', 'B3', 'E4']}
             rootValue={currentRootValue}
             targetValue={targetValue}
             fretboardZone={fretboardZone}
             onNoteClick={autoPlayNote}
-            currentlyPlayingNotes={currentlyPlayingNotes}
+            currentlyPlayingNotes={fretboardPlayingNotes}
             contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
             dictType={appMode === "dictionary" ? dictType : null}
             lastClickedContext={lastClickedContext}
@@ -332,9 +358,9 @@ const InstrumentView = ({
               <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "center", marginLeft: "-35px" }}>
                 <span style={{ color: "#d4c4a8", fontSize: "14px", fontWeight: "bold" }}>Bass: {txt.rootStringLabel}</span>
                 {[
-                  { idx: 3, label: "E", openVal: 4 },
-                  { idx: 2, label: "A", openVal: 9 },
-                  { idx: 1, label: "D", openVal: 2 },
+                  { idx: 3, label: notation === "eu" ? "Mi" : "E", openVal: 4 },
+                  { idx: 2, label: notation === "eu" ? "La" : "A", openVal: 9 },
+                  { idx: 1, label: notation === "eu" ? "Ré" : "D", openVal: 2 },
                 ].map(str => {
                   const rootVal = appMode === "dictionary" ? currentRootValue : clickedChord.rootNote.value;
                   const rootInThisString = (rootVal - str.openVal + 12) % 12;
@@ -357,21 +383,21 @@ const InstrumentView = ({
 
           <Fretboard
             instrument="bass"
-            activeNotes={activeNotes}
+            activeNotes={fretboardActiveNotes || activeNotes}
             notation={notation}
             stringTuning={activeBrick.bassStrings || ['E1', 'A1', 'D2', 'G2']}
             rootValue={currentRootValue}
             targetValue={targetValue}
             fretboardZone={fretboardZone}
             onNoteClick={autoPlayNote}
-            currentlyPlayingNotes={currentlyPlayingNotes}
+            currentlyPlayingNotes={fretboardPlayingNotes}
             contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
             dictType={appMode === "dictionary" ? dictType : null}
             lastClickedContext={lastClickedContext}
             singlePlayContext={singlePlayContext}
             showFingering={showFingering}
             fingeringMode={fingeringMode}
-            fingering={bassFingering}
+            fingering={bassFingering?.fingeringMap}
           />
         </div>
       )}

@@ -82,7 +82,8 @@ function App() {
     chordOctaveOffset, setChordOctaveOffset,
     contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues,
     lastClickedContext, setLastClickedContext,
-    singlePlayContext, setSinglePlayContext
+    singlePlayContext, setSinglePlayContext,
+    visualFocus, setVisualFocus
   } = useStudioState();
 
   const {
@@ -90,7 +91,8 @@ function App() {
     dictType, setDictType,
     fretboardZone, setFretboardZone,
     selectedRootStringGuitar, setSelectedRootStringGuitar,
-    selectedRootStringBass, setSelectedRootStringBass
+    selectedRootStringBass, setSelectedRootStringBass,
+    harmonicMode, setHarmonicMode
   } = useDictionaryState();
 
 
@@ -140,6 +142,7 @@ function App() {
       : activeBrick.nnsProgression;
 
   let activeNotes = [];
+  let fretboardActiveNotes = null;
   let currentRootValue = 0;
   let targetValue = -1;
 
@@ -159,6 +162,15 @@ function App() {
           order: idx + 1,
           absoluteValue: val,
         }));
+        
+        const chordType = resolveNnsToChordType(clickedChord.nns);
+        const chordData = resolveChordSemitones(chordType);
+        if (chordData) {
+          fretboardActiveNotes = chordData.semitones.map((semi, i) => ({
+            value: (clickedChord.rootNote.value + semi) % 12,
+            order: getChordIntervalLabel(i, semi),
+          }));
+        }
       } else {
         const n1 = scaleNotes.at(0).value;
         const n2 = scaleNotes.at(2).value;
@@ -168,6 +180,21 @@ function App() {
           { value: n2, order: 2, absoluteValue: n2 + (n2 < n1 ? 60 : 48) },
           { value: n3, order: 3, absoluteValue: n3 + (n3 < n1 ? 60 : 48) },
         );
+      }
+    }
+
+    // --- Bass Pattern Logic ---
+    if (appMode === "studio" && visualFocus === "bass" && clickedChord) {
+      const chordType = resolveNnsToChordType(clickedChord.nns);
+      const chordData = resolveChordSemitones(chordType);
+      if (chordData) {
+        // Show Root, 3rd, 5th, 7th as a "Bass Line Example"
+        activeNotes = chordData.semitones.slice(0, 4).map((semi, i) => ({
+          value: (clickedChord.rootNote.value + semi) % 12,
+          order: getChordIntervalLabel(i, semi),
+          absoluteValue: clickedChord.rootNote.value + semi + 36, // Lower octave for bass
+        }));
+        fretboardActiveNotes = activeNotes;
       }
     }
     currentRootValue = clickedChord
@@ -220,14 +247,17 @@ function App() {
     currentStep,
     togglePlayback,
     handleBpmChange,
-    isPianoReady
+    isPianoReady,
+    activeChordTrack
   } = useSequencer({
     appMode,
     activeBrick,
     activeDrums,
     activeMelody,
+    activeProgression,
     currentRootValue,
     setCurrentlyPlayingNotes,
+    chordOctaveOffset,
   });
 
   const {
@@ -254,7 +284,11 @@ function App() {
     setPlaybackInstrument,
     guitarFingering,
     bassFingering,
-    activeBrick
+    activeBrick,
+    setClickedChord,
+    chordOctaveOffset,
+    selectedRootStringGuitar,
+    selectedRootStringBass
   });
 
   useEffect(() => {
@@ -285,56 +319,19 @@ function App() {
 
   return (
     <AppProvider lang={lang} txt={txt} notation={notation}>
-    <div
-      className="app-container"
-      style={{
-        maxWidth: "2560px",
-        margin: "0 auto",
-        padding: "0 20px",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        position: "relative",
-      }}
-    >
-      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} txt={txt} />
+    <div className="app-container app-container-inner">
+      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
 
       <TheoryModal isOpen={showTheory} onClose={() => setShowTheory(false)} txt={txt} />
 
-      <div style={{ flex: 1 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "15px",
-          }}
-        >
-          <h1 style={{ color: "#fff", margin: 0 }}>{txt.title}</h1>
+      <div className="app-main-content">
+        <div className="app-header">
+          <h1 className="app-title">{txt.title}</h1>
 
-          <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+          <div className="app-controls">
             <button
               onClick={() => setShowTheory(true)}
-              style={{
-                padding: "8px 15px",
-                backgroundColor: "#1a237e",
-                color: "#90caf9",
-                border: "1px solid #3949ab",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.backgroundColor = "#283593")
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.backgroundColor = "#1a237e")
-              }
+              className="btn-theory"
             >
               {txt.guideTheoryBtn}
             </button>
@@ -342,16 +339,7 @@ function App() {
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value)}
-              style={{
-                padding: "8px 12px",
-                borderRadius: "8px",
-                backgroundColor: "#222",
-                color: "#fff",
-                border: "1px solid var(--theme-primary)",
-                cursor: "pointer",
-                fontWeight: "bold",
-                outline: "none",
-              }}
+              className="select-lang"
             >
               <option value="fr">🇫🇷 FR</option>
               <option value="en">🇬🇧 EN</option>
@@ -361,24 +349,7 @@ function App() {
 
             <button
               onClick={() => setShowAbout(true)}
-              style={{
-                padding: "8px 15px",
-                backgroundColor: "transparent",
-                color: "var(--theme-primary)",
-                border: "1px solid var(--theme-primary)",
-                borderRadius: "20px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                transition: "all 0.2s",
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = "var(--theme-primary)";
-                e.target.style.color = "#000";
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = "transparent";
-                e.target.style.color = "var(--theme-primary)";
-              }}
+              className="btn-about"
             >
               {txt.about}
             </button>
@@ -393,8 +364,6 @@ function App() {
                 currentBrickIndex={currentBrickIndex}
                 setCurrentBrickIndex={setCurrentBrickIndex}
                 activeBrick={activeBrick}
-                lang={lang}
-                txt={txt}
                 currentTheme={currentTheme}
                 setCurrentTheme={setCurrentTheme}
                 chordOctaveOffset={chordOctaveOffset}
@@ -402,7 +371,6 @@ function App() {
                 setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
                 activeProgression={activeProgression}
                 chordDisplayMode={chordDisplayMode}
-                notation={notation}
                 clickedChord={clickedChord}
                 setClickedChord={setClickedChord}
                 handleChordClick={handleChordClick}
@@ -416,17 +384,15 @@ function App() {
                 setDictRoot={setDictRoot}
                 dictType={dictType}
                 setDictType={setDictType}
-                notation={notation}
                 playDictionaryAudio={playDictionaryAudio}
-                txt={txt}
-                lang={lang}
-                guitarFingering={α13}
+                guitarFingering={guitarFingering}
+                harmonicMode={harmonicMode}
+                setHarmonicMode={setHarmonicMode}
               />
             )}
 
             {/* NEW LEFT CONTROL PANEL ADDED HERE */}
             <ControlPanel
-              notation={notation}
               setNotation={setNotation}
               chordDisplayMode={chordDisplayMode}
               setChordDisplayMode={setChordDisplayMode}
@@ -437,7 +403,7 @@ function App() {
               playbackInstrument={playbackInstrument}
               setPlaybackInstrument={setPlaybackInstrument}
               appMode={appMode}
-              txt={txt}
+              dictType={dictType}
             />
           </div>
 
@@ -451,15 +417,15 @@ function App() {
             displayMode={displayMode}
             activeDrums={activeDrums}
             activeMelody={activeMelody}
+            activeChordTrack={activeChordTrack}
             currentStep={currentStep}
             currentBpm={currentBpm}
             activeBrick={activeBrick}
-            lang={lang}
             dictType={dictType}
             currentRootValue={currentRootValue}
             targetValue={targetValue}
             activeNotes={activeNotes}
-            notation={notation}
+            fretboardActiveNotes={fretboardActiveNotes}
             autoPlayNote={autoPlayNote}
             currentlyPlayingNotes={currentlyPlayingNotes}
             contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
@@ -475,7 +441,8 @@ function App() {
             fretboardZone={fretboardZone}
             lastClickedContext={lastClickedContext}
             singlePlayContext={singlePlayContext}
-            txt={txt}
+            harmonicMode={harmonicMode}
+            visualFocus={visualFocus}
           />
 
           {/* --- RIGHT COLUMN --- */}
@@ -497,29 +464,17 @@ function App() {
             activeTab={activeTab}
             fretboardZone={fretboardZone}
             setFretboardZone={setFretboardZone}
+            visualFocus={visualFocus}
+            setVisualFocus={setVisualFocus}
             txt={txt}
           />
         </div>
       </div>
 
-      <footer
-        style={{
-          marginTop: "60px",
-          padding: "20px 0",
-          borderTop: "1px solid #333",
-          textAlign: "center",
-          color: "#666",
-          fontSize: "14px",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+      <footer className="app-footer">
         <div
           title="Licence MIT"
-          style={{ cursor: "help", transition: "color 0.3s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#ccc")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
+          className="app-footer-text"
         >
           © 2026 Gabriel Resende • Vmu (VisualMusic Coach)
         </div>

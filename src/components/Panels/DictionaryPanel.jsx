@@ -68,17 +68,19 @@ function getGroupedChords() {
     .map(([cat, meta]) => ({ category: cat, labelKey: meta.labelKey, items: groups[cat] }));
 }
 
+import { useAppContext } from "../../context/AppContext";
+
 export default function DictionaryPanel({
   dictRoot,
   setDictRoot,
   dictType,
   setDictType,
-  notation,
   playDictionaryAudio,
-  txt,
-  lang,
   guitarFingering,   // { fingeringMap, outOfRange, difficultStretch } from App.jsx
+  harmonicMode,
+  setHarmonicMode
 }) {
+  const { lang, txt, notation } = useAppContext();
   // Derive family from dictType
   const family = dictType === "single_note"
     ? "note"
@@ -148,6 +150,27 @@ export default function DictionaryPanel({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Harmonic Mode Toggle */}
+        <div className="select-group">
+          <button
+            onClick={() => setHarmonicMode(!harmonicMode)}
+            className={`btn-toggle ${harmonicMode ? "btn-toggle--active" : ""}`}
+            style={{ width: "100%", padding: "0.6rem", marginTop: "0.5rem" }}
+          >
+            {txt.harmonicModeToggle || "Harmonic Mode"}
+          </button>
+          {harmonicMode && (
+            <details open style={{ marginTop: "10px", padding: "10px", backgroundColor: "rgba(255,255,255,0.05)", borderRadius: "8px", fontSize: "0.9em", color: "#ccc" }}>
+              <summary style={{ cursor: "pointer", fontWeight: "bold", outline: "none" }}>
+                ℹ️ {txt.harmonicModeInfoTitle || "Qu'est-ce que le mode harmonique ?"}
+              </summary>
+              <p style={{ marginTop: "8px", lineHeight: "1.4" }}>
+                {txt.harmonicModeInfoText || "Ce mode affiche la série harmonique naturelle générée par la fondamentale sélectionnée."}
+              </p>
+            </details>
+          )}
         </div>
 
         {/* Sub-selector: Chord type */}

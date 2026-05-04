@@ -49,6 +49,17 @@ const TheoryModal = ({ isOpen, onClose, txt }) => {
           <br />• <strong>2-, 3-, 6-</strong> : Accords Mineurs.
           <br />• <strong>6-</strong> : La relative mineure (Profondeur).
         </p>
+
+        {txt.harmonicModeTitle && (
+          <>
+            <h3 className="section-title accent">
+              {txt.harmonicModeTitle}
+            </h3>
+            <p className="nns-text">
+              {txt.harmonicModeDesc}
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

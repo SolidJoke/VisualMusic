@@ -1,6 +1,9 @@
 import React from 'react';
 
-const AboutModal = ({ isOpen, onClose, txt }) => {
+import { useAppContext } from '../../context/AppContext';
+
+const AboutModal = ({ isOpen, onClose }) => {
+  const { txt } = useAppContext();
   if (!isOpen) return null;
 
   return (
