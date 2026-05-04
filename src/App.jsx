@@ -421,6 +421,8 @@ function App() {
             currentStep={currentStep}
             currentBpm={currentBpm}
             activeBrick={activeBrick}
+            activeProgression={activeProgression}
+            chordOctaveOffset={α9}
             dictType={dictType}
             currentRootValue={currentRootValue}
             targetValue={targetValue}

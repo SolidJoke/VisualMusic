@@ -6,6 +6,7 @@ import PianoKeyboard from "../Instruments/PianoKeyboard";
 import Fretboard from "../Instruments/Fretboard";
 
 import { useAppContext } from '../../context/AppContext';
+import { exportDrums, exportChords, exportBass, triggerMidiDownload } from "../../audio/MidiExporter";
 
 const InstrumentView = ({
   masterAnalyser,
@@ -20,6 +21,8 @@ const InstrumentView = ({
   currentStep,
   currentBpm,
   activeBrick,
+  activeProgression,
+  chordOctaveOffset,
   dictType,
   currentRootValue,
   targetValue,
@@ -93,8 +96,12 @@ const InstrumentView = ({
               boxSizing: "border-box",
             }}
           >
-            <h3 style={{ color: "var(--theme-primary)", marginTop: 0 }}>
-              {txt.drumMachine}
+            <h3 style={{ color: "var(--theme-primary)", marginTop: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>{txt.drumMachine}</span>
+              <button className="btn-premium" style={{fontSize:"14px", padding:"4px 8px"}} onClick={() => {
+                const midiData = exportDrums(activeDrums, currentBpm, activeBrick?.name?.[lang] || "Genre");
+                triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Drums"}_${currentBpm}bpm.mid`);
+              }}>⬇️ MIDI</button>
             </h3>
             <div className="scrollable-instrument">
               <PianoRoll
@@ -104,8 +111,12 @@ const InstrumentView = ({
               />
             </div>
 
-            <h3 style={{ color: "var(--theme-primary)", marginTop: "30px" }}>
-              🎹 {txt.harmonicSeq || "Harmonic Sequencer"}
+            <h3 style={{ color: "var(--theme-primary)", marginTop: "30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>🎹 {txt.harmonicSeq || "Harmonic Sequencer"}</span>
+              <button className="btn-premium" style={{fontSize:"14px", padding:"4px 8px"}} onClick={() => {
+                const midiData = exportChords(activeBrick, activeProgression, chordOctaveOffset, currentBpm, activeBrick?.name?.[lang] || "Genre");
+                triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Chords"}_${currentBpm}bpm.mid`);
+              }}>⬇️ MIDI</button>
             </h3>
             <div className="scrollable-instrument">
               <PianoRoll
@@ -115,10 +126,12 @@ const InstrumentView = ({
               />
             </div>
 
-            <h3
-              style={{ color: "var(--theme-primary)", marginTop: "30px" }}
-            >
-              {txt.melodicSeq}
+            <h3 style={{ color: "var(--theme-primary)", marginTop: "30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>{txt.melodicSeq}</span>
+              <button className="btn-premium" style={{fontSize:"14px", padding:"4px 8px"}} onClick={() => {
+                const midiData = exportBass(activeMelody, activeBrick?.rootValue || 0, currentBpm, activeBrick?.name?.[lang] || "Genre");
+                triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Bass"}_${currentBpm}bpm.mid`);
+              }}>⬇️ MIDI</button>
             </h3>
             <div className="scrollable-instrument">
               <PianoRoll
