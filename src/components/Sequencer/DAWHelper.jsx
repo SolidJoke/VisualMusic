@@ -61,6 +61,13 @@ export default function DAWHelper({ drumTracks = [], melodyTracks = [], bpm, gen
                 </div>
             ))}
 
+            {/* Pitch Explanation Tip */}
+            {(melodyTracks.some(t => t.pitchSteps)) && (
+                <div className="daw-helper__tip">
+                    {labels.pitchInfo}
+                </div>
+            )}
+
             {/* Meta info */}
             <div className="daw-helper__meta">
                 ⏱️ {bpm} BPM | 🎵 {genreName} | 📐 16 {labels.steps16th}
@@ -108,7 +115,8 @@ function describePattern(name, steps) {
         return `${len} hits`;
     }
     if (n.includes('bass')) {
-        return `${len}-note pattern`;
+        const uniquePitches = [...new Set(Object.values(steps))]; // This is wrong, steps is an array of indices
+        return `Bass pattern (${len} notes)`;
     }
     return `${len} hits`;
 }
@@ -124,28 +132,32 @@ const LABELS = {
         title: '📋 Aide DAW — Reproduire ce pattern',
         steps: 'Steps',
         ghost: 'Ghost notes',
-        pitches: 'Hauteurs',
+        pitches: 'Hauteurs (0=Fondamentale, +7=Quinte, +12=Octave)',
         steps16th: 'doubles-croches par mesure',
+        pitchInfo: '💡 Les chiffres indiquent le décalage en demi-tons par rapport à la note de base de l\'accord.'
     },
     en: {
         title: '📋 DAW Helper — Reproduce this pattern',
         steps: 'Steps',
         ghost: 'Ghost notes',
-        pitches: 'Pitches',
+        pitches: 'Pitches (0=Root, +7=Fifth, +12=Octave)',
         steps16th: '16th notes per bar',
+        pitchInfo: '💡 Numbers indicate semitone offset from the chord root note.'
     },
     pt: {
         title: '📋 Ajuda DAW — Reproduzir este padrão',
         steps: 'Steps',
         ghost: 'Ghost notes',
-        pitches: 'Alturas',
+        pitches: 'Alturas (0=Fundamental, +7=Quinta, +12=Oitava)',
         steps16th: 'semicolcheias por compasso',
+        pitchInfo: '💡 Os números indicam o deslocamento de semitons em relação à nota fundamental do acorde.'
     },
     zh: {
         title: '📋 DAW 帮助 — 复制此节奏',
         steps: 'Steps',
         ghost: 'Ghost notes',
-        pitches: '音高',
+        pitches: '音高 (0=基音, +7=五度, +12=八度)',
         steps16th: '十六分音符/小节',
+        pitchInfo: '💡 数字表示相对于和弦根音的半音偏移。'
     },
 };

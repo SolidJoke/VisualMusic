@@ -425,7 +425,7 @@ export function getBassFingering(rootValue, chordType = 'chord_major', rootStrin
     }
   }
 
-  return fingeringObj;
+  return { fingeringMap: fingeringObj };
 }
 
 /**

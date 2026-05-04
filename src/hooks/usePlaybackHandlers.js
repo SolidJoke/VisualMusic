@@ -1,6 +1,7 @@
 import { useRef, useCallback } from "react";
 import { NOTES, MODES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, getClosestInversion, resolveChordSemitones, getChordNotesAbsolute, resolveNnsToChordType } from "../core/theory";
 import { playDictionaryNote, getPianoSynth, startAudioEngine, setMasterVolume } from "../audio/AudioEngine";
+import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
 
 export function usePlaybackHandlers({
   isAudioReady,
@@ -21,7 +22,11 @@ export function usePlaybackHandlers({
   setPlaybackInstrument,
   guitarFingering,
   bassFingering,
-  activeBrick
+  activeBrick,
+  setClickedChord,
+  chordOctaveOffset,
+  selectedRootStringGuitar,
+  selectedRootStringBass
 }) {
   const playTokenRef = useRef(0);
 
@@ -35,14 +40,19 @@ export function usePlaybackHandlers({
 
   const handleChordClick = async (c, chordIndexInProgression) => {
     await ensureAudioReady();
+    if (setClickedChord) setClickedChord(c);
     const rootVal = c.rootNote.value;
     const chordType = resolveNnsToChordType(c.nns);
     
     let absolutePitches = [];
     
     if (playbackInstrument === "guitar" || playbackInstrument === "bass") {
-      const currentFingering = playbackInstrument === "guitar" ? guitarFingering : bassFingering;
-      const fingeringMap = (playbackInstrument === "guitar") ? currentFingering?.fingeringMap : currentFingering;
+      // Calculate fingering LOCALLY to ensure it's in sync with the click
+      const localFingering = (playbackInstrument === "guitar") 
+        ? getGuitarFingering(rootVal, chordType, selectedRootStringGuitar)
+        : getBassFingering(rootVal, chordType, selectedRootStringBass);
+
+      const fingeringMap = localFingering?.fingeringMap;
       
       if (fingeringMap) {
         const tuning = playbackInstrument === "bass" 
@@ -68,7 +78,9 @@ export function usePlaybackHandlers({
       let thirdInterval = isMinor || isDim ? 3 : 4;
       let fifthInterval = isDim ? 6 : 7;
       const prevNotes = chordIndexInProgression === 0 ? [] : currentAbsoluteNotes;
-      absolutePitches = getClosestInversion(prevNotes, rootVal, thirdInterval, fifthInterval);
+      
+      const baseOctave = 4 + (chordOctaveOffset || 0);
+      absolutePitches = getClosestInversion(prevNotes, rootVal, thirdInterval, fifthInterval, baseOctave);
     }
 
     const notesToPlay = absolutePitches.map(
@@ -109,8 +121,8 @@ export function usePlaybackHandlers({
       );
     } else if (dictType.includes("chord")) {
       // AV-3: Use fingering if instrument is guitar or bass
-      const currentFingering = playbackInstrument === "guitar" ? guitarFingering : (playbackInstrument === "bass" ? bassFingering : null);
-      const fingeringMap = (playbackInstrument === "guitar") ? currentFingering?.fingeringMap : currentFingering;
+      const currentFingering = (playbackInstrument === "guitar") ? guitarFingering : (playbackInstrument === "bass" ? bassFingering : null);
+      const fingeringMap = currentFingering?.fingeringMap;
       
       if (fingeringMap && (playbackInstrument === "guitar" || playbackInstrument === "bass")) {
         const tuning = playbackInstrument === "bass" 
@@ -133,7 +145,7 @@ export function usePlaybackHandlers({
       if (absolutePitches.length === 0) {
         const chordData = resolveChordSemitones(dictType);
         const semitones = chordData ? chordData.semitones : CHORDS["chord_major"].semitones;
-        const baseOctave = 4;
+        const baseOctave = 4 + (chordOctaveOffset || 0);
         absolutePitches = getChordNotesAbsolute(Number(dictRoot), semitones, baseOctave);
       }
 

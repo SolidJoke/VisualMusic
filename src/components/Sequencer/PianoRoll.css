@@ -66,6 +66,17 @@
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
 }
 
+/* Beat marker (every 4 steps) */
+.step--beat {
+    border-left: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Measure marker (every 16 steps) */
+.step--measure {
+    border-left: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+
 /* ─── Labels inside steps ─────────────────────────────────────────── */
 
 .step__ghost-label {
@@ -104,6 +115,11 @@
 .bg-bass {
     background-color: #69f0ae !important;
     box-shadow: 0 0 10px rgba(105, 240, 174, 0.6);
+}
+
+.bg-chords {
+    background-color: #e1bee7 !important;
+    box-shadow: 0 0 10px rgba(225, 190, 231, 0.6);
 }
 
 /* Ghost variants keep color but with reduced glow */

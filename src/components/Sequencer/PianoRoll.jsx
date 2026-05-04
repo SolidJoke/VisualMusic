@@ -20,10 +20,12 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                         <div className="track-name">{track.name}</div>
                         <div className="steps-container">
                             {Array.from({ length: totalSteps }).map((_, stepIndex) => {
-                                const isActive = track.activeSteps.includes(stepIndex);
-                                const isLowVel = track.lowVelocitySteps?.includes(stepIndex);
+                                // Support looping if track data is shorter than totalSteps
+                                const relativeStep = stepIndex % 16;
+                                const isActive = track.activeSteps.includes(relativeStep);
+                                const isLowVel = track.lowVelocitySteps?.includes(relativeStep);
                                 const isCurrent = currentStep === stepIndex;
-                                const pitchLabel = track.pitchSteps?.[stepIndex] || null;
+                                const pitchLabel = track.pitchSteps?.[relativeStep] || null;
 
                                 // Build CSS classes
                                 const classes = [
@@ -31,6 +33,8 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                                     isActive ? colorClass : '',
                                     isActive && isLowVel ? 'step--ghost' : '',
                                     isCurrent ? 'step--current' : '',
+                                    stepIndex % 4 === 0 ? 'step--beat' : '',
+                                    stepIndex % 16 === 0 ? 'step--measure' : '',
                                 ].filter(Boolean).join(' ');
 
                                 return (
@@ -49,6 +53,7 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                                 );
                             })}
                         </div>
+
                     </div>
                 );
             })}

@@ -1,6 +1,7 @@
 import React from "react";
 import "./PianoKeyboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
+import { getHarmonicSeries } from "../../core/acousticEngine";
 const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 const BLACK_KEYS = [1, 3, 6, 8, 10];
 const WHITE_KEY_WIDTH = 50;
@@ -25,9 +26,34 @@ export default function PianoKeyboard({
   dictType = null,
   lang = "fr",
   txt = {},
+  harmonicMode = false
 }) {
   const [showExplanations, setShowExplanations] = React.useState(false);
   const keys = [];
+
+  const harmonicSeries = React.useMemo(() => {
+    if (!harmonicMode) return [];
+    const midi = Number(rootValue) + 48;
+    const baseFreq = 440 * Math.pow(2, (midi - 69) / 12);
+    return getHarmonicSeries(baseFreq, 32);
+  }, [harmonicMode, rootValue]);
+
+  const harmonicMap = React.useMemo(() => {
+    const map = {};
+    harmonicSeries.forEach((h) => {
+      const midiFloat = 69 + 12 * Math.log2(h.frequency / 440);
+      const pc = Math.round(midiFloat) % 12;
+      // h contains { order, frequency, noteName, centsOffset }
+      // We keep the lowest order (rank) for each pitch class
+      if (!map[pc] || h.order < map[pc].rank) {
+        map[pc] = {
+          rank: h.order,
+          deviationCents: h.centsOffset,
+        };
+      }
+    });
+    return map;
+  }, [harmonicSeries]);
 
   const renderKeyLabel = (
     i,
@@ -60,6 +86,21 @@ export default function PianoKeyboard({
     } else if (isSubtle) {
       // Do not show order, just basic label as defined above
     }
+
+    if (harmonicMode && harmonicMap[i]) {
+      const { rank, deviationCents } = harmonicMap[i];
+      const sign = deviationCents > 0 ? "+" : "";
+      const devStr = Math.round(deviationCents) === 0 ? "0" : `${sign}${Math.round(deviationCents)}`;
+      
+      labelContent = (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1.2 }}>
+          <span>{noteInfo[notation]}</span>
+          <span style={{ fontSize: "10px", color: "#ffb74d", fontWeight: "bold" }}>H{rank}</span>
+          <span style={{ fontSize: "9px", color: "#90caf9" }}>{devStr}¢</span>
+        </div>
+      );
+    }
+
     return labelContent;
   };
 

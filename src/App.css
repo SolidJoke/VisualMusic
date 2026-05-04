@@ -746,4 +746,104 @@ h1 {
 /* Accent text utility */
 .accent-text {
   color: var(--accent);
+}
+
+/* ═══════════════════════════════════════════════════════
+   APP ROOT & LAYOUT CLASSES (EPIC-01-B)
+═══════════════════════════════════════════════════════ */
+
+.app-container-inner {
+  max-width: 2560px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+}
+
+.app-main-content {
+  flex: 1;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.app-title {
+  color: #fff;
+  margin: 0;
+}
+
+.app-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.btn-theory {
+  padding: 8px 15px;
+  background-color: #1a237e;
+  color: #90caf9;
+  border: 1px solid #3949ab;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-theory:hover {
+  background-color: #283593;
+}
+
+.select-lang {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: #222;
+  color: #fff;
+  border: 1px solid var(--theme-primary);
+  cursor: pointer;
+  font-weight: bold;
+  outline: none;
+}
+
+.btn-about {
+  padding: 8px 15px;
+  background-color: transparent;
+  color: var(--theme-primary);
+  border: 1px solid var(--theme-primary);
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+.btn-about:hover {
+  background-color: var(--theme-primary);
+  color: #000;
+}
+
+.app-footer {
+  margin-top: 60px;
+  padding: 20px 0;
+  border-top: 1px solid #333;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app-footer-text {
+  cursor: help;
+  transition: color 0.3s;
+}
+.app-footer-text:hover {
+  color: #ccc;
 }

@@ -9,8 +9,15 @@ import {
   initGuitarSampler,
   applyGenrePreset,
   setInstrumentVolume,
+  playDictionaryNote
 } from "./AudioEngine";
-import { getAbsoluteNoteValue, NOTES } from "../core/theory";
+import { 
+  getAbsoluteNoteValue, 
+  NOTES, 
+  generateChordsFromNNS,
+  resolveNnsToChordType,
+  resolveChordSemitones
+} from "../core/theory";
 
 const noteNamesArray = [
   "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
@@ -21,8 +28,10 @@ export function useSequencer({
   activeBrick,
   activeDrums,
   activeMelody,
+  activeProgression,
   currentRootValue,
   setCurrentlyPlayingNotes,
+  chordOctaveOffset = 0,
 }) {
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -42,13 +51,29 @@ export function useSequencer({
 
   const drumRef = useRef(activeDrums);
   const melodyRef = useRef(activeMelody);
+  const progressionRef = useRef(activeProgression);
   const rootRef = useRef(currentRootValue);
   const appModeRef = useRef(appMode);
+  const brickRef = useRef(activeBrick);
+  const octaveRef = useRef(chordOctaveOffset);
 
   drumRef.current = activeDrums;
   melodyRef.current = activeMelody;
+  progressionRef.current = activeProgression;
   rootRef.current = currentRootValue;
   appModeRef.current = appMode;
+  brickRef.current = activeBrick;
+  octaveRef.current = chordOctaveOffset;
+
+  // Generate a virtual track for chords based on current rhythm
+  const activeChordTrack = {
+    name: "Chords",
+    activeSteps: brickRef.current?.chordRhythm 
+      ? Array.from({ length: 16 }).flatMap((_, beat) => 
+          brickRef.current.chordRhythm.map(stepInBeat => beat * 4 + stepInBeat)
+        )
+      : [0, 4, 8, 12] // Default 4/4 hits
+  };
 
   const handleInstrumentVolumeChange = (instrument, value) => {
     const val = Number(value);
@@ -73,13 +98,20 @@ export function useSequencer({
 
       const drums = drumRef.current;
       const melodies = melodyRef.current;
+      const progression = progressionRef.current;
       const rootVal = rootRef.current;
+      const brick = brickRef.current;
+      const octaveOffset = octaveRef.current;
 
+      let frameNotes = [];
+
+      // --- 1. Drums ---
       if (drums && drums.length > 0) {
         drums.forEach((track) => {
-          if (track.activeSteps.includes(stepCounter)) {
+          const relativeStep = stepCounter % 16;
+          if (track.activeSteps.includes(relativeStep)) {
             let vel =
-              track.lowVelocitySteps && track.lowVelocitySteps.includes(stepCounter)
+              track.lowVelocitySteps && track.lowVelocitySteps.includes(relativeStep)
                 ? 0.3
                 : 0.8;
             let name = track.name.toLowerCase();
@@ -99,26 +131,57 @@ export function useSequencer({
         });
       }
 
+      // --- 2. Chords (Harmonic progression) ---
+      if (progression && progression.length > 0 && brick) {
+        const chordIndex = Math.floor(stepCounter / 16) % progression.length;
+        const currentNns = progression[chordIndex];
+        const rhythm = brick.chordRhythm || [0];
+        
+        if (rhythm.includes(stepCounter % 4)) {
+           const chords = generateChordsFromNNS(brick.rootValue, brick.modeName, [currentNns]);
+           if (chords.length > 0) {
+             const c = chords[0];
+             const rootValChord = c.rootNote.value;
+             const chordType = resolveNnsToChordType(c.nns);
+             const semitones = resolveChordSemitones(chordType)?.semitones || [0, 4, 7];
+             const baseOctave = 4 + (octaveOffset || 0);
+             const absPitches = semitones.map(s => rootValChord + s + baseOctave * 12);
+             
+             const notesToPlay = absPitches.map(p => `${NOTES[p % 12].us}${Math.floor(p / 12)}`);
+             const duration = rhythm.length > 1 ? "16n" : "4n";
+             playDictionaryNote("piano", notesToPlay, duration, time);
+             frameNotes = [...frameNotes, ...absPitches];
+           }
+        }
+      }
+
+      // --- 3. Melodies / Bass ---
       if (melodies && melodies.length > 0) {
         melodies.forEach((track) => {
-          if (track.activeSteps.includes(stepCounter)) {
+          const relativeStep = stepCounter % 16;
+          if (track.activeSteps.includes(relativeStep)) {
             let vel =
-              track.lowVelocitySteps && track.lowVelocitySteps.includes(stepCounter)
+              track.lowVelocitySteps && track.lowVelocitySteps.includes(relativeStep)
                 ? 0.4
                 : 0.9;
             let octave = track.name.toLowerCase().includes("bass") ? 2 : 4;
             let noteName = `${noteNamesArray[rootVal % 12]}${octave}`;
             bassSynth.triggerAttackRelease(noteName, "16n", time, vel);
-            Tone.Draw.schedule(() => {
-              const absNote = getAbsoluteNoteValue(noteName);
-              setCurrentlyPlayingNotes([absNote]);
-              setTimeout(() => setCurrentlyPlayingNotes([]), 150);
-            }, time);
+            
+            const absNote = getAbsoluteNoteValue(noteName);
+            frameNotes.push(absNote);
           }
         });
       }
 
-      stepCounter = (stepCounter + 1) % 16;
+      if (frameNotes.length > 0) {
+        Tone.Draw.schedule(() => {
+          setCurrentlyPlayingNotes(frameNotes);
+          setTimeout(() => setCurrentlyPlayingNotes([]), 150);
+        }, time);
+      }
+
+      stepCounter = (stepCounter + 1) % 64;
     };
 
     if (isPlaying) {
@@ -139,11 +202,12 @@ export function useSequencer({
       Tone.Transport.bpm.value = currentBpm;
       initPianoSampler(() => setIsPianoReady(true));
       initGuitarSampler();
-      if (appMode === "studio" && typeof activeBrick !== "undefined" && activeBrick) {
-         applyGenrePreset(activeBrick._group);
+      if (appMode === "studio" && brickRef.current) {
+         applyGenrePreset(brickRef.current._group);
       }
       setIsAudioReady(true);
     }
+
     if (isPlaying) {
       Tone.Transport.pause();
       setIsPlaying(false);
@@ -172,6 +236,7 @@ export function useSequencer({
     currentStep,
     togglePlayback,
     handleBpmChange,
-    isPianoReady
+    isPianoReady,
+    activeChordTrack
   };
 }

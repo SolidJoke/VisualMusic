@@ -21,7 +21,7 @@ export const BRICKS = [
         guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
         effects: { fr: "La fondation du Rock'n'Roll et du Blues. Simple et efficace.", en: "The foundation of Rock'n'Roll and Blues. Simple and effective.", pt: "A fundação do Rock'n'Roll e do Blues.", zh: "摇滚和蓝调的基础。" },
         examples: { fr: "Utilisée par : Johnny B. Goode, La Bamba, Twist and Shout.", en: "Used by: Johnny B. Goode, La Bamba, Twist and Shout.", pt: "Usada em: Johnny B. Goode, La Bamba.", zh: "使用于: Johnny B. Goode, La Bamba." },
-        nnsProgression: ['1', '4', '5'], 
+        nnsProgression: ['1', '4', '5', '4'], 
         theme: { primary: '#e65100', bg: '#260d00' },
         drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
         melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12] } ]
@@ -43,7 +43,8 @@ export const BRICKS = [
         guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
         effects: { fr: "Hypnotique et dansant. Basé sur le mode Dorien.", en: "Hypnotic and dancing. Based on the Dorian mode.", pt: "Hipnótico e dançante. Baseado no modo Dórico.", zh: "催眠而舞动。基于多利亚调式。" },
         examples: { fr: "Utilisée par : Get Lucky (Daft Punk), Billie Jean (Michael Jackson).", en: "Used by: Get Lucky (Daft Punk), Billie Jean (Michael Jackson).", pt: "Usada em: Get Lucky, Billie Jean.", zh: "使用于: Get Lucky, Billie Jean." },
-        nnsProgression: ['1-', '4'], 
+        nnsProgression: ['1-', '4', '1-', '4'], 
+        chordRhythm: [0, 2],
         theme: { primary: '#9c27b0', bg: '#1c0024' },
         drumTracks: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [2, 6, 10, 14] } ],
         melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 7, 10, 14] } ]
@@ -54,7 +55,7 @@ export const BRICKS = [
         guitarStrings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], bassStrings: ['E1', 'A1', 'D2', 'G2'],
         effects: { fr: "La progression ultime pour créer une tension sophistiquée qui se résout parfaitement.", en: "The ultimate progression for creating sophisticated tension that resolves perfectly.", pt: "A progressão definitiva para criar tensão sofisticada.", zh: "创造精致张力的终极进行。" },
         examples: { fr: "Utilisée par : Autumn Leaves, Fly Me to the Moon, All The Things You Are.", en: "Used by: Autumn Leaves, Fly Me to the Moon, All The Things You Are.", pt: "Usada em: Autumn Leaves, Fly Me to the Moon.", zh: "使用于: Autumn Leaves, Fly Me to the Moon." },
-        nnsProgression: ['2-', '5', '1'], 
+        nnsProgression: ['2-', '5', '1', '1'], 
         theme: { primary: '#ffca28', bg: '#1a1500' },
         drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
         melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12] } ]
@@ -120,6 +121,7 @@ export const BRICKS = [
         examples: { fr: "Beat 'One Drop'.", en: "'One Drop' beat.", pt: "Batida 'One Drop'.", zh: "'One Drop' 鼓点。" },
         theme: { primary: '#00ff00', bg: '#002600' },
         nnsProgression: ['1', '4', '5', '4'], nnsProgressionVariation: ['1', '2-', '5', '1'],
+        chordRhythm: [2],
         drumTracks: [ { name: 'Kick', activeSteps: [8] }, { name: 'Rim', activeSteps: [8] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
         drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] }, { name: 'Rim', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
         melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11] } ],

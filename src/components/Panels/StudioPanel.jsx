@@ -1,13 +1,13 @@
 import React from 'react';
 import { BRICKS } from '../../core/bricks';
 import { MODES, generateChordsFromNNS, toRoman } from '../../core/theory';
+import { useAppContext } from '../../context/AppContext';
+import StudioInfoBlock from './StudioInfoBlock';
 
 const StudioPanel = ({
   currentBrickIndex,
   setCurrentBrickIndex,
   activeBrick,
-  lang,
-  txt,
   currentTheme,
   setCurrentTheme,
   chordOctaveOffset,
@@ -15,13 +15,19 @@ const StudioPanel = ({
   setCurrentAbsoluteNotes,
   activeProgression,
   chordDisplayMode,
-  notation,
   clickedChord,
   setClickedChord,
   handleChordClick,
   inversionText
 }) => {
+  const { lang, txt, notation } = useAppContext();
   if (!activeBrick) return null;
+
+  const getChordQuality = (nns) => {
+    if (nns.includes('dim') || nns.includes('°')) return txt.chordQualDim || 'Dim.';
+    if (nns.includes('-') || (nns.includes('m') && !nns.startsWith('maj'))) return txt.chordQualMin || 'Min.';
+    return txt.chordQualMaj || 'Maj.';
+  };
 
   return (
     <div
@@ -34,9 +40,12 @@ const StudioPanel = ({
         margin: "0",
       }}
     >
+      <StudioInfoBlock txt={txt} lang={lang} />
+
       <h2 style={{ margin: "0 0 15px 0", color: "#fff" }}>
         {txt.styleSelection}
       </h2>
+
 
       <select
         value={currentBrickIndex}
@@ -208,17 +217,28 @@ const StudioPanel = ({
                 key={i}
                 style={{ display: "flex", alignItems: "center" }}
               >
-                <button
-                  onClick={() => handleChordClick(c, i)}
-                  title={c.role}
-                  className={`btn-premium${isSelected ? " active" : ""}`}
-                  style={{
-                    fontSize: "16px",
-                    flexShrink: 0,
-                  }}
-                >
-                  {chordText}
-                </button>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                  <button
+                    onClick={() => handleChordClick(c, i)}
+                    title={c.role}
+                    className={`btn-premium${isSelected ? " active" : ""}`}
+                    style={{
+                      fontSize: "16px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {chordText}
+                  </button>
+                  <span style={{
+                    fontSize: "10px",
+                    color: isSelected ? "var(--theme-primary)" : "#888",
+                    fontStyle: "italic",
+                    letterSpacing: "0.03em",
+                    transition: "color 0.2s",
+                  }}>
+                    {getChordQuality(c.nns)}
+                  </span>
+                </div>
                 {i < activeProgression.length - 1 ? (
                   <span style={{ margin: "0 5px" }}>➜</span>
                 ) : (
