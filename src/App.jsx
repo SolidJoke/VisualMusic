@@ -422,7 +422,7 @@ function App() {
             currentBpm={currentBpm}
             activeBrick={activeBrick}
             activeProgression={activeProgression}
-            chordOctaveOffset={α9}
+            chordOctaveOffset={chordOctaveOffset}
             dictType={dictType}
             currentRootValue={currentRootValue}
             targetValue={targetValue}

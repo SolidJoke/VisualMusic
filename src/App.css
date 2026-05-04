@@ -159,7 +159,7 @@ body {
 
 /* Select / dropdown premium */
 .select-premium {
-  background: var(--glass-bg);
+  background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-deep) 100%);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   color: var(--text-primary);
@@ -172,6 +172,15 @@ body {
   backdrop-filter: var(--glass-blur);
   appearance: none;
   -webkit-appearance: none;
+}
+.select-premium option {
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+}
+.select-premium optgroup {
+  background-color: #050a1f; /* Bleu très sombre */
+  color: #ffd700; /* Gold */
+  font-weight: bold;
 }
 .select-premium:hover,
 .select-premium:focus {
@@ -805,12 +814,21 @@ h1 {
 .select-lang {
   padding: 8px 12px;
   border-radius: 8px;
-  background-color: #222;
-  color: #fff;
+  background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-deep) 100%);
+  color: var(--text-primary);
   border: 1px solid var(--theme-primary);
   cursor: pointer;
   font-weight: bold;
   outline: none;
+}
+.select-lang option {
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+}
+.select-lang optgroup {
+  background-color: #050a1f;
+  color: #ffd700;
+  font-weight: bold;
 }
 
 .btn-about {
