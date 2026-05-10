@@ -3,6 +3,9 @@ import { BRICKS } from '../../core/bricks';
 import { MODES, generateChordsFromNNS, toRoman } from '../../core/theory';
 import { useAppContext } from '../../context/AppContext';
 import StudioInfoBlock from './StudioInfoBlock';
+import LcdScreen from '../Common/LcdScreen';
+import CustomSelect from '../Common/CustomSelect';
+import { log } from '../../utils/debug';
 
 const StudioPanel = ({
   currentBrickIndex,
@@ -18,10 +21,25 @@ const StudioPanel = ({
   clickedChord,
   setClickedChord,
   handleChordClick,
-  inversionText
+  inversionText,
+  suggestedBassTrack,
+  setSuggestedBassTrack
 }) => {
-  const { lang, txt, notation } = useAppContext();
+  const { lang, txt, notation, state } = useAppContext();
+  const { uiTheme } = state;
   if (!activeBrick) return null;
+
+  const handleSuggestBass = () => {
+    import('../../core/bassEngine').then(({ suggestBassPattern }) => {
+      const chords = generateChordsFromNNS(
+        activeBrick.rootValue,
+        activeBrick.modeName,
+        activeProgression
+      );
+      const newPattern = suggestBassPattern(activeBrick.name.en, chords);
+      setSuggestedBassTrack(newPattern);
+    });
+  };
 
   const getChordQuality = (nns) => {
     if (nns.includes('dim') || nns.includes('°')) return txt.chordQualDim || 'Dim.';
@@ -31,7 +49,8 @@ const StudioPanel = ({
 
   return (
     <div
-      className="dashboard-panel"
+      className="vintage-chassis"
+      data-testid="studio-panel"
       style={{
         textAlign: "center",
         width: "100%",
@@ -40,57 +59,42 @@ const StudioPanel = ({
         margin: "0",
       }}
     >
+      <div className="screw screw-tl"></div>
+      <div className="screw screw-tr"></div>
+      <div className="screw screw-bl"></div>
+      <div className="screw screw-br"></div>
+
       <StudioInfoBlock txt={txt} lang={lang} />
 
-      <h2 style={{ margin: "0 0 15px 0", color: "#fff" }}>
-        {txt.styleSelection}
-      </h2>
+      <div style={{ margin: "15px 0" }}>
+        <LcdScreen title={txt.styleSelection}>
+          <CustomSelect
+            value={currentBrickIndex}
+            onChange={(val) => setCurrentBrickIndex(Number(val))}
+            options={[
+              { label: "🎷 Jazz & Bossa", items: BRICKS.filter(b => b._group === 'jazz').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🌍 World & Groove", items: BRICKS.filter(b => b._group === 'world').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🎤 Urban & Hip-Hop", items: BRICKS.filter(b => b._group === 'urban').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🎓 Progressions Expertes (NNS)", items: BRICKS.filter(b => b._group === 'expert_progressions').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] || b.name.en })) },
+              { label: "🎹 Pop & Funk", items: BRICKS.filter(b => b._group === 'pop').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🎸 Rock & Metal", items: BRICKS.filter(b => b._group === 'rock').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🎧 Electronic", items: BRICKS.filter(b => b._group === 'electronic').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+            ]}
+            theme="vintage" /* Style selector inside LCD is always vintage style */
+          />
+        </LcdScreen>
+      </div>
 
-
-      <select
-        value={currentBrickIndex}
-        onChange={(e) => setCurrentBrickIndex(e.target.value)}
-        className="select-premium"
-        style={{
-          width: "100%",
-          fontSize: "1.1rem",
-          fontWeight: "bold",
-          color: "var(--accent)"
-        }}
-      >
-        <optgroup label="🎷 Jazz & Bossa">
-          {BRICKS.map((brick, index) => brick._group === 'jazz' && <option key={index} value={index}>{brick.name[lang]}</option>)}
-        </optgroup>
-        <optgroup label="🌍 World & Groove">
-          {BRICKS.map((brick, index) => brick._group === 'world' && <option key={index} value={index}>{brick.name[lang]}</option>)}
-        </optgroup>
-        <optgroup label="🎤 Urban & Hip-Hop">
-          {BRICKS.map((brick, index) => brick._group === 'urban' && <option key={index} value={index}>{brick.name[lang]}</option>)}
-        </optgroup>
-        <optgroup label="🎓 Progressions Expertes (NNS)">
-          {BRICKS.map((brick, index) => brick._group === 'expert_progressions' && <option key={index} value={index}>{brick.name[lang] || brick.name.en}</option>)}
-        </optgroup>
-        <optgroup label="🎹 Pop & Funk">
-          {BRICKS.map((brick, index) => brick._group === 'pop' && <option key={index} value={index}>{brick.name[lang]}</option>)}
-        </optgroup>
-        <optgroup label="🎸 Rock & Metal">
-          {BRICKS.map((brick, index) => brick._group === 'rock' && <option key={index} value={index}>{brick.name[lang]}</option>)}
-        </optgroup>
-        <optgroup label="🎧 Electronic">
-          {BRICKS.map((brick, index) => brick._group === 'electronic' && <option key={index} value={index}>{brick.name[lang]}</option>)}
-        </optgroup>
-      </select>
-
-      <div style={{ marginTop: "15px" }}>
-        <span className="info-badge">
-          🎵 Mode: {activeBrick.modeName} ({MODES[activeBrick.modeName]?.emotion})
+      <div style={{ marginTop: "15px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px" }}>
+        <span className="info-badge" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #444' }}>
+          🎵 {activeBrick.modeName}
         </span>
-        <span className="info-badge">
-          🎸 {txt.tuningLabel || "Tuning:"} {activeBrick.tuning || "Standard"}
+        <span className="info-badge" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #444' }}>
+          🎸 {activeBrick.tuning || "Standard"}
         </span>
       </div>
 
-      <div className="effects-text">
+      <div className="effects-text" style={{ color: 'var(--led-cyan)', opacity: 0.8 }}>
         💡 {activeBrick.effects?.[lang] || ""}
       </div>
       {activeBrick.inspiration?.[lang] && (
@@ -140,16 +144,25 @@ const StudioPanel = ({
             <br />
             <br />
             <button
-              className={`btn-toggle${currentTheme === "A" ? " btn-toggle--active" : ""}`}
+              onClick={() => setCurrentTheme("A")}
+              className={`btn-toggle ${currentTheme === "A" ? " btn-toggle--active" : ""}`}
               style={{ marginRight: "5px" }}
             >
               {txt.varA}
             </button>
             <button
               onClick={() => setCurrentTheme("B")}
-              className={`btn-toggle${currentTheme === "B" ? " btn-toggle--active" : ""}`}
+              className={`btn-toggle ${currentTheme === "B" ? " btn-toggle--active" : ""}`}
             >
               {txt.varB}
+            </button>
+            <button
+              onClick={handleSuggestBass}
+              className={`btn-premium ${suggestedBassTrack ? " active" : ""}`}
+              style={{ marginLeft: "10px", padding: "6px 12px", fontSize: "0.85rem" }}
+              title={txt.suggestBassTip || "Generate a bass line for this genre"}
+            >
+              {suggestedBassTrack ? "✨ Bass OK" : "🎸 Suggest Bass"}
             </button>
           </div>
 
@@ -170,32 +183,27 @@ const StudioPanel = ({
             >
               {txt.octaveBase}
             </span>
-            <select
+            <CustomSelect
               value={chordOctaveOffset}
-              onChange={(e) => {
-                setChordOctaveOffset(Number(e.target.value));
+              onChange={(val) => {
+                setChordOctaveOffset(Number(val));
                 setCurrentAbsoluteNotes([]);
               }}
-              className="select-premium"
-            >
-              <option value={-2}>-2 Oct.</option>
-              <option value={-1}>-1 Oct.</option>
-              <option value={0}>C4</option>
-              <option value={1}>+1 Oct.</option>
-              <option value={2}>+2 Oct.</option>
-            </select>
+              options={[
+                { value: -2, label: "-2 Oct." },
+                { value: -1, label: "-1 Oct." },
+                { value: 0, label: "C4" },
+                { value: 1, label: "+1 Oct." },
+                { value: 2, label: "+2 Oct." },
+              ]}
+              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+            />
           </div>
         </div>
         <strong>{txt.magicProg} </strong> <br />
         <br />
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: "5px",
-          }}
-        >
+        <div className="magic-progression-container">
+
           {generateChordsFromNNS(
             activeBrick.rootValue,
             activeBrick.modeName,
@@ -213,38 +221,30 @@ const StudioPanel = ({
                     : c.chordNameEU;
 
             return (
-              <span
-                key={i}
-                style={{ display: "flex", alignItems: "center" }}
-              >
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-                  <button
-                    onClick={() => handleChordClick(c, i)}
-                    title={c.role}
-                    className={`btn-premium${isSelected ? " active" : ""}`}
-                    style={{
-                      fontSize: "16px",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {chordText}
-                  </button>
-                  <span style={{
-                    fontSize: "10px",
-                    color: isSelected ? "var(--theme-primary)" : "#888",
-                    fontStyle: "italic",
-                    letterSpacing: "0.03em",
-                    transition: "color 0.2s",
-                  }}>
-                    {getChordQuality(c.nns)}
-                  </span>
-                </div>
-                {i < activeProgression.length - 1 ? (
-                  <span style={{ margin: "0 5px" }}>➜</span>
-                ) : (
-                  ""
-                )}
-              </span>
+              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+                <button
+                  onClick={() => {
+                    log("studio", `Selecting magic chord ${c.chordNameUS}`, c);
+                    handleChordClick(c, i);
+                  }}
+                  title={c.role}
+                  className={`btn-premium ${isSelected ? " active" : ""}`}
+                  style={{
+                    flexShrink: 0,
+                  }}
+                >
+                  {chordText}
+                </button>
+                <span style={{
+                  fontSize: "10px",
+                  color: isSelected ? "var(--theme-primary)" : "#888",
+                  fontStyle: "italic",
+                  letterSpacing: "0.03em",
+                  transition: "color 0.2s",
+                }}>
+                  {getChordQuality(c.nns)}
+                </span>
+              </div>
             );
           })}
         </div>

@@ -21,13 +21,13 @@ const ControlPanel = ({
       <div className="controls-group">
         <button
           onClick={() => setNotation("us")}
-          className={`btn-premium${notation === "us" ? " active" : ""}`}
+          className={`btn-premium ${notation === "us" ? " active" : ""}`}
         >
           US (A,B,C)
         </button>
         <button
           onClick={() => setNotation("eu")}
-          className={`btn-premium${notation === "eu" ? " active" : ""}`}
+          className={`btn-premium ${notation === "eu" ? " active" : ""}`}
         >
           EU (Do,Ré)
         </button>
@@ -43,7 +43,7 @@ const ControlPanel = ({
             <button
               key={m.id}
               onClick={() => setChordDisplayMode(m.id)}
-              className={`btn-premium${chordDisplayMode === m.id ? " active" : ""}`}
+              className={`btn-premium ${chordDisplayMode === m.id ? " active" : ""}`}
               style={{ fontSize: "0.75rem" }}
             >
               {m.label}
@@ -52,42 +52,6 @@ const ControlPanel = ({
         </div>
       )}
 
-      {/* FINGERING TOGGLE */}
-      {!(appMode === "dictionary" && dictType && !dictType.includes("chord")) && (
-        <div className="fingering-controls">
-           <button
-              onClick={() => setShowFingering(!showFingering)}
-              className={`btn-premium fingering-main-btn${showFingering ? " active" : ""}`}
-              style={{ width: "100%", borderRadius: "var(--radius-xl)" }}
-            >
-              {showFingering ? txt.fingeringToggleOn : txt.fingeringToggleOff}
-            </button>
-            {showFingering && (
-              <div className="fingering-sub-modes">
-                {[
-                  { id: "numeric", label: txt.fingeringNumeric },
-                  { id: "anatomic", label: txt.fingeringAnatomic },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setFingeringMode(m.id)}
-                    className={`btn-premium${fingeringMode === m.id ? " active" : ""}`}
-                    style={{ padding: "4px 10px", fontSize: "0.7rem", borderRadius: "var(--radius-md)" }}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <p className="fingering-desc">
-              {showFingering
-                ? fingeringMode === "numeric"
-                  ? txt.fingeringNumericDesc
-                  : txt.fingeringAnatomicDesc
-                : txt.fingeringOffDesc}
-            </p>
-        </div>
-      )}
 
       <div className="controls-group" style={{ flexDirection: "column", gap: "8px", alignItems: "center" }}>
         <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Audio :</span>
@@ -100,13 +64,41 @@ const ControlPanel = ({
             <button
               key={inst.id}
               onClick={() => setPlaybackInstrument(inst.id)}
-              className={`btn-premium${playbackInstrument === inst.id ? " active" : ""}`}
+              className={`btn-premium ${playbackInstrument === inst.id ? " active" : ""}`}
               style={{ fontSize: "0.7rem", padding: "6px 8px" }}
             >
               {inst.label}
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="controls-group" style={{ flexDirection: "column", gap: "8px", alignItems: "center" }}>
+        <button
+          onClick={() => setShowFingering(!showFingering)}
+          className={`btn-premium ${showFingering ? " active" : ""}`}
+          style={{ width: "100%", fontSize: "0.75rem" }}
+        >
+          {showFingering ? txt.fingeringToggleOn : txt.fingeringToggleOff}
+        </button>
+        {showFingering && (
+          <div style={{ display: "flex", gap: "5px" }}>
+             <button
+               onClick={() => setFingeringMode("numeric")}
+               className={`btn-premium ${fingeringMode === "numeric" ? " active" : ""}`}
+               style={{ fontSize: "0.65rem", padding: "4px 6px" }}
+             >
+               {txt.fingeringNumeric}
+             </button>
+             <button
+               onClick={() => setFingeringMode("anatomic")}
+               className={`btn-premium ${fingeringMode === "anatomic" ? " active" : ""}`}
+               style={{ fontSize: "0.65rem", padding: "4px 6px" }}
+             >
+               {txt.fingeringAnatomic}
+             </button>
+          </div>
+        )}
       </div>
     </div>
   );

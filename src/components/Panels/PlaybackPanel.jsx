@@ -1,5 +1,8 @@
 import React from 'react';
 import MixerStrip from '../Audio/MixerStrip';
+import LcdScreen from '../Common/LcdScreen';
+import CustomSelect from '../Common/CustomSelect';
+import { useAppContext } from '../../context/AppContext';
 
 const PlaybackPanel = ({
   appMode,
@@ -23,44 +26,66 @@ const PlaybackPanel = ({
   setVisualFocus,
   txt
 }) => {
+  const { state } = useAppContext();
+  const { uiTheme } = state;
   return (
-    <div className="layout-col layout-right">
-      <div className="glass-panel app-mode-selector">
+    <div className="layout-col layout-right playback-panel-container">
+      <div className="vintage-module app-mode-selector" style={{ display: "flex", gap: "5px" }}>
         <button
           onClick={() => setAppMode("studio")}
-          className={`btn-premium${appMode === "studio" ? " active" : ""}`}
-          style={{ width: "100%", padding: "12px", fontSize: "1rem" }}
+          className={`btn-premium ${appMode === "studio" ? " active" : ""}`}
+          style={{ width: "100%", padding: "12px", fontSize: "0.9rem" }}
+          data-testid="btn-mode-studio"
         >
           {txt.studioMode}
         </button>
         <button
           onClick={() => setAppMode("dictionary")}
-          className={`btn-premium${appMode === "dictionary" ? " active" : ""}`}
-          style={{ width: "100%", padding: "12px", fontSize: "1rem" }}
+          className={`btn-premium ${appMode === "dictionary" ? " active" : ""}`}
+          style={{ width: "100%", padding: "12px", fontSize: "0.9rem" }}
+          data-testid="btn-mode-dictionary"
         >
           {txt.dictMode}
         </button>
       </div>
 
-      <div className={`glass-panel playback-controls${isPlaying ? " is-playing" : ""}`}>
-        <button
-          onClick={togglePlayback}
-          className="btn-premium playback-toggle-btn"
-          style={{
-            backgroundColor: isPlaying ? "var(--color-error)" : "var(--color-success)",
-            color: "var(--text-bright)",
-            width: "100%",
-            fontSize: "1.1rem",
-          }}
-        >
-          {isPlaying ? txt.stopAudio : txt.enableAudio}
-        </button>
+      <div className={`vintage-module playback-controls${isPlaying ? " is-playing" : ""}`}>
+        {appMode !== "dictionary" && (
+          <button
+            onClick={togglePlayback}
+            className={`vintage-control-btn playback-toggle-btn ${isPlaying ? 'stop' : 'play'}`}
+            style={{
+              background: isPlaying 
+                ? "linear-gradient(180deg, #e74c3c, #c0392b)" 
+                : "linear-gradient(180deg, #2ecc71, #27ae60)",
+              color: "#fff",
+              width: "100%",
+              height: "60px",
+              fontSize: "1.4rem",
+              fontWeight: "900",
+              borderRadius: "12px",
+              marginBottom: "20px",
+              boxShadow: isPlaying 
+                ? "0 4px 15px rgba(231, 76, 60, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)" 
+                : "0 4px 15px rgba(46, 204, 113, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+              border: "1px solid rgba(0,0,0,0.2)"
+            }}
+          >
+            {isPlaying ? txt.stopAudio : txt.enableAudio}
+          </button>
+        )}
+
 
         <div className="sliders-group">
           <div className="slider-item">
-            <label className="section-label">
-              {txt.masterVol} ({masterVolume} dB)
-            </label>
+            <LcdScreen title={`${txt.masterVol} (dB)`}>
+              {masterVolume}
+            </LcdScreen>
             <input
               type="range"
               min="-40"
@@ -68,13 +93,14 @@ const PlaybackPanel = ({
               value={masterVolume}
               onChange={(e) => setMasterVolume(e.target.value)}
               className="premium-slider"
+              style={{ '--value': `${((masterVolume + 40) / 40) * 100}%` }}
             />
           </div>
 
           <div className="slider-item">
-            <label className="section-label accent">
-              {txt.tempoBpm} : {currentBpm}
-            </label>
+            <LcdScreen title={txt.tempoBpm}>
+              {currentBpm}
+            </LcdScreen>
             <input
               type="range"
               min="60"
@@ -82,6 +108,7 @@ const PlaybackPanel = ({
               value={currentBpm}
               onChange={handleBpmChange}
               className="premium-slider accent"
+              style={{ '--value': `${((currentBpm - 60) / 140) * 100}%` }}
             />
           </div>
         </div>
@@ -106,21 +133,21 @@ const PlaybackPanel = ({
           <div className="controls-group" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
             <button
               onClick={() => setVisualFocus("chords")}
-              className={`btn-premium${visualFocus === "chords" ? " active" : ""}`}
+              className={`btn-premium ${visualFocus === "chords" ? " active" : ""}`}
               style={{ fontSize: "0.9rem", padding: "8px" }}
             >
               {txt.focusChords}
             </button>
             <button
               onClick={() => setVisualFocus("bass")}
-              className={`btn-premium${visualFocus === "bass" ? " active" : ""}`}
+              className={`btn-premium ${visualFocus === "bass" ? " active" : ""}`}
               style={{ fontSize: "0.9rem", padding: "8px" }}
             >
               {txt.focusBass}
             </button>
             <button
               onClick={() => setVisualFocus("both")}
-              className={`btn-premium${visualFocus === "both" ? " active" : ""}`}
+              className={`btn-premium ${visualFocus === "both" ? " active" : ""}`}
               style={{ fontSize: "0.9rem", padding: "8px", gridColumn: "span 2" }}
             >
               {txt.focusBoth}
@@ -134,13 +161,13 @@ const PlaybackPanel = ({
           <div className="controls-group">
             <button
               onClick={() => setDisplayMode("chord")}
-              className={`btn-premium${displayMode === "chord" ? " active" : ""}`}
+              className={`btn-premium ${displayMode === "chord" ? " active" : ""}`}
             >
               {txt.chord}
             </button>
             <button
               onClick={() => setDisplayMode("scale")}
-              className={`btn-premium${displayMode === "scale" ? " active" : ""}`}
+              className={`btn-premium ${displayMode === "scale" ? " active" : ""}`}
             >
               {txt.scale}
             </button>
@@ -151,14 +178,14 @@ const PlaybackPanel = ({
           <div className="controls-group">
             <button
               onClick={() => setLayoutMode("all")}
-              className={`btn-premium${layoutMode === "all" ? " active" : ""}`}
+              className={`btn-premium ${layoutMode === "all" ? " active" : ""}`}
               style={{ borderRadius: "var(--radius-xl)" }}
             >
               {txt.showAll}
             </button>
             <button
               onClick={() => setLayoutMode("tabs")}
-              className={`btn-premium${layoutMode === "tabs" ? " active" : ""}`}
+              className={`btn-premium ${layoutMode === "tabs" ? " active" : ""}`}
               style={{ borderRadius: "var(--radius-xl)" }}
             >
               {txt.focusMode}
@@ -173,17 +200,17 @@ const PlaybackPanel = ({
             <span className="section-label">
               {txt.guitarPos}
             </span>
-            <select
+            <CustomSelect
               value={fretboardZone}
-              onChange={(e) => setFretboardZone(e.target.value)}
-              className="select-premium"
-              style={{ width: "100%" }}
-            >
-              <option value="all">{txt.posAll}</option>
-              <option value="open">{txt.posOpen}</option>
-              <option value="mid">{txt.posMid}</option>
-              <option value="high">{txt.posHigh}</option>
-            </select>
+              onChange={(val) => setFretboardZone(val)}
+              options={[
+                { value: "all", label: txt.posAll },
+                { value: "open", label: txt.posOpen },
+                { value: "mid", label: txt.posMid },
+                { value: "high", label: txt.posHigh },
+              ]}
+              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+            />
           </div>
         )}
       </div>

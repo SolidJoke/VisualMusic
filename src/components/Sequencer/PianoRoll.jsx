@@ -10,9 +10,20 @@ import './PianoRoll.css';
  * - currentStep: number (-1 = none)
  */
 export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1 }) {
+    const [isZoomed, setIsZoomed] = React.useState(false);
+
     return (
-        <div className="piano-roll">
-            {tracks.map((track, trackIndex) => {
+        <div className={`piano-roll ${isZoomed ? 'is-zoomed' : ''}`}>
+            <div className="piano-roll-header">
+                <button 
+                    className="btn-header-action" 
+                    onClick={() => setIsZoomed(!isZoomed)}
+                    style={{ fontSize: '10px', height: '24px', minWidth: '80px' }}
+                >
+                    {isZoomed ? '🔍 Normal' : '🔍 Zoom'}
+                </button>
+            </div>
+            {tracks.filter(Boolean).map((track, trackIndex) => {
                 const colorClass = `bg-${track.name.toLowerCase()}`;
 
                 return (
@@ -29,31 +40,41 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
 
                                 // Build CSS classes
                                 const classes = [
-                                    'step',
+                                    'step-lamp',
+                                    isActive ? 'active' : '',
                                     isActive ? colorClass : '',
                                     isActive && isLowVel ? 'step--ghost' : '',
                                     isCurrent ? 'step--current' : '',
                                     stepIndex % 4 === 0 ? 'step--beat' : '',
                                     stepIndex % 16 === 0 ? 'step--measure' : '',
+                                    isZoomed ? 'zoomed' : '',
                                 ].filter(Boolean).join(' ');
 
                                 return (
                                     <div
                                         key={stepIndex}
                                         className={classes}
+                                        style={{ 
+                                            opacity: isActive ? (isLowVel ? 0.5 : 1.0) : 1.0,
+                                            boxShadow: isActive 
+                                                ? `0 0 ${isLowVel ? '10px' : '20px'} var(--active-glow, currentColor)` 
+                                                : 'none',
+                                            transform: isActive && !isLowVel ? 'scale(1.05)' : 'scale(1)',
+                                            zIndex: isActive ? 2 : 1
+                                        }}
                                         title={isActive ? buildTooltip(track.name, stepIndex, isLowVel, pitchLabel) : ''}
                                     >
-                                        {isActive && isLowVel && (
-                                            <span className="step__ghost-label">👻</span>
-                                        )}
                                         {isActive && pitchLabel && (
                                             <span className="step__pitch-label">{pitchLabel}</span>
                                         )}
+                                        {isActive && isLowVel && (
+                                            <div className="step__dim-overlay" />
+                                        )}
                                     </div>
                                 );
+
                             })}
                         </div>
-
                     </div>
                 );
             })}

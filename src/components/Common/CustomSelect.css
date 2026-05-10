@@ -1,0 +1,172 @@
+/* CustomSelect.css - Liquid Glass Pop Style */
+.custom-select-container {
+    position: relative;
+    width: 100%;
+    font-family: inherit;
+    z-index: 800; /* Below sidebar (2000) and header actions (610) if needed */
+}
+
+.custom-select-container.is-open {
+    z-index: 900;
+}
+
+.custom-select-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 44px;
+    box-sizing: border-box;
+    background: rgba(20, 25, 35, 0.7); /* More opaque */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(12px);
+    color: var(--text-primary);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.custom-select-header:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--accent);
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.custom-select-header .current-value {
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.custom-select-header .arrow {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin-left: 10px;
+    transition: transform 0.3s ease;
+}
+
+.is-open .custom-select-header .arrow {
+    transform: rotate(180deg);
+}
+
+/* ─── POP BODY ─── */
+.custom-select-body {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.9);
+    width: min(400px, 90vw);
+    background: rgba(15, 20, 30, 0.95);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 15px;
+    z-index: 9999;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.9), 0 0 30px var(--accent-glow);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.is-open .custom-select-body {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) scale(1);
+}
+
+.opt-group {
+    grid-column: 1 / -1;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.opt-group:first-child {
+    margin-top: 0;
+}
+
+.opt-group-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    padding-left: 5px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+    padding-bottom: 4px;
+}
+
+.select-item {
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 15px;
+    gap: 10px;
+}
+
+.select-item:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--text-bright);
+    transform: translateY(-2px);
+}
+
+.select-item.selected {
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+    box-shadow: 0 0 15px var(--accent);
+}
+
+/* ─── VINTAGE OVERRIDE ─── */
+.vintage-select .custom-select-header {
+    background: #000;
+    border: 2px solid #333;
+    color: var(--led-cyan);
+    font-family: var(--font-mono);
+    text-shadow: 0 0 8px var(--led-cyan);
+}
+
+.vintage-select .custom-select-body {
+    background: #000;
+    border: 2px solid var(--led-cyan);
+    grid-template-columns: 1fr;
+}
+
+.vintage-select .select-item {
+    border-radius: 0;
+    color: var(--led-cyan);
+    background: transparent;
+    border-bottom: 1px solid #222;
+}
+
+.vintage-select .select-item:hover,
+.vintage-select .select-item.selected {
+    background: var(--led-cyan);
+    color: #000;
+}
+
+/* Custom Scrollbar */
+.custom-select-body::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-select-body::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 2px;
+}

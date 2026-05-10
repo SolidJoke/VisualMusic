@@ -32,22 +32,30 @@ const TheoryModal = ({ isOpen, onClose, txt }) => {
           {txt.modesEmotionTitle}
         </h3>
         <ul className="modes-list">
-          {Object.entries(MODES).map(([name, data]) => (
-            <li key={name}>
-              <strong className="mode-name">{name} :</strong>{" "}
-              {data.emotion} {data.magicNote ? `(Note magique : ${data.magicNote})` : ''} {data.description ? `— ${data.description}` : ''}
-            </li>
-          ))}
+          {Object.entries(MODES).map(([name, data]) => {
+            const modeTxt = txt.modes?.[name] || {};
+            const emotion = modeTxt.emotion || data.emotion;
+            const description = modeTxt.description || data.description;
+            const magicNote = modeTxt.magicNote || data.magicNote;
+            const magicLabel = txt.magicNoteLabel || "Magic Note";
+
+            return (
+              <li key={name}>
+                <strong className="mode-name">{name} :</strong>{" "}
+                {emotion} {magicNote ? `(${magicLabel} : ${magicNote})` : ''} {description ? `— ${description}` : ''}
+              </li>
+            );
+          })}
         </ul>
 
         <h3 className="section-title accent">
-          Nashville Number System (NNS)
+          {txt.nnsExplainTitle}
         </h3>
         <p className="nns-text">
-          Le NNS remplace les noms de notes par des fonctions :
-          <br />• <strong>1, 4, 5</strong> : Accords Majeurs (Repos, Départ, Tension).
-          <br />• <strong>2-, 3-, 6-</strong> : Accords Mineurs.
-          <br />• <strong>6-</strong> : La relative mineure (Profondeur).
+          {txt.nnsExplainDesc}
+          <br />• <strong>1, 4, 5</strong> : {txt.nnsExplainMajor}
+          <br />• <strong>2-, 3-, 6-</strong> : {txt.nnsExplainMinor}
+          <br />• <strong>6-</strong> : {txt.nnsExplainRelative}
         </p>
 
         {txt.harmonicModeTitle && (

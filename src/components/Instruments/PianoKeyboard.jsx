@@ -16,7 +16,7 @@ const FLAT_EQUIVALENTS = {
 
 export default function PianoKeyboard({
   activeNotes = [],
-  numOctaves = 3,
+  numOctaves = 7,
   notation = "us",
   rootValue = 0,
   targetValue = -1,
@@ -28,7 +28,6 @@ export default function PianoKeyboard({
   txt = {},
   harmonicMode = false
 }) {
-  const [showExplanations, setShowExplanations] = React.useState(false);
   const keys = [];
 
   const harmonicSeries = React.useMemo(() => {
@@ -104,10 +103,20 @@ export default function PianoKeyboard({
     return labelContent;
   };
 
-  const getKeyRoleClass = (i, isActive) => {
+  const getKeyRoleClass = (i, isActive, activeNote) => {
     if (!isActive) return "";
-    const interval = (i - rootValue + 12) % 12;
     if (i === targetValue) return "role-target";
+    
+    // Use the explicitly passed order if available (favors clicked chord roles)
+    // If order is provided (e.g. 1, 3, 5), map to role classes
+    const order = activeNote?.order !== undefined ? String(activeNote.order) : null;
+    if (order) {
+      if (order === "1") return "role-root";
+      if (order === "3") return "role-third";
+      if (order === "5") return "role-fifth";
+      return "role-extension";
+    }
+    const interval = (i - rootValue + 12) % 12;
     if (interval === 0) return "role-root";
     if (interval === 3 || interval === 4) return "role-third";
     if (interval === 7) return "role-fifth";
@@ -125,7 +134,10 @@ export default function PianoKeyboard({
         if (n.absoluteValue !== undefined) {
           return n.absoluteValue === absoluteValue;
         }
-        return n.value % 12 === i % 12;
+        // In Dictionary Mode or if no absolute pitch provided,
+        // we restrict display to a single central octave (Octave 4) to avoid clutter.
+        // Octave 4 is index 2 in our 0-indexed octave loop (starting at C2).
+        return (n.value % 12 === i % 12) && (octave === 2);
       });
       const isActive = !!activeNote;
       const isPlaying = currentlyPlayingNotes.includes(absoluteValue);
@@ -168,7 +180,7 @@ export default function PianoKeyboard({
             className="black-key-wrapper"
           >
             <div
-              className={`piano-key black-key ${roleClass} ${subtleClass} ${isPlaying ? "is-playing" : ""}`}
+              className={`piano-key black-key ${getKeyRoleClass(i, isActive, activeNote)} ${subtleClass} ${isPlaying ? "is-playing" : ""}`}
               title={`${noteInfo.us} / ${noteInfo.eu}`}
               onClick={() =>
                 onNoteClick && onNoteClick(noteName, { instrument: "piano" })
@@ -191,7 +203,7 @@ export default function PianoKeyboard({
         keys.push(
           <div
             key={`octave-${octave}-note-${i}`}
-            className={`piano-key white-key ${roleClass} ${subtleClass} ${isPlaying ? "is-playing" : ""}`}
+            className={`piano-key white-key ${getKeyRoleClass(i, isActive, activeNote)} ${subtleClass} ${isPlaying ? "is-playing" : ""}`}
             title={`${noteInfo.us} / ${noteInfo.eu}`}
             onClick={() => onNoteClick && onNoteClick(noteName, { instrument: "piano" })}
           >
@@ -213,25 +225,6 @@ export default function PianoKeyboard({
 
   return (
     <div className="piano-wrapper">
-      {activeNotes.some((n) => n.order) && (
-        <div className="explanations-toggle-container">
-          <button
-            className="toggle-explanations-btn"
-            onClick={() => setShowExplanations(!showExplanations)}
-          >
-            {showExplanations
-              ? (txt.hideExplanations || "Masquer les explications")
-              : (txt.whatDoNumbersMean || "Que signifient les nombres ?")}
-          </button>
-          {showExplanations && (
-            <div className="numbers-explanation">
-              {txt.numbersExplanation1 || "Les nombres affichés avec les notes correspondent à leur rôle ou degré dans l'accord/la gamme."}
-              <br />
-              {txt.numbersExplanation2 || "Par exemple, (1) est la fondamentale (racine), (3) la tierce, (5) la quinte, etc."}
-            </div>
-          )}
-        </div>
-      )}
       <div
         className="piano-container-wrapper"
         style={{ maxWidth: "100%", overflowX: "auto" }}

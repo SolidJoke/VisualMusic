@@ -1,0 +1,124 @@
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 2000; /* Ensure it stays above EVERYTHING (Header 600, etc) */
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sidebar.is-open {
+  width: 420px;
+}
+
+.app-sidebar.is-closed {
+  width: 60px;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: visible; /* CRITICAL: Allow CustomSelect popups to be visible outside the sidebar width */
+  padding: 80px 20px 40px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.app-sidebar.is-closed .sidebar-content {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Toggle Button */
+.sidebar-toggle {
+  position: absolute;
+  top: 20px;
+  right: -20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: var(--bg-surface);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  z-index: 1001;
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+  background: var(--accent);
+  color: #000;
+  transform: scale(1.1);
+}
+
+/* Theme specific styles */
+.app-sidebar.theme-modern {
+  background: var(--lg-panel-bg);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-right: 1px solid rgba(0, 229, 255, 0.2);
+  box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+}
+
+.app-sidebar.theme-vintage {
+  background: var(--vintage-steel);
+  border-right: 2px solid var(--vintage-steel-dark);
+}
+
+.app-sidebar.theme-vintage::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 8px;
+  background: linear-gradient(90deg, var(--vintage-wood-dark), var(--vintage-wood-light));
+}
+
+/* Scrollbar for sidebar */
+.sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: var(--accent-dim);
+  border-radius: 10px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Fix "brown square" bug: hide wooden side panels if they appear in the sidebar */
+.app-sidebar .vintage-chassis::before,
+.app-sidebar .vintage-chassis::after {
+  display: none !important;
+}
+
+.app-sidebar .vintage-chassis {
+  padding: 15px;
+  margin: 0;
+  border-radius: 8px;
+}
+
+/* Fix z-index stacking context for CustomSelect dropdowns */
+.dict-panel {
+  position: relative;
+  z-index: 10;
+}
+
+.control-panel-container {
+  position: relative;
+  z-index: 5;
+}
+
+.playback-panel-container {
+  position: relative;
+  z-index: 1;
+}

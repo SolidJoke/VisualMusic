@@ -66,12 +66,14 @@ export default function MixerStrip({ instrumentVolumes, handleInstrumentVolumeCh
                 max="10"
                 value={instrumentVolumes[inst.id]}
                 onChange={(e) => handleInstrumentVolumeChange(inst.id, e.target.value)}
+                className="premium-slider"
                 style={{
                   WebkitAppearance: "slider-vertical",
                   cursor: "pointer",
                   width: "10px",
                   height: "100%",
-                  accentColor: "var(--theme-primary, #4CAF50)",
+                  '--value': `${((instrumentVolumes[inst.id] + 60) / 70) * 100}%`,
+                  background: `linear-gradient(to top, var(--led-cyan) 0%, var(--led-cyan) ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, #333 ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, #333 100%)`
                 }}
               />
             </div>

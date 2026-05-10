@@ -1,13 +1,136 @@
 /* --- DESIGN TOKENS (Glassmorphism Phase 9) --- */
 :root {
+  /* ─── HEADER ACTIONS ─── */
+  --header-btn-width: 180px;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 30px;
+  position: relative;
+  z-index: 600; /* Behind sidebar (1000) but above content */
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.app-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  position: relative;
+  z-index: 610;
+}
+
+.btn-header-action {
+  min-width: var(--header-btn-width);
+  height: 42px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+  backdrop-filter: var(--glass-blur);
+  padding: 0 15px;
+  box-sizing: border-box;
+}
+
+.btn-header-action:hover, .btn-header-action.active {
+  background: var(--glass-bg-hover);
+  border-color: var(--accent) !important;
+  color: var(--text-primary);
+  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px var(--accent-glow);
+}
+
+/* Distinct border for toggle buttons to show interactivity */
+.btn-header-action, .btn-toggle, .btn-tab, .btn-segment {
+  border: 1px solid hsla(0, 0%, 100%, 0.2);
+  position: relative;
+}
+
+.btn-header-action::after, .btn-toggle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease;
+  pointer-events: none;
+}
+
+.btn-header-action:hover::after, .btn-toggle:hover::after {
+  border-color: var(--accent);
+}
+
+/* Explicit border for better affordance on dark backgrounds */
+.btn-header-action, .btn-toggle, .btn-premium {
+  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.btn-header-action.active, .btn-toggle--active, .btn-premium.active {
+  border-color: var(--accent) !important;
+}
+
+
+.btn-header-action--select {
+  padding: 0;
+  overflow: hidden;
+}
+
+.btn-header-action--select select {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-weight: inherit;
+  font-size: inherit;
+  padding: 0 10px;
+  cursor: pointer;
+  outline: none;
+  text-align: center;
+  text-align-last: center;
+}
+
+.btn-header-action--select select option {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+/* Language Selector in Header */
+.header-lang-select {
+  width: var(--header-btn-width) !important;
+  height: 42px !important;
+}
+
+.header-lang-select .custom-select-header {
+  height: 100% !important;
+  min-height: 42px !important;
+  border-radius: var(--radius-md) !important;
+  padding: 0 15px !important;
+}
+
+.header-lang-select .custom-select-header:hover {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 15px var(--accent-glow) !important;
+}
+:root {
   /* ─── PALETTE FONDATRICE ─────────────────────────────────── */
   /* Arrière-plan : quasi-noir avec teinture bleue profonde */
-  --bg-deep:    hsl(226, 25%, 6%);
-  --bg-base:    hsl(226, 22%, 9%);
-  --bg-panel:   hsl(226, 20%, 12%);
-  --bg-surface: hsl(226, 18%, 15%);
-  --bg-raised:  hsl(226, 16%, 19%);
-  --bg-overlay: hsl(226, 30%, 5%);
+  --bg-deep:    hsl(226, 25%, 4%);
+  --bg-base:    hsl(226, 22%, 6%);
+  --bg-panel:   hsl(226, 20%, 9%);
+  --bg-surface: hsl(226, 18%, 12%);
+  --bg-raised:  hsl(226, 16%, 15%);
+  --bg-overlay: hsl(226, 30%, 3%);
 
   /* Verre dépoli (glass panels) */
   --glass-bg:       hsla(226, 20%, 100%, 0.04);
@@ -42,12 +165,13 @@
   --text-dim:       hsl(220, 10%, 30%);
   --text-bright:    hsl(0, 0%, 100%);
 
-  /* ─── COULEURS RÔLES MUSICAUX ───────────────── */
-  --role-root:   hsl(350, 65%, 65%);
-  --role-third:  hsl(210, 75%, 68%);
-  --role-fifth:  hsl(140, 50%, 60%);
-  --role-scale:  hsl(200, 20%, 55%);
-  --role-target: hsl(47, 100%, 58%);
+  /* ─── COULEURS RÔLES MUSICAUX (Vibrant & Functional) ─── */
+  --role-root:   hsl(0, 85%, 65%);       /* Red (Vibrant) */
+  --role-third:  hsl(150, 80%, 60%);     /* Green (Vibrant) */
+  --role-fifth:  hsl(210, 85%, 65%);     /* Blue (Vibrant) */
+  --role-scale:  hsla(220, 15%, 75%, 0.3); /* Slate (Subtle) */
+  --role-target: hsl(45, 100%, 65%);      /* Gold (Vibrant) */
+  --role-extension: hsl(280, 70%, 65%);   /* Purple (Vibrant) */
 
   /* ─── COULEURS D'ÉTAT ────────────────────────────────────── */
   --color-error:   hsl(4, 70%, 58%);
@@ -77,6 +201,18 @@
   --transition-fast:   150ms ease;
   --transition-normal: 220ms ease;
   --transition-slow:   350ms ease;
+}
+
+/* ─── ROLE STYLES (Restored) ─── */
+.role-root { background-color: var(--role-root) !important; color: white !important; }
+.role-third { background-color: var(--role-third) !important; color: black !important; }
+.role-fifth { background-color: var(--role-fifth) !important; color: white !important; }
+.role-target { background-color: var(--role-target) !important; color: black !important; }
+.role-extension { background-color: var(--role-extension) !important; color: white !important; }
+.role-scale { 
+  background-color: var(--role-scale) !important; 
+  border: 1px solid var(--text-muted);
+  color: var(--text-secondary) !important;
 }
 
 
@@ -154,7 +290,8 @@ body {
   background: var(--accent-dim);
   border-color: var(--accent);
   color: var(--accent);
-  box-shadow: 0 0 12px var(--accent-glow);
+  box-shadow: 0 0 20px var(--accent-glow), inset 0 0 10px var(--accent-glow);
+  border-width: 1.5px;
 }
 
 /* Select / dropdown premium */
@@ -208,14 +345,14 @@ body {
 
 /* --- GRID LAYOUT --- */
 .main-layout-grid {
-  display: grid;
-  grid-template-columns: 1fr 3.5fr 1fr;
-  gap: 30px;
+  display: block; 
   width: 100%;
-  max-width: 2560px;
+  max-width: 100%;
   margin-top: 20px;
-  align-items: flex-start;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
+/* Padding is now handled by .app-container-inner */
+
 
 .layout-col {
   display: flex;
@@ -238,7 +375,7 @@ h1 {
   border-radius: 8px;
   margin-bottom: 20px;
   width: 100%;
-  max-width: 1200px;
+  max-width: 100%;
   border: 1px solid var(--border-default);
   box-shadow: 0 5px 15px rgba(0,0,0,0.5);
   transition: background-color 0.5s ease, border-color 0.5s ease;
@@ -262,40 +399,115 @@ h1 {
   font-size: 14px;
 }
 
-/* --- MARQUEURS DE NOTES (PIANO & GUITARE) --- */
-.role-root, .piano-key.role-root { background-color: var(--role-root) !important; color: var(--text-bright) !important; }
-.note-marker.role-root { background-color: var(--role-root); border: 2px solid var(--text-bright); box-shadow: 0 0 10px var(--role-root); }
+/* --- MUSICAL ROLES (Functional Coloring) --- */
+.role-root { background-color: var(--role-root) !important; color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.role-third { background-color: var(--role-third) !important; color: #000 !important; }
+.role-fifth { background-color: var(--role-fifth) !important; color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.role-scale { background-color: var(--role-scale) !important; color: var(--text-primary) !important; }
+.role-extension { background-color: var(--role-extension) !important; color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 
-.role-third, .piano-key.role-third { background-color: var(--role-third) !important; color: var(--text-bright) !important; }
-.note-marker.role-third { background-color: var(--role-third); border: 1px solid var(--text-bright); }
+/* Role Z-Index handling is now moved to component-specific CSS */
 
-.role-fifth, .piano-key.role-fifth { background-color: var(--role-fifth) !important; color: var(--text-bright) !important; }
-.note-marker.role-fifth { background-color: var(--role-fifth); border: 1px solid var(--text-bright); }
+.role-target, .piano-key.role-target, .note-marker.role-target { 
+  background: radial-gradient(circle at center, #fff, var(--role-target)) !important;
+  box-shadow: 0 0 25px var(--role-target), 0 0 40px rgba(255,255,255,0.4) !important;
+  color: #000 !important;
+  font-weight: 900 !important;
+  border: 2px solid #fff !important;
+}
 
-.role-scale, .piano-key.role-scale { background-color: var(--role-scale) !important; color: var(--text-bright) !important; }
-.note-marker.role-scale { background-color: var(--role-scale); border: 1px solid #546e7a; }
+.magic-progression-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 columns */
+  grid-template-rows: repeat(2, auto);    /* 2 rows */
+  gap: 12px;
+  justify-items: center;
+  align-items: center;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  margin-top: 15px;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: hidden; /* No more horizontal scroll */
+}
 
-.role-target, .piano-key.role-target { background-color: var(--theme-primary) !important; color: #000 !important; box-shadow: inset 0 0 15px rgba(255,255,255,0.5); }
-.note-marker.role-target { background-color: var(--theme-primary); box-shadow: 0 0 15px var(--theme-primary); color: #000; font-weight: bold; border: 2px solid var(--text-bright); }
+.magic-progression-container button {
+  font-size: 0.85rem !important;
+  padding: 8px 10px !important;
+  width: 100%;           /* Fill grid cell */
+  min-width: 0;          /* Allow shrinking if needed */
+  height: 42px;          /* Matching other CTAs */
+}
 
-/* --- SÉQUENCEUR (PIANO ROLL) --- */
-.piano-roll-container {
-  display: flex;
-  justify-content: flex-start;
-  gap: 6px;
-  margin: 10px 0 20px 0;
-  padding: 10px;
+.note-marker, .piano-key {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.note-marker.active {
+  background: radial-gradient(circle at center, #fff, var(--role-color)) !important;
+  box-shadow: 0 0 15px var(--role-color), 0 0 5px #fff !important;
+  color: #000 !important;
+  border: 1px solid #fff !important;
+}
+
+/* --- PREMIUM FADERS (DAW STYLE) --- */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 28px;
+  width: 14px;
+  background: linear-gradient(180deg, #555, #222);
+  border: 1px solid #000;
+  border-radius: 2px;
+  cursor: pointer;
+  margin-top: -12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+  position: relative;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  background: #111;
+  border-radius: 2px;
+  border: 1px solid #333;
+}
+
+/* --- PIANO ROLL DIM OVERLAY --- */
+.step__dim-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .piano-roll-step {
-  min-width: 35px;
-  height: 35px;
   background-color: var(--bg-raised);
   border: 2px solid var(--bg-overlay);
   border-radius: 6px;
   transition: all 0.1s ease;
   position: relative;
 }
+
+/* Cleaned up duplicate definition */
+
+/* Fretboard Markers Specifics */
+.note-marker.role-root   { border: 2px solid #fff; }
+.note-marker.role-target { border: 2px solid var(--lg-accent-pink, #ff00ff); }
+.subtle-highlight, .subtle-marker { opacity: 0.4 !important; filter: grayscale(0.5); }
+
+/* Transport Button Fix (No double icons) */
+.playback-toggle-btn span { display: none; } /* Hide the duplicate icon in PlaybackPanel if txt already has it */
+
 
 .piano-roll-step.active { background-color: var(--theme-primary); box-shadow: 0 0 12px var(--theme-primary); border-color: #fff; }
 .piano-roll-step.current { transform: scale(1.1); border-color: #fff; z-index: 10; filter: brightness(1.4); }
@@ -324,43 +536,43 @@ h1 {
 .btn-toggle {
   padding: 8px 16px;
   cursor: pointer;
-  border-radius: 4px;
-  border: none;
+  border-radius: var(--radius-xl);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
   font-weight: bold;
   font-size: 13px;
-  background-color: var(--bg-raised);
+  background: var(--glass-bg);
   color: var(--text-secondary);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: all var(--transition-normal);
+  backdrop-filter: var(--glass-blur);
 }
 .btn-toggle--active {
   background-color: var(--theme-primary);
   color: #000;
+  border-color: var(--theme-primary) !important;
+  box-shadow: 0 0 15px var(--accent-glow);
 }
 .btn-toggle:hover:not(.btn-toggle--active) {
-  background-color: var(--border-muted);
+  border-color: var(--accent);
   color: var(--text-bright);
 }
 
 /* Bouton d'onglet (tabs séquenceur) */
 .btn-tab {
-  padding: 10px;
+  padding: 10px 20px;
   cursor: pointer;
-  border-radius: 4px;
-  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-xl);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
   font-weight: bold;
   font-size: 13px;
-  background-color: var(--bg-raised);
+  background: var(--glass-bg);
   color: var(--text-secondary);
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
 }
 .btn-tab--active {
   background-color: var(--theme-primary);
   color: #000;
   border-color: var(--theme-primary);
-}
-.btn-tab:hover:not(.btn-tab--active) {
-  background-color: var(--border-muted);
-  color: var(--text-bright);
+  box-shadow: 0 0 15px var(--accent-glow);
 }
 
 /* Bouton segment (choix parmi N options côte à côte) */
@@ -370,15 +582,19 @@ h1 {
   font-size: 14px;
   font-weight: normal;
   cursor: pointer;
-  border: none;
-  background-color: var(--bg-overlay);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg);
   color: var(--text-secondary);
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-md);
+  margin: 0 2px;
 }
 .btn-segment--active {
   font-weight: bold;
   background-color: var(--theme-primary);
   color: #000;
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 15px var(--accent-glow);
 }
 
 /* Les hacks "transform: scale()" ont été supprimés ici ! */
@@ -410,6 +626,14 @@ h1 {
   gap: 0.75rem;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+/* CustomSelect.css - Liquid Glass Pop Style */
+.custom-select-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
 }
 
 .sliders-group {
@@ -548,30 +772,45 @@ h1 {
 .premium-slider {
   -webkit-appearance: none;
   width: 100%;
-  height: 6px;
-  background: var(--bg-raised);
-  border-radius: 3px;
+  height: 10px;
+  background: #050505;
+  border-radius: 5px;
   outline: none;
-  cursor: pointer;
+  margin: 20px 0;
+  position: relative;
+  border: 1px solid #333;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.premium-slider::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  width: var(--value, 0%);
+  background: linear-gradient(90deg, #1a1a1a, var(--theme-primary, #ffd700));
+  border-radius: 5px;
+  opacity: 0.8;
+  pointer-events: none;
+  box-shadow: 0 0 10px var(--theme-primary);
 }
 
 .premium-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  background: var(--text-secondary);
-  border-radius: 50%;
-  border: 2px solid var(--bg-base);
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
-  transition: transform var(--transition-fast);
-}
-.premium-slider:hover::-webkit-slider-thumb {
-  transform: scale(1.2);
-  background: var(--text-primary);
+  width: 20px;
+  height: 32px;
+  background: linear-gradient(180deg, #999 0%, #444 45%, #111 50%, #444 55%, #999 100%);
+  border: 1px solid #000;
+  border-radius: 3px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+  position: relative;
+  z-index: 10;
 }
 
-.premium-slider.accent::-webkit-slider-thumb {
-  background: var(--accent);
+.premium-slider:hover::-webkit-slider-thumb {
+  filter: brightness(1.2);
+  transform: scale(1.05);
 }
 
 /* FINGERING SPECIFIC */
@@ -677,6 +916,20 @@ h1 {
 .btn-segment--active {
   background: var(--accent);
   color: var(--bg-base);
+  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  position: relative;
+  z-index: 1;
+}
+
+.btn-segment--active::after {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  border: 1px solid var(--accent);
+  border-radius: calc(var(--radius-md) + 2px);
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 /* Emotion card */
@@ -762,36 +1015,68 @@ h1 {
 ═══════════════════════════════════════════════════════ */
 
 .app-container-inner {
-  max-width: 2560px;
+  max-width: 3800px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 10px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   position: relative;
+  transition: padding-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 1024px) {
+  body.sidebar-open .app-container-inner {
+    padding-left: 420px;
+  }
+  body.sidebar-closed .app-container-inner {
+    padding-left: 60px;
+  }
 }
 
 .app-main-content {
   flex: 1;
 }
 
-.app-header {
+/* Redundant .app-header removed - now consolidated at the top */
+
+.app-header-actions {
   display: flex;
-  justify-content: space-between;
+  gap: 12px;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
 }
 
-.app-title {
-  color: #fff;
-  margin: 0;
+.btn-header-action {
+  min-width: 160px; /* Uniform width for better alignment */
+  padding: 8px 16px;
+  background: var(--bg-surface-lighter, #2a2a2a);
+  border: 1px solid var(--border-default, #444);
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  /* Removed contain: paint to allow dropdowns to escape the sidebar stacking context */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
-.app-controls {
-  display: flex;
-  gap: 15px;
-  align-items: center;
+.btn-header-action:hover {
+  background: var(--theme-primary);
+  color: #000;
+  border-color: #fff;
+}
+
+.btn-header-action--select {
+  padding: 0;
+  overflow: hidden;
+}
+
+.btn-header-action--select select {
+  padding: 8px 16px;
 }
 
 .btn-theory {
@@ -812,14 +1097,23 @@ h1 {
 }
 
 .select-lang {
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-deep) 100%);
+  height: 42px; /* Harmonized with btn-header-action */
+  min-width: 160px; /* Harmonized width */
+  padding: 0 12px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--bg-surface-lighter, #2a2a2a) 0%, var(--bg-deep) 100%);
   color: var(--text-primary);
-  border: 1px solid var(--theme-primary);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 14px;
   outline: none;
+  transition: all 0.2s ease;
+}
+
+.select-lang:hover {
+  border-color: var(--theme-primary) !important;
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 .select-lang option {
   background-color: var(--bg-deep);

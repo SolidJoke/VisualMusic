@@ -1,6 +1,9 @@
 import React from "react";
 import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord, resolveChordSemitones } from "../../core/theory";
 import VoicingAlert from "../Intelligence/VoicingAlert";
+import CustomSelect from "../Common/CustomSelect";
+import { log } from "../../utils/debug";
+import { getAvailableGuitarFingerings, getAvailableBassFingerings, getAvailableScaleFingerings } from "../../core/fingeringLogic";
 
 // Map dictType keys to translation keys for scale names
 const SCALE_LABEL_MAP = {
@@ -77,8 +80,16 @@ export default function DictionaryPanel({
   setDictType,
   playDictionaryAudio,
   guitarFingering,   // { fingeringMap, outOfRange, difficultStretch } from App.jsx
+  bassFingering,
+  uiTheme,
   harmonicMode,
-  setHarmonicMode
+  setHarmonicMode,
+  dictOctave,
+  setDictOctave,
+  selectedVoicingIndexGuitar,
+  setSelectedVoicingIndexGuitar,
+  selectedVoicingIndexBass,
+  setSelectedVoicingIndexBass
 }) {
   const { lang, txt, notation } = useAppContext();
   // Derive family from dictType
@@ -109,7 +120,7 @@ export default function DictionaryPanel({
   const recommendedScales = family === "chord" ? getRecommendedScalesForChord(dictType) : [];
 
   return (
-    <div className="glass-panel dict-panel">
+    <div className="glass-panel dict-panel" data-testid="dictionary-panel">
       <h2 className="dict-panel__title accent-text">
         {txt.freeExplorer}
       </h2>
@@ -119,17 +130,19 @@ export default function DictionaryPanel({
         {/* Root note selector */}
         <div className="select-group">
           <label className="field-label">{txt.rootNote}</label>
-          <select
+          <CustomSelect
             value={dictRoot}
-            onChange={(e) => setDictRoot(e.target.value)}
-            className="select-premium"
-          >
-            {NOTES.map((n) => (
-              <option key={n.value} value={n.value}>
-                {notation === "us" ? n.us : n.eu}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => {
+              log("dictionary", `Changing root to ${val}`);
+              setDictRoot(val);
+            }}
+            options={NOTES.map((n) => ({
+              value: n.value,
+              label: notation === "us" ? n.us : n.eu
+            }))}
+            theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+            data-testid="select-root-note"
+          />
         </div>
 
         {/* Family selector (Note / Chord / Scale) */}
@@ -173,27 +186,41 @@ export default function DictionaryPanel({
           )}
         </div>
 
+        {/* Octave selector */}
+        <div className="select-group">
+          <label className="field-label">{txt.octave || "Octave"}</label>
+          <div className="btn-segment-group">
+            {[
+              { value: -1, label: "-1" },
+              { value: 0, label: "0" },
+              { value: 1, label: "+1" },
+            ].map((oct) => (
+              <button
+                key={oct.value}
+                onClick={() => setDictOctave(oct.value)}
+                className={`btn-segment${dictOctave === oct.value ? " btn-segment--active" : ""}`}
+              >
+                {oct.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Sub-selector: Chord type */}
         {family === "chord" && (
           <div className="select-group">
-            <select
+            <CustomSelect
               value={dictType}
-              onChange={(e) => setDictType(e.target.value)}
-              className="select-premium"
-            >
-              {groupedChords.map((group) => (
-                <optgroup
-                  key={group.category}
-                  label={txt[group.labelKey] || group.category}
-                >
-                  {group.items.map((chordKey) => (
-                    <option key={chordKey} value={chordKey}>
-                      {txt[CHORD_LABEL_MAP[chordKey]] || CHORDS[chordKey]?.key || chordKey}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+              onChange={(val) => setDictType(val)}
+              options={groupedChords.map((group) => ({
+                label: txt[group.labelKey] || group.category,
+                items: group.items.map((chordKey) => ({
+                  value: chordKey,
+                  label: txt[CHORD_LABEL_MAP[chordKey]] || CHORDS[chordKey]?.key || chordKey
+                }))
+              }))}
+              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+            />
 
             {/* Emotion/description card for chords */}
             {emotionText && (
@@ -247,24 +274,18 @@ export default function DictionaryPanel({
         {/* Sub-selector: Scale type with optgroups */}
         {family === "scale" && (
           <div className="select-group">
-            <select
+            <CustomSelect
               value={dictType}
-              onChange={(e) => setDictType(e.target.value)}
-              className="select-premium"
-            >
-              {groupedScales.map((group) => (
-                <optgroup
-                  key={group.category}
-                  label={txt[group.labelKey] || group.category}
-                >
-                  {group.items.map((scaleKey) => (
-                    <option key={scaleKey} value={scaleKey}>
-                      {txt[SCALE_LABEL_MAP[scaleKey]] || scaleKey}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+              onChange={(val) => setDictType(val)}
+              options={groupedScales.map((group) => ({
+                label: txt[group.labelKey] || group.category,
+                items: group.items.map((scaleKey) => ({
+                  value: scaleKey,
+                  label: txt[SCALE_LABEL_MAP[scaleKey]] || scaleKey
+                }))
+              }))}
+              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+            />
 
             {/* Emotion/description card for scales */}
             {emotionText && (
@@ -279,6 +300,57 @@ export default function DictionaryPanel({
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Shared Position Selectors (Guitar/Bass) for Chords and Scales */}
+        {(family === "chord" || family === "scale") && (
+          <div className="dict-panel__positions">
+            {/* Guitar Position Selector */}
+            <div className="select-group" style={{ marginTop: "1rem" }}>
+              <label className="field-label">🎸 {txt.guitarPosition || "Guitar Position"}</label>
+              <CustomSelect
+                value={selectedVoicingIndexGuitar}
+                onChange={setSelectedVoicingIndexGuitar}
+                options={(() => {
+                  if (family === "scale") {
+                    return getAvailableScaleFingerings(dictRoot, dictType, 'guitar', ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], txt.voicingOf || 'of')
+                      .map(p => ({ value: p.id, label: p.label }));
+                  }
+                  return getAvailableGuitarFingerings(dictRoot, dictType, dictOctave)
+                    .map(p => ({ value: p.id, label: p.label }));
+                })()}
+                theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+              />
+              {guitarFingering?.isOutOfRange && (
+                <div className="range-warning" style={{ color: "#ff4d4d", fontSize: "0.8em", marginTop: "4px" }}>
+                  ⚠️ {txt.outOfRangeGuitar || "Guitar range exceeded"}
+                </div>
+              )}
+            </div>
+
+            {/* Bass Position Selector */}
+            <div className="select-group" style={{ marginTop: "0.5rem" }}>
+              <label className="field-label">🎸 {txt.bassPosition || "Bass Position"}</label>
+              <CustomSelect
+                value={selectedVoicingIndexBass}
+                onChange={setSelectedVoicingIndexBass}
+                options={(() => {
+                  if (family === "scale") {
+                    return getAvailableScaleFingerings(dictRoot, dictType, 'bass', ['E1', 'A1', 'D2', 'G2'], txt.voicingOf || 'of')
+                      .map(p => ({ value: p.id, label: p.label }));
+                  }
+                  return getAvailableBassFingerings(dictRoot, dictType, dictOctave)
+                    .map(p => ({ value: p.id, label: p.label }));
+                })()}
+                theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+              />
+              {bassFingering?.isOutOfRange && (
+                <div className="range-warning" style={{ color: "#ff4d4d", fontSize: "0.8em", marginTop: "4px" }}>
+                  ⚠️ {txt.outOfRangeBass || "Bass range exceeded"}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

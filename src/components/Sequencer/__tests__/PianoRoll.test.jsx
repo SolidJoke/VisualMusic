@@ -39,13 +39,13 @@ describe("PianoRoll", () => {
     ];
     const html = renderToString(<PianoRoll tracks={ghostTracks} />);
     expect(html).toContain("step--ghost");
-    expect(html).toContain("👻");
+    expect(html).toContain("step__dim-overlay");
   });
 
   it("does NOT render ghost labels when no lowVelocitySteps", () => {
     const html = renderToString(<PianoRoll tracks={baseTracks} />);
     expect(html).not.toContain("step--ghost");
-    expect(html).not.toContain("👻");
+    expect(html).not.toContain("step__dim-overlay");
   });
 
   it("renders pitch labels when pitchSteps present", () => {
