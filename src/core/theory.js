@@ -9,6 +9,43 @@ export const NOTES = [
     { value: 10, us: 'A#', eu: 'La#' }, { value: 11, us: 'B', eu: 'Si' }
 ];
 
+/**
+ * Returns technical metadata for a semitone interval relative to a root.
+ * @param {number} semitones - Distance from root in semitones (0-24+)
+ * @returns {Object} { degree: string, label: string, color: string }
+ */
+export const getIntervalMetadata = (semitones) => {
+    const normalized = semitones % 12;
+    const octave = Math.floor(semitones / 12);
+    
+    const meta = {
+        0:  { degree: '1',  label: 'R',     color: 'var(--root-color)' },
+        1:  { degree: 'b2', label: 'b2',    color: 'var(--ext-color)' },
+        2:  { degree: '2',  label: '2',     color: 'var(--ext-color)' },
+        3:  { degree: 'b3', label: 'b3',    color: 'var(--minor-color)' },
+        4:  { degree: '3',  label: '3',     color: 'var(--major-color)' },
+        5:  { degree: '4',  label: '4',     color: 'var(--ext-color)' },
+        6:  { degree: 'b5', label: 'b5/#4', color: 'var(--tension-color)' },
+        7:  { degree: '5',  label: '5',     color: 'var(--fifth-color)' },
+        8:  { degree: 'b6', label: 'b6',    color: 'var(--ext-color)' },
+        9:  { degree: '6',  label: '6',     color: 'var(--ext-color)' },
+        10: { degree: 'b7', label: 'b7',    color: 'var(--dominant-color)' },
+        11: { degree: '7',  label: '7',     color: 'var(--major7-color)' }
+    }[normalized] || { degree: '?', label: '?', color: 'gray' };
+
+    // Handle extensions (9, 11, 13)
+    if (octave === 1) {
+        if (normalized === 2)  { meta.degree = '9';  meta.label = '9'; }
+        if (normalized === 5)  { meta.degree = '11'; meta.label = '11'; }
+        if (normalized === 9)  { meta.degree = '13'; meta.label = '13'; }
+        if (normalized === 1)  { meta.degree = 'b9'; meta.label = 'b9'; }
+        if (normalized === 3)  { meta.degree = '#9'; meta.label = '#9'; }
+        if (normalized === 6)  { meta.degree = '#11'; meta.label = '#11'; }
+    }
+
+    return meta;
+};
+
 // NEW: Converts a note name (e.g., "C4") to an absolute numeric value (MIDI note number).
 export const getAbsoluteNoteValue = (noteName) => {
     const noteStr = String(noteName);
