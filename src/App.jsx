@@ -1,21 +1,26 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./App.css";
+import "./styles/vintage-theme.css";
+import "./styles/modern-theme.css";
 
 import MixerStrip from "./components/Audio/MixerStrip";
 import DictionaryPanel from "./components/Panels/DictionaryPanel";
 import StudioPanel from "./components/Panels/StudioPanel";
 import ControlPanel from "./components/Panels/ControlPanel";
 import PlaybackPanel from "./components/Panels/PlaybackPanel";
+import Sidebar from "./components/Layout/Sidebar";
+import CustomSelect from "./components/Common/CustomSelect";
 import InstrumentView from "./components/Panels/InstrumentView";
 import { useSequencer } from "./audio/useSequencer";
-import { useUIState } from "./hooks/useUIState";
-import { useStudioState } from "./hooks/useStudioState";
-import { useDictionaryState } from "./hooks/useDictionaryState";
+import { useStudioMode } from "./hooks/useStudioMode";
+import { useDictionaryMode } from "./hooks/useDictionaryMode";
 import { usePlaybackHandlers } from "./hooks/usePlaybackHandlers";
+import { useMusicEngine } from "./hooks/useMusicEngine";
 import { translations } from "./i18n/translations";
 import AboutModal from "./components/Modals/AboutModal";
 import TheoryModal from "./components/Modals/TheoryModal";
-import { AppProvider } from "./context/AppContext";
+import { log } from "./utils/debug";
+import { useAppContext } from "./context/AppContext";
 import { getInversionType, getChordIntervalLabel } from "./core/harmonyEngine";
 
 import {
@@ -31,7 +36,7 @@ import {
   resolveChordSemitones,
   resolveNnsToChordType,
 } from "./core/theory";
-import { getGuitarFingering, getBassFingering } from "./core/fingeringLogic";
+import { getGuitarFingering, getBassFingering, getAvailableGuitarFingerings, getAvailableBassFingerings, getAvailableScaleFingerings } from "./core/fingeringLogic";
 import { BRICKS } from "./core/bricks";
 import {
   chordSynth,
@@ -53,22 +58,40 @@ import {
 
 
 function App() {
-  const {
-    lang, setLang,
-    notation, setNotation,
-    chordDisplayMode, setChordDisplayMode,
-    showAbout, setShowAbout,
-    showTheory, setShowTheory,
-    showFingering, setShowFingering,
-    fingeringMode, setFingeringMode,
-    playbackInstrument, setPlaybackInstrument,
-    layoutMode, setLayoutMode,
-    activeTab, setActiveTab
-  } = useUIState();
+  const { lang, txt, notation, state, dispatch } = useAppContext();
+  const { 
+    appMode,
+    showAbout,
+    showTheory,
+    showFingering,
+    fingeringMode,
+    playbackInstrument,
+    layoutMode,
+    activeTab,
+    chordDisplayMode,
+    uiTheme
+  } = state;
 
-  const txt = (translations && translations[lang]) || {};
+  const setAppMode = (newMode) => {
+    log("app", `Switching appMode to ${newMode}`);
+    dispatch({ type: 'SET_APP_MODE', payload: newMode });
+  };
+  
+  useEffect(() => {
+    document.body.className = `theme-${uiTheme}`;
+  }, [uiTheme]);
 
-  const [appMode, setAppMode] = useState("studio");
+  const setLang = (newLang) => dispatch({ type: 'SET_LANG', payload: newLang });
+  const setNotation = (newNotation) => dispatch({ type: 'SET_NOTATION', payload: newNotation });
+  const setShowAbout = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showAbout', value: val } });
+  const setShowTheory = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showTheory', value: val } });
+  const setShowFingering = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingering', value: val } });
+  const setFingeringMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'fingeringMode', value: val } });
+  const setPlaybackInstrument = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'playbackInstrument', value: val } });
+  const setLayoutMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'layoutMode', value: val } });
+  const setActiveTab = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'activeTab', value: val } });
+  const setChordDisplayMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'chordDisplayMode', value: val } });
+  const setUiTheme = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } });
 
   const playTokenRef = useRef(0);
 
@@ -83,8 +106,19 @@ function App() {
     contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues,
     lastClickedContext, setLastClickedContext,
     singlePlayContext, setSinglePlayContext,
-    visualFocus, setVisualFocus
-  } = useStudioState();
+    visualFocus, setVisualFocus,
+    suggestedBassTrack, setSuggestedBassTrack,
+    activeBrick,
+    activeTracks
+  } = useStudioMode();
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const {
+    drums: activeDrums,
+    melody: activeMelody,
+    progression: activeProgression
+  } = activeTracks;
 
   const {
     dictRoot, setDictRoot,
@@ -92,148 +126,53 @@ function App() {
     fretboardZone, setFretboardZone,
     selectedRootStringGuitar, setSelectedRootStringGuitar,
     selectedRootStringBass, setSelectedRootStringBass,
-    harmonicMode, setHarmonicMode
-  } = useDictionaryState();
+    harmonicMode, setHarmonicMode,
+    selectedVoicingIndexGuitar, setSelectedVoicingIndexGuitar,
+    selectedVoicingIndexBass, setSelectedVoicingIndexBass,
+    scaleAnchor, setScaleAnchor,
+    dictOctave, setDictOctave,
+    activeNotes: dictActiveNotes
+  } = useDictionaryMode();
 
+  // --- Music Engine (Harmonics & Fingering) ---
+  const musicState = useMusicEngine({
+    appMode,
+    activeBrick,
+    clickedChord,
+    currentAbsoluteNotes,
+    chordOctaveOffset,
+    displayMode,
+    visualFocus,
+    selectedRootStringGuitar,
+    selectedRootStringBass,
+    selectedVoicingIndexGuitar,
+    selectedVoicingIndexBass,
+    dictRoot,
+    dictType,
+    dictActiveNotes,
+    dictOctave,
+    fingeringMode
+  });
 
+  const {
+    activeNotes,
+    fretboardActiveNotes,
+    currentRootValue,
+    targetValue,
+    guitarFingering,
+    bassFingering,
+    availableGuitarFingerings,
+    availableBassFingerings,
+    inversionText: rawInversion
+  } = musicState;
 
-  // --- Expert Fingering Logic ---
-  const guitarFingering = useMemo(() => {
-    let rootVal, chordType;
-    if (appMode === "dictionary") {
-      if (!dictType.includes("chord")) return null; // Only for chords
-      rootVal = dictRoot;
-      chordType = dictType;
-    } else {
-      if (!clickedChord) return null;
-      rootVal = clickedChord.rootNote.value;
-      chordType = resolveNnsToChordType(clickedChord.nns);
-    }
-    return getGuitarFingering(rootVal, chordType, selectedRootStringGuitar);
-  }, [clickedChord, selectedRootStringGuitar, appMode, dictRoot, dictType]);
-
-  const bassFingering = useMemo(() => {
-    let rootVal, chordType;
-    if (appMode === "dictionary") {
-      if (!dictType.includes("chord")) return null;
-      rootVal = dictRoot;
-      chordType = dictType;
-    } else {
-      if (!clickedChord) return null;
-      rootVal = clickedChord.rootNote.value;
-      chordType = resolveNnsToChordType(clickedChord.nns);
-    }
-    return getBassFingering(rootVal, chordType, selectedRootStringBass);
-  }, [clickedChord, selectedRootStringBass, appMode, dictRoot, dictType]);
-
-  const activeBrick = BRICKS.at(Number(currentBrickIndex));
-
-  const activeDrums =
-    currentTheme === "B" && activeBrick.drumTracksVariation
-      ? activeBrick.drumTracksVariation
-      : activeBrick.drumTracks;
-  const activeMelody =
-    currentTheme === "B" && activeBrick.melodyTracksVariation
-      ? activeBrick.melodyTracksVariation
-      : activeBrick.melodyTracks;
-  const activeProgression =
-    currentTheme === "B" && activeBrick.nnsProgressionVariation
-      ? activeBrick.nnsProgressionVariation
-      : activeBrick.nnsProgression;
-
-  let activeNotes = [];
-  let fretboardActiveNotes = null;
-  let currentRootValue = 0;
-  let targetValue = -1;
-
-  if (appMode === "studio") {
-    const scaleNotes = getScaleNotes(
-      activeBrick.rootValue,
-      activeBrick.modeName,
-    );
-    const modeData = Reflect.get(MODES, activeBrick.modeName);
-
-    if (displayMode === "scale") {
-      activeNotes = scaleNotes;
-    } else {
-      if (clickedChord) {
-        activeNotes = currentAbsoluteNotes.map((val, idx) => ({
-          value: val % 12,
-          order: idx + 1,
-          absoluteValue: val,
-        }));
-        
-        const chordType = resolveNnsToChordType(clickedChord.nns);
-        const chordData = resolveChordSemitones(chordType);
-        if (chordData) {
-          fretboardActiveNotes = chordData.semitones.map((semi, i) => ({
-            value: (clickedChord.rootNote.value + semi) % 12,
-            order: getChordIntervalLabel(i, semi),
-          }));
-        }
-      } else {
-        const n1 = scaleNotes.at(0).value;
-        const n2 = scaleNotes.at(2).value;
-        const n3 = scaleNotes.at(4).value;
-        activeNotes.push(
-          { value: n1, order: 1, absoluteValue: n1 + 48 },
-          { value: n2, order: 2, absoluteValue: n2 + (n2 < n1 ? 60 : 48) },
-          { value: n3, order: 3, absoluteValue: n3 + (n3 < n1 ? 60 : 48) },
-        );
-      }
-    }
-
-    // --- Bass Pattern Logic ---
-    if (appMode === "studio" && visualFocus === "bass" && clickedChord) {
-      const chordType = resolveNnsToChordType(clickedChord.nns);
-      const chordData = resolveChordSemitones(chordType);
-      if (chordData) {
-        // Show Root, 3rd, 5th, 7th as a "Bass Line Example"
-        activeNotes = chordData.semitones.slice(0, 4).map((semi, i) => ({
-          value: (clickedChord.rootNote.value + semi) % 12,
-          order: getChordIntervalLabel(i, semi),
-          absoluteValue: clickedChord.rootNote.value + semi + 36, // Lower octave for bass
-        }));
-        fretboardActiveNotes = activeNotes;
-      }
-    }
-    currentRootValue = clickedChord
-      ? clickedChord.rootNote.value
-      : activeBrick.rootValue;
-    targetValue = !clickedChord
-      ? (activeBrick.rootValue + modeData.targetInterval) % 12
-      : -1;
-  } else {
-    currentRootValue = Number(dictRoot);
-    const scaleData = resolveScaleIntervals(dictType);
-    if (scaleData) {
-      activeNotes = getScaleNotesGeneric(currentRootValue, scaleData.intervals);
-    } else if (dictType.includes("chord")) {
-      const chordData = resolveChordSemitones(dictType);
-      if (chordData) {
-        activeNotes = chordData.semitones.map((semi, i) => ({
-          value: (currentRootValue + semi) % 12,
-          order: getChordIntervalLabel(i, semi),
-        }));
-      }
-    } else if (dictType === "single_note") {
-      activeNotes.push({ value: currentRootValue, order: null });
-    }
-  }
-
-  // Inversion label — derived from bass note position vs root/third/fifth
-  let inversionText = "";
-  if (clickedChord && currentAbsoluteNotes.length > 0) {
-    const invType = getInversionType(
-      currentAbsoluteNotes[0],
-      clickedChord.rootNote.value,
-      clickedChord.nns,
-    );
-    if (invType === 'root')    inversionText = txt.invRoot    || 'Fondamental';
-    else if (invType === 'first')  inversionText = txt.invFirst   || '1er renversement';
-    else if (invType === 'second') inversionText = txt.invSecond  || '2e renversement';
-    else                           inversionText = txt.invUnknown || '?';
-  }
+  const inversionText = useMemo(() => {
+    if (!rawInversion) return "";
+    if (rawInversion === 'root')    return txt.invRoot    || 'Fondamental';
+    if (rawInversion === 'first')   return txt.invFirst   || '1er renversement';
+    if (rawInversion === 'second')  return txt.invSecond  || '2e renversement';
+    return "";
+  }, [rawInversion, txt]);
   const {
     isAudioReady,
     setIsAudioReady,
@@ -281,14 +220,12 @@ function App() {
     dictRoot,
     dictType,
     playbackInstrument,
-    setPlaybackInstrument,
     guitarFingering,
     bassFingering,
     activeBrick,
-    setClickedChord,
     chordOctaveOffset,
-    selectedRootStringGuitar,
-    selectedRootStringBass
+    setScaleAnchor,
+    scaleAnchor
   });
 
   useEffect(() => {
@@ -312,14 +249,34 @@ function App() {
     }
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
-    setCurrentTheme("A");
-  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm]);
+    setSuggestedBassTrack(null);
+  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack]);
 
   // Handlers implemented via usePlaybackHandlers
 
+  // Track mouse for Liquid Glass effect
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      document.documentElement.style.setProperty('--mouse-x', `${x}%`);
+      document.documentElement.style.setProperty('--mouse-y', `${y}%`);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   return (
-    <AppProvider lang={lang} txt={txt} notation={notation}>
-    <div className="app-container app-container-inner">
+    <div className={`app-container app-container-inner theme-${uiTheme} ${uiTheme === 'vintage' ? 'vintage-chassis' : ''}`} style={{ marginTop: '20px', padding: '40px', width: '95%', maxWidth: 'none' }}>
+      {uiTheme === 'vintage' && (
+        <>
+          <div className="screw screw-tl"></div>
+          <div className="screw screw-tr"></div>
+          <div className="screw screw-bl"></div>
+          <div className="screw screw-br"></div>
+        </>
+      )}
+      
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
 
       <TheoryModal isOpen={showTheory} onClose={() => setShowTheory(false)} txt={txt} />
@@ -328,37 +285,51 @@ function App() {
         <div className="app-header">
           <h1 className="app-title">{txt.title}</h1>
 
-          <div className="app-controls">
+          <div className="app-header-actions">
+            <button 
+              onClick={() => {
+                const next = uiTheme === 'vintage' ? 'modern' : 'vintage';
+                log("app", `Switching theme to ${next}`);
+                setUiTheme(next);
+              }}
+              className="btn-header-action"
+            >
+              {uiTheme === 'vintage' ? '✨ Modern' : '📻 Vintage'}
+            </button>
+
             <button
               onClick={() => setShowTheory(true)}
-              className="btn-theory"
+              className="btn-header-action"
             >
               {txt.guideTheoryBtn}
             </button>
 
-            <select
+            <CustomSelect
+              options={Object.keys(translations).map(l => ({
+                value: l,
+                label: translations[l].langLabel || l.toUpperCase()
+              }))}
               value={lang}
-              onChange={(e) => setLang(e.target.value)}
-              className="select-lang"
-            >
-              <option value="fr">🇫🇷 FR</option>
-              <option value="en">🇬🇧 EN</option>
-              <option value="pt">🇵🇹 PT</option>
-              <option value="zh">🇨🇳 ZH</option>
-            </select>
+              onChange={setLang}
+              theme={uiTheme}
+              className="header-lang-select"
+            />
 
             <button
               onClick={() => setShowAbout(true)}
-              className="btn-about"
+              className="btn-header-action"
             >
               {txt.about}
             </button>
           </div>
         </div>
 
-        <div className="main-layout-grid">
-          {/* --- LEFT COLUMN --- */}
-          <div className="layout-col layout-left">
+        <div className={`main-layout-grid ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+          <Sidebar 
+            isOpen={sidebarOpen} 
+            toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+            uiTheme={uiTheme}
+          >
             {appMode === "studio" && (
               <StudioPanel
                 currentBrickIndex={currentBrickIndex}
@@ -375,6 +346,8 @@ function App() {
                 setClickedChord={setClickedChord}
                 handleChordClick={handleChordClick}
                 inversionText={inversionText}
+                suggestedBassTrack={suggestedBassTrack}
+                setSuggestedBassTrack={setSuggestedBassTrack}
               />
             )}
 
@@ -386,12 +359,19 @@ function App() {
                 setDictType={setDictType}
                 playDictionaryAudio={playDictionaryAudio}
                 guitarFingering={guitarFingering}
+                bassFingering={bassFingering}
+                uiTheme={uiTheme}
                 harmonicMode={harmonicMode}
                 setHarmonicMode={setHarmonicMode}
+                dictOctave={dictOctave}
+                setDictOctave={setDictOctave}
+                selectedVoicingIndexGuitar={selectedVoicingIndexGuitar}
+                setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
+                selectedVoicingIndexBass={selectedVoicingIndexBass}
+                setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
               />
             )}
 
-            {/* NEW LEFT CONTROL PANEL ADDED HERE */}
             <ControlPanel
               setNotation={setNotation}
               chordDisplayMode={chordDisplayMode}
@@ -405,71 +385,79 @@ function App() {
               appMode={appMode}
               dictType={dictType}
             />
+
+            <PlaybackPanel
+              appMode={appMode}
+              setAppMode={setAppMode}
+              isPlaying={isPlaying}
+              togglePlayback={togglePlayback}
+              masterVolume={masterVolume}
+              setMasterVolume={setMasterVolume}
+              currentBpm={currentBpm}
+              handleBpmChange={handleBpmChange}
+              instrumentVolumes={instrumentVolumes}
+              handleInstrumentVolumeChange={handleInstrumentVolumeChange}
+              displayMode={displayMode}
+              setDisplayMode={setDisplayMode}
+              layoutMode={layoutMode}
+              setLayoutMode={setLayoutMode}
+              activeTab={activeTab}
+              fretboardZone={fretboardZone}
+              setFretboardZone={setFretboardZone}
+              visualFocus={visualFocus}
+              setVisualFocus={setVisualFocus}
+              txt={txt}
+            />
+          </Sidebar>
+
+          {/* --- MAIN CONTENT AREA --- */}
+          <div className="layout-col layout-center">
+            <InstrumentView
+              masterAnalyser={masterAnalyser}
+              layoutMode={layoutMode}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              appMode={appMode}
+              displayMode={displayMode}
+              activeDrums={activeDrums}
+              activeMelody={activeMelody}
+              activeChordTrack={activeChordTrack}
+              currentStep={currentStep}
+              currentBpm={currentBpm}
+              activeBrick={activeBrick}
+              activeProgression={activeProgression}
+              chordOctaveOffset={chordOctaveOffset}
+              dictType={dictType}
+              currentRootValue={currentRootValue}
+              targetValue={targetValue}
+              activeNotes={activeNotes}
+              fretboardActiveNotes={fretboardActiveNotes}
+              autoPlayNote={autoPlayNote}
+              currentlyPlayingNotes={currentlyPlayingNotes}
+              contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
+              showFingering={showFingering}
+              fingeringMode={fingeringMode}
+              clickedChord={clickedChord}
+              selectedRootStringGuitar={selectedRootStringGuitar}
+              setSelectedRootStringGuitar={setSelectedRootStringGuitar}
+              selectedRootStringBass={selectedRootStringBass}
+              setSelectedRootStringBass={setSelectedRootStringBass}
+              guitarFingering={guitarFingering}
+              bassFingering={bassFingering}
+              fretboardZone={fretboardZone}
+              lastClickedContext={lastClickedContext}
+              singlePlayContext={singlePlayContext}
+              selectedVoicingIndexGuitar={selectedVoicingIndexGuitar}
+              setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
+              selectedVoicingIndexBass={selectedVoicingIndexBass}
+              setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
+              availableGuitarFingerings={availableGuitarFingerings}
+              availableBassFingerings={availableBassFingerings}
+              harmonicMode={harmonicMode}
+              visualFocus={visualFocus}
+              scaleAnchor={scaleAnchor}
+            />
           </div>
-
-          {/* --- CENTER COLUMN --- */}
-          <InstrumentView
-            masterAnalyser={masterAnalyser}
-            layoutMode={layoutMode}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            appMode={appMode}
-            displayMode={displayMode}
-            activeDrums={activeDrums}
-            activeMelody={activeMelody}
-            activeChordTrack={activeChordTrack}
-            currentStep={currentStep}
-            currentBpm={currentBpm}
-            activeBrick={activeBrick}
-            activeProgression={activeProgression}
-            chordOctaveOffset={chordOctaveOffset}
-            dictType={dictType}
-            currentRootValue={currentRootValue}
-            targetValue={targetValue}
-            activeNotes={activeNotes}
-            fretboardActiveNotes={fretboardActiveNotes}
-            autoPlayNote={autoPlayNote}
-            currentlyPlayingNotes={currentlyPlayingNotes}
-            contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
-            showFingering={showFingering}
-            fingeringMode={fingeringMode}
-            clickedChord={clickedChord}
-            selectedRootStringGuitar={selectedRootStringGuitar}
-            setSelectedRootStringGuitar={setSelectedRootStringGuitar}
-            selectedRootStringBass={selectedRootStringBass}
-            setSelectedRootStringBass={setSelectedRootStringBass}
-            guitarFingering={guitarFingering}
-            bassFingering={bassFingering}
-            fretboardZone={fretboardZone}
-            lastClickedContext={lastClickedContext}
-            singlePlayContext={singlePlayContext}
-            harmonicMode={harmonicMode}
-            visualFocus={visualFocus}
-          />
-
-          {/* --- RIGHT COLUMN --- */}
-          <PlaybackPanel
-            appMode={appMode}
-            setAppMode={setAppMode}
-            isPlaying={isPlaying}
-            togglePlayback={togglePlayback}
-            masterVolume={masterVolume}
-            setMasterVolume={setMasterVolume}
-            currentBpm={currentBpm}
-            handleBpmChange={handleBpmChange}
-            instrumentVolumes={instrumentVolumes}
-            handleInstrumentVolumeChange={handleInstrumentVolumeChange}
-            displayMode={displayMode}
-            setDisplayMode={setDisplayMode}
-            layoutMode={layoutMode}
-            setLayoutMode={setLayoutMode}
-            activeTab={activeTab}
-            fretboardZone={fretboardZone}
-            setFretboardZone={setFretboardZone}
-            visualFocus={visualFocus}
-            setVisualFocus={setVisualFocus}
-            txt={txt}
-          />
         </div>
       </div>
 
@@ -482,7 +470,6 @@ function App() {
         </div>
       </footer>
     </div>
-    </AppProvider>
   );
 }
 

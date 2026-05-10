@@ -14,7 +14,7 @@ import './DAWHelper.css';
  * - genreName: string
  * - lang: 'fr' | 'en' | 'pt' | 'zh'
  */
-export default function DAWHelper({ drumTracks = [], melodyTracks = [], bpm, genreName, lang = 'fr' }) {
+export default function DAWHelper({ drumTracks = [], melodyTracks = [], bpm, genreName, lang = 'fr', progression = [] }) {
     const labels = LABELS[lang] || LABELS.fr;
 
     return (
@@ -115,8 +115,7 @@ function describePattern(name, steps) {
         return `${len} hits`;
     }
     if (n.includes('bass')) {
-        const uniquePitches = [...new Set(Object.values(steps))]; // This is wrong, steps is an array of indices
-        return `Bass pattern (${len} notes)`;
+        return `Bass pattern (${len} hits)`;
     }
     return `${len} hits`;
 }
@@ -132,17 +131,17 @@ const LABELS = {
         title: '📋 Aide DAW — Reproduire ce pattern',
         steps: 'Steps',
         ghost: 'Ghost notes',
-        pitches: 'Hauteurs (0=Fondamentale, +7=Quinte, +12=Octave)',
+        pitches: 'Hauteurs (R=Fondamentale, 3=Tierce, 5=Quinte)',
         steps16th: 'doubles-croches par mesure',
-        pitchInfo: '💡 Les chiffres indiquent le décalage en demi-tons par rapport à la note de base de l\'accord.'
+        pitchInfo: '💡 Les étiquettes (R, 3, 5, etc.) indiquent le degré par rapport à l\'accord en cours.'
     },
     en: {
         title: '📋 DAW Helper — Reproduce this pattern',
         steps: 'Steps',
         ghost: 'Ghost notes',
-        pitches: 'Pitches (0=Root, +7=Fifth, +12=Octave)',
+        pitches: 'Pitches (R=Root, 3=Third, 5=Fifth)',
         steps16th: '16th notes per bar',
-        pitchInfo: '💡 Numbers indicate semitone offset from the chord root note.'
+        pitchInfo: '💡 Labels (R, 3, 5, etc.) indicate the scale degree relative to the active chord.'
     },
     pt: {
         title: '📋 Ajuda DAW — Reproduzir este padrão',

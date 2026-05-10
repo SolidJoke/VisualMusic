@@ -1,6 +1,7 @@
-// src/core/fingeringLogic.js
-//
-// Calculates optimal fingering positions for guitar and bass chords.
+import { getAbsoluteNoteValue } from "./theory";
+
+/**
+ * Calculates optimal fingering positions for guitar and bass chords.
 // Finger notation: 1=Index, 2=Middle, 3=Ring, 4=Pinky, O=Open, X=Muted
 // Anatomical labels: I=Index, M=Middle, A=Annulaire(Ring), m=Auriculaire(Pinky)
 
@@ -10,6 +11,15 @@
 export const FINGER_LABELS = {
   numeric: { 1: '1', 2: '2', 3: '3', 4: '4', O: 'O', X: 'X' },
   anatomic: { 1: 'I', 2: 'M', 3: 'A', 4: 'm', O: 'O', X: 'X' },
+};
+
+/**
+ * Standard instrument ranges (Absolute MIDI values).
+ * C4 = 60.
+ */
+export const INSTRUMENT_RANGES = {
+  guitar: { min: 40, max: 86 }, // E2 to D6 (22 frets)
+  bass: { min: 28, max: 53 },   // E1 to F4 (22 frets)
 };
 
 /**
@@ -274,44 +284,69 @@ const GUITAR_SHAPES = {
   },
 };
 
-function analyzeVoicing(fingeringMap) {
+/**
+ * Analyzes a voicing and checks for instrument range compatibility.
+ * @param {Object} fingeringMap - Raw fingering map
+ * @param {string} instrument - 'guitar' or 'bass'
+ * @param {number} rootValue - Chromatic root
+ * @param {number} octave - Octave offset
+ */
+function analyzeVoicing(fingeringMap, instrument, rootValue, octave = 0) {
   let minFret = 99;
   let maxFret = -1;
-  let outOfRange = false;
-
+  let isOutOfRange = false;
+  
+  // Basic range check: if the total pitch is outside the instrument's capability
+  const range = INSTRUMENT_RANGES[instrument];
+  
+  // We need to calculate absolute pitches to verify range
+  const tuning = instrument === 'bass' ? [43, 38, 33, 28] : [64, 59, 55, 50, 45, 40]; // Reversed order
+  
   for (const strIdx in fingeringMap) {
+    const sIdx = parseInt(strIdx, 10);
+    const openPitch = tuning[sIdx];
+    
     for (const fretStr in fingeringMap[strIdx]) {
-      const val = fingeringMap[strIdx][fretStr];
-      if (val !== 'X' && val !== 'O') {
+      const finger = fingeringMap[strIdx][fretStr];
+      if (finger !== 'X' && finger !== 'O') {
         const fret = parseInt(fretStr, 10);
-        if (fret > 14) outOfRange = true;
+        const pitch = openPitch + fret + (octave * 12);
+        
+        if (pitch < range.min || pitch > range.max) isOutOfRange = true;
+        
         if (fret > 0) {
           if (fret < minFret) minFret = fret;
           if (fret > maxFret) maxFret = fret;
         }
+      } else if (finger === 'O') {
+        const pitch = openPitch + (octave * 12);
+        if (pitch < range.min || pitch > range.max) isOutOfRange = true;
       }
     }
   }
 
   const difficultStretch = (maxFret !== -1 && minFret !== 99) ? (maxFret - minFret > 4) : false;
-  return { fingeringMap, outOfRange, difficultStretch };
+  
+  return { 
+    fingeringMap, 
+    instrument,
+    octave,
+    isOutOfRange, 
+    difficultStretch 
+  };
 }
 
 /**
  * Determines the best guitar fingering for a given chord.
- * @param {number} rootValue - Chromatic value of the chord root (0-11, C=0)
- * @param {string} chordType - Type of the chord (e.g. 'chord_major', 'chord_m7')
- * @param {number|null} rootString - Optional forced string index for the root (5=E, 4=A, 3=D)
- * @returns {Object} Rich fingering object { fingeringMap, outOfRange, difficultStretch }
  */
-export function getGuitarFingering(rootValue, chordType = 'chord_major', rootString = null) {
+export function getGuitarFingering(rootValue, chordType = 'chord_major', rootString = null, octave = 0) {
   // Determine simple triad equivalents for open chords
   const isMinorLike = chordType === 'chord_minor' || chordType === 'chord_m7' || chordType === 'chord_m9' || chordType === 'chord_m7b5';
   const isBasicMajor = chordType === 'chord_major';
   const isBasicMinor = chordType === 'chord_minor';
 
-  // If no rootString is forced, check for open chord shapes first (only for basic triads)
-  if (rootString === null && (isBasicMajor || isBasicMinor)) {
+  // If no rootString is forced, check for open chord shapes first
+  if (rootString === null && octave === 0 && (isBasicMajor || isBasicMinor)) {
     const openChords = {
       0:  { major: 'open_C',  minor: null      },  // C
       2:  { major: 'open_D',  minor: 'open_Dm' },  // D
@@ -324,22 +359,16 @@ export function getGuitarFingering(rootValue, chordType = 'chord_major', rootStr
     if (openOption) {
       const shapeName = isMinorLike ? openOption.minor : openOption.major;
       if (shapeName && GUITAR_SHAPES[shapeName]) {
-        return analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES[shapeName].build()));
+        return analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES[shapeName].build()), 'guitar', rootValue, octave);
       }
     }
   }
 
-  // Open string values
-  const stringOpenValues = {
-    5: 4,  // Low E
-    4: 9,  // A
-    3: 2,  // D
-  };
+  // Open string values (standard EADGBE)
+  const stringOpenValues = { 5: 4, 4: 9, 3: 2 };
 
-  // Determine which string to anchor on
   let targetString = rootString;
   if (targetString === null || ![5, 4, 3].includes(targetString)) {
-    // Default logic: prefer E or A string based on lowest fret
     let rootFretE = (rootValue - stringOpenValues[5] + 12) % 12;
     let rootFretA = (rootValue - stringOpenValues[4] + 12) % 12;
     targetString = (rootFretE <= rootFretA || rootFretE <= 4) ? 5 : 4;
@@ -347,8 +376,7 @@ export function getGuitarFingering(rootValue, chordType = 'chord_major', rootStr
 
   const rootFret = (rootValue - stringOpenValues[targetString] + 12) % 12;
   
-  // Map chordType to shape suffix
-  let shapeSuffix = 'major'; // default
+  let shapeSuffix = 'major';
   if (chordType === 'chord_minor') shapeSuffix = 'minor';
   else if (chordType === 'chord_maj7') shapeSuffix = 'maj7';
   else if (chordType === 'chord_m7' || chordType === 'chord_m9') shapeSuffix = 'm7';
@@ -360,35 +388,22 @@ export function getGuitarFingering(rootValue, chordType = 'chord_major', rootStr
   let shapeName = `${shapeSuffix}_E`;
   if (targetString === 5) shapeName = `${shapeSuffix}_E`;
   else if (targetString === 4) shapeName = `${shapeSuffix}_A`;
-  else if (targetString === 3) shapeName = isMinorLike ? 'minor_D' : 'major_D'; // Fallback for D string
+  else if (targetString === 3) shapeName = isMinorLike ? 'minor_D' : 'major_D';
 
-  // If the specific shape doesn't exist, fallback to major/minor
   if (!GUITAR_SHAPES[shapeName]) {
     shapeName = isMinorLike ? (targetString === 5 ? 'minor_E' : 'minor_A') : (targetString === 5 ? 'major_E' : 'major_A');
   }
 
   const shape = GUITAR_SHAPES[shapeName].build(rootFret);
-  return analyzeVoicing(shapeToFingeringObj(shape));
+  return analyzeVoicing(shapeToFingeringObj(shape), 'guitar', rootValue, octave);
 }
 
 /**
  * Determines the best bass fingering for a given chord.
- * Bass pattern: Root (1=Index) on E string, Fifth (3=Ring) on A string.
- * Adapts to extended chords (adds 7th, etc).
- * @param {number} rootValue - Chromatic value (0-11)
- * @param {string} chordType - Type of the chord (e.g. 'chord_major', 'chord_m7')
- * @returns {Object|null} Fingering object
  */
-export function getBassFingering(rootValue, chordType = 'chord_major', rootString = null) {
-  // Bass strings reversed: index 0:G, 1:D, 2:A, 3:E
-  const stringOpenValues = {
-    3: 4,  // E1
-    2: 9,  // A1
-    1: 2,  // D2
-    0: 7   // G2
-  };
+export function getBassFingering(rootValue, chordType = 'chord_major', rootString = null, octave = 0) {
+  const stringOpenValues = { 3: 4, 2: 9, 1: 2, 0: 7 };
 
-  // Determine which string to anchor on (default to E or A)
   let targetString = rootString;
   if (targetString === null || ![3, 2, 1].includes(targetString)) {
     let rootFretE = (rootValue - stringOpenValues[3] + 12) % 12;
@@ -402,31 +417,175 @@ export function getBassFingering(rootValue, chordType = 'chord_major', rootStrin
   // 1. Root
   fingeringObj[targetString] = { [rootFret]: 1 };
 
-  // 2. Fifth (if string above exists)
+  // 2. Fifth
   if (targetString > 0) {
     const isDim5 = chordType === 'chord_m7b5' || chordType === 'chord_dim' || chordType === 'chord_dim7';
     const fifthFret = isDim5 ? rootFret + 1 : rootFret + 2;
-    if (fifthFret <= 14) {
+    if (fifthFret <= 22) {
       fingeringObj[targetString - 1] = { [fifthFret]: 3 };
     }
   }
 
-  // 3. Octave (if string 2 above exists)
+  // 3. Octave
   if (targetString > 1) {
     const octaveFret = rootFret + 2;
-    if (octaveFret <= 14) {
-      // If we already have something on this string (the 5th), we might skip or replace.
-      // But typically for root on E, 5th is on A, Octave is on D.
-      // String index: E=3, A=2, D=1, G=0.
-      // If root on 3, 5th on 2, Octave on 1. Correct.
+    if (octaveFret <= 22) {
       if (!fingeringObj[targetString - 2]) {
         fingeringObj[targetString - 2] = { [octaveFret]: 4 };
       }
     }
   }
 
-  return { fingeringMap: fingeringObj };
+  return analyzeVoicing(fingeringObj, 'bass', rootValue, octave);
 }
+
+/**
+ * Returns all available guitar fingerings for a chord.
+ */
+export function getAvailableGuitarFingerings(rootValue, chordType = 'chord_major', octave = 0) {
+  const positions = [];
+  const stringOpenValues = { 5: 4, 4: 9, 3: 2 };
+
+  // 1. Check for open chord first
+  const isMinorLike = chordType === 'chord_minor' || chordType === 'chord_m7' || chordType === 'chord_m9' || chordType === 'chord_m7b5';
+  const isBasicMajor = chordType === 'chord_major';
+  const isBasicMinor = chordType === 'chord_minor';
+
+  if (isBasicMajor || isBasicMinor) {
+    const openChords = {
+      0: { major: 'open_C', minor: null },
+      2: { major: 'open_D', minor: 'open_Dm' },
+      4: { major: 'open_E', minor: 'open_Em' },
+      7: { major: 'open_G', minor: null },
+      9: { major: 'open_A', minor: 'open_Am' },
+    };
+    const openOption = openChords[rootValue];
+    if (openOption) {
+      const shapeName = isMinorLike ? openOption.minor : openOption.major;
+      if (shapeName && GUITAR_SHAPES[shapeName]) {
+        positions.push({
+          id: 'open',
+          label: 'Open',
+          fingering: analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES[shapeName].build()), 'guitar', rootValue, octave)
+        });
+      }
+    }
+  }
+
+  // 2. Standard Barre shapes (E, A, D)
+  [5, 4, 3].forEach(targetString => {
+    const rootFret = (rootValue - stringOpenValues[targetString] + 12) % 12;
+    let shapeSuffix = 'major';
+    if (chordType === 'chord_minor') shapeSuffix = 'minor';
+    else if (chordType === 'chord_maj7') shapeSuffix = 'maj7';
+    else if (chordType === 'chord_m7' || chordType === 'chord_m9') shapeSuffix = 'm7';
+    else if (chordType === 'chord_7' || chordType === 'chord_9' || chordType === 'chord_add9') shapeSuffix = 'dom7';
+    else if (chordType === 'chord_m7b5') shapeSuffix = 'm7b5';
+    else if (chordType === 'chord_dim7' || chordType === 'chord_dim') shapeSuffix = 'dim7';
+    else if (isMinorLike) shapeSuffix = 'minor';
+
+    let shapeName = `${shapeSuffix}_E`;
+    if (targetString === 5) shapeName = `${shapeSuffix}_E`;
+    else if (targetString === 4) shapeName = `${shapeSuffix}_A`;
+    else if (targetString === 3) shapeName = isMinorLike ? 'minor_D' : 'major_D';
+
+    if (!GUITAR_SHAPES[shapeName]) {
+      shapeName = isMinorLike ? (targetString === 5 ? 'minor_E' : 'minor_A') : (targetString === 5 ? 'major_E' : 'major_A');
+    }
+
+    if (GUITAR_SHAPES[shapeName]) {
+      const label = targetString === 5 ? 'E-shape' : (targetString === 4 ? 'A-shape' : 'D-shape');
+      positions.push({
+        id: targetString,
+        label: `${label} (fr. ${rootFret})`,
+        fingering: analyzeVoicing(shapeToFingeringObj(GUITAR_SHAPES[shapeName].build(rootFret)), 'guitar', rootValue, octave)
+      });
+    }
+  });
+
+  return positions;
+}
+
+/**
+ * Returns all available bass fingerings for a chord.
+ */
+export function getAvailableBassFingerings(rootValue, chordType = 'chord_major', octave = 0) {
+  const positions = [];
+  [3, 2, 1].forEach(targetString => {
+    positions.push({
+      id: targetString,
+      label: `String ${targetString === 3 ? 'E' : (targetString === 2 ? 'A' : 'D')}`,
+      fingering: getBassFingering(rootValue, chordType, targetString, octave)
+    });
+  });
+  return positions;
+}
+
+/**
+ * Returns available scale patterns (positions/boxes) for guitar or bass.
+ */
+export function getAvailableScaleFingerings(rootValue, scaleType, instrument = 'guitar', strings = [], sep = 'of') {
+  const positions = [];
+  const stringOpenValues = strings.map(s => getAbsoluteNoteValue(s)).reverse(); // Match 5:LowE, 0:HighE index logic
+  
+  const numStrings = strings.length;
+  const isBass = instrument === 'bass';
+  const span = isBass ? 3 : 4;
+
+  // We offer 5 boxes for guitar, 3-4 for bass
+  // Box 1: Root on lowest string
+  // Box 2: Root on string above, etc.
+  // To keep it simple, we'll find all root positions and create a box around them
+  
+  const rootPositions = [];
+  stringOpenValues.forEach((openVal, sIdx) => {
+    const sIdxLogical = (numStrings - 1) - sIdx;
+    for (let f = 0; f <= 15; f++) {
+      if ((openVal + f) % 12 === rootValue) {
+        rootPositions.push({ stringIndex: sIdxLogical, fret: f });
+      }
+    }
+  });
+
+  // Unique boxes by start fret
+  const startFrets = new Set();
+  rootPositions.forEach(pos => {
+    // 5 standard CAGED-like positions can be approximated by root-relative offsets
+    // Position starting at root, or root-1, or root-2...
+    [0, -1, -2, -3].forEach(offset => {
+        const start = Math.max(0, pos.fret + offset);
+        if (start <= 12) startFrets.add(start);
+    });
+  });
+
+  const sortedStarts = Array.from(startFrets).sort((a, b) => a - b);
+  
+  // Filter to keep ~5 well-spaced positions
+  const filteredStarts = [];
+  let last = -99;
+  sortedStarts.forEach(s => {
+    if (s >= last + 2) {
+        filteredStarts.push(s);
+        last = s;
+    }
+  });
+
+  filteredStarts.slice(0, 5).forEach((start, idx) => {
+    positions.push({
+      id: `pos_${start}`,
+      label: `${idx + 1} ${sep} ${filteredStarts.slice(0, 5).length}`,
+      fingering: { 
+        fingeringMap: {}, // Handled by the filter in Fretboard for scales
+        isScaleBox: true,
+        startFret: start,
+        endFret: start + span
+      }
+    });
+  });
+
+  return positions;
+}
+
 
 /**
  * Converts a shape definition to the fingering object format
@@ -436,11 +595,11 @@ function shapeToFingeringObj(shape) {
   const result = {};
   for (const [strIdx, data] of Object.entries(shape)) {
     if (data === null) {
-      // Muted string: mark all frets as X
-      result[strIdx] = {};
-      for (let f = 0; f <= 14; f++) {
-        result[strIdx][f] = 'X';
-      }
+      // Muted string
+      result[strIdx] = { 'X': true };
+    } else if (data.finger === 'O') {
+      // Open string
+      result[strIdx] = { 0: 'O' };
     } else {
       result[strIdx] = { [data.fret]: data.finger };
     }

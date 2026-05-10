@@ -1,0 +1,74 @@
+{
+  "voiceLeadingRules": {
+    "maxFretStretch": 4,
+    "jumpPenalty": 2.5,
+    "stringStayBonus": 1.5
+  },
+  "harmonicSubstitutions": {
+    "tritone": {
+      "C7": "Gb7",
+      "Db7": "G7",
+      "D7": "Ab7",
+      "Eb7": "A7",
+      "E7": "Bb7",
+      "F7": "B7",
+      "Gb7": "C7",
+      "G7": "Db7",
+      "Ab7": "D7",
+      "A7": "Eb7",
+      "Bb7": "E7",
+      "B7": "F7"
+    },
+    "relativeMinor": {
+      "C": "Am",
+      "Db": "Bbm",
+      "D": "Bm",
+      "Eb": "Cm",
+      "E": "C#m",
+      "F": "Dm",
+      "Gb": "Ebm",
+      "G": "Em",
+      "Ab": "Fm",
+      "A": "F#m",
+      "Bb": "Gm",
+      "B": "G#m"
+    },
+    "secondaryDominants": {
+      "ii": "VI7",
+      "iii": "VII7",
+      "IV": "I7",
+      "V": "II7",
+      "vi": "III7"
+    }
+  },
+  "extendedChords": {
+    "maj9": [0, 4, 7, 11, 14],
+    "m9": [0, 3, 7, 10, 14],
+    "dom9": [0, 4, 7, 10, 14],
+    "11th": [0, 4, 7, 10, 14, 17],
+    "13th": [0, 4, 7, 10, 14, 17, 21],
+    "7b9": [0, 4, 7, 10, 13],
+    "7#9": [0, 4, 7, 10, 15],
+    "m7b5": [0, 3, 6, 10]
+  },
+  "instrumentRanges": {
+    "guitar_standard": {
+      "lowestNote": "E2",
+      "highestNote": "E6",
+      "lowestMidi": 40,
+      "highestMidi": 88
+    },
+    "bass_standard": {
+      "lowestNote": "E1",
+      "highestNote": "G3",
+      "lowestMidi": 28,
+      "highestMidi": 67
+    },
+    "piano_88": {
+      "lowestNote": "A0",
+      "highestNote": "C8",
+      "lowestMidi": 21,
+      "highestMidi": 108
+    }
+  }
+}

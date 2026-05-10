@@ -6,8 +6,8 @@ export function useUIState() {
   const [chordDisplayMode, setChordDisplayMode] = useState("standard");
   const [showAbout, setShowAbout] = useState(false);
   const [showTheory, setShowTheory] = useState(false);
-  const [showFingering, setShowFingering] = useState(false);
-  const [fingeringMode, setFingeringMode] = useState("numeric");
+  const [showFingering, setShowFingering] = useState(true);
+  const [fingeringMode, setFingeringMode] = useState("anatomic");
   const [playbackInstrument, setPlaybackInstrument] = useState("piano");
   const [layoutMode, setLayoutMode] = useState("all");
   const [activeTab, setActiveTab] = useState("sequencer");

@@ -52,11 +52,17 @@ vi.mock("../../audio/useSequencer", () => ({
   }),
 }));
 
+import { AppProvider } from "../../context/AppContext";
+
 describe("App runtime error trap", () => {
   it("renders app without throwing", () => {
     // This will throw the exact error that causes the black screen!
     try {
-      renderToString(<App />);
+      renderToString(
+        <AppProvider>
+          <App />
+        </AppProvider>
+      );
     } catch(e) {
       console.error("APP CRASH TRACE:", e.stack);
       throw e;

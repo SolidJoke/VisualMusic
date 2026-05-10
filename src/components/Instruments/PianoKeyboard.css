@@ -2,22 +2,15 @@
 
 @keyframes note-playing-overlay {
     0% {
-        background-color: rgba(255, 255, 255, 0.5);
-        box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.9) inset;
+        background-color: rgba(255, 255, 255, 0.7);
+        box-shadow: 0 0 15px 5px var(--accent-glow) inset, 0 0 20px var(--accent-glow);
+        transform: scale(1);
     }
     100% {
         background-color: rgba(255, 255, 255, 0);
-        box-shadow: 0 0 0 10px rgba(255, 215, 0, 0) inset;
+        box-shadow: 0 0 0px 0px rgba(255, 255, 255, 0) inset;
+        transform: scale(1.05);
     }
-}
-
-.piano-container {
-    display: flex;
-    background-color: #111;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-    margin: 0 auto;
 }
 
 .piano-key {
@@ -39,11 +32,11 @@
     top: 0; left: 0; right: 0; bottom: 0;
     pointer-events: none;
     border-radius: inherit;
-    z-index: 1; /* Stays below the nested black key (z-index: 2) and label (z-index: 3) */
+    z-index: 50; /* Above colored highlights (25) and black keys (30/40) */
 }
 
 .piano-key.is-playing::after {
-    animation: note-playing-overlay 0.5s ease-out forwards;
+    animation: note-playing-overlay 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 .white-key {
@@ -64,6 +57,17 @@
     align-items: center;
     gap: 15px;
     width: 100%;
+}
+
+.piano-container {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    position: relative;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .explanations-toggle-container {
@@ -105,7 +109,7 @@
     position: relative;
     display: flex;
     justify-content: center;
-    z-index: 2;
+    z-index: 40; /* Higher than any white key highlight (25) */
 }
 
 .black-key {
@@ -116,7 +120,7 @@
     position: absolute;
     top: -1px; /* Align perfectly with top border */
     left: -16px; /* Exactly center over the 0-width wrapper */
-    z-index: 2;
+    z-index: 30;
     border-bottom-left-radius: 4px;
     border-bottom-right-radius: 4px;
     border: 1px solid #111;
@@ -141,7 +145,8 @@
     gap: 2px;
     pointer-events: none; /* Prevent clicks on label interfering with key clicks */
     position: relative;
-    z-index: 3;
+    z-index: 40;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8); /* Better contrast on colored keys */
 }
 
 .flat-label {
@@ -158,24 +163,16 @@
 
 /* Color Styling for Active Notes */
 
-.piano-key.role-root {
-    background-color: #cf6679; 
-    color: #fff;
-}
-
-.piano-key.role-third {
-    background-color: #64b5f6;
-    color: #000;
-}
-
-.piano-key.role-fifth {
-    background-color: #81c784;
-    color: #000;
+.piano-key.role-root,
+.piano-key.role-third,
+.piano-key.role-fifth,
+.piano-key.role-extension,
+.piano-key.role-target {
+  z-index: 10 !important; /* Lower than black-key-wrapper (40) */
 }
 
 .piano-key.role-scale {
-    background-color: #78909c;
-    color: #fff;
+  z-index: 5;
 }
 
 .piano-key.white-key.subtle-highlight {
@@ -189,8 +186,51 @@
     border-color: #222;
 }
 
-.piano-key.role-target {
-    background-color: var(--theme-primary);
-    color: #000;
-    box-shadow: 0 0 10px var(--theme-primary) inset;
+.piano-key.role-root {
+    background: radial-gradient(circle at center, var(--role-root) 0%, rgba(0,0,0,0.3) 100%) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.4) !important;
 }
+
+.piano-key.role-third {
+    background: radial-gradient(circle at center, var(--role-third) 0%, rgba(0,0,0,0.3) 100%) !important;
+    color: #000 !important;
+    border: 1px solid rgba(0,0,0,0.2) !important;
+}
+
+.piano-key.role-fifth {
+    background: radial-gradient(circle at center, var(--role-fifth) 0%, rgba(0,0,0,0.3) 100%) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+}
+
+.piano-key.role-scale {
+    background-color: var(--role-scale) !important;
+    color: #fff !important;
+    opacity: 0.8;
+}
+
+.piano-key.role-target {
+    background: radial-gradient(circle at center, #fff, var(--role-target)) !important;
+    color: #000 !important;
+    box-shadow: 0 0 15px var(--role-target);
+}
+
+/* Legend Markers */
+.marker {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.marker.root { background-color: var(--role-root); color: #fff; border: 2px solid #fff; }
+.marker.third { background-color: var(--role-third); color: #000; border: 2px solid rgba(0,0,0,0.2); }
+.marker.fifth { background-color: var(--role-fifth); color: #fff; border: 2px solid rgba(255,255,255,0.4); }
+.marker.scale { background-color: var(--role-scale); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+.marker.target { background-color: var(--role-target); color: #000; border: 2px solid #fff; box-shadow: 0 0 10px var(--role-target); }

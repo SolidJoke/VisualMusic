@@ -19,9 +19,8 @@ describe('fingeringLogic', () => {
       const result = getGuitarFingering(0, 'chord_major');
       expect(result).not.toBeNull();
       const map = result.fingeringMap;
-      // Open C: string 5 (low E) should be muted (X everywhere)
-      expect(map[5]).toBeDefined();
-      expect(Object.values(map[5]).every(v => v === 'X')).toBe(true);
+      // Open C: string 5 (low E) should be muted (X key)
+      expect(map[5]['X']).toBe(true);
       // String 4 (A) should have fret 3, finger 3
       expect(map[4][3]).toBe(3);
       // String 2 (G) should be open (fret 0, O)
@@ -57,7 +56,7 @@ describe('fingeringLogic', () => {
       expect(result).not.toBeNull();
       const map = result.fingeringMap;
       expect(map[4][1]).toBe(1);
-      expect(Object.values(map[5]).every(v => v === 'X')).toBe(true);
+      expect(map[5]['X']).toBe(true);
     });
 
     it('should use "O" label for all open strings in open shapes', () => {
@@ -66,7 +65,7 @@ describe('fingeringLogic', () => {
         ['chord_major', 'chord_minor'].forEach(chordType => {
           const res = getGuitarFingering(root, chordType);
           Object.values(res.fingeringMap).forEach(stringMap => {
-            if (stringMap[0] !== undefined && stringMap[0] !== 'X') {
+            if (stringMap[0] !== undefined && stringMap['X'] === undefined) {
               expect(stringMap[0]).toBe('O');
             }
           });
@@ -115,36 +114,50 @@ describe('fingeringLogic', () => {
       const result = getBassFingering(4, 'chord_major');
       expect(result).not.toBeNull();
       // E is open on bass E string -> fret 0
-      expect(result[3][0]).toBe(1);
+      expect(result.fingeringMap[3][0]).toBe(1);
     });
 
     it('should return root + 5th + octave for major chords', () => {
       const result = getBassFingering(0, 'chord_major'); // C
       expect(result).not.toBeNull();
+      const map = result.fingeringMap;
       // C: rootFretE=8, rootFretA=3 → anchor on A string (index 2) because 3 < 8
       // Root on A string (index 2): fret 3
-      expect(result[2][3]).toBe(1);
+      expect(map[2][3]).toBe(1);
       // 5th on D string (index 1): fret 3 + 2 = 5
-      expect(result[1][5]).toBe(3);
+      expect(map[1][5]).toBe(3);
       // Octave on G string (index 0): fret 3 + 2 = 5
-      expect(result[0][5]).toBe(4);
+      expect(map[0][5]).toBe(4);
     });
 
     it('should handle m7b5 bass shape with dim5', () => {
       const result = getBassFingering(0, 'chord_m7b5'); // Cm7b5
       expect(result).not.toBeNull();
+      const map = result.fingeringMap;
       // C: anchor on A string (index 2), rootFret = 3
-      expect(result[2][3]).toBe(1); // Root on A string, fret 3
+      expect(map[2][3]).toBe(1); // Root on A string, fret 3
       // dim5: fret = rootFret + 1 = 4 on D string (index 1)
-      expect(result[1][4]).toBe(3); // dim5 on D string
+      expect(map[1][4]).toBe(3); // dim5 on D string
     });
 
     it('should handle all 12 root values without crashing', () => {
       for (let root = 0; root < 12; root++) {
         const result = getBassFingering(root, 'chord_major');
-        expect(result).not.toBeNull();
-        expect(typeof result).toBe('object');
+        expect(result.fingeringMap).toBeDefined();
+        expect(typeof result.fingeringMap).toBe('object');
       }
+    });
+
+    it('should detect out-of-range for extremely low/high octaves', () => {
+      // Guitar: C major, octave -3 (should be out of range, below guitar E2=40)
+      // C2 is MIDI 36, C major uses 36, 40, 43. 36 < 40.
+      const resLow = getGuitarFingering(0, 'chord_major', 5, -2); // octave -2 relative to default 4
+      expect(resLow.isOutOfRange).toBe(true);
+
+      // Bass: C major, octave +2 (should be out of range, above bass G2=53)
+      // Bass default is MIDI 28. +2 octaves = MIDI 52. 5th of C2 is G2 (MIDI 55). 55 > 53.
+      const resHigh = getBassFingering(0, 'chord_major', 2, 2);
+      expect(resHigh.isOutOfRange).toBe(true);
     });
   });
 });

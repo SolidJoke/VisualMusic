@@ -1,0 +1,335 @@
+/* src/styles/modern-theme.css */
+
+.theme-modern {
+  /* ─── LIQUID GLASS + CYBERPUNK PALETTE ─── */
+  --lg-bg: hsl(260, 50%, 15%);
+  --lg-bg: oklch(15% 0.05 260);
+  --lg-panel-bg: rgba(10, 15, 25, 0.6);
+  --lg-accent: hsl(190, 100%, 75%);
+  --lg-accent: oklch(75% 0.25 190);
+  --lg-accent-pink: hsl(340, 100%, 70%);
+  --lg-accent-pink: oklch(70% 0.3 340);
+  --lg-accent-glow: hsla(190, 100%, 75%, 0.4);
+  --lg-accent-glow: oklch(75% 0.25 190 / 0.4);
+  
+  --lg-blur: blur(20px);
+  --lg-border: 1px solid rgba(0, 229, 255, 0.2);
+  --lg-shadow: 0 0 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 229, 255, 0.05);
+
+  /* Role Colors - Cyberpunk Palette */
+  --role-root: hsl(20, 100%, 70%);
+  --role-root: oklch(70% 0.25 20);
+  --role-third: hsl(150, 100%, 75%);
+  --role-third: oklch(75% 0.2 150);
+  --role-fifth: hsl(250, 100%, 70%);
+  --role-fifth: oklch(70% 0.2 250);
+  --role-scale: hsla(250, 20%, 60%, 0.6);
+  --role-scale: oklch(60% 0.05 250 / 0.6);
+  --role-target: hsl(90, 100%, 85%);
+  --role-target: oklch(85% 0.2 90);
+  --role-extension: hsl(280, 50%, 60%);
+  --role-extension: oklch(65% 0.15 280);
+}
+
+.theme-modern {
+  background-color: var(--lg-bg);
+  background-image: 
+    linear-gradient(rgba(0, 229, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.5s ease;
+}
+
+.theme-modern .vintage-chassis {
+  background: var(--lg-panel-bg);
+  backdrop-filter: var(--lg-blur);
+  border: var(--lg-border);
+  box-shadow: var(--lg-shadow);
+  border-radius: 12px;
+  position: relative;
+  overflow: visible; /* Allow selects to pop out */
+  z-index: 2;
+}
+
+/* Cyberpunk tech line corner */
+.theme-modern .vintage-chassis::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+  width: 60px; height: 60px;
+  border-top: 2px solid var(--lg-accent);
+  border-left: 2px solid var(--lg-accent);
+  z-index: 1; /* Lower z-index */
+  pointer-events: none; /* Avoid blocking clicks */
+  opacity: 0.5;
+}
+
+.theme-modern .vintage-chassis {
+  background: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.theme-modern .vintage-chassis::before,
+.theme-modern .vintage-chassis::after {
+  display: none !important;
+}
+
+.theme-modern .vintage-module {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  border-radius: 0; /* Sharper cyberpunk angles */
+  clip-path: none; /* Removed corner cutouts as requested */
+  padding: 20px;
+  margin-bottom: 25px;
+}
+
+.theme-modern .lcd-display {
+  background: rgba(0, 10, 20, 0.95);
+  border-left: 4px solid var(--lg-accent-pink);
+  color: var(--lg-accent);
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  overflow: visible !important; /* CRITICAL: Allow CustomSelect to pop out */
+  z-index: 10;
+}
+
+.theme-modern .step-lamp {
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.1);
+}
+
+.theme-modern .step-lamp.active {
+  box-shadow: 0 0 15px var(--active-glow);
+  background: var(--active-color);
+}
+
+/* Beat markers - More visible */
+.theme-modern .step-lamp--beat {
+  border-left: 2px solid var(--lg-accent) !important;
+}
+
+.theme-modern .step-lamp--measure {
+  border-left: 4px solid var(--lg-accent-pink) !important;
+}
+
+.theme-modern .step-lamp--current {
+  outline: 2px solid #fff;
+  box-shadow: 0 0 20px #fff;
+}
+
+/* Zoomed state for steps */
+.theme-modern .step-lamp.zoomed {
+  width: 35px;
+  height: 30px;
+}
+
+/* ─── REALISM & INSTRUMENT STYLES ─── */
+
+.theme-modern .piano-wrapper {
+  background: rgba(0, 0, 0, 0.4); /* Dark glass instead of Nord Red */
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.theme-modern .piano-key.white-key {
+  background: linear-gradient(to bottom, #eee, #fff);
+  border-radius: 0 0 4px 4px;
+}
+
+.theme-modern .piano-key.black-key {
+  background: linear-gradient(to bottom, #333, #000);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.theme-modern .fretboard {
+  background: #2c1e16; /* Fallback */
+  background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://www.transparenttextures.com/patterns/dark-wood.png');
+  background-blend-mode: normal;
+  border: 4px solid #1a110c;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
+}
+
+.theme-modern .fretboard-dot {
+  background: radial-gradient(circle, #f0e68c, #bdb76b);
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+.theme-modern .note-marker {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* Layout fix: ensure instruments stack */
+.theme-modern .scrollable-instrument {
+  display: block !important;
+  width: 100%;
+}
+
+.theme-modern .instrument-card {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  margin-bottom: 20px;
+}
+
+/* ─── PREMIUM SLIDERS ─── */
+.theme-modern .premium-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 3px;
+  outline: none;
+  margin: 15px 0;
+  position: relative;
+}
+
+.theme-modern .premium-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(to right, var(--lg-accent) 0%, var(--lg-accent) var(--value, 0%), transparent var(--value, 0%), transparent 100%);
+  border-radius: 3px;
+}
+
+.theme-modern .premium-slider.accent::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, var(--lg-accent-pink) 0%, var(--lg-accent-pink) var(--value, 0%), transparent var(--value, 0%), transparent 100%);
+}
+
+.theme-modern .premium-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  margin-top: -6px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  border: 2px solid var(--lg-accent);
+}
+
+/* ─── UI CONTROLS ─── */
+.theme-modern .btn-toggle {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.theme-modern .btn-toggle--active {
+  background: var(--lg-accent);
+  color: #000;
+  box-shadow: 0 0 20px var(--lg-accent), inset 0 0 10px rgba(255,255,255,0.4);
+  border: 1.5px solid #fff;
+}
+
+.theme-modern .btn-toggle:hover:not(.btn-toggle--active) {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: var(--lg-accent);
+  color: var(--text-bright);
+}
+
+/* ─── PREMIUM BUTTONS & GLOWS ─── */
+.theme-modern .btn-premium {
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.theme-modern .btn-premium.active {
+  background: var(--lg-accent);
+  color: #000;
+  box-shadow: 0 0 20px var(--lg-accent), inset 0 0 10px rgba(255,255,255,0.4);
+  border: 1.5px solid #fff;
+}
+
+.theme-modern .btn-segment {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.theme-modern .btn-segment--active {
+  background: var(--lg-accent);
+  color: #000;
+  box-shadow: 0 0 15px var(--lg-accent);
+  border: 1.5px solid #fff;
+}
+
+/* ─── HEADER & ACTIVE STATE ENHANCEMENTS ─── */
+.theme-modern .btn-header-action,
+.theme-modern .custom-select-header {
+  background: rgba(0, 5, 10, 0.6); /* Darker for better contrast */
+  border: 1px solid rgba(0, 229, 255, 0.3); /* More prominent cyan border */
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.theme-modern .btn-header-action:hover,
+.theme-modern .custom-select-header:hover {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: var(--lg-accent);
+  box-shadow: 0 0 15px var(--lg-accent-glow);
+  transform: translateY(-1px);
+}
+
+.theme-modern .btn-header-action.active,
+.theme-modern .is-open .custom-select-header {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: var(--lg-accent);
+  box-shadow: 0 0 20px var(--lg-accent-glow), inset 0 0 10px rgba(255,255,255,0.1);
+}
+
+/* Explicit Active Borders for all control buttons */
+.theme-modern .vintage-control-btn.active,
+.theme-modern .btn-premium.active,
+.theme-modern .btn-toggle--active {
+  border: 1px solid #fff !important;
+  box-shadow: 0 0 20px var(--lg-accent), inset 0 0 8px rgba(255,255,255,0.4);
+}
+
+/* Liquid Glass Tab Styling */
+.theme-modern .tab-btn {
+  border-bottom: 2px solid transparent;
+  opacity: 0.7;
+}
+
+.theme-modern .tab-btn.active {
+  opacity: 1;
+  border-bottom: 2px solid var(--lg-accent);
+  text-shadow: 0 0 8px var(--lg-accent);
+}

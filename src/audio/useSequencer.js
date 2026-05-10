@@ -23,6 +23,54 @@ const noteNamesArray = [
   "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
 ];
 
+export const PITCH_MAP = {
+  'R': 0,
+  '2': 2,
+  'b3': 3,
+  '3': 4,
+  '4': 5,
+  '#4': 6,
+  '5': 7,
+  'b6': 8,
+  '6': 9,
+  'b7': 10,
+  '7': 11,
+  '8va': 12,
+  'octave': 12
+};
+
+/**
+ * Resolves a bass note based on the current chord root and a relative interval label.
+ * @param {number} chordRootValue - MIDI value of the chord's root note (0-11)
+ * @param {string} intervalLabel - Interval label from PITCH_MAP (e.g., 'R', '5', 'b3')
+ * @param {number} baseOctave - Target octave for the bass (default 2)
+ * @returns {{ name: string, midi: number }}
+ */
+export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2) {
+  const semitones = PITCH_MAP[intervalLabel] || 0;
+  const midiNote = (chordRootValue % 12) + semitones + (baseOctave + 1) * 12;
+  return {
+    name: `${NOTES[midiNote % 12].us}${Math.floor(midiNote / 12) - 1}`,
+    midi: midiNote
+  };
+}
+
+/**
+ * Calculates a leading tone (usually 1 semitone below or above) to the next chord's root.
+ * @param {number} nextChordRootValue - MIDI value of the next chord's root (0-11)
+ * @param {number} baseOctave - Target octave
+ * @returns {{ name: string, midi: number }}
+ */
+export function getLeadingTone(nextChordRootValue, baseOctave = 2) {
+  // Use a chromatic approach from below (most common in jazz/blues)
+  const targetMidi = (nextChordRootValue % 12) + (baseOctave + 1) * 12;
+  const leadingMidi = targetMidi - 1; 
+  return {
+    name: `${NOTES[leadingMidi % 12].us}${Math.floor(leadingMidi / 12) - 1}`,
+    midi: leadingMidi
+  };
+}
+
 export function useSequencer({
   appMode,
   activeBrick,
@@ -164,11 +212,48 @@ export function useSequencer({
               track.lowVelocitySteps && track.lowVelocitySteps.includes(relativeStep)
                 ? 0.4
                 : 0.9;
-            let octave = track.name.toLowerCase().includes("bass") ? 2 : 4;
-            let noteName = `${noteNamesArray[rootVal % 12]}${octave}`;
-            bassSynth.triggerAttackRelease(noteName, "16n", time, vel);
-            
-            const absNote = getAbsoluteNoteValue(noteName);
+
+            const isBass = track.name.toLowerCase().includes("bass");
+            let octave = isBass ? 2 : 4;
+            let finalNoteName;
+            let absNote;
+
+            // Bass Intelligence: Follow chord progression + Leading Tones
+            if (isBass && progression && progression.length > 0 && brick) {
+               const chordIndex = Math.floor(stepCounter / 16) % progression.length;
+               const currentNns = progression[chordIndex];
+               const chords = generateChordsFromNNS(brick.rootValue, brick.modeName, [currentNns]);
+               
+               if (chords.length > 0) {
+                 const currentChordRoot = chords[0].rootNote.value;
+                 const intervalLabel = (track.pitchSteps && track.pitchSteps[relativeStep]) || 'R';
+                 
+                 // Leading tone logic on the last step of the measure
+                 if (relativeStep === 15 && progression.length > 1) {
+                    const nextChordIndex = (chordIndex + 1) % progression.length;
+                    const nextChords = generateChordsFromNNS(brick.rootValue, brick.modeName, [progression[nextChordIndex]]);
+                    if (nextChords.length > 0) {
+                      const resolved = getLeadingTone(nextChords[0].rootNote.value, octave);
+                      finalNoteName = resolved.name;
+                      absNote = resolved.midi;
+                    }
+                 }
+
+                 if (!finalNoteName) {
+                   const resolved = getBassNote(currentChordRoot, intervalLabel, octave);
+                   finalNoteName = resolved.name;
+                   absNote = resolved.midi;
+                 }
+               }
+            }
+
+            // Fallback (or non-bass melody)
+            if (!finalNoteName) {
+              finalNoteName = `${noteNamesArray[rootVal % 12]}${octave}`;
+              absNote = getAbsoluteNoteValue(finalNoteName);
+            }
+
+            bassSynth.triggerAttackRelease(finalNoteName, "16n", time, vel);
             frameNotes.push(absNote);
           }
         });
