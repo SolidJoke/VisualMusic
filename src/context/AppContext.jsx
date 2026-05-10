@@ -1,46 +1,64 @@
-// src/context/AppContext.jsx
-//
-// Lightweight React Context for cross-cutting application state.
-// Provides: lang, txt, notation — values that are needed by almost every
-// component but don't change frequently enough to warrant Zustand.
-//
-// Usage (consumer):
-//   import { useAppContext } from '../../context/AppContext';
-//   const { lang, txt, notation } = useAppContext();
-//
-// Usage (provider — in App.jsx):
-//   <AppProvider lang={lang} txt={txt} notation={notation}>
-//     {children}
-//   </AppProvider>
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useReducer } from 'react';
+import { translations } from '../i18n/translations';
 
-const AppContext = createContext({
+const AppContext = createContext();
+
+const initialState = {
+  appMode: 'studio',
   lang: 'fr',
-  txt: {},
-  notation: 'eu',
-});
+  notation: 'us',
+  chordDisplayMode: 'standard',
+  showAbout: false,
+  showTheory: false,
+  showFingering: true,
+  fingeringMode: 'anatomic',
+  playbackInstrument: 'piano',
+  layoutMode: 'all',
+  activeTab: 'sequencer',
+  uiTheme: 'vintage',
+  showLegend: false
+};
 
-/**
- * Provider component. Place at the top of the App render tree.
- */
-export function AppProvider({ lang, txt, notation, children }) {
+function appReducer(state, action) {
+  switch (action.type) {
+    case 'SET_APP_MODE':
+      return { ...state, appMode: action.payload };
+    case 'SET_LANG':
+      return { ...state, lang: action.payload };
+    case 'SET_NOTATION':
+      return { ...state, notation: action.payload };
+    case 'SET_UI_VALUE':
+      return { ...state, [action.payload.key]: action.payload.value };
+    default:
+      return state;
+  }
+}
+
+export const AppProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(appReducer, initialState);
+
+  const txt = (translations && translations[state.lang]) || {};
+
+  const value = {
+    state,
+    dispatch,
+    lang: state.lang,
+    txt,
+    notation: state.notation
+  };
+
   return (
-    <AppContext.Provider value={{ lang, txt, notation }}>
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );
-}
+};
 
-/**
- * Hook to consume the AppContext. Throws if used outside AppProvider.
- */
-export function useAppContext() {
-  const ctx = useContext(AppContext);
-  if (!ctx) {
+export const useAppContext = () => {
+  const context = useContext(AppContext);
+  if (!context) {
     throw new Error('useAppContext must be used within an AppProvider');
   }
-  return ctx;
-}
-
-export default AppContext;
+  return context;
+};

@@ -475,4 +475,39 @@ export const CHORD_SCALE_MAP = {
  */
 export const getRecommendedScalesForChord = (chordType) => {
     return CHORD_SCALE_MAP[chordType] || [];
-};
+};
+
+export const PITCH_MAP = {
+  'R': 0,
+  '2': 2,
+  'b3': 3,
+  '3': 4,
+  '4': 5,
+  '#4': 6,
+  'b5': 6,
+  '5': 7,
+  'b6': 8,
+  '6': 9,
+  'b7': 10,
+  '7': 11,
+  '8va': 12,
+  'octave': 12
+};
+
+export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2) {
+  const semitones = PITCH_MAP[intervalLabel] || 0;
+  const midiNote = (chordRootValue % 12) + semitones + (baseOctave + 1) * 12;
+  return {
+    name: `${NOTES[midiNote % 12].us}${Math.floor(midiNote / 12) - 1}`,
+    midi: midiNote
+  };
+}
+
+export function getLeadingTone(nextChordRootValue, baseOctave = 2) {
+  const targetMidi = (nextChordRootValue % 12) + (baseOctave + 1) * 12;
+  const leadingMidi = targetMidi - 1; 
+  return {
+    name: `${NOTES[leadingMidi % 12].us}${Math.floor(leadingMidi / 12) - 1}`,
+    midi: leadingMidi
+  };
+}

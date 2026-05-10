@@ -132,8 +132,9 @@
 - [x] **7.3** Routing SPA validé
 - [x] **7.4** `netlify.toml` créé (SPA redirect + cache headers audio/assets)
 - [x] **7.5** PR mergée, branche feat/phase7-prod-and-barre-fix → main ✅
-- [ ] **7.6** Performance audit (Fretboard re-renders) — reporté Phase 8
-- [ ] **7.7** Accessibility pass (aria-labels, contraste) — reporté Phase 8
+- [x] **7.6** Dropdown menus styling fix (dark gradients + gold optgroups)
+- [ ] **7.7** Performance audit (Fretboard re-renders) — reporté Phase 8
+- [ ] **7.8** Accessibility pass (aria-labels, contraste) — reporté Phase 8
 
 ---
 
@@ -265,4 +266,29 @@
       **Action :** Remplacer les simples listes de "Modes" par un panel "Ingénieur Émotionnel".
       - Input : Je veux une progression "Mélancolique mais pleine d'espoir".
       - Output : L'app compile une combinaison de mode (Lydien) + une dynamique rythmique, et peuple la timeline Séquenceur.
+
+---
+
+## Phase 10 : Bass Intelligence & Advanced Grooves (P2) ✅ COMPLÉTÉ
+> **Objectif** : Transformer la basse d'une simple piste de fondamentale statique en un moteur de groove dynamique capable de suivre l'harmonie et d'injecter du "feeling" spécifique aux genres.
+
+### 10.1 — Moteur d'Intervalles Relatifs (Harmonic Alignment) [Complété]
+- [x] Refactoring de `useSequencer.js` et centralisation dans `theory.js`.
+- [x] Support des labels musicaux (R, 3, 5, etc.) pour une résolution en temps réel.
+- [x] Validation via `BassIntelligence.test.js`.
+
+### 10.2 — Bass Groove Library (Genre Logic) [Complété]
+- [x] Injection de patterns `pitchSteps` dans `bricks.js` pour Rock, Metal, Reggae, Jazz, etc.
+- [x] Patterns de "Walking Bass" et syncopes par genre.
+
+### 10.3 — UI : Sélecteur de Style de Groove [Complété]
+- [x] Affichage des labels de degrés dans `DAWHelper`.
+- [x] Intégration transparente dans les presets de genres.
+
+### 10.4 — Algorithme de "Leading Tone" (Transitions Fluides) [Complété]
+- [x] Implémentation de la note d'approche chromatique sur le step 15.
+- [x] Test de résolution vers la tonique suivante.
+
+### 10.5 — Export MIDI Multi-Pistes Avancé [Complété]
+- [x] Synchronisation du `MidiExporter.js` avec la logique harmonique intelligente.
 

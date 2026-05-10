@@ -24,7 +24,7 @@ export const BRICKS = [
         nnsProgression: ['1', '4', '5', '4'], 
         theme: { primary: '#e65100', bg: '#260d00' },
         drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12], pitchSteps: { 0: 'R', 4: '3', 8: '5', 12: '6' } } ]
     },
     {
         name: { fr: "Ballade Doo-Wop (50s)", en: "Doo-Wop Ballad (50s)", pt: "Balada Doo-Wop (Anos 50)", zh: "Doo-Wop 民谣 (50年代)" },
@@ -35,7 +35,7 @@ export const BRICKS = [
         nnsProgression: ['1', '6-', '4', '5'], 
         theme: { primary: '#4dd0e1', bg: '#002226' },
         drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11], pitchSteps: { 0: 'R', 3: '5', 8: 'R', 11: '5' } } ]
     },
     {
         name: { fr: "Boucle Funk/Disco", en: "Funk/Disco Loop", pt: "Loop Funk/Disco", zh: "Funk/Disco 循环" },
@@ -58,7 +58,7 @@ export const BRICKS = [
         nnsProgression: ['2-', '5', '1', '1'], 
         theme: { primary: '#ffca28', bg: '#1a1500' },
         drumTracks: [ { name: 'Kick', activeSteps: [0, 8] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12], pitchSteps: { 0: 'R', 4: '2', 8: '3', 12: '5' } } ]
     },
 
     // ---------------------------------------------------------
@@ -110,8 +110,8 @@ export const BRICKS = [
         nnsProgression: ['1', 'b2', 'b6', '5'], nnsProgressionVariation: ['1', 'b5', '4', 'b2'],
         drumTracks: [ { name: 'Kick', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] }, { name: 'Snare', activeSteps: [4, 12] } ],
         drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14] }, { name: 'Snare', activeSteps: [4, 12] }, { name: 'Crash', activeSteps: [0] } ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14] } ],
-        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 1, 2, 3, 4, 5, 6] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14], pitchSteps: { 0: 'R', 1: 'R', 2: 'R', 4: 'R', 5: 'R', 6: 'b2', 8: 'R', 9: 'R', 10: 'R', 12: 'R', 13: 'R', 14: 'b2' } } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 1, 2, 3, 4, 5, 6], pitchSteps: { 0: 'R', 1: 'R', 2: 'R', 3: 'b5', 4: 'R', 5: 'R', 6: 'b2' } } ]
     },
     {
         name: { fr: "Reggae Joyeux", en: "Joyful Reggae", pt: "Reggae Alegre", zh: "欢快雷鬼" },
@@ -124,8 +124,8 @@ export const BRICKS = [
         chordRhythm: [2],
         drumTracks: [ { name: 'Kick', activeSteps: [8] }, { name: 'Rim', activeSteps: [8] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
         drumTracksVariation: [ { name: 'Kick', activeSteps: [0, 4, 8, 12] }, { name: 'Rim', activeSteps: [4, 12] }, { name: 'Hat', activeSteps: [0, 2, 4, 6, 8, 10, 12, 14] } ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11] } ],
-        melodyTracksVariation: [ { name: 'Bass', activeSteps: [2, 6, 10, 14] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 3, 8, 11], pitchSteps: { 0: 'R', 3: '5', 8: 'R', 11: '5' } } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [2, 6, 10, 14], pitchSteps: { 2: 'R', 6: '5', 10: 'R', 14: '3' } } ]
     },
     {
         name: { fr: "Ambient Berlin School", en: "Berlin School Ambient", pt: "Ambient Berlin School", zh: "柏林学派氛围音乐" },
@@ -338,8 +338,8 @@ export const BRICKS = [
             { name: 'Snare', activeSteps: [4, 12] },
             { name: 'Hat', activeSteps: [0, 3, 6, 9, 12, 15] }
         ],
-        melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12] } ],
-        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 3, 6, 9, 12] } ]
+        melodyTracks: [ { name: 'Bass', activeSteps: [0, 4, 8, 12], pitchSteps: { 0: 'R', 4: '2', 8: '3', 12: '5' } } ],
+        melodyTracksVariation: [ { name: 'Bass', activeSteps: [0, 3, 6, 9, 12], pitchSteps: { 0: 'R', 3: '2', 6: 'b3', 9: '5', 12: '8va' } } ]
     },
     {
         name: { fr: "Drum & Bass (Liquid)", en: "Liquid Drum & Bass", pt: "Drum & Bass Líquido", zh: "流畅 Drum & Bass" },

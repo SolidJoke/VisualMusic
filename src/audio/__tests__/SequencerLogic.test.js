@@ -1,4 +1,34 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// Mock Tone.js and AudioEngine before importing useSequencer
+vi.mock("tone", () => ({
+  Analyser: vi.fn(() => ({
+    dispose: vi.fn(),
+  })),
+  Destination: { volume: { value: 0 } },
+  Transport: {
+    bpm: { value: 120 },
+    scheduleRepeat: vi.fn(),
+    cancel: vi.fn(),
+    pause: vi.fn(),
+    start: vi.fn(),
+  },
+  start: vi.fn(),
+  Draw: { schedule: vi.fn() },
+}));
+
+vi.mock("../AudioEngine", () => ({
+  kickSynth: { triggerAttackRelease: vi.fn() },
+  snareSynth: { triggerAttackRelease: vi.fn() },
+  hatSynth: { triggerAttackRelease: vi.fn() },
+  bassSynth: { triggerAttackRelease: vi.fn() },
+  initPianoSampler: vi.fn(),
+  initGuitarSampler: vi.fn(),
+  applyGenrePreset: vi.fn(),
+  setInstrumentVolume: vi.fn(),
+  playDictionaryNote: vi.fn(),
+}));
+
 import { PITCH_MAP } from "../useSequencer";
 
 describe("SequencerLogic - PITCH_MAP", () => {

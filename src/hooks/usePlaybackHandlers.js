@@ -2,6 +2,7 @@ import { useRef, useCallback } from "react";
 import { NOTES, MODES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, getClosestInversion, resolveChordSemitones, getChordNotesAbsolute, resolveNnsToChordType } from "../core/theory";
 import { playDictionaryNote, getPianoSynth, startAudioEngine, setMasterVolume } from "../audio/AudioEngine";
 import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
+import { calcActivePath } from "../core/fretboardLogic";
 
 export function usePlaybackHandlers({
   isAudioReady,
@@ -26,7 +27,9 @@ export function usePlaybackHandlers({
   setClickedChord,
   chordOctaveOffset,
   selectedRootStringGuitar,
-  selectedRootStringBass
+  selectedRootStringBass,
+  setScaleAnchor,
+  scaleAnchor
 }) {
   const playTokenRef = useRef(0);
 
@@ -116,11 +119,11 @@ export function usePlaybackHandlers({
         absolutePitches.push(absolutePitches[i]);
       }
 
-      notesToPlay = absolutePitches.map(
-        (p) => `${NOTES[p % 12].us}${Math.floor(p / 12)}`,
-      );
+      notesToPlay = absolutePitches.map((p) => {
+        const val = typeof p === "object" ? p.absoluteValue : p;
+        return `${NOTES[val % 12].us}${Math.floor(val / 12)}`;
+      });
     } else if (dictType.includes("chord")) {
-      // AV-3: Use fingering if instrument is guitar or bass
       const currentFingering = (playbackInstrument === "guitar") ? guitarFingering : (playbackInstrument === "bass" ? bassFingering : null);
       const fingeringMap = currentFingering?.fingeringMap;
       
@@ -135,13 +138,17 @@ export function usePlaybackHandlers({
           const openNote = getAbsoluteNoteValue(reversedTuning[strIdx]);
           Object.entries(fretMap).forEach(([fretStr, finger]) => {
             if (finger !== 'X') {
-              absolutePitches.push(openNote + parseInt(fretStr, 10));
+              const fret = parseInt(fretStr, 10);
+              absolutePitches.push({
+                absoluteValue: openNote + fret,
+                stringIndex: strIdx,
+                fret: fret
+              });
             }
           });
         });
       }
 
-      // Fallback if no fingering or piano
       if (absolutePitches.length === 0) {
         const chordData = resolveChordSemitones(dictType);
         const semitones = chordData ? chordData.semitones : CHORDS["chord_major"].semitones;
@@ -149,15 +156,17 @@ export function usePlaybackHandlers({
         absolutePitches = getChordNotesAbsolute(Number(dictRoot), semitones, baseOctave);
       }
 
-      notesToPlay = absolutePitches.map(
-        (p) => `${NOTES[p % 12].us}${Math.floor(p / 12)}`,
-      );
+      notesToPlay = absolutePitches.map((p) => {
+        const val = typeof p === "object" ? p.absoluteValue : p;
+        return `${NOTES[val % 12].us}${Math.floor(val / 12)}`;
+      });
     } else {
       const baseOctave = 4;
       absolutePitches = activeNotes.map((n) => n.value + baseOctave * 12);
-      notesToPlay = absolutePitches.map(
-        (p) => `${NOTES[p % 12].us}${Math.floor(p / 12)}`,
-      );
+      notesToPlay = absolutePitches.map((p) => {
+        const val = typeof p === "object" ? p.absoluteValue : p;
+        return `${NOTES[val % 12].us}${Math.floor(val / 12)}`;
+      });
     }
 
     playTokenRef.current += 1;
@@ -176,13 +185,42 @@ export function usePlaybackHandlers({
       const noteDuration = 60 / currentBpm;
       const stepTime = noteDuration / 2;
       
-      absolutePitches.forEach((pitch, index) => {
+      // For scales, calculate the path if on fretboard
+      if (playbackInstrument === "guitar" || playbackInstrument === "bass") {
+        const tuning = playbackInstrument === "bass" 
+          ? (activeBrick?.bassStrings || ["E1", "A1", "D2", "G2"])
+          : (activeBrick?.guitarStrings || ["E2", "A2", "D3", "G3", "B3", "E4"]);
+        
+        const path = calcActivePath({
+          contextualScaleAbsoluteValues: absolutePitches.map(p => ({ absoluteValue: p })),
+          dictType,
+          lastClickedContext: lastClickedContext || { instrument: playbackInstrument, stringIndex: 0, fret: 0 },
+          instrument: playbackInstrument,
+          strings: [...tuning].reverse(),
+          numFrets: 22
+        });
+
+        // Map absolutePitches to path items where possible
+        absolutePitches = absolutePitches.map((pitch, idx) => {
+           const match = path[idx];
+           return match || pitch;
+        });
+      }
+      
+      absolutePitches.forEach((pitchOrObj, index) => {
+        const pitch = typeof pitchOrObj === 'object' ? pitchOrObj.absoluteValue : pitchOrObj;
         setTimeout(() => {
           if (playTokenRef.current !== currentToken) return;
           
           const noteName = `${NOTES[pitch % 12].us}${Math.floor(pitch / 12)}`;
           playDictionaryNote(playbackInstrument, noteName, "8n");
-          setCurrentlyPlayingNotes([pitch]);
+          
+          // Try to find specific string/fret from activePath
+          const pathItem = (playbackInstrument === "guitar" || playbackInstrument === "bass") 
+            ? absolutePitches.find(p => typeof p === 'object' && p.absoluteValue === pitch)
+            : null;
+
+          setCurrentlyPlayingNotes(pathItem ? [pathItem] : [pitch]);
           
           setTimeout(() => {
             if (playTokenRef.current === currentToken) setCurrentlyPlayingNotes([]);
@@ -246,7 +284,12 @@ export function usePlaybackHandlers({
               const openNote = getAbsoluteNoteValue(reversedTuning[strIdx]);
               Object.entries(fretMap).forEach(([fretStr, finger]) => {
                 if (finger !== 'X') {
-                  absolutePitches.push(openNote + parseInt(fretStr, 10));
+                  const fret = parseInt(fretStr, 10);
+                  absolutePitches.push({
+                    absoluteValue: openNote + fret,
+                    stringIndex: strIdx,
+                    fret: fret
+                  });
                 }
               });
             });
@@ -257,6 +300,26 @@ export function usePlaybackHandlers({
             const semitones = chordData ? chordData.semitones : [0, 4, 7];
             absolutePitches = semitones.map(s => absNote + s);
           }
+          // Map absolutePitches to path items where possible
+          if (playbackInstrument === "guitar" || playbackInstrument === "bass") {
+            const tuning = playbackInstrument === "bass" 
+              ? (activeBrick?.bassStrings || ["E1", "A1", "D2", "G2"])
+              : (activeBrick?.guitarStrings || ["E2", "A2", "D3", "G3", "B3", "E4"]);
+            
+            const path = calcActivePath({
+              contextualScaleAbsoluteValues: absolutePitches.map(p => ({ absoluteValue: p })),
+              dictType,
+              lastClickedContext: lastClickedContext || context || { instrument: playbackInstrument, stringIndex: 0, fret: 0 },
+              instrument: playbackInstrument,
+              strings: [...tuning].reverse(),
+              numFrets: 22
+            });
+
+            absolutePitches = absolutePitches.map((pitch, idx) => {
+               const match = path[idx];
+               return match || pitch;
+            });
+          }
         }
 
         const noteDuration = 60 / currentBpm;
@@ -264,7 +327,10 @@ export function usePlaybackHandlers({
 
         if (dictType.includes("chord")) {
           // AV-1: Simultaneous chord playback
-          const notesToPlay = absolutePitches.map(p => `${NOTES[p % 12].us}${Math.floor(p / 12)}`);
+          const notesToPlay = absolutePitches.map(p => {
+            const val = typeof p === 'object' ? p.absoluteValue : p;
+            return `${NOTES[val % 12].us}${Math.floor(val / 12)}`;
+          });
           playDictionaryNote(playbackInstrument, notesToPlay, "2n");
           setCurrentlyPlayingNotes(absolutePitches);
           setTimeout(() => {
@@ -281,14 +347,15 @@ export function usePlaybackHandlers({
         setLastClickedContext(context);
         setSinglePlayContext(null);
 
-        absolutePitches.forEach((pitch, index) => {
+        absolutePitches.forEach((p, index) => {
           setTimeout(() => {
             if (playTokenRef.current !== currentToken) return;
 
-            const nName = `${NOTES[pitch % 12].us}${Math.floor(pitch / 12)}`;
-            playDictionaryNote(playbackInstrument, nName, "8n");
+            const pitch = typeof p === 'object' ? p.absoluteValue : p;
+            const noteName = `${NOTES[pitch % 12].us}${Math.floor(pitch / 12)}`;
+            playDictionaryNote(playbackInstrument, noteName, "8n");
             
-            setCurrentlyPlayingNotes([pitch]);
+            setCurrentlyPlayingNotes([p]);
             
             setTimeout(() => {
               if (playTokenRef.current === currentToken) setCurrentlyPlayingNotes([]);
@@ -297,6 +364,21 @@ export function usePlaybackHandlers({
           }, index * stepTime * 1000);
         });
         return;
+      } else if (dictType.includes("scale") && context?.instrument && setScaleAnchor) {
+        // Scale Box Focus: If we click a note of the scale on the fretboard, anchor the box there
+        const isNoteInScale = activeNotes.some(n => n.value === absNote % 12);
+        if (isNoteInScale) {
+          setScaleAnchor(prev => {
+            if (prev && prev.stringIndex === context.stringIndex && prev.fret === context.fret) {
+              return null;
+            }
+            return {
+              stringIndex: context.stringIndex,
+              fret: context.fret,
+              absoluteValue: absNote
+            };
+          });
+        }
       }
     }
 

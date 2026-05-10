@@ -129,7 +129,7 @@ const InstrumentView = ({
             <h3 style={{ color: "var(--theme-primary)", marginTop: "30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span>{txt.melodicSeq}</span>
               <button className="btn-premium" style={{fontSize:"14px", padding:"4px 8px"}} onClick={() => {
-                const midiData = exportBass(activeMelody, activeBrick?.rootValue || 0, currentBpm, activeBrick?.name?.[lang] || "Genre");
+                const midiData = exportBass(activeMelody, activeBrick, activeProgression, currentBpm);
                 triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Bass"}_${currentBpm}bpm.mid`);
               }}>⬇️ MIDI</button>
             </h3>
@@ -146,6 +146,7 @@ const InstrumentView = ({
               bpm={currentBpm}
               genreName={activeBrick.name?.[lang] || activeBrick.name?.en || ""}
               lang={lang}
+              progression={activeProgression}
             />
           </div>
         )}

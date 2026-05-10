@@ -2,7 +2,9 @@ import { Midi } from "@tonejs/midi";
 import { 
   generateChordsFromNNS,
   resolveNnsToChordType,
-  resolveChordSemitones
+  resolveChordSemitones,
+  getBassNote,
+  getLeadingTone
 } from "../core/theory";
 
 // 1 step (16th note) duration in seconds
@@ -57,36 +59,60 @@ export function exportDrums(drumTracks, bpm, genreName) {
   return midi.toArray();
 }
 
-export function exportBass(melodyTracks, rootVal, bpm, genreName) {
+export function exportBass(melodyTracks, brick, progression, bpm) {
   const midi = new Midi();
   midi.header.setTempo(bpm);
   
   const track = midi.addTrack();
   track.name = "Bass";
 
+  if (!melodyTracks || !brick || !progression) return midi.toArray();
+
   melodyTracks.forEach(mTrack => {
     if (!mTrack.name.toLowerCase().includes("bass")) return;
     
     const octave = 2;
-    // C4 is 60. C0 is 12.
-    const baseMidi = (rootVal % 12) + (octave + 1) * 12;
     const duration = getStepDuration(bpm);
 
-    for (let measure = 0; measure < 4; measure++) {
-      if (mTrack.activeSteps) {
-        mTrack.activeSteps.forEach(step => {
-          const absoluteStep = measure * 16 + step;
-          const time = getStepTime(absoluteStep, bpm);
-          const isGhost = mTrack.lowVelocitySteps && mTrack.lowVelocitySteps.includes(step);
+    // Expand to 64 steps (4 measures)
+    for (let stepCounter = 0; stepCounter < 64; stepCounter++) {
+      const relativeStep = stepCounter % 16;
+      const isActive = mTrack.activeSteps && mTrack.activeSteps.includes(relativeStep);
+      
+      if (isActive) {
+        const chordIndex = Math.floor(stepCounter / 16) % progression.length;
+        const currentNns = progression[chordIndex];
+        const chords = generateChordsFromNNS(brick.rootValue, brick.modeName, [currentNns]);
+        
+        if (chords.length > 0) {
+          const currentChordRoot = chords[0].rootNote.value;
+          const intervalLabel = (mTrack.pitchSteps && mTrack.pitchSteps[relativeStep]) || 'R';
+          let finalMidi;
+
+          // Leading tone on step 15
+          if (relativeStep === 15 && progression.length > 1) {
+            const nextChordIndex = (chordIndex + 1) % progression.length;
+            const nextChords = generateChordsFromNNS(brick.rootValue, brick.modeName, [progression[nextChordIndex]]);
+            if (nextChords.length > 0) {
+              finalMidi = getLeadingTone(nextChords[0].rootNote.value, octave).midi;
+            }
+          }
+
+          if (finalMidi === undefined) {
+            finalMidi = getBassNote(currentChordRoot, intervalLabel, octave).midi;
+          }
+
+          const time = getStepTime(stepCounter, bpm);
+          const isGhost = mTrack.lowVelocitySteps && mTrack.lowVelocitySteps.includes(relativeStep);
           const velocity = isGhost ? 0.4 : 0.9;
           
           track.addNote({
-            midi: baseMidi,
+            midi: finalMidi,
             time: time,
             duration: duration,
             velocity: velocity
           });
-        });
+        }
       }
     }
   });
