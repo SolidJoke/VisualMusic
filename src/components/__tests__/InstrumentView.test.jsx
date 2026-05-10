@@ -2,6 +2,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 import InstrumentView from "../Panels/InstrumentView";
+import { AppProvider } from "../../context/AppContext";
 
 // Mock des composants enfants
 vi.mock("../Visualizer/AudioVisualizer", () => ({
@@ -30,13 +31,16 @@ describe("InstrumentView Smoke Test", () => {
     };
 
     const html = renderToString(
-      <InstrumentView 
-        layoutMode="tabs" 
-        activeTab="piano" 
-        txt={dummyTxt} 
-        masterAnalyser={null} 
-        activeBrick={{}}
-      />
+      <AppProvider>
+        <InstrumentView 
+          layoutMode="tabs" 
+          activeTab="piano" 
+          masterAnalyser={null} 
+          activeBrick={{}}
+          availableGuitarFingerings={[]}
+          availableBassFingerings={[]}
+        />
+      </AppProvider>
     );
 
     expect(html).toContain("PianoKeyboard");
@@ -53,13 +57,16 @@ describe("InstrumentView Smoke Test", () => {
     };
 
     const html = renderToString(
-      <InstrumentView 
-        layoutMode="all"
-        appMode="studio"
-        txt={dummyTxt} 
-        masterAnalyser={null}
-        activeBrick={{}}
-      />
+      <AppProvider>
+        <InstrumentView 
+          layoutMode="all"
+          appMode="studio"
+          masterAnalyser={null}
+          activeBrick={{}}
+          availableGuitarFingerings={[]}
+          availableBassFingerings={[]}
+        />
+      </AppProvider>
     );
 
     expect(html).toContain("PianoKeyboard");
