@@ -1,4 +1,4 @@
-import { getAbsoluteNoteValue } from "./theory";
+import { getAbsoluteNoteValue, NOTES } from "./theory";
 
 /**
  * Calculates optimal fingering positions for guitar and bass chords.
@@ -442,7 +442,7 @@ export function getBassFingering(rootValue, chordType = 'chord_major', rootStrin
 /**
  * Returns all available guitar fingerings for a chord.
  */
-export function getAvailableGuitarFingerings(rootValue, chordType = 'chord_major', octave = 0) {
+export function getAvailableGuitarFingerings(rootValue, chordType = 'chord_major', octave = 0, notation = 'us') {
   const positions = [];
   const stringOpenValues = { 5: 4, 4: 9, 3: 2 };
 
@@ -494,7 +494,12 @@ export function getAvailableGuitarFingerings(rootValue, chordType = 'chord_major
     }
 
     if (GUITAR_SHAPES[shapeName]) {
-      const label = targetString === 5 ? 'E-shape' : (targetString === 4 ? 'A-shape' : 'D-shape');
+      const getNoteName = (midiVal) => {
+        const n = NOTES[midiVal % 12];
+        return notation === 'eu' ? n.eu : n.us;
+      };
+      const shapePrefix = targetString === 5 ? getNoteName(4) : (targetString === 4 ? getNoteName(9) : getNoteName(2));
+      const label = `${shapePrefix}-shape`;
       positions.push({
         id: targetString,
         label: `${label} (fr. ${rootFret})`,
@@ -509,12 +514,17 @@ export function getAvailableGuitarFingerings(rootValue, chordType = 'chord_major
 /**
  * Returns all available bass fingerings for a chord.
  */
-export function getAvailableBassFingerings(rootValue, chordType = 'chord_major', octave = 0) {
+export function getAvailableBassFingerings(rootValue, chordType = 'chord_major', octave = 0, notation = 'us') {
   const positions = [];
   [3, 2, 1].forEach(targetString => {
+    const stringNotes = { 3: 4, 2: 9, 1: 2 }; // E, A, D
+    const n = NOTES[stringNotes[targetString]];
+    const noteName = notation === 'eu' ? n.eu : n.us;
+    const stringLabel = notation === 'eu' ? 'Corde' : 'String';
+    
     positions.push({
       id: targetString,
-      label: `String ${targetString === 3 ? 'E' : (targetString === 2 ? 'A' : 'D')}`,
+      label: `${stringLabel} ${noteName}`,
       fingering: getBassFingering(rootValue, chordType, targetString, octave)
     });
   });
@@ -583,6 +593,41 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
     });
   });
 
+  return positions;
+}
+
+
+/**
+ * Returns all possible ways to play a single note (by MIDI value) on guitar or bass.
+ */
+export function getAvailableSingleNoteFingerings(midiValue, instrument = 'guitar', notation = 'us') {
+  const positions = [];
+  const stringOpenMidis = instrument === 'bass' ? [28, 33, 38, 43] : [40, 45, 50, 55, 59, 64];
+  const strings = instrument === 'bass' ? [3, 2, 1, 0] : [5, 4, 3, 2, 1, 0];
+  
+  strings.forEach((strIdx, i) => {
+    const openMidi = stringOpenMidis[i];
+    const fret = midiValue - openMidi;
+    if (fret >= 0 && fret <= 22) {
+      const noteName = NOTES[midiValue % 12][notation];
+      const stringName = NOTES[openMidi % 12][notation];
+      const octave = Math.floor(midiValue / 12) - 1;
+      
+      positions.push({
+        id: `note_${strIdx}_${fret}`,
+        // Note: Label will be refined in the UI to use translations
+        label: `${stringName} | ${fret}`, 
+        fingering: {
+          fingeringMap: { [strIdx]: { [fret]: 1 } },
+          rootValue: midiValue % 12,
+          octave: octave
+        },
+        stringName,
+        fret
+      });
+    }
+  });
+  
   return positions;
 }
 

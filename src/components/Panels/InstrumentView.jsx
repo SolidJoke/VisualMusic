@@ -50,14 +50,16 @@ const InstrumentView = ({
   fretboardZone,
   lastClickedContext,
   singlePlayContext,
-  harmonicMode,
   selectedVoicingIndexGuitar,
   setSelectedVoicingIndexGuitar,
   selectedVoicingIndexBass,
   setSelectedVoicingIndexBass,
   visualFocus = "chords",
   scaleAnchor = null,
-  setScaleAnchor
+  setScaleAnchor,
+  isGuitarOutOfRange = false,
+  isBassOutOfRange = false,
+  highlightTargetNotes = false
 }) => {
   const { lang, txt, notation } = useAppContext();
   const isScaleMode = (appMode === "dictionary" && dictType?.includes("scale"));
@@ -104,16 +106,12 @@ const InstrumentView = ({
           <PianoKeyboard
             activeNotes={activeNotes}
             numOctaves={7}
-            notation={notation}
             rootValue={currentRootValue}
             targetValue={targetValue}
             onNoteClick={autoPlayNote}
             currentlyPlayingNotes={currentlyPlayingNotes}
             contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
             dictType={appMode === "dictionary" ? dictType : null}
-            lang={lang}
-            txt={txt}
-            harmonicMode={harmonicMode}
           />
         </div>
       )}
@@ -139,7 +137,6 @@ const InstrumentView = ({
           <Fretboard
             instrument="guitar"
             activeNotes={fretboardActiveNotes || activeNotes}
-            notation={notation}
             stringTuning={activeBrick.guitarStrings || ['E2', 'A2', 'D3', 'G3', 'B3', 'E4']}
             rootValue={currentRootValue}
             targetValue={targetValue}
@@ -154,6 +151,8 @@ const InstrumentView = ({
             fingeringMode={fingeringMode}
             fingering={guitarFingering}
             scaleAnchor={scaleAnchor}
+            isOutOfRange={isGuitarOutOfRange}
+            highlightTargetNotes={highlightTargetNotes}
           />
           
           <br />
@@ -177,7 +176,6 @@ const InstrumentView = ({
           <Fretboard
             instrument="bass"
             activeNotes={fretboardActiveNotes || activeNotes}
-            notation={notation}
             stringTuning={activeBrick.bassStrings || ['E1', 'A1', 'D2', 'G2']}
             rootValue={currentRootValue}
             targetValue={targetValue}
@@ -192,6 +190,8 @@ const InstrumentView = ({
             fingeringMode={fingeringMode}
             fingering={bassFingering}
             scaleAnchor={scaleAnchor}
+            isOutOfRange={isBassOutOfRange}
+            highlightTargetNotes={highlightTargetNotes}
           />
         </div>
       )}

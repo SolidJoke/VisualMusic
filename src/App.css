@@ -1,7 +1,6 @@
-/* --- DESIGN TOKENS (Glassmorphism Phase 9) --- */
 :root {
   /* ─── HEADER ACTIONS ─── */
-  --header-btn-width: 180px;
+  --header-btn-width: 110px;
 }
 
 .app-header {
@@ -100,6 +99,39 @@
   text-align-last: center;
 }
 
+.btn-playback-premium {
+  color: #fff;
+  width: 100%;
+  height: 60px;
+  font-size: 1.4rem;
+  font-weight: 900;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  border: 1px solid rgba(0,0,0,0.2) !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-playback-premium.play {
+  background: linear-gradient(180deg, #2ecc71, #27ae60);
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.btn-playback-premium.stop {
+  background: linear-gradient(180deg, #e74c3c, #c0392b);
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.btn-playback-premium:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
 .btn-header-action--select select option {
   background: var(--bg-deep);
   color: var(--text-primary);
@@ -122,25 +154,17 @@
   border-color: var(--accent) !important;
   box-shadow: 0 0 15px var(--accent-glow) !important;
 }
-:root {
-  /* ─── PALETTE FONDATRICE ─────────────────────────────────── */
-  /* Arrière-plan : quasi-noir avec teinture bleue profonde */
-  --bg-deep:    hsl(226, 25%, 4%);
-  --bg-base:    hsl(226, 22%, 6%);
-  --bg-panel:   hsl(226, 20%, 9%);
-  --bg-surface: hsl(226, 18%, 12%);
-  --bg-raised:  hsl(226, 16%, 15%);
-  --bg-overlay: hsl(226, 30%, 3%);
 
-  /* Verre dépoli (glass panels) */
-  --glass-bg:       hsla(226, 20%, 100%, 0.04);
-  --glass-bg-hover: hsla(226, 20%, 100%, 0.07);
-  --glass-border:   hsla(226, 40%, 100%, 0.10);
-  --glass-border-hover: hsla(226, 40%, 100%, 0.18);
-  --glass-blur:     blur(16px);
+:root {
   --glass-shadow:   0 4px 32px hsla(226, 50%, 2%, 0.6);
 
+  /* ─── APP MODE SELECTOR (Specific) ─── */
+  --color-mode-active: #2563eb;
+  --color-mode-active-border: #3b82f6;
+  --color-mode-active-glow: rgba(37, 99, 235, 0.4);
+
   /* ─── ACCENT PRINCIPAL ───────────────────────────────────── */
+
   /* Lavande électrique : neutre, musical, premium */
   --accent-hue: 258;
   --accent:     hsl(258, 70%, 72%);
@@ -193,7 +217,7 @@
 
   /* ─── ESPACEMENTS & RAYONS ───────────────────────────────── */
   --radius-sm:  6px;
-  --radius-md:  10px;
+  --radius-md:  8px;
   --radius-lg:  16px;
   --radius-xl:  24px;
 
@@ -293,6 +317,16 @@ body {
   box-shadow: 0 0 20px var(--accent-glow), inset 0 0 10px var(--accent-glow);
   border-width: 1.5px;
 }
+
+/* Specific Style for App Mode Toggle (as requested) */
+.app-mode-selector .btn-premium.active {
+  background: var(--color-mode-active) !important;
+  color: #ffffff !important;
+  border-color: var(--color-mode-active-border) !important;
+  box-shadow: 0 0 15px var(--color-mode-active-glow);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
 
 /* Select / dropdown premium */
 .select-premium {

@@ -69,7 +69,8 @@ function App() {
     layoutMode,
     activeTab,
     chordDisplayMode,
-    uiTheme
+    uiTheme,
+    highlightTargetNotes
   } = state;
 
   const setAppMode = (newMode) => {
@@ -108,6 +109,8 @@ function App() {
     singlePlayContext, setSinglePlayContext,
     visualFocus, setVisualFocus,
     suggestedBassTrack, setSuggestedBassTrack,
+    customProgression, setCustomProgression,
+    customRhythm, setCustomRhythm,
     activeBrick,
     activeTracks
   } = useStudioMode();
@@ -151,7 +154,8 @@ function App() {
     dictType,
     dictActiveNotes,
     dictOctave,
-    fingeringMode
+    fingeringMode,
+    notation
   });
 
   const {
@@ -163,7 +167,9 @@ function App() {
     bassFingering,
     availableGuitarFingerings,
     availableBassFingerings,
-    inversionText: rawInversion
+    inversionText: rawInversion,
+    isGuitarOutOfRange,
+    isBassOutOfRange
   } = musicState;
 
   const inversionText = useMemo(() => {
@@ -194,9 +200,11 @@ function App() {
     activeDrums,
     activeMelody,
     activeProgression,
+    activeRhythm: activeTracks.rhythm,
     currentRootValue,
     setCurrentlyPlayingNotes,
     chordOctaveOffset,
+    notation,
   });
 
   const {
@@ -225,7 +233,8 @@ function App() {
     activeBrick,
     chordOctaveOffset,
     setScaleAnchor,
-    scaleAnchor
+    scaleAnchor,
+    notation
   });
 
   useEffect(() => {
@@ -250,7 +259,8 @@ function App() {
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
     setSuggestedBassTrack(null);
-  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack]);
+    setCustomProgression(null);
+  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression]);
 
   // Handlers implemented via usePlaybackHandlers
 
@@ -348,6 +358,9 @@ function App() {
                 inversionText={inversionText}
                 suggestedBassTrack={suggestedBassTrack}
                 setSuggestedBassTrack={setSuggestedBassTrack}
+                setCustomProgression={setCustomProgression}
+                customRhythm={customRhythm}
+                setCustomRhythm={setCustomRhythm}
               />
             )}
 
@@ -358,6 +371,7 @@ function App() {
                 dictType={dictType}
                 setDictType={setDictType}
                 playDictionaryAudio={playDictionaryAudio}
+                isPlaying={isPlaying}
                 guitarFingering={guitarFingering}
                 bassFingering={bassFingering}
                 uiTheme={uiTheme}
@@ -369,6 +383,7 @@ function App() {
                 setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
                 selectedVoicingIndexBass={selectedVoicingIndexBass}
                 setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
+                dictActiveNotes={dictActiveNotes}
               />
             )}
 
@@ -453,9 +468,12 @@ function App() {
               setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
               availableGuitarFingerings={availableGuitarFingerings}
               availableBassFingerings={availableBassFingerings}
-              harmonicMode={harmonicMode}
               visualFocus={visualFocus}
               scaleAnchor={scaleAnchor}
+              setScaleAnchor={setScaleAnchor}
+              isGuitarOutOfRange={isGuitarOutOfRange}
+              isBassOutOfRange={isBassOutOfRange}
+              highlightTargetNotes={highlightTargetNotes}
             />
           </div>
         </div>

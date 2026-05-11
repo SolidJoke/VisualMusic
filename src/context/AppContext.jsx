@@ -17,7 +17,9 @@ const initialState = {
   layoutMode: 'all',
   activeTab: 'sequencer',
   uiTheme: 'vintage',
-  showLegend: false
+  showLegend: false,
+  harmonicMode: false,
+  highlightTargetNotes: false
 };
 
 function appReducer(state, action) {
@@ -30,6 +32,8 @@ function appReducer(state, action) {
       return { ...state, notation: action.payload };
     case 'SET_UI_VALUE':
       return { ...state, [action.payload.key]: action.payload.value };
+    case 'SET_HARMONIC_MODE':
+      return { ...state, harmonicMode: action.payload };
     default:
       return state;
   }

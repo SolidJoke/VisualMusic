@@ -200,19 +200,35 @@ export function generateChordsFromNNS(rootValue, modeName, nnsArray) {
     const scaleNotes = getScaleNotes(rootValue, modeName);
     return nnsArray.map(nnsStr => {
         // NNS Notation: 1, 2-, 3-, 4, 5, 6-, 7°
-        const isMinor = nnsStr.includes('-') || nnsStr.includes('m');
-        const isDim = nnsStr.includes('°') || nnsStr.includes('dim');
-        const isMajor = !isMinor && !isDim;
+        // Also support Roman: I, ii, iii, IV, V, vi, vii°
         
-        const degreeMatch = nnsStr.match(/[1-7]/);
+        let normalizedStr = nnsStr;
+        const romanMap = { "I": "1", "II": "2", "III": "3", "IV": "4", "V": "5", "VI": "6", "VII": "7" };
+        
+        // Match Roman Numeral (case-insensitive for initial match)
+        const romanMatch = nnsStr.match(/([#b]?)([iIivV]+)/);
+        if (romanMatch) {
+            const prefix = romanMatch[1];
+            const romanUpper = romanMatch[2].toUpperCase();
+            const baseDegree = romanMap[romanUpper] || "1";
+            const isMinorRoman = romanMatch[2] === romanMatch[2].toLowerCase();
+            const suffix = isMinorRoman ? "-" : "";
+            // Reconstruct as NNS
+            normalizedStr = prefix + baseDegree + suffix + nnsStr.replace(/^[#b]?[iIivV]+/i, '');
+        }
+
+        const isMinor = normalizedStr.includes('-') || normalizedStr.includes('m');
+        const isDim = normalizedStr.includes('°') || normalizedStr.includes('dim');
+        
+        const degreeMatch = normalizedStr.match(/[1-7]/);
         let degree = degreeMatch ? parseInt(degreeMatch[0]) - 1 : 0; 
-        let chordRootNote = scaleNotes[degree];
+        let chordRootNote = scaleNotes[degree] || scaleNotes[0];
 
         // Handle flat degrees (e.g., b2, b7)
-        if (nnsStr.includes('b')) {
+        if (normalizedStr.includes('b') && !normalizedStr.includes('b5')) {
             // Find chromatic distance from root
             let semitonesFromRoot = 0;
-            const modeIntervals = MODES[modeName].intervals;
+            const modeIntervals = MODES[modeName]?.intervals || [2,2,1,2,2,2,1];
             for(let i=0; i<degree; i++) semitonesFromRoot += modeIntervals[i];
             
             let alteredValue = (rootValue + semitonesFromRoot - 1 + 12) % 12;
@@ -230,7 +246,7 @@ export function generateChordsFromNNS(rootValue, modeName, nnsArray) {
         else if (roleDegree === 6 && isMinor) role = "Relative Minor (Profondeur)";
 
         return {
-            nns: nnsStr,
+            nns: normalizedStr,
             chordNameUS: `${chordRootNote.us}${suffix}`,
             chordNameEU: `${chordRootNote.eu}${suffix}`,
             rootNote: chordRootNote,
@@ -346,6 +362,24 @@ export const SCALES = {
 export const resolveScaleIntervals = (dictType) => {
     if (!dictType || typeof dictType !== 'string' || !dictType.startsWith('scale_')) return null;
     return SCALES[dictType] || null;
+};
+
+/**
+ * Resolves a scale to its cumulative semitones from root.
+ * @param {string} dictType 
+ * @returns {number[]|null}
+ */
+export const resolveScaleSemitones = (dictType) => {
+    const scale = resolveScaleIntervals(dictType);
+    if (!scale) return null;
+    const semitones = [0];
+    let current = 0;
+    // Last interval wraps back to octave, don't include it as a separate note usually
+    for (let i = 0; i < scale.intervals.length - 1; i++) {
+        current += scale.intervals[i];
+        semitones.push(current);
+    }
+    return semitones;
 };
 
 // ---------------------------------------------------------
@@ -466,22 +500,29 @@ export const getScaleNotesGeneric = (rootValue, intervals) => {
 export const toRoman = (nnsStr) => {
   if (!nnsStr || typeof nnsStr !== 'string') return "";
   const map = { 1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI", 7: "VII" };
-  const baseNum = nnsStr.match(/[1-7]/)?.[0] || "1";
+  
+  // Extract degree (e.g., 2, b2, #4)
+  const degreeMatch = nnsStr.match(/([#b]?)([1-7])/);
+  if (!degreeMatch) return nnsStr;
+  
+  const prefix = degreeMatch[1];
+  const baseNum = degreeMatch[2];
   let roman = map[baseNum];
+  
+  // Detect quality
   const isMinor = nnsStr.includes("-") || nnsStr.includes("m");
-  const isDim = nnsStr.includes("°") || nnsStr.includes("b5") || nnsStr.includes("dim");
-
+  const isDim = nnsStr.includes("°") || nnsStr.includes("dim");
+  
   if (isMinor || isDim) roman = roman.toLowerCase();
-
-  let prefix =
-    nnsStr.includes("b") && !nnsStr.includes("b5")
-      ? "b"
-      : nnsStr.includes("#")
-        ? "#"
-        : "";
-  let suffix = isDim ? "°" : isMinor ? "m" : "";
-
-  return prefix + roman + suffix;
+  
+  // Extract extra suffix (7, maj7, 9, etc.)
+  let extension = nnsStr
+    .replace(/^[#b]?[1-7]/, '') // remove degree
+    .replace(/[-m°]|dim/g, ''); // remove quality markers
+    
+  let suffix = isDim ? "°" : "";
+  
+  return prefix + roman + suffix + extension;
 };
 
 // ---------------------------------------------------------
@@ -531,20 +572,22 @@ export const PITCH_MAP = {
   'octave': 12
 };
 
-export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2) {
+export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2, notation = 'us') {
   const semitones = PITCH_MAP[intervalLabel] || 0;
   const midiNote = (chordRootValue % 12) + semitones + (baseOctave + 1) * 12;
+  const noteName = notation === 'eu' ? NOTES[midiNote % 12].eu : NOTES[midiNote % 12].us;
   return {
-    name: `${NOTES[midiNote % 12].us}${Math.floor(midiNote / 12) - 1}`,
+    name: `${noteName}${Math.floor(midiNote / 12) - 1}`,
     midi: midiNote
   };
 }
 
-export function getLeadingTone(nextChordRootValue, baseOctave = 2) {
+export function getLeadingTone(nextChordRootValue, baseOctave = 2, notation = 'us') {
   const targetMidi = (nextChordRootValue % 12) + (baseOctave + 1) * 12;
   const leadingMidi = targetMidi - 1; 
+  const noteName = notation === 'eu' ? NOTES[leadingMidi % 12].eu : NOTES[leadingMidi % 12].us;
   return {
-    name: `${NOTES[leadingMidi % 12].us}${Math.floor(leadingMidi / 12) - 1}`,
+    name: `${noteName}${Math.floor(leadingMidi / 12) - 1}`,
     midi: leadingMidi
   };
 }

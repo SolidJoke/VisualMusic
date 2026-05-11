@@ -46,11 +46,12 @@ export const PITCH_MAP = {
  * @param {number} baseOctave - Target octave for the bass (default 2)
  * @returns {{ name: string, midi: number }}
  */
-export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2) {
+export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2, notation = 'us') {
   const semitones = PITCH_MAP[intervalLabel] || 0;
   const midiNote = (chordRootValue % 12) + semitones + (baseOctave + 1) * 12;
+  const noteName = notation === 'eu' ? NOTES[midiNote % 12].eu : NOTES[midiNote % 12].us;
   return {
-    name: `${NOTES[midiNote % 12].us}${Math.floor(midiNote / 12) - 1}`,
+    name: `${noteName}${Math.floor(midiNote / 12) - 1}`,
     midi: midiNote
   };
 }
@@ -61,12 +62,13 @@ export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2)
  * @param {number} baseOctave - Target octave
  * @returns {{ name: string, midi: number }}
  */
-export function getLeadingTone(nextChordRootValue, baseOctave = 2) {
+export function getLeadingTone(nextChordRootValue, baseOctave = 2, notation = 'us') {
   // Use a chromatic approach from below (most common in jazz/blues)
   const targetMidi = (nextChordRootValue % 12) + (baseOctave + 1) * 12;
   const leadingMidi = targetMidi - 1; 
+  const noteName = notation === 'eu' ? NOTES[leadingMidi % 12].eu : NOTES[leadingMidi % 12].us;
   return {
-    name: `${NOTES[leadingMidi % 12].us}${Math.floor(leadingMidi / 12) - 1}`,
+    name: `${noteName}${Math.floor(leadingMidi / 12) - 1}`,
     midi: leadingMidi
   };
 }
@@ -77,9 +79,11 @@ export function useSequencer({
   activeDrums,
   activeMelody,
   activeProgression,
+  activeRhythm,
   currentRootValue,
   setCurrentlyPlayingNotes,
   chordOctaveOffset = 0,
+  notation = 'us'
 }) {
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -104,6 +108,7 @@ export function useSequencer({
   const appModeRef = useRef(appMode);
   const brickRef = useRef(activeBrick);
   const octaveRef = useRef(chordOctaveOffset);
+  const rhythmRef = useRef(activeRhythm);
 
   drumRef.current = activeDrums;
   melodyRef.current = activeMelody;
@@ -112,13 +117,14 @@ export function useSequencer({
   appModeRef.current = appMode;
   brickRef.current = activeBrick;
   octaveRef.current = chordOctaveOffset;
+  rhythmRef.current = activeRhythm;
 
   // Generate a virtual track for chords based on current rhythm
   const activeChordTrack = {
     name: "Chords",
-    activeSteps: brickRef.current?.chordRhythm 
+    activeSteps: rhythmRef.current 
       ? Array.from({ length: 16 }).flatMap((_, beat) => 
-          brickRef.current.chordRhythm.map(stepInBeat => beat * 4 + stepInBeat)
+          rhythmRef.current.map(stepInBeat => beat * 4 + stepInBeat)
         )
       : [0, 4, 8, 12] // Default 4/4 hits
   };
@@ -183,7 +189,7 @@ export function useSequencer({
       if (progression && progression.length > 0 && brick) {
         const chordIndex = Math.floor(stepCounter / 16) % progression.length;
         const currentNns = progression[chordIndex];
-        const rhythm = brick.chordRhythm || [0];
+        const rhythm = rhythmRef.current || [0];
         
         if (rhythm.includes(stepCounter % 4)) {
            const chords = generateChordsFromNNS(brick.rootValue, brick.modeName, [currentNns]);
@@ -195,7 +201,7 @@ export function useSequencer({
              const baseOctave = 4 + (octaveOffset || 0);
              const absPitches = semitones.map(s => rootValChord + s + baseOctave * 12);
              
-             const notesToPlay = absPitches.map(p => `${NOTES[p % 12].us}${Math.floor(p / 12)}`);
+             const notesToPlay = absPitches.map(p => `${notation === 'eu' ? NOTES[p % 12].eu : NOTES[p % 12].us}${Math.floor(p / 12)}`);
              const duration = rhythm.length > 1 ? "16n" : "4n";
              playDictionaryNote("piano", notesToPlay, duration, time);
              frameNotes = [...frameNotes, ...absPitches];
@@ -233,14 +239,14 @@ export function useSequencer({
                     const nextChordIndex = (chordIndex + 1) % progression.length;
                     const nextChords = generateChordsFromNNS(brick.rootValue, brick.modeName, [progression[nextChordIndex]]);
                     if (nextChords.length > 0) {
-                      const resolved = getLeadingTone(nextChords[0].rootNote.value, octave);
+                      const resolved = getLeadingTone(nextChords[0].rootNote.value, octave, notation);
                       finalNoteName = resolved.name;
                       absNote = resolved.midi;
                     }
                  }
 
                  if (!finalNoteName) {
-                   const resolved = getBassNote(currentChordRoot, intervalLabel, octave);
+                   const resolved = getBassNote(currentChordRoot, intervalLabel, octave, notation);
                    finalNoteName = resolved.name;
                    absNote = resolved.midi;
                  }

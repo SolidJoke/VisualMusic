@@ -14,11 +14,11 @@
 
 > Des bugs critiques ont été identifiés lors de sessions précédentes. À corriger en priorité absolue.
 
-- [ ] **14.1** — **Crash Fretboard en mode Dictionnaire** : L'interface disparaît lors du changement de note ou de type d'accord. Isolé dans `<Fretboard>` (désynchronisation état). → *Assigné Flash si reproduction steps fournis*
+- [x] **14.1** — **Crash Fretboard en mode Dictionnaire** : ✅ Fixé avec gardes de sécurité (SESS-11).
 - [x] **14.4** — Observabilité : `src/utils/debug.js` en place. ✅
-- [ ] **14.5** — **Header overflow** : Sélecteur Langue + À propos débordent sur grands écrans. Aligner `borderRadius` (8px). → *Flash OK*
-- [ ] **14.6** — **Z-index menu Notes** : Menu notes passe derrière le bloc notation US/EU. → *Flash OK*
-- [ ] **14.7** — **Toggle Mode** : Style bouton sélectionné (Studio/Dict) — texte clair sur fond bleu. → *Flash OK*
+- [x] **14.5** — **Header overflow** : ✅ Fixé (SESS-09).
+- [x] **14.6** — **Z-index menu Notes** : ✅ Fixé via Sidebar.css (SESS-10).
+- [x] **14.7** — **Toggle Mode** : ✅ Style Premium Blue implémenté (SESS-12).
 
 > **Note** : 14.2 (notes inaudibles Studio) et 14.3 (Crash Z-index Studio) sont à vérifier — peuvent avoir été corrigés avec la refonte architecture.
 
@@ -29,10 +29,10 @@
 ### Stream A — Hygiene & Reliability
 
 #### A.1 — Audit de Qualité & Purge
-- [ ] **A.1.1** — Dead code scan via jcodemunch → rapport `docs/management/dead_code_report.md`. *→ Flash* 
+- [x] **A.1.1** — Dead code scan via jcodemunch → rapport `docs/management/dead_code_report.md`. ✅
 - [ ] **A.1.2** — Suppression imports inutilisés (après A.1.1). *→ Flash*
 - [ ] **A.1.3** — **Refactoring Fretboard** (complexité 99) : Extraire `FretboardCalculator.js`. *→ Sonnet/Pro, bloqué sur A.1.1 + tests 90%+*
-- [ ] **A.1.4** — **Refactoring InstrumentView** (25+ props) : Réduire via AppContext. *→ Flash (FLASH-04)*
+- [x] **A.1.4** — **Refactoring InstrumentView** (25+ props) : Réduire via AppContext. ✅ (FLASH-04)
 - [ ] **A.1.5** — Finaliser extraction App.jsx restant (Layout props). *→ Pro*
 
 #### A.2 — Performance & Bundle
@@ -43,7 +43,7 @@
 ### Stream B — Design System
 
 #### B.1 — Design Tokens (CSS)
-- [ ] **B.1.1** — Inventaire couleurs HEX/HSL brutes dans CSS. *→ Flash (FLASH-05)*
+- [x] **B.1.1** — Inventaire couleurs HEX/HSL brutes dans CSS. ✅ (FLASH-05)
 - [ ] **B.1.2** — Créer `src/styles/tokens.css` avec palette standardisée :
   - `--color-primary` (Gold)
   - `--color-role-root` (Stable)
@@ -79,8 +79,8 @@
 
 - [x] **F.1.A** — Contrat `fingeringMap` v2 implémenté. ✅
 - [x] **F.1.B** — `PositionSelector.jsx` créé. ✅
-- [ ] **F.1.1** — Ajouter `isOutOfRange` dans useMusicEngine. *→ Flash (FLASH-02)*
-- [ ] **F.1.2** — Ghost feedback CSS pour hors-tessiture. *→ Flash (FLASH-03)*
+- [x] **F.1.1** — Ajouter `isOutOfRange` dans useMusicEngine. ✅ (FLASH-02)
+- [x] **F.1.2** — Ghost feedback CSS pour hors-tessiture. ✅ (FLASH-03)
 - [ ] **F.1.3** — Sélecteur Mode Global (Note / Accord / Gamme). *→ Sonnet (UX spec needed)*
 
 #### F.2 — Architecture de Sélection [AFFINÉ + PARTIELLEMENT IMPLÉMENTÉ]
@@ -88,7 +88,7 @@
 
 - [x] **F.2.A** — `useMusicEngine.js` extrait (264L). ✅
 - [x] **F.2.B** — `AppContext` en place. ✅
-- [ ] **F.2.1** — Réduire props InstrumentView via context. *→ Flash (FLASH-04)*
+- [x] **F.2.1** — Réduire props InstrumentView via context. ✅ (FLASH-04)
 - [ ] **F.2.2** — Extraire MixerPanel de App.jsx. *→ Flash*
 - [ ] **F.2.3** — React.memo sur Fretboard et PianoKeyboard. *→ Flash*
 
@@ -126,8 +126,84 @@
 
 #### D.2 — Voicing Intelligence
 - [x] **D.2.A** — `VoicingAlert.jsx` créé. ✅
-- [ ] **D.2.1** — Intégrer VoicingAlert dans DictionaryPanel. *→ Flash (FLASH-06)*
+- [x] **D.2.1** — Intégrer VoicingAlert dans DictionaryPanel. ✅ (FLASH-06)
 - [ ] **D.2.2** — Voice Leading automatique (algo scoring inversion). *→ Sonnet*
+
+---
+
+## 🟡 P2 — Stream G : Music Intelligence (Composition & Improvisation)
+> Source : `docs/management/MUSIC_INTELLIGENCE_ROADMAP.md` + `music_theory_notes.md`
+> Pré-requis : PRO-SPEC-01 (audit data musicale) avant implémentation Flash
+
+### G.1 — Dictionary Mode Enrichi
+- [ ] **G.1.1** — Modes relatifs/parallèles : chips cliquables des 7 modes d'une gamme + gamme parallèle. *→ Flash (après Pro spec)*
+- [ ] **G.1.2** — Notes de tension/résolution colorisées sur le manche (vert=stable, jaune=tension, rouge=avoid). *→ Flash (après Pro spec)*
+- [ ] **G.1.3** — Gammes compatibles catégorisées : Parfaites / Couleur / Évitement. *→ Flash (après Pro spec)*
+- [ ] **G.1.4** — Mood Indicator étendu : tension 0-10, contextes de genre, tempo suggéré. *→ Pro*
+- [ ] **G.1.5** — Toggle Classique/Moderne : analyse stricte (V7→I) vs Jazz/Debussy (tension=couleur stable). *→ Sonnet*
+
+### G.2 — Studio Mode Enrichi
+- [ ] **G.2.1** — Degrés romains (I/ii/IV/V) affichés sur chaque accord de la progression. *→ Flash (après Pro spec)*
+- [ ] **G.2.2** — Progressions communes Quick Start : chips II-V-I, I-V-vi-IV, I-IV-V-I, Turnaround, Andalou. *→ Flash (après Pro spec)*
+- [ ] **G.2.3** — Substitutions harmoniques contextuelles : Triton Sub, Relatif, Diatonique. *→ Sonnet*
+- [ ] **G.2.4** — "Next Chord" HUD : 3 alternatives harmoniques au step suivant. *→ Future*
+- [ ] **G.2.5** — Alertes tension de section : si tonique placée là où dominante attendue. *→ Pro*
+
+### G.3 — Navigation Harmonique
+- [ ] **G.3.1** — Camelot Wheel / Roue des Quintes HUD : affichage SVG, tonalité courante surlignée, voisins compatibles. *→ Flash (composant autonome)*
+- [ ] **G.3.2** — Guide de modulation : Pivot Chord Finder entre deux tonalités. *→ Sonnet*
+- [ ] **G.3.3** — Interchange Modal : suggestion accords empruntés au mode parallèle. *→ Sonnet*
+- [ ] **G.3.4** — Dominantes secondaires : V/X suggérées pour micro-tensions directionnelles. *→ Pro*
+
+### G.4 — Intelligence de Voicing
+- [ ] **G.4.1** — Voice Leading automatique : inversions/positions minimisant les sauts entre accords. *→ Sonnet*
+- [ ] **G.4.2** — Shell Voicings suggérés : priorité 3e+7e pour Jazz. *→ Pro*
+- [ ] **G.4.3** — Score de jouabilité : -10pts par saut > 4 frettes, pénalité tierces serrées dans le grave. *→ Pro*
+
+---
+
+## 🟡 P2 — Stream H : Psychoacoustique & Performance
+> Source : `docs/intelligence/psychoacoustics.md` + `docs/intelligence/PERFORMANCE_DYNAMICS.md`
+
+### H.1 — Illusions Sonores
+- [ ] **H.1.1** — Basse Fantôme (Missing Fundamental) : HUD suggérant harmoniques 2f/3f/4f à ajouter pour simuler basses profondes sur smartphones. *→ Pro*
+- [ ] **H.1.2** — Visualisation harmoniques fantômes en couleur atténuée sur le clavier. *→ Flash (après H.1.1)*
+- [ ] **H.1.3** — Tons de Shepard : visualisation cascade dans PianoRoll + export MIDI. *→ Future*
+
+### H.2 — Série Harmonique Naturelle
+- [ ] **H.2.1** — Mode Harmoniques dans DictionaryPanel : afficher les 8 premiers partiels d'une note avec déviations en cents (Quinte+2c, Tierce-14c, 7e naturelle-31c). *→ Pro*
+- [ ] **H.2.2** — Indicateur Just Intonation vs Equal Temperament sur le clavier. *→ Future*
+
+### H.3 — Performance & Humanisation
+- [ ] **H.3.1** — Modes de jeu : Block (0ms) / Strum (15-30ms grave→aigu) / Arpeggio (200ms). *→ Pro*
+- [ ] **H.3.2** — Bibliothèque de strumming : presets Island `D-DU-_UDU`, Reggae Skank, Rock `D-D-DUDU`. *→ Pro*
+- [ ] **H.3.3** — Moteur Humanize : jitter 2-5ms + velocity Down=100%/Up=70%. *→ Pro*
+- [ ] **H.3.4** — Marqueurs visuels direction strumming : `⊓` (Down) / `∨` (Up) animés en sync audio. *→ Future*
+
+---
+
+## 🟡 P2 — Stream I : Genres & Émotions
+> Source : `docs/intelligence/genre_ontologies.md` + `docs/intelligence/GENRE_ONTOLOGY.md`
+
+### I.1 — Assistant Genre
+- [ ] **I.1.1** — Sélecteur de genre (Jazz, Rock, Reggae, Pop, Electronic, Urban) filtrant les suggestions harmoniques et voicings. *→ Pro*
+- [ ] **I.1.2** — Paramètres genre auto-appliqués : densité harmonique, comportement basse, fourchette BPM. *→ Pro*
+- [ ] **I.1.3** — Suggestions de modes par genre : Dorien pour Jazz, Phrygien pour Metal, Mixolydien pour Blues. *→ Flash (après I.1.1)*
+
+### I.2 — Émotions & Structures
+- [ ] **I.2.1** — Emotional Mapping : sélection par sentiment (Dark/Epic, Sunny/Relax, Melancholy...) → progression cohérente. *→ Future*
+- [ ] **I.2.2** — Templates de structures musicales : ABA (Ternaire), Rondo (ABACA), Sonate (Expo/Dev/Réexpo). *→ Future*
+- [ ] **I.2.3** — Palettes d'émotions : traduction technique → suggestion lisible (ex: "IV mineur = touche de mélancolie"). *→ Pro*
+
+---
+
+## 🟡 P2 — Stream J : Rythmique Avancée
+> Source : `docs/intelligence/core_theory.md` (Euclidean Rhythms)
+
+### J.1 — Polyrythmie & Mesures Asymétriques
+- [ ] **J.1.1** — Grille visuelle polyrythmique dans PianoRoll (5/4, 7/8, 11/8). *→ Future*
+- [ ] **J.1.2** — `totalSteps` variable dans le séquenceur. *→ Pro*
+- [ ] **J.1.3** — Euclidean Rhythm generator (algorithme Bjorklund) pour patterns de basse/guitare. *→ Future*
 
 ---
 
@@ -137,11 +213,16 @@
 - [ ] **E.1** — Audit accessibilité WCAG 2.1 (axe DevTools). *→ Flash*
 - [ ] **E.2** — aria-labels sur instruments. *→ Flash*
 - [ ] **E.3** — Export MIDI multi-pistes avec noms corrects. *→ Flash*
+- [ ] **E.4** — Export MIDI Basse Fantôme (harmoniques 2f/3f/4f sur piste dédiée). *→ Future*
+- [ ] **E.5** — Export MIDI Shepard Tones (vélocités enveloppées). *→ Future*
+- [ ] **E.6** — VST / Export direct Ableton Live (roadmap long terme). *→ Future*
 
 ### Phase 5 — Intelligence Harmonique Avancée
-- [ ] **5.1** — Guide Harmonique Traktor Style (Open Key / Camelot Wheel). *→ Future*
-- [ ] **5.2** — Assistant Genre (Ontologies JSON). *→ Future*
-- [ ] **5.3** — Ingénierie des Émotions. *→ Future*
+- [ ] **5.1** — Camelot Wheel HUD (voir G.3.1). *→ Flash*
+- [ ] **5.2** — Assistant Genre (voir Stream I). *→ Pro*
+- [ ] **5.3** — Ingénierie des Émotions (voir I.2.1). *→ Future*
+- [ ] **5.4** — Set Theory sous-marine : `getIntervalVector()` dans harmonyEngine pour suggestions invisibles. *→ Future*
+- [ ] **5.5** — Micro-tonalité : quarts de ton via MPE / fichiers .SCL/.TUN Ableton 11+. *→ Future*
 
 ### Phase 9 — Accessibilité
 - [ ] **9.0** — Audit WCAG complet + navigation clavier. *→ Flash*

@@ -67,4 +67,16 @@ describe('useMusicEngine', () => {
     const { result } = renderHook(() => useMusicEngine(outOfRangeParams));
     expect(result.current.guitarFingering.isOutOfRange).toBe(true);
   });
+
+  it('detects out of range specifically for bass in dictionary mode', () => {
+    const bassOutOfRangeParams = {
+      ...defaultParams,
+      appMode: 'dictionary',
+      dictRoot: '0', // C
+      dictType: 'chord_major',
+      dictOctave: 2 // C4/C5 area
+    };
+    const { result } = renderHook(() => useMusicEngine(bassOutOfRangeParams));
+    expect(result.current.isBassOutOfRange).toBe(true);
+  });
 });

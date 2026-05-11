@@ -6,6 +6,7 @@ import StudioInfoBlock from './StudioInfoBlock';
 import LcdScreen from '../Common/LcdScreen';
 import CustomSelect from '../Common/CustomSelect';
 import { log } from '../../utils/debug';
+import extendedTheoryData from '../../core/extendedTheoryData.json';
 
 const StudioPanel = ({
   currentBrickIndex,
@@ -23,8 +24,20 @@ const StudioPanel = ({
   handleChordClick,
   inversionText,
   suggestedBassTrack,
-  setSuggestedBassTrack
+  setSuggestedBassTrack,
+  setCustomProgression,
+  customRhythm,
+  setCustomRhythm
 }) => {
+  const RHYTHM_PATTERNS = [
+    { id: 'default', name: 'Original', steps: null },
+    { id: 'straight', name: 'Straight 4/4', steps: [0] },
+    { id: 'sync1', name: 'Syncopated 1', steps: [0, 2] },
+    { id: 'sync2', name: 'Syncopated 2', steps: [0, 1, 2] },
+    { id: 'skank', name: 'Reggae Skank', steps: [2] },
+    { id: 'jazz', name: 'Jazz Comp', steps: [0, 3] },
+  ];
+
   const { lang, txt, notation, state } = useAppContext();
   const { uiTheme } = state;
   if (!activeBrick) return null;
@@ -166,6 +179,33 @@ const StudioPanel = ({
             </button>
           </div>
 
+          <div style={{ textAlign: "center" }}>
+             <span style={{ color: "#888", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>Quick Start Progressions</span>
+             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", marginTop: "10px" }}>
+               {extendedTheoryData.axiomRules.progressions.map(p => (
+                 <button
+                   key={p.id}
+                   onClick={() => {
+                     log("studio", `Loading quick progression: ${p.name}`);
+                     setCustomProgression(p.degrees);
+                   }}
+                   className="btn-premium"
+                   style={{ fontSize: "0.7rem", padding: "4px 8px", borderRadius: "12px" }}
+                   title={p.degrees.join(" - ")}
+                 >
+                   {p.name}
+                 </button>
+               ))}
+               <button
+                 onClick={() => setCustomProgression(null)}
+                 className="btn-premium"
+                 style={{ fontSize: "0.7rem", padding: "4px 8px", borderRadius: "12px", opacity: 0.6 }}
+               >
+                 ↺ Reset
+               </button>
+             </div>
+          </div>
+
           <div
             style={{
               display: "flex",
@@ -196,6 +236,34 @@ const StudioPanel = ({
                 { value: 1, label: "+1 Oct." },
                 { value: 2, label: "+2 Oct." },
               ]}
+              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+            />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              justifyContent: "center",
+            }}
+          >
+            <span
+              style={{
+                color: "#ccc",
+                fontSize: "14px",
+                fontWeight: "bold",
+              }}
+            >
+              {"🥁 Rhythm"}
+            </span>
+            <CustomSelect
+              value={RHYTHM_PATTERNS.find(p => JSON.stringify(p.steps) === JSON.stringify(customRhythm))?.id || 'default'}
+              onChange={(val) => {
+                const pattern = RHYTHM_PATTERNS.find(p => p.id === val);
+                setCustomRhythm(pattern?.steps || null);
+              }}
+              options={RHYTHM_PATTERNS.map(p => ({ value: p.id, label: p.name }))}
               theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
             />
           </div>

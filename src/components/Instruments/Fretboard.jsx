@@ -4,12 +4,13 @@ import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
 import { calcActivePath } from "../../core/fretboardLogic";
 import { computeFretMetadata, getFretWidths } from "../../core/fretboardUtils";
 
+import { useAppContext } from "../../context/AppContext";
+
 const STRING_HEIGHT = 35;
 
 export default function Fretboard({
   instrument = "guitar",
   activeNotes = [],
-  notation = "us",
   stringTuning,
   rootValue = 0,
   targetValue = -1,
@@ -24,7 +25,10 @@ export default function Fretboard({
   fingeringMode = "numeric",
   fingering = null, // Format: { [stringIndex]: { [fret]: finger } }
   scaleAnchor = null,
+  isOutOfRange = false,
+  highlightTargetNotes = false
 }) {
+  const { notation } = useAppContext();
   const numFrets = 22;
   const fretboardRef = useRef(null);
   
@@ -150,14 +154,15 @@ export default function Fretboard({
 
   return (
     <div 
-      className={`fretboard-container instrument-${instrument} ${fingering?.isOutOfRange ? "is-out-of-range" : ""}`}
+      className={`fretboard-container instrument-${instrument} ${(fingering?.isOutOfRange || isOutOfRange) ? "is-out-of-range" : ""}`}
       style={{ "--fretboard-grid": fretboardGridTemplate }}
       title={fingering?.isOutOfRange ? "⚠️ Accord hors tessiture instrument" : ""}
     >
       <h3 style={{ color: "#ccc", marginBottom: "10px" }}>
         {instrument === "bass" ? "🎸 Basse (4 cordes)" : "🎸 Guitare (6 cordes)"}
       </h3>
-      <div className="fretboard" ref={fretboardRef}>
+      <div className={`fretboard ${(fingering?.isOutOfRange || isOutOfRange) ? "fretboard--out-of-range" : ""}`} ref={fretboardRef}>
+        { (fingering?.isOutOfRange || isOutOfRange) && <div className="range-warning">🚫 Out of Range</div> }
         {renderDots()}
         {renderBarres()}
         <div className="strings-layer">
@@ -193,7 +198,7 @@ export default function Fretboard({
                         <div className="open-string-label-container">
                           <span className="open-string-name">{meta.noteName}</span>
                            {(meta.isNoteOpen || meta.isPlaying) && (
-                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} open-marker`}>
+                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${highlightTargetNotes && meta.isTargetNote ? "is-target-note" : ""} open-marker`}>
                                {meta.label}
                              </span>
                            )}
@@ -208,7 +213,7 @@ export default function Fretboard({
                       )}
                       {(meta.isActive || meta.isPlaying) && !meta.isNoteOpen && (
                         <div
-                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isSubtle && !meta.isPlaying ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""}`}
+                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isSubtle && !meta.isPlaying ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""} ${highlightTargetNotes && meta.isTargetNote ? "is-target-note" : ""}`}
                           title={`${meta.noteInfo.us} / ${meta.noteInfo.eu}`}
                           style={{
                             opacity: inZone ? 1 : 0.25,

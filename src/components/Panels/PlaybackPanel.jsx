@@ -53,28 +53,7 @@ const PlaybackPanel = ({
         {appMode !== "dictionary" && (
           <button
             onClick={togglePlayback}
-            className={`vintage-control-btn playback-toggle-btn ${isPlaying ? 'stop' : 'play'}`}
-            style={{
-              background: isPlaying 
-                ? "linear-gradient(180deg, #e74c3c, #c0392b)" 
-                : "linear-gradient(180deg, #2ecc71, #27ae60)",
-              color: "#fff",
-              width: "100%",
-              height: "60px",
-              fontSize: "1.4rem",
-              fontWeight: "900",
-              borderRadius: "12px",
-              marginBottom: "20px",
-              boxShadow: isPlaying 
-                ? "0 4px 15px rgba(231, 76, 60, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)" 
-                : "0 4px 15px rgba(46, 204, 113, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "10px",
-              textShadow: "0 2px 4px rgba(0,0,0,0.3)",
-              border: "1px solid rgba(0,0,0,0.2)"
-            }}
+            className={`btn-playback-premium ${isPlaying ? 'stop' : 'play'}`}
           >
             {isPlaying ? txt.stopAudio : txt.enableAudio}
           </button>

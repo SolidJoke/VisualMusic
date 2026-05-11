@@ -2,6 +2,8 @@ import React from "react";
 import "./PianoKeyboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
 import { getHarmonicSeries } from "../../core/acousticEngine";
+import { useAppContext } from "../../context/AppContext";
+
 const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 const BLACK_KEYS = [1, 3, 6, 8, 10];
 const WHITE_KEY_WIDTH = 50;
@@ -17,17 +19,15 @@ const FLAT_EQUIVALENTS = {
 export default function PianoKeyboard({
   activeNotes = [],
   numOctaves = 7,
-  notation = "us",
   rootValue = 0,
   targetValue = -1,
   onNoteClick,
   currentlyPlayingNotes = [],
   contextualScaleAbsoluteValues = [],
-  dictType = null,
-  lang = "fr",
-  txt = {},
-  harmonicMode = false
+  dictType = null
 }) {
+  const { lang, txt, notation, state } = useAppContext();
+  const { harmonicMode } = state;
   const keys = [];
 
   const harmonicSeries = React.useMemo(() => {
@@ -103,8 +103,8 @@ export default function PianoKeyboard({
     return labelContent;
   };
 
-  const getKeyRoleClass = (i, isActive, activeNote) => {
-    if (!isActive) return "";
+  const getKeyRoleClass = (i, isActive, activeNote, isPlaying) => {
+    if (!isActive && !isPlaying) return "";
     if (i === targetValue) return "role-target";
     
     // Use the explicitly passed order if available (favors clicked chord roles)
@@ -116,11 +116,14 @@ export default function PianoKeyboard({
       if (order === "5") return "role-fifth";
       return "role-extension";
     }
+    
+    // Fallback to calculation based on current rootValue
     const interval = (i - rootValue + 12) % 12;
     if (interval === 0) return "role-root";
     if (interval === 3 || interval === 4) return "role-third";
     if (interval === 7) return "role-fifth";
-    return "role-scale";
+    
+    return isActive ? "role-scale" : "role-extension";
   };
 
   for (let octave = 0; octave < numOctaves; octave++) {
@@ -180,7 +183,7 @@ export default function PianoKeyboard({
             className="black-key-wrapper"
           >
             <div
-              className={`piano-key black-key ${getKeyRoleClass(i, isActive, activeNote)} ${subtleClass} ${isPlaying ? "is-playing" : ""}`}
+              className={`piano-key black-key ${getKeyRoleClass(i, isActive, activeNote, isPlaying)} ${subtleClass} ${isPlaying ? "is-playing" : ""}`}
               title={`${noteInfo.us} / ${noteInfo.eu}`}
               onClick={() =>
                 onNoteClick && onNoteClick(noteName, { instrument: "piano" })
@@ -203,7 +206,7 @@ export default function PianoKeyboard({
         keys.push(
           <div
             key={`octave-${octave}-note-${i}`}
-            className={`piano-key white-key ${getKeyRoleClass(i, isActive, activeNote)} ${subtleClass} ${isPlaying ? "is-playing" : ""}`}
+            className={`piano-key white-key ${getKeyRoleClass(i, isActive, activeNote, isPlaying)} ${subtleClass} ${isPlaying ? "is-playing" : ""}`}
             title={`${noteInfo.us} / ${noteInfo.eu}`}
             onClick={() => onNoteClick && onNoteClick(noteName, { instrument: "piano" })}
           >

@@ -19,6 +19,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { analyzeVoicingRules, suggestReVoicing } from '../../core/voicingEngine.js';
+import './VoicingAlert.css';
 
 // ---------------------------------------------------------------------------
 // Sub-components

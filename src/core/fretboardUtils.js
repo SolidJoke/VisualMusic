@@ -65,12 +65,22 @@ export function computeFretMetadata(params) {
 
   const absoluteValue = openStringAbsValue + fret;
   const noteValue = absoluteValue % 12;
-  const noteInfo = NOTES[noteValue];
+  const noteInfo = NOTES[noteValue] || { us: '?', eu: '?', value: noteValue };
 
   // 1. Basic active state
+  // In dictionary mode, we often want to see the scale/note across the whole neck
+  // unless a specific voicing is active.
+  const isDictionaryMode = params.appMode === "dictionary";
   const activeNote = activeNotes.find((n) => {
+    // If it's a dictionary scale (and not a specific voicing yet),
+    // we match by note value % 12 to show all octaves.
+    // For single notes and chords, we want strict absolute matching when available.
+    if (isDictionaryMode && dictType && dictType.includes('scale') && !fingering?.fingeringMap && !fingering?.isScaleBox) {
+      return (n.value % 12) === (noteValue % 12);
+    }
+    // Otherwise, strict absolute matching if available
     if (n.absoluteValue !== undefined) return n.absoluteValue === absoluteValue;
-    return n.value % 12 === noteValue;
+    return (n.value % 12) === (noteValue % 12);
   });
   let isActive = !!activeNote;
 
@@ -83,12 +93,10 @@ export function computeFretMetadata(params) {
         break;
       }
     } else if (n === absoluteValue) {
-      // If raw pitch, only highlight if it's currently active (visible) on this fretboard
-      // This prevents homonyms from lighting up when they are outside the current box/fingering
-      if (isActive) {
-        isPlaying = true;
-        break;
-      }
+      // Notes highlight during playback if absolute values match, 
+      // regardless of whether they are "active" in the current selection.
+      isPlaying = true;
+      break;
     }
   }
 
@@ -98,21 +106,40 @@ export function computeFretMetadata(params) {
 
   // 3. Voicing Masking
   const isScaleMode = dictType?.includes("scale");
-  const actualFingering = fingering?.fingeringMap || (fingering && !fingering.isScaleBox ? fingering : null);
+  const actualFingering = fingering?.fingeringMap;
   const isVoicingMaskActive = (instrument === "guitar" || instrument === "bass") && showFingering && (fingering?.isScaleBox || actualFingering);
 
+  let isPartOfVoicing = false;
   if (isVoicingMaskActive) {
     if (fingering.isScaleBox) {
-      const isPartOfVoicing = (fret >= fingering.startFret && fret <= fingering.endFret);
-      if (!isPartOfVoicing) isActive = false;
+      // Scale box range check
+      isPartOfVoicing = fret >= fingering.startFret && fret <= fingering.endFret;
     } else {
-      const fingerAtLocation = actualFingering[stringIndex]?.[fret];
-      const isMuted = actualFingering[stringIndex]?.['X'] === true;
-      const isPartOfVoicing = (fingerAtLocation && fingerAtLocation !== 'X' && fingerAtLocation !== 'O') || (fret === 0 && fingerAtLocation === 'O');
+      // Guitar/Bass indexing reversal: logic uses 0=High E, UI uses 0=Low E
+      const stringIndexReversed = instrument === 'bass' ? (3 - stringIndex) : (5 - stringIndex);
+      const stringFingering = actualFingering?.[stringIndexReversed] || actualFingering?.[stringIndex];
       
-      if (isMuted) isActive = false;
-      else if (!isPartOfVoicing) isActive = false;
+      if (stringFingering) {
+        // V2 format Support
+        if (stringFingering.status === 'open' && fret === 0) {
+          isPartOfVoicing = true;
+        } else if (stringFingering.status === 'played' && stringFingering.fret === fret) {
+          isPartOfVoicing = true;
+        } else if (stringFingering.status === 'muted') {
+          isPartOfVoicing = false;
+        } else {
+          // Legacy format Support ( { fret: finger } )
+          let finger = stringFingering[fret];
+          if (finger === undefined && stringFingering.fret === fret) {
+            finger = stringFingering.finger;
+          }
+          isPartOfVoicing = finger !== undefined && finger !== 'X';
+        }
+      }
     }
+    
+    // In voicing mode, the mask determines active state
+    isActive = isPartOfVoicing;
   }
 
   // 3.5 Scale Anchor Masking (Local Root Focus)
@@ -127,6 +154,7 @@ export function computeFretMetadata(params) {
   let roleClass = "";
   let orderToDisplay = null;
   let isSubtle = false;
+  let isTargetNote = false;
 
   const hasContextualScale = contextualScaleAbsoluteValues?.length > 0;
   const hasPath = activePath?.length > 0;
@@ -154,20 +182,24 @@ export function computeFretMetadata(params) {
     orderToDisplay = activeNote.order;
   }
 
-  if (isActive) {
-    if (noteValue === targetValue) roleClass = "role-target";
+  if (isActive || isPlaying) {
+    if (noteValue === targetValue) {
+      roleClass = "role-target";
+      isTargetNote = true;
+    }
     else if (orderToDisplay) {
       const order = String(orderToDisplay);
       if (order === "1") roleClass = "role-root";
       else if (order.includes("3")) roleClass = "role-third";
       else if (order.includes("5")) roleClass = "role-fifth";
-      else roleClass = "role-scale";
+      else roleClass = "role-extension";
     } else {
+      // Fallback for notes that are playing but not part of the explicit activeNote/order logic
       const interval = (noteValue - rootValue + 12) % 12;
       if (interval === 0) roleClass = "role-root";
       else if (interval === 3 || interval === 4) roleClass = "role-third";
       else if (interval === 7) roleClass = "role-fifth";
-      else roleClass = "role-scale";
+      else roleClass = isActive ? "role-scale" : "role-extension";
     }
   }
 
@@ -193,6 +225,7 @@ export function computeFretMetadata(params) {
     roleClass,
     label,
     isNoteOpen: fret === 0 && isActive,
+    isTargetNote,
     noteInfo
   };
 }

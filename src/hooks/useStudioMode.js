@@ -18,6 +18,8 @@ export function useStudioMode() {
   const [visualFocus, setVisualFocus] = useState("chords");
 
   const [suggestedBassTrack, setSuggestedBassTrack] = useState(null);
+  const [customProgression, setCustomProgression] = useState(null);
+  const [customRhythm, setCustomRhythm] = useState(null);
 
   const activeBrick = useMemo(() => BRICKS.at(Number(currentBrickIndex)), [currentBrickIndex]);
 
@@ -33,12 +35,15 @@ export function useStudioMode() {
         );
     }
 
+    const baseProgression = isB && activeBrick.nnsProgressionVariation ? activeBrick.nnsProgressionVariation : activeBrick.nnsProgression;
+
     return {
       drums: isB && activeBrick.drumTracksVariation ? activeBrick.drumTracksVariation : activeBrick.drumTracks,
       melody: finalMelody,
-      progression: isB && activeBrick.nnsProgressionVariation ? activeBrick.nnsProgressionVariation : activeBrick.nnsProgression
+      progression: customProgression || baseProgression,
+      rhythm: customRhythm || activeBrick.chordRhythm || [0]
     };
-  }, [activeBrick, currentTheme, suggestedBassTrack]);
+  }, [activeBrick, currentTheme, suggestedBassTrack, customProgression, customRhythm]);
 
   return {
     currentBrickIndex, setCurrentBrickIndex,
@@ -53,6 +58,8 @@ export function useStudioMode() {
     singlePlayContext, setSinglePlayContext,
     visualFocus, setVisualFocus,
     suggestedBassTrack, setSuggestedBassTrack,
+    customProgression, setCustomProgression,
+    customRhythm, setCustomRhythm,
     activeBrick,
     activeTracks
   };

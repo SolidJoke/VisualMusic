@@ -4,7 +4,8 @@ import {
   getBassFingering, 
   getAvailableGuitarFingerings, 
   getAvailableBassFingerings, 
-  getAvailableScaleFingerings 
+  getAvailableScaleFingerings,
+  getAvailableSingleNoteFingerings
 } from "../core/fingeringLogic";
 import { 
   getScaleNotes, 
@@ -36,7 +37,8 @@ export function useMusicEngine({
   dictType,
   dictActiveNotes,
   dictOctave,
-  fingeringMode
+  fingeringMode,
+  notation
 }) {
 
   // --- 1. Harmonization & Active Notes ---
@@ -169,6 +171,14 @@ export function useMusicEngine({
         }
         return null; 
       }
+      if (dictType === "single_note") {
+        if (selectedVoicingIndexGuitar !== null && dictActiveNotes?.length > 0) {
+          const avail = getAvailableSingleNoteFingerings(dictActiveNotes[0].absoluteValue, 'guitar', notation);
+          const found = avail.find(p => p.id === selectedVoicingIndexGuitar);
+          if (found) return toV2(found.fingering, 'guitar');
+        }
+        return null;
+      }
       if (!dictType.includes("chord")) return null;
       rootVal = Number(dictRoot);
       chordType = dictType;
@@ -179,14 +189,14 @@ export function useMusicEngine({
     }
 
     if (appMode === "dictionary" && selectedVoicingIndexGuitar !== null) {
-      const avail = getAvailableGuitarFingerings(rootVal, chordType, dictOctave);
-      const found = avail.find(p => p.id === selectedVoicingIndexGuitar);
+      const avail = getAvailableGuitarFingerings(rootVal, chordType, dictOctave, notation);
+      const found = avail.find(p => String(p.id) === String(selectedVoicingIndexGuitar));
       if (found) return toV2(found.fingering, 'guitar');
     }
 
     const offset = appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0);
     return toV2(getGuitarFingering(rootVal, chordType, selectedRootStringGuitar, offset), 'guitar');
-  }, [clickedChord, selectedRootStringGuitar, appMode, dictRoot, dictType, selectedVoicingIndexGuitar, activeBrick.guitarStrings, dictOctave, chordOctaveOffset]);
+  }, [clickedChord, selectedRootStringGuitar, appMode, dictRoot, dictType, selectedVoicingIndexGuitar, activeBrick.guitarStrings, dictOctave, chordOctaveOffset, notation]);
 
   const availableGuitarFingerings = useMemo(() => {
     let rootVal, chordType;
@@ -195,15 +205,21 @@ export function useMusicEngine({
       chordType = dictType;
       if (dictType.includes("scale")) {
         const tuning = activeBrick.guitarStrings || ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
-        return getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning);
+        return getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning, notation);
       }
     } else {
       if (!clickedChord) return [];
       rootVal = clickedChord.rootNote.value;
       chordType = resolveNnsToChordType(clickedChord.nns);
     }
-    return getAvailableGuitarFingerings(rootVal, chordType, appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0));
-  }, [clickedChord, appMode, dictRoot, dictType, activeBrick.guitarStrings, chordOctaveOffset, dictOctave]);
+    if (dictType === "single_note") {
+      if (dictActiveNotes.length > 0) {
+        return getAvailableSingleNoteFingerings(dictActiveNotes[0].absoluteValue, 'guitar', notation);
+      }
+      return [];
+    }
+    return getAvailableGuitarFingerings(rootVal, chordType, appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0), notation);
+  }, [clickedChord, appMode, dictRoot, dictType, activeBrick.guitarStrings, chordOctaveOffset, dictOctave, notation]);
 
   const bassFingering = useMemo(() => {
     let rootVal, chordType;
@@ -211,9 +227,17 @@ export function useMusicEngine({
       if (dictType.includes("scale")) {
         if (selectedVoicingIndexBass !== null) {
           const tuning = activeBrick.bassStrings || ['E1', 'A1', 'D2', 'G2'];
-          const avail = getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning);
-          const found = avail.find(p => p.id === selectedVoicingIndexBass);
+          const avail = getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning, notation);
+          const found = avail.find(p => String(p.id) === String(selectedVoicingIndexBass));
           if (found) return toV2({ ...found.fingering, octave: dictOctave }, 'bass');
+        }
+        return null;
+      }
+      if (dictType === "single_note") {
+        if (selectedVoicingIndexBass !== null && dictActiveNotes?.length > 0) {
+          const avail = getAvailableSingleNoteFingerings(dictActiveNotes[0].absoluteValue, 'bass', notation);
+          const found = avail.find(p => p.id === selectedVoicingIndexBass);
+          if (found) return toV2(found.fingering, 'bass');
         }
         return null;
       }
@@ -227,14 +251,14 @@ export function useMusicEngine({
     }
 
     if (appMode === "dictionary" && selectedVoicingIndexBass !== null) {
-      const avail = getAvailableBassFingerings(rootVal, chordType, dictOctave);
-      const found = avail.find(p => p.id === selectedVoicingIndexBass);
+      const avail = getAvailableBassFingerings(rootVal, chordType, dictOctave, notation);
+      const found = avail.find(p => String(p.id) === String(selectedVoicingIndexBass));
       if (found) return toV2(found.fingering, 'bass');
     }
 
     const offset = appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0);
     return toV2(getBassFingering(rootVal, chordType, selectedRootStringBass, offset), 'bass');
-  }, [clickedChord, selectedRootStringBass, appMode, dictRoot, dictType, selectedVoicingIndexBass, activeBrick.bassStrings, dictOctave, chordOctaveOffset]);
+  }, [clickedChord, selectedRootStringBass, appMode, dictRoot, dictType, selectedVoicingIndexBass, activeBrick.bassStrings, dictOctave, chordOctaveOffset, notation]);
 
   const availableBassFingerings = useMemo(() => {
     let rootVal, chordType;
@@ -243,15 +267,21 @@ export function useMusicEngine({
       chordType = dictType;
       if (dictType.includes("scale")) {
         const tuning = activeBrick.bassStrings || ['E1', 'A1', 'D2', 'G2'];
-        return getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning);
+        return getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning, notation);
       }
     } else {
       if (!clickedChord) return [];
       rootVal = clickedChord.rootNote.value;
       chordType = resolveNnsToChordType(clickedChord.nns);
     }
-    return getAvailableBassFingerings(rootVal, chordType, appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0));
-  }, [clickedChord, appMode, dictRoot, dictType, activeBrick.bassStrings, chordOctaveOffset, dictOctave]);
+    if (dictType === "single_note") {
+      if (dictActiveNotes.length > 0) {
+        return getAvailableSingleNoteFingerings(dictActiveNotes[0].absoluteValue, 'bass', notation);
+      }
+      return [];
+    }
+    return getAvailableBassFingerings(rootVal, chordType, appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0), notation);
+  }, [clickedChord, appMode, dictRoot, dictType, activeBrick.bassStrings, chordOctaveOffset, dictOctave, notation]);
 
   return {
     ...musicContext,
@@ -259,6 +289,8 @@ export function useMusicEngine({
     guitarFingering,
     bassFingering,
     availableGuitarFingerings,
-    availableBassFingerings
+    availableBassFingerings,
+    isGuitarOutOfRange: !!(appMode === "dictionary" && dictType && (!guitarFingering || guitarFingering.isOutOfRange)),
+    isBassOutOfRange: !!(appMode === "dictionary" && dictType && (!bassFingering || bassFingering.isOutOfRange))
   };
 }

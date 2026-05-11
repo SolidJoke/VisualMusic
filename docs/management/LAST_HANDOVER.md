@@ -1,31 +1,54 @@
-# Rapport de Passation Critique : VisualMusic v1.1
-
-## 1. Contexte Immédiat
-Nous terminons une phase intense de **Backlog Refinement**. L'objectif était de stabiliser l'architecture de navigation musicale (octaves, variantes, tessitures) avant de passer à l'implémentation, afin d'éviter les régressions chroniques observées sur les doigtés (barrés, indicateurs O/X).
-
-## 2. État du Backlog (Stream F : Navigation)
-Tout le Stream F est désormais **AFFINÉ**. Les spécifications techniques sont prêtes dans les fichiers suivants :
-- **F.1 (Navigation & Tessiture)** : [REF_DECISION_MATRIX_F1.md](file:///D:/IA/VisualMusic/docs/management/REF_DECISION_MATRIX_F1.md) -> Utiliser le contrat `fingeringMap` v2.
-- **F.2 (Refactoring App.jsx)** : [REF_DECISION_MATRIX_F2.md](file:///D:/IA/VisualMusic/docs/management/REF_DECISION_MATRIX_F2.md) -> Extraire `useMusicEngine`.
-- **F.3 (Observabilité)** : [REF_DECISION_MATRIX_F3.md](file:///D:/IA/VisualMusic/docs/management/REF_DECISION_MATRIX_F3.md) -> Créer `logs/dev.json`.
-- **F.5 (Théorie)** : [REF_DECISION_MATRIX_F5.md](file:///D:/IA/VisualMusic/docs/management/REF_DECISION_MATRIX_F5.md) -> Exploiter les données expertes.
-
-## 3. Données de Savoir Disponibles
-Les données d'IA expertes ont été injectées dans :
-`D:\IA\Aria\SAS\expert_theory_data.json`
-Elles contiennent :
-- Règles de **Voice Leading** (max stretch, pénalités).
-- **Substitutions Harmoniques** (Triton, Relatif Mineur, Dominantes secondaires).
-- **Extensions d'Accords** (9th, 11th, 13th, etc.).
-- **Tessitures MIDI** exactes par instrument.
-
-## 4. Points de Vigilance (Alerte Rouge)
-- **Régression de Données** : Ne jamais repasser à une structure de `Map` simple pour les doigtés. Utiliser l'objet `fingeringMap` structuré pour ne pas perdre les états 'muted'/'open'.
-- **God Component** : `App.jsx` est au bord de l'implosion (574 lignes). L'extraction de `useMusicEngine` est la priorité absolue du prochain tour.
-- **Workspace** : La nouvelle session DOIT s'ouvrir dans `D:\IA\` pour voir `Aria` et `VisualMusic`.
-
-## 5. Prochaine Action Suggérée
-Lancer l'implémentation de **F.2 (useMusicEngine)** en utilisant les types et données de **F.1** et **F.5**.
+# LAST HANDOVER — 2026-05-11 (Session 4 — Expansion Intelligence)
+> **Modèle sortant** : Gemini Flash (Current) / Claude Sonnet (Expert)
+> **Dernière mise à jour** : 2026-05-10T20:55
+> **Statut global** : ✅ BUG-06 RÉSOLU | ✅ Tests 559/559
 
 ---
-*Fin de session Aria - 10 Mai 2026*
+
+## 🚨 RÈGLES ABSOLUES — LIRE EN PREMIER
+
+1. **`npm test` avant ET après chaque tâche** → doit rester **559/559** ✅
+2. **Ne jamais modifier** `src/core/fingeringLogic.js`, `src/core/theory.js` sans instruction explicite de l'expert.
+3. **Lire le §MAP** en bas de chaque fichier avec variables alpha avant toute modification.
+4. **Si les tests cassent → STOP**, ne pas continuer, reporter le blocage.
+
+---
+
+## 🔴 P0 — TÂCHES DE MAINTENANCE (Priorité Max)
+
+### GIT-01 — Commits thématiques VisualMusic
+Le projet a accumulé 40+ fichiers modifiés non commités. Il faut les diviser en 4 commits thématiques :
+1. `feat(arch)`: Hooks, AppContext, stabilisation useMusicEngine.
+2. `test`: Suite de tests stabilisée (559/559).
+3. `feat(ui)`: Séquenceur, sélecteurs, styles liquid glass.
+4. `docs`: Nouveaux docs de management et expert data.
+
+### GIT-02 — Nettoyage Aria Workspace
+Archiver `App.jsx.dump` dans `docs/archive/`, nettoyer `.gitignore` et commiter les nouveaux documents.
+
+---
+
+## 🟡 P1 — NOUVELLES TÂCHES FLASH (Intelligence Harmonique) — ✅ TERMINÉ (Session 4)
+
+### FLASH-11, 12, 13 — Intelligence Harmonique Complétée
+- ✅ **Substitutions** : Intégrées dans `DictionaryPanel`.
+- ✅ **Target Notes** : Surlignage (Halo doré) fonctionnel.
+- ✅ **Rhythm Selector** : Sélecteur manuel ajouté dans `StudioPanel`.
+
+---
+
+## 🟢 P2 — PROCHAINES ÉTAPES (Suggestions)
+
+## ✅ ÉTAT DES LIEUX (Ce qui a été fait)
+- [x] **BUG-06** : Fix de l'affichage des accords en mode dictionnaire (type-cast et props labels).
+- [x] **FLASH-08** : Degrés romains ajoutés au-dessus des labels NNS dans le Studio.
+- [x] **FLASH-09** : Chips "Quick Start" pour charger des progressions classiques.
+- [x] **FLASH-10** : Mode Harmonique fonctionnel avec calcul des partiels et cents.
+- [x] **QW-01/02/03** : Nettoyage code, mise à jour docs et audit i18n.
+
+---
+
+## 📊 FICHIERS À SURVEILLER
+- `src/components/Panels/DictionaryPanel.jsx` (Point d'entrée FLASH-11/12)
+- `src/components/Panels/StudioPanel.jsx` (Point d'entrée FLASH-13)
+- `src/core/expert_theory_data.json` (Source de vérité pour l'intelligence musicale)

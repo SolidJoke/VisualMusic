@@ -160,4 +160,19 @@ describe('fingeringLogic', () => {
       expect(resHigh.isOutOfRange).toBe(true);
     });
   });
+
+  describe('A Major Open', () => {
+    it('should return correct open A shape for A major (9, chord_major)', () => {
+      const result = getGuitarFingering(9, 'chord_major');
+      expect(result).not.toBeNull();
+      const map = result.fingeringMap;
+      // X 0 2 2 2 0
+      expect(map[5]['X']).toBe(true);
+      expect(map[4][0]).toBe('O');
+      expect(map[3][2]).toBe(1);
+      expect(map[2][2]).toBe(2);
+      expect(map[1][2]).toBe(3);
+      expect(map[0][0]).toBe('O');
+    });
+  });
 });

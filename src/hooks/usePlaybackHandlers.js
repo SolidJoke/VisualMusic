@@ -29,7 +29,8 @@ export function usePlaybackHandlers({
   selectedRootStringGuitar,
   selectedRootStringBass,
   setScaleAnchor,
-  scaleAnchor
+  scaleAnchor,
+  notation = 'us'
 }) {
   const playTokenRef = useRef(0);
 
@@ -86,9 +87,10 @@ export function usePlaybackHandlers({
       absolutePitches = getClosestInversion(prevNotes, rootVal, thirdInterval, fifthInterval, baseOctave);
     }
 
-    const notesToPlay = absolutePitches.map(
-      (n) => `${NOTES[n % 12].us}${Math.floor(n / 12)}`,
-    );
+    const notesToPlay = absolutePitches.map((n) => {
+      const noteName = notation === 'eu' ? NOTES[n % 12].eu : NOTES[n % 12].us;
+      return `${noteName}${Math.floor(n / 12)}`;
+    });
 
     playDictionaryNote(playbackInstrument, notesToPlay, "2n");
     setCurrentAbsoluteNotes(absolutePitches);
@@ -121,7 +123,8 @@ export function usePlaybackHandlers({
 
       notesToPlay = absolutePitches.map((p) => {
         const val = typeof p === "object" ? p.absoluteValue : p;
-        return `${NOTES[val % 12].us}${Math.floor(val / 12)}`;
+        const noteName = notation === 'eu' ? NOTES[val % 12].eu : NOTES[val % 12].us;
+        return `${noteName}${Math.floor(val / 12)}`;
       });
     } else if (dictType.includes("chord")) {
       const currentFingering = (playbackInstrument === "guitar") ? guitarFingering : (playbackInstrument === "bass" ? bassFingering : null);
@@ -158,14 +161,16 @@ export function usePlaybackHandlers({
 
       notesToPlay = absolutePitches.map((p) => {
         const val = typeof p === "object" ? p.absoluteValue : p;
-        return `${NOTES[val % 12].us}${Math.floor(val / 12)}`;
+        const noteName = notation === 'eu' ? NOTES[val % 12].eu : NOTES[val % 12].us;
+        return `${noteName}${Math.floor(val / 12)}`;
       });
     } else {
       const baseOctave = 4;
       absolutePitches = activeNotes.map((n) => n.value + baseOctave * 12);
       notesToPlay = absolutePitches.map((p) => {
         const val = typeof p === "object" ? p.absoluteValue : p;
-        return `${NOTES[val % 12].us}${Math.floor(val / 12)}`;
+        const noteName = notation === 'eu' ? NOTES[val % 12].eu : NOTES[val % 12].us;
+        return `${noteName}${Math.floor(val / 12)}`;
       });
     }
 
@@ -212,7 +217,8 @@ export function usePlaybackHandlers({
         setTimeout(() => {
           if (playTokenRef.current !== currentToken) return;
           
-          const noteName = `${NOTES[pitch % 12].us}${Math.floor(pitch / 12)}`;
+          const noteNameParts = NOTES[pitch % 12];
+          const noteName = `${notation === 'eu' ? noteNameParts.eu : noteNameParts.us}${Math.floor(pitch / 12)}`;
           playDictionaryNote(playbackInstrument, noteName, "8n");
           
           // Try to find specific string/fret from activePath
@@ -230,7 +236,8 @@ export function usePlaybackHandlers({
       });
     } else {
       const currentRootValue = Number(dictRoot);
-      const noteName = `${NOTES[currentRootValue % 12].us}4`;
+      const noteNameParts = NOTES[currentRootValue % 12];
+      const noteName = `${notation === 'eu' ? noteNameParts.eu : noteNameParts.us}4`;
       const absNote = getAbsoluteNoteValue(noteName);
       playDictionaryNote(playbackInstrument, noteName, "2n");
       setCurrentlyPlayingNotes([absNote]);
@@ -329,7 +336,8 @@ export function usePlaybackHandlers({
           // AV-1: Simultaneous chord playback
           const notesToPlay = absolutePitches.map(p => {
             const val = typeof p === 'object' ? p.absoluteValue : p;
-            return `${NOTES[val % 12].us}${Math.floor(val / 12)}`;
+            const noteName = notation === 'eu' ? NOTES[val % 12].eu : NOTES[val % 12].us;
+            return `${noteName}${Math.floor(val / 12)}`;
           });
           playDictionaryNote(playbackInstrument, notesToPlay, "2n");
           setCurrentlyPlayingNotes(absolutePitches);
@@ -352,7 +360,8 @@ export function usePlaybackHandlers({
             if (playTokenRef.current !== currentToken) return;
 
             const pitch = typeof p === 'object' ? p.absoluteValue : p;
-            const noteName = `${NOTES[pitch % 12].us}${Math.floor(pitch / 12)}`;
+            const noteNameParts = NOTES[pitch % 12];
+            const noteName = `${notation === 'eu' ? noteNameParts.eu : noteNameParts.us}${Math.floor(pitch / 12)}`;
             playDictionaryNote(playbackInstrument, noteName, "8n");
             
             setCurrentlyPlayingNotes([p]);
