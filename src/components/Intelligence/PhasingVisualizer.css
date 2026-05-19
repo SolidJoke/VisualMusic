@@ -1,0 +1,28 @@
+.phasing-visualizer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+  background: var(--color-bg-darker, #111);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #333);
+}
+
+.phasing-voice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.phasing-voice .voice-label {
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--color-text-muted, #888);
+  letter-spacing: 0.05em;
+}
+
+.led-phasing {
+  background-color: var(--color-secondary, #9b59b6);
+  box-shadow: 0 0 8px var(--color-secondary, #9b59b6);
+}
