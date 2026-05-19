@@ -421,7 +421,7 @@ export default function CompositionPanel({
               <input
                 type="range"
                 min="0"
-                max={α1 - 1}
+                max={subdivisions - 1}
                 value={phasingOffset}
                 onChange={(e) => setPhasingOffset(parseInt(e.target.value))}
                 className="retro-slider"
