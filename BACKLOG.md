@@ -19,6 +19,9 @@
 - [x] **14.5** — **Header overflow** : ✅ Fixé (SESS-09).
 - [x] **14.6** — **Z-index menu Notes** : ✅ Fixé via Sidebar.css (SESS-10).
 - [x] **14.7** — **Toggle Mode** : ✅ Style Premium Blue implémenté (SESS-12).
+- [ ] **BUG-07** — **Studio Sidebar Empty space** : Remove empty useless spacer in Studio Mode sidebar.
+- [ ] **BUG-08** — **Dictionary Fretboard Width & Marker Shift** : Resolve doubled width and vertically shifted string markers.
+- [ ] **BUG-09** — **Dictionary Scale Notes & Highlight Sync** : Fix incorrect notes showing on selected scale and sync highlights.
 
 > **Note** : 14.2 (notes inaudibles Studio) et 14.3 (Crash Z-index Studio) sont à vérifier — peuvent avoir été corrigés avec la refonte architecture.
 

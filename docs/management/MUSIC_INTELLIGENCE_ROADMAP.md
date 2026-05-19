@@ -137,6 +137,43 @@ Avant d'ajouter quoi que ce soit, Gemini Pro doit auditer ces fichiers :
 
 ---
 
+### STREAM-E : Composition Algorithmique (Nouveau Mode — "Composition Lab")
+
+> **Source** : `D:\IA\Aria\SAS\SpecsCompositionMathematique.txt`
+> **Concept** : 3ème mode applicatif dédié aux techniques mathématiques de composition rythmique
+> **Plan détaillé** : `MASTER_TASK_TRACKER.md` § P5 — STREAM-E (tickets COMP-01 à COMP-08)
+
+#### E1 — Rythmes Euclidiens (Fondation)
+**Idée** : Générateur interactif de rythmes euclidiens E(k,n) via l'algorithme de Bjorklund. Visualisation en cercle SVG avec polygone des notes actives. Catalogue de presets mondiaux (Tresillo, Bembé, Bossa Nova...).
+**Data à créer** : `compositionEngine.js` (algorithme pur) + presets dans `extendedTheoryData.json`
+**Complexité Flash** : Basse pour le moteur, Moyenne pour le SVG.
+**Tickets** : COMP-01 (moteur) + COMP-02 (cercle SVG) + COMP-03 (panneau) + COMP-04 (intégration)
+
+#### E2 — Déphasage (Phasing)
+**Idée** : Simulateur de déphasage Steve Reich — deux motifs identiques se décalant progressivement. Visualisation de la divergence et convergence.
+**Complexité** : Moyenne — Sonnet recommandé.
+**Ticket** : COMP-06
+
+#### E3 — Isorythmie & Réalignement Forcé
+**Idée** : Générateur de séquences isorythmiques (cycles de durées × hauteurs désynchronisés) + calculateur d'équations de réalignement style Meshuggah.
+**Complexité Flash** : Basse (algorithmes simples).
+**Ticket** : COMP-07
+
+#### E4 — Polyrythmie Algébrique (Rythmes Équilibrés)
+**Idée** : Théorie d'Andrew Milne — rythmes dont le barycentre = centre du cercle. Somme/soustraction de polygones réguliers.
+**Complexité** : Haute — Sonnet/Pro uniquement.
+**Ticket** : COMP-08
+
+#### Synergies avec les Streams existants
+
+| Stream existant | Enrichissement via STREAM-E |
+|----------------|---------------------------|
+| **C1 — Camelot Wheel** | Le cercle SVG euclidien et la roue des quintes partagent le même paradigme de visualisation circulaire. Possibilité d'un toggle "Vue Rythme / Vue Harmonie" sur le même composant. |
+| **B2 — Progressions Quick Start** | Les patterns euclidiens peuvent être exportés comme base rythmique pour le `patternId` des bricks Studio. |
+| **D1 — Mood Indicator** | La dualité rythme↔mélodie (E(7,12)=Gamme Majeure, E(3,8)=Triade) enrichit la compréhension émotionnelle des structures. |
+
+---
+
 ## 📋 Priorisation proposée (ordre d'implémentation)
 
 | Priorité | ID | Feature | Complexité Flash | Pré-requis Pro |
@@ -144,13 +181,17 @@ Avant d'ajouter quoi que ce soit, Gemini Pro doit auditer ces fichiers :
 | 🟢 P1 | A3 | Modes relatifs/parallèles | Basse | Auditer MODES dans theory.js |
 | 🟢 P1 | B1 | Degrés romains en Studio | Basse | Valider `toRoman` + UI StudioPanel |
 | 🟢 P1 | B2 | Progressions communes | Basse | Valider contrat BRICK + NNS |
+| 🟢 P1 | **E1** | **Rythmes Euclidiens (COMP-01→04)** | **Basse→Moyenne** | **Aucun (standalone)** |
 | 🟡 P2 | A1 | Notes tension/résolution | Moyenne | Auditer expert_theory_data.json + avoid notes |
 | 🟡 P2 | A2 | Gammes compatibles étendues | Moyenne | Auditer getRecommendedScalesForChord retour |
 | 🟡 P2 | C1 | Camelot Wheel (affichage seul) | Moyenne | Design SVG à valider |
+| 🟡 P2 | **E2** | **Déphasage — COMP-05, 06** | **Moyenne** | **COMP-01** |
 | 🔴 P3 | D1 | Mood Indicator étendu | Haute | Créer/étendre data JSON |
 | 🔴 P3 | B3 | Substitutions harmoniques | Haute | Réserver à Sonnet |
 | 🔴 P3 | C2 | Guide de modulation | Haute | Réserver à Sonnet |
 | 🔴 P3 | D2 | Harmonic Mode réel | Haute | Auditer + implémenter |
+| 🔴 P3 | **E3** | **Isorythmie + Réalignement — COMP-07** | **Basse** | **COMP-01** |
+| 🔴 P3 | **E4** | **Polyrythmie Algébrique — COMP-08** | **Haute** | **COMP-01, 02** |
 
 ---
 
@@ -188,5 +229,7 @@ Avant d'ajouter quoi que ce soit, Gemini Pro doit auditer ces fichiers :
 ---
 
 *Document créé : 2026-05-10T19:55 par Claude Sonnet (Thinking)*
+*Mis à jour : 2026-05-18T22:45 par ARIA (Claude Opus 4.6 Thinking) — Ajout STREAM-E Composition Algorithmique*
 *À compléter par : Gemini Pro*
 *À implémenter par : Gemini Flash (tâches atomiques P1)*
+

@@ -1,0 +1,25 @@
+# Task: COMP-08 — Polyrythmie et Rythmes Équilibrés (Théorie d'Andrew Milne)
+
+- `[x]` **Lecture du ticket COMP-08 + analyse du code existant**
+  - `[x]` Relecture de `compositionEngine.js`, `EuclideanCircle.jsx`, `CompositionPanel.jsx`
+  - `[x]` Identification du contrat d'interface existant (props, useMemo, exclusion mutuelle)
+- `[x]` **Moteur algorithmique (`compositionEngine.js`)**
+  - `[x]` `primeFactors(n)` — factorisation pour calcul de seuils de complexité
+  - `[x]` `isBalanced(pattern)` — vérification barycentrique (centroïde = 0)
+  - `[x]` `generateBalancedRhythm(n, operations)` — somme/soustraction de polygones réguliers
+- `[x]` **Tests unitaires (`compositionEngine.test.js`)**
+  - `[x]` 17 nouveaux tests couvrant les 3 fonctions (cas limites + cas nominaux)
+  - `[x]` 616/616 tests — 100% PASS (zéro régression)
+- `[x]` **Extension visualisation (`EuclideanCircle.jsx`)**
+  - `[x]` Ajout de la prop `extraPolygons` avec rendu SVG coloré semi-transparent
+  - `[x]` Support de polygones (≥3 points) et segments (2 points) avec tirets pour les soustractions
+- `[x]` **Interface utilisateur (`CompositionPanel.jsx`)**
+  - `[x]` Imports de `isBalanced` et `generateBalancedRhythm`
+  - `[x]` État React `showPolyrhythm` et `polyOps` avec exclusion mutuelle des autres modes
+  - `[x]` `useMemo` pour `polyrhythmResult` et `balanceInfo`
+  - `[x]` Switch "POLYRHYTHM ALGEBRA" dans le groupe des modes
+  - `[x]` Section UI complète : éditeur d'opérations, indicateur de balance, grille binaire
+  - `[x]` Connexion du cercle SVG avec `extraPolygons` colorés
+  - `[x]` Correction de l'interface `EuclideanCircle` (props `pattern/n/highlightIndex`)
+- `[x]` **Styles CSS (`CompositionPanel.css`)**
+  - `[x]` `.polyrhythm-section`, `.balance-indicator` (balanced/unbalanced), `.poly-op-row`, etc.

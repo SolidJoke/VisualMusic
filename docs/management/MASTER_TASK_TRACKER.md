@@ -546,6 +546,84 @@ Après le fix, vérifier dans `InstrumentView.jsx` et `Fretboard.jsx` que `guita
 
 ---
 
+### 🎶 P5 — STREAM-E : Composition Algorithmique (Nouveau Mode)
+> **Source** : `D:\IA\Aria\SAS\SpecsCompositionMathematique.txt`
+> **Concept** : Nouveau mode "Composition Lab" — 3ème mode app à côté de Studio et Dictionnaire
+> **Architecture** : `core/compositionEngine.js` (logique pure) + `components/Intelligence/` (UI) + `hooks/useCompositionMode.js`
+> **Plan détaillé** : Voir `implementation_plan.md` de la conversation `96e1f95a`
+
+#### COMP-01 — Moteur de Rythmes Euclidiens (compositionEngine.js) 🟢 P1
+- **Qui** : Flash ✅
+- **Complexité** : Basse
+- **Branche** : `feat/composition-engine`
+- **Fichiers** : `src/core/compositionEngine.js` [NEW], `src/core/__tests__/compositionEngine.test.js` [NEW]
+- **Concept** : Implémenter l'algorithme de Bjorklund E(k,n) + analyse de périodicité (PGCD), complémentarité, rotation, auto-complémentarité. Catalogue de 6 presets (Tresillo, Cinquillo, Venda, Bembé, Bossa Nova, Samba). Ajouter les données de dualité rythme↔mélodie dans `extendedTheoryData.json`.
+- **Tests TDD** : 15+ tests (Bjorklund outputs, périodicité, complémentarité, rotation, auto-complémentarité, PGCD/PPCM)
+- **NE PAS toucher** : Aucun fichier existant
+- **Statut** : `[ ]` TODO
+
+#### COMP-02 — Visualisation Circulaire SVG (EuclideanCircle) 🟢 P1
+- **Qui** : Flash ⚠️ (SVG moyen)
+- **Complexité** : Moyenne
+- **Branche** : `feat/euclidean-circle`
+- **Pré-requis** : COMP-01
+- **Fichiers** : `src/components/Intelligence/EuclideanCircle.jsx` [NEW], `src/components/Intelligence/EuclideanCircle.css` [NEW]
+- **Concept** : Composant SVG cercle rythmique — n points équidistants, polygone reliant les notes actives, animation de la position courante, toggle complémentaire. Inspiré de Toussaint/Chronomorphe. Utiliser les CSS variables existantes.
+- **Statut** : `[ ]` TODO
+
+#### COMP-03 — Panneau Composition Lab (CompositionPanel) 🟢 P1
+- **Qui** : Flash ⚠️
+- **Complexité** : Moyenne
+- **Branche** : `feat/composition-panel`
+- **Pré-requis** : COMP-01, COMP-02
+- **Fichiers** : `src/components/Panels/CompositionPanel.jsx` [NEW], `src/components/Panels/CompositionPanel.css` [NEW], `src/hooks/useCompositionMode.js` [NEW]
+- **Concept** : UX en 4 sections — (1) Sélecteur de technique (tabs), (2) Paramètres k/n/rotation avec sliders + chips presets, (3) Visualisation `<EuclideanCircle>` + grille linéaire, (4) Tableau dualité rythme↔mélodie avec lien vers Dictionnaire.
+- **Statut** : `[ ]` TODO
+
+#### COMP-04 — Intégration Mode Composition dans App.jsx 🟢 P1
+- **Qui** : Flash ✅
+- **Complexité** : Basse
+- **Branche** : `feat/composition-mode-integration`
+- **Pré-requis** : COMP-03
+- **Concept** : Ajouter `"composition"` dans `appMode` (AppContext), bouton Header, rendre `<CompositionPanel>` quand actif. Instruments en mode passif.
+- **NE PAS toucher** : `useMusicEngine.js`, `fingeringLogic.js`
+- **Statut** : `[ ]` TODO
+
+#### COMP-05 — Playback Audio des Patterns (Tone.js) 🟡 P2
+- **Qui** : Flash/Sonnet
+- **Complexité** : Moyenne
+- **Branche** : `feat/composition-playback`
+- **Pré-requis** : COMP-03
+- **Fichiers** : `src/hooks/useCompositionPlayback.js` [NEW]
+- **Concept** : Lecture percussive des patterns euclidiens via Tone.js. Animation synchronisée du cercle SVG. Slider BPM. Son différencié pour le complémentaire. Réutiliser le lazy-loading de `useSequencer.js`.
+- **Statut** : `[ ]` TODO
+
+#### COMP-06 — Module Déphasage (Phasing) 🟡 P2
+- **Qui** : Sonnet (logique complexe)
+- **Complexité** : Moyenne
+- **Branche** : `feat/composition-phasing`
+- **Pré-requis** : COMP-01, COMP-05
+- **Concept** : `generatePhasingStates(motif, steps)` dans compositionEngine. `PhasingVisualizer.jsx` — deux grilles superposées montrant le décalage progressif. Référence : Steve Reich "Clapping Music" et "Piano Phase".
+- **Statut** : `[ ]` TODO
+
+#### COMP-07 — Module Isorythmie + Réalignement Forcé 🔵 P3
+- **Qui** : Flash ✅ (algorithme simple)
+- **Complexité** : Basse
+- **Branche** : `feat/composition-isorhythm`
+- **Pré-requis** : COMP-01
+- **Concept** : `generateIsorhythm(durations, pitches)` (cycle PPCM) + `forcedRealignment(motifLength, boundary)` (équation Meshuggah C=M×Q+R). UI avec champs durées/hauteurs + calculateur de réalignement.
+- **Statut** : `[ ]` TODO
+
+#### COMP-08 — Module Polyrythmie et Rythmes Équilibrés 🔵 P3
+- **Qui** : Sonnet/Pro uniquement 🔴
+- **Complexité** : Haute
+- **Branche** : `feat/composition-balanced-rhythms`
+- **Pré-requis** : COMP-01, COMP-02
+- **Concept** : `isBalanced(pulses, n)` (vérification barycentre), `generateBalancedRhythm(n, operations)` (somme/soustraction de polygones). `primeFactors(n)` pour seuils (n=12 positif, n=30 négatif). Cercle SVG étendu avec polygones superposés. Théorie d'Andrew Milne.
+- **Statut** : `[ ]` TODO
+
+---
+
 ## 🐛 BUGS CONNUS (à corriger en priorité si rencontré)
 
 | ID | Composant | Description | Criticité |
@@ -556,6 +634,9 @@ Après le fix, vérifier dans `InstrumentView.jsx` et `Fretboard.jsx` que `guita
 | BUG-04 | Notes Menu | Stacking context Sidebar fixed | ✅ FIXÉ |
 | BUG-05 | UI | Animation dictionnaire gamme/accord désync | P2 (Phase12.6) |
 | BUG-06 | DictionaryPanel | **CRITIQUE** Aucun accord affiché en mode Dictionnaire. Double bug : (1) collision noms props App.jsx→DictionaryPanel (guitarFingering passé comme α12, non lu) ; (2) mismatch type selectedVoicingIndexGuitar (int 0) vs p.id (probablement string). → FLASH-07 | 🔴 P0 |
+| BUG-07 | Sidebar | Studio Mode sidebar contains an empty useless rectangle pushing valuable panels down. | 🟡 P1 |
+| BUG-08 | Fretboard | Dictionary Mode fretboard width is doubled and string markers are shifted vertically when selecting chord/scale and selecting a position. | 🔴 P0 |
+| BUG-09 | Fretboard/Engine | Dictionary Mode Scale notes: display incorrect notes not belonging to the scale/pitch height and incorrect playback animations on the fretboard. | 🔴 P0 |
 
 ---
 

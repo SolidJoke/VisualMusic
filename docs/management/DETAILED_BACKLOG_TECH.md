@@ -5,12 +5,27 @@
 
 ---
 
-## 🟢 FLASH-07 — BUG-06 : Accords invisibles en mode Dictionnaire [RESOLVED]
+## 🔍 MISE À JOUR AUDIT (11 Mai 2026) — Stabilisation Interface Harmonique
 
-**Statut** : Résolu (Gemini Pro). 
-- Correction de la transmission des props `guitarFingering`/`bassFingering` dans `App.jsx`.
-- Ajout de la couleur manquante pour la classe `.role-extension` dans `PianoKeyboard.css` et `Fretboard.css` (correction de l'animation sans couleur).
-- Correction du bug de surbrillance de tous les octaves sur le manche pour les notes uniques, en forçant une comparaison stricte de l'octave dans `fretboardUtils.js`.
+### BUG-02 : Surbrillance globale des octaves en mode Studio
+- **Anomalie** : Cliquer sur un accord dans le séquenceur allume toutes les octaves sur le manche.
+- **Cause** : `useMusicEngine.js` ne fournit pas d' `absoluteValue` pour les clics d'accords, forçant `fretboardUtils.js` à utiliser un fallback `modulo 12`.
+- **Fix** : Injecter `absoluteValue` calculée (baseOctave + semi) dans `fretboardActiveNotes`.
+
+### BUG-08 : Gammes "invisibles" sur le manche (Dictionnaire)
+- **Anomalie** : Les gammes ne s'affichent pas partout sur le manche.
+- **Cause** : `appMode` n'est pas transmis à `computeFretMetadata`, donc le mode "Global Highlight" (modulo 12) pour les gammes n'est jamais activé. De plus, `useDictionaryMode.js` fournit des `absoluteValue` qui restreignent l'affichage à une seule octave.
+- **Fix** : Passer `appMode` à travers toute la chaîne de composants et forcer le modulo 12 pour les gammes dans le dictionnaire.
+
+---
+
+## 🪲 BUG-09 (Ex-BUG-06) : Régression Affichage Accords (Variables Obfusquées)
+
+**Contexte** : Lors du dernier refactoring, l'agent a mal interprété la compression de `lean-ctx` et a écrit des variables obfusquées (`α5`, `α4`) directement dans `fretboardUtils.js`. Comme le composant `Fretboard.jsx` passe la prop sous son vrai nom (`fingering`), `α5` est `undefined`, ce qui casse la logique de masquage des accords (`isVoicingMaskActive`).
+**Objectif pour Flash** :
+1. Dans `fretboardUtils.js`, remplacer `α5` par `fingering`, `α4` par `fingeringMap`, `α3` par `isPartOfVoicing`, `α1` par `stringFingering`, `α5Mode` par `fingeringMode`, et `α2` par `orderToDisplay`.
+2. Dans `Fretboard.jsx`, s'assurer que l'appel `computeFretMetadata` passe bien les variables `fingering`, `fingeringMode`, etc., et ne contient plus de `α`.
+3. Dans `useMusicEngine.js` (`toV2`), ajouter un check de sécurité `if (!rawMap) return fingering;` AVANT la boucle `for`.
 
 ---
 
