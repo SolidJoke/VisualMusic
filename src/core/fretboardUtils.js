@@ -73,17 +73,17 @@ export function computeFretMetadata(params) {
   // unless a specific voicing is active.
   const isDictionaryMode = params.appMode === "dictionary";
   const activeNote = activeNotes.find((n) => {
-    // If it's a dictionary scale (and not a specific voicing yet),
-    // we match by note value % 12 to show all octaves.
-    // For single notes and chords, we want strict absolute matching when available.
-    if (isDictionaryMode && dictType && (dictType.includes('scale') || dictType.includes('chord')) && !fingering?.fingeringMap && !fingering?.isScaleBox) {
+    // BUG-09 fix: also exclude scaleFrets mode from modulo-12 matching.
+    // When scaleFrets is active, isActive will be set by the scaleFrets mask below —
+    // allowing modulo-12 matching here would light up the entire neck first.
+    if (isDictionaryMode && dictType && (dictType.includes('scale') || dictType.includes('chord')) && !fingering?.fingeringMap && !fingering?.isScaleBox && !fingering?.scaleFrets) {
       return (n.value % 12) === (noteValue % 12);
     }
     // Otherwise, try strict absolute matching first
     if (n.absoluteValue !== undefined && n.absoluteValue === absoluteValue) return true;
     // Fallback for Dictionary Mode: match by pitch class if no strict match found
-    // ONLY if we are NOT in a specific voicing/box mode
-    if (isDictionaryMode && !fingering?.fingeringMap && !fingering?.isScaleBox) {
+    // ONLY if we are NOT in a specific voicing/box/scaleFrets mode
+    if (isDictionaryMode && !fingering?.fingeringMap && !fingering?.isScaleBox && !fingering?.scaleFrets) {
       return (n.value % 12) === (noteValue % 12);
     }
     return false;
