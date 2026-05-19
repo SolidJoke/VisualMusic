@@ -27,7 +27,7 @@ Le `REFINED_BACKLOG.md` est plus complet mais pas committé (untracked).
 - ✅ `useMusicEngine.js` — FAIT (hook central extrait, 264L)  
 - ✅ `AppContext.jsx` — FAIT (Context + Reducer en place)  
 - ✅ `useDictionaryMode.js` / `useStudioMode.js` — FAITS  
-- ✅ Tests : 558/558 passants (24 fichiers)  
+- ✅ Tests : 559/559 passants (24 fichiers)  
 - ✅ `fingeringMap` v2 avec `{'X': true}` et `{0: 'O'}` — IMPLÉMENTÉ  
 - ✅ `VoicingAlert.jsx` — Composant créé  
 - ✅ `PositionSelector.jsx` — Composant créé  

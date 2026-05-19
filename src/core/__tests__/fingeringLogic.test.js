@@ -19,8 +19,8 @@ describe('fingeringLogic', () => {
       const result = getGuitarFingering(0, 'chord_major');
       expect(result).not.toBeNull();
       const map = result.fingeringMap;
-      // Open C: string 5 (low E) should be muted (X key)
-      expect(map[5]['X']).toBe(true);
+      // Open C: string 5 (low E) should be muted
+      expect(map[5].muted).toBe(true);
       // String 4 (A) should have fret 3, finger 3
       expect(map[4][3]).toBe(3);
       // String 2 (G) should be open (fret 0, O)
@@ -56,7 +56,7 @@ describe('fingeringLogic', () => {
       expect(result).not.toBeNull();
       const map = result.fingeringMap;
       expect(map[4][1]).toBe(1);
-      expect(map[5]['X']).toBe(true);
+      expect(map[5].muted).toBe(true);
     });
 
     it('should use "O" label for all open strings in open shapes', () => {
@@ -65,7 +65,7 @@ describe('fingeringLogic', () => {
         ['chord_major', 'chord_minor'].forEach(chordType => {
           const res = getGuitarFingering(root, chordType);
           Object.values(res.fingeringMap).forEach(stringMap => {
-            if (stringMap[0] !== undefined && stringMap['X'] === undefined) {
+            if (stringMap[0] !== undefined && !stringMap.muted) {
               expect(stringMap[0]).toBe('O');
             }
           });
@@ -158,6 +158,21 @@ describe('fingeringLogic', () => {
       // Bass default is MIDI 28. +2 octaves = MIDI 52. 5th of C2 is G2 (MIDI 55). 55 > 53.
       const resHigh = getBassFingering(0, 'chord_major', 2, 2);
       expect(resHigh.isOutOfRange).toBe(true);
+    });
+  });
+
+  describe('A Major Open', () => {
+    it('should return correct open A shape for A major (9, chord_major)', () => {
+      const result = getGuitarFingering(9, 'chord_major');
+      expect(result).not.toBeNull();
+      const map = result.fingeringMap;
+      // X 0 2 2 2 0
+      expect(map[5].muted).toBe(true);
+      expect(map[4][0]).toBe('O');
+      expect(map[3][2]).toBe(1);
+      expect(map[2][2]).toBe(2);
+      expect(map[1][2]).toBe(3);
+      expect(map[0][0]).toBe('O');
     });
   });
 });

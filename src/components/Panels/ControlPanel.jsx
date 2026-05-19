@@ -18,21 +18,6 @@ const ControlPanel = ({
   const { txt, notation } = useAppContext();
   return (
     <div className="glass-panel control-panel-container">
-      <div className="controls-group">
-        <button
-          onClick={() => setNotation("us")}
-          className={`btn-premium ${notation === "us" ? " active" : ""}`}
-        >
-          US (A,B,C)
-        </button>
-        <button
-          onClick={() => setNotation("eu")}
-          className={`btn-premium ${notation === "eu" ? " active" : ""}`}
-        >
-          EU (Do,Ré)
-        </button>
-      </div>
-
       {appMode !== "dictionary" && (
         <div className="controls-group">
           {[

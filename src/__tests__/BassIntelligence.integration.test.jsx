@@ -62,7 +62,7 @@ describe('Bass Intelligence Integration', () => {
         fireEvent.click(studioBtn);
 
         // Check for Suggest Bass button
-        const suggestBtn = screen.getByText(/Suggest Bass/i);
+        const suggestBtn = screen.getByText(/Suggest Bass|Suggérer Basse/i);
         expect(suggestBtn).toBeInTheDocument();
     });
 
@@ -76,7 +76,7 @@ describe('Bass Intelligence Integration', () => {
         const studioBtn = screen.getByTestId('btn-mode-studio');
         fireEvent.click(studioBtn);
 
-        const suggestBtn = screen.getByText(/Suggest Bass/i);
+        const suggestBtn = screen.getByText(/Suggest Bass|Suggérer Basse/i);
         fireEvent.click(suggestBtn);
 
         await waitFor(() => {

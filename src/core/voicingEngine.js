@@ -152,6 +152,17 @@ function _extractFrets(fingeringMap) {
   const frets = [];
   for (const stringIdx in fingeringMap) {
     const stringMap = fingeringMap[stringIdx];
+    if (!stringMap) continue;
+
+    // V2 Format Support
+    if (stringMap.status !== undefined) {
+      if (stringMap.status === 'played' && stringMap.fret > 0) {
+        frets.push(stringMap.fret);
+      }
+      continue;
+    }
+
+    // Legacy Format Support
     for (const fretStr in stringMap) {
       const val = stringMap[fretStr];
       if (val !== 'X' && val !== 'O' && val !== undefined) {

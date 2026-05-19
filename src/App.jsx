@@ -11,6 +11,7 @@ import PlaybackPanel from "./components/Panels/PlaybackPanel";
 import Sidebar from "./components/Layout/Sidebar";
 import CustomSelect from "./components/Common/CustomSelect";
 import InstrumentView from "./components/Panels/InstrumentView";
+import CompositionPanel from "./components/Intelligence/CompositionPanel";
 import { useSequencer } from "./audio/useSequencer";
 import { useStudioMode } from "./hooks/useStudioMode";
 import { useDictionaryMode } from "./hooks/useDictionaryMode";
@@ -69,7 +70,8 @@ function App() {
     layoutMode,
     activeTab,
     chordDisplayMode,
-    uiTheme
+    uiTheme,
+    highlightTargetNotes
   } = state;
 
   const setAppMode = (newMode) => {
@@ -108,6 +110,9 @@ function App() {
     singlePlayContext, setSinglePlayContext,
     visualFocus, setVisualFocus,
     suggestedBassTrack, setSuggestedBassTrack,
+    customProgression, setCustomProgression,
+    customRhythm, setCustomRhythm,
+    customDrums, setCustomDrums,
     activeBrick,
     activeTracks
   } = useStudioMode();
@@ -151,7 +156,8 @@ function App() {
     dictType,
     dictActiveNotes,
     dictOctave,
-    fingeringMode
+    fingeringMode,
+    notation
   });
 
   const {
@@ -163,7 +169,9 @@ function App() {
     bassFingering,
     availableGuitarFingerings,
     availableBassFingerings,
-    inversionText: rawInversion
+    inversionText: rawInversion,
+    isGuitarOutOfRange,
+    isBassOutOfRange
   } = musicState;
 
   const inversionText = useMemo(() => {
@@ -194,9 +202,11 @@ function App() {
     activeDrums,
     activeMelody,
     activeProgression,
+    activeRhythm: activeTracks.rhythm,
     currentRootValue,
     setCurrentlyPlayingNotes,
     chordOctaveOffset,
+    notation,
   });
 
   const {
@@ -225,7 +235,9 @@ function App() {
     activeBrick,
     chordOctaveOffset,
     setScaleAnchor,
-    scaleAnchor
+    scaleAnchor,
+    notation,
+    dictOctave
   });
 
   useEffect(() => {
@@ -250,9 +262,15 @@ function App() {
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
     setSuggestedBassTrack(null);
-  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack]);
+    setCustomProgression(null);
+  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression]);
 
   // Handlers implemented via usePlaybackHandlers
+
+  // Track sidebar state and theme on body for CSS selectors
+  useEffect(() => {
+    document.body.className = `theme-${uiTheme} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`;
+  }, [uiTheme, sidebarOpen]);
 
   // Track mouse for Liquid Glass effect
   useEffect(() => {
@@ -267,7 +285,7 @@ function App() {
   }, []);
 
   return (
-    <div className={`app-container app-container-inner theme-${uiTheme} ${uiTheme === 'vintage' ? 'vintage-chassis' : ''}`} style={{ marginTop: '20px', padding: '40px', width: '95%', maxWidth: 'none' }}>
+    <div className={`app-container app-container-inner theme-${uiTheme} ${uiTheme === 'vintage' ? 'vintage-chassis' : ''}`}>
       {uiTheme === 'vintage' && (
         <>
           <div className="screw screw-tl"></div>
@@ -331,24 +349,36 @@ function App() {
             uiTheme={uiTheme}
           >
             {appMode === "studio" && (
-              <StudioPanel
-                currentBrickIndex={currentBrickIndex}
-                setCurrentBrickIndex={setCurrentBrickIndex}
-                activeBrick={activeBrick}
-                currentTheme={currentTheme}
-                setCurrentTheme={setCurrentTheme}
-                chordOctaveOffset={chordOctaveOffset}
-                setChordOctaveOffset={setChordOctaveOffset}
-                setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
-                activeProgression={activeProgression}
-                chordDisplayMode={chordDisplayMode}
-                clickedChord={clickedChord}
-                setClickedChord={setClickedChord}
-                handleChordClick={handleChordClick}
-                inversionText={inversionText}
-                suggestedBassTrack={suggestedBassTrack}
-                setSuggestedBassTrack={setSuggestedBassTrack}
-              />
+              <>
+                <StudioPanel
+                  currentBrickIndex={currentBrickIndex}
+                  setCurrentBrickIndex={setCurrentBrickIndex}
+                  activeBrick={activeBrick}
+                  currentTheme={currentTheme}
+                  setCurrentTheme={setCurrentTheme}
+                  chordOctaveOffset={chordOctaveOffset}
+                  setChordOctaveOffset={setChordOctaveOffset}
+                  setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
+                  activeProgression={activeProgression}
+                  chordDisplayMode={chordDisplayMode}
+                  clickedChord={clickedChord}
+                  setClickedChord={setClickedChord}
+                  handleChordClick={handleChordClick}
+                  inversionText={inversionText}
+                  suggestedBassTrack={suggestedBassTrack}
+                  setSuggestedBassTrack={setSuggestedBassTrack}
+                  setCustomProgression={setCustomProgression}
+                  customRhythm={customRhythm}
+                  setCustomRhythm={setCustomRhythm}
+                />
+                <CompositionPanel
+                  activeTracks={activeTracks}
+                  setSuggestedBassTrack={setSuggestedBassTrack}
+                  setCustomRhythm={setCustomRhythm}
+                  setCustomDrums={setCustomDrums}
+                  currentStep={currentStep}
+                />
+              </>
             )}
 
             {appMode === "dictionary" && (
@@ -358,6 +388,7 @@ function App() {
                 dictType={dictType}
                 setDictType={setDictType}
                 playDictionaryAudio={playDictionaryAudio}
+                isPlaying={isPlaying}
                 guitarFingering={guitarFingering}
                 bassFingering={bassFingering}
                 uiTheme={uiTheme}
@@ -369,6 +400,7 @@ function App() {
                 setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
                 selectedVoicingIndexBass={selectedVoicingIndexBass}
                 setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
+                dictActiveNotes={dictActiveNotes}
               />
             )}
 
@@ -453,9 +485,12 @@ function App() {
               setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
               availableGuitarFingerings={availableGuitarFingerings}
               availableBassFingerings={availableBassFingerings}
-              harmonicMode={harmonicMode}
               visualFocus={visualFocus}
               scaleAnchor={scaleAnchor}
+              setScaleAnchor={setScaleAnchor}
+              isGuitarOutOfRange={isGuitarOutOfRange}
+              isBassOutOfRange={isBassOutOfRange}
+              highlightTargetNotes={highlightTargetNotes}
             />
           </div>
         </div>

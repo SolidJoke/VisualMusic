@@ -1,0 +1,197 @@
+/* src/components/Intelligence/EuclideanCircle.css */
+
+.euclidean-circle-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--vintage-steel-light, rgba(30, 34, 40, 0.7));
+  border: 1px solid var(--vintage-steel-dark, rgba(255, 255, 255, 0.05));
+  border-radius: 4px;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.euclidean-circle-header {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  margin: 0 0 15px 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.euclidean-svg-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 250px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.euclidean-svg {
+  overflow: visible;
+}
+
+/* Background Ring */
+.euclidean-bg-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1.5px;
+  stroke-dasharray: 4, 4;
+}
+
+.theme-vintage .euclidean-bg-ring {
+  stroke: rgba(255, 179, 0, 0.12);
+}
+
+/* Active Polygon */
+.euclidean-polygon-active {
+  fill: rgba(0, 229, 255, 0.07);
+  stroke: var(--led-cyan, #00e5ff);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.4));
+  transition: all 0.3s ease;
+}
+
+.theme-vintage .euclidean-polygon-active {
+  fill: rgba(255, 179, 0, 0.06);
+  stroke: var(--lcd-amber, #ffb300);
+  filter: drop-shadow(0 0 6px rgba(255, 179, 0, 0.35));
+}
+
+/* Complementary Polygon */
+.euclidean-polygon-complement {
+  fill: rgba(255, 255, 255, 0.02);
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 1.5px;
+  stroke-dasharray: 3, 3;
+  stroke-linejoin: round;
+  transition: all 0.3s ease;
+}
+
+.theme-vintage .euclidean-polygon-complement {
+  fill: rgba(0, 229, 255, 0.02);
+  stroke: rgba(0, 229, 255, 0.2);
+}
+
+/* Linear connections */
+.euclidean-line {
+  stroke-linecap: round;
+}
+
+/* Info Center */
+.euclidean-center-info {
+  pointer-events: none;
+}
+
+.center-formula {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.25rem;
+  font-weight: bold;
+  fill: var(--led-cyan, #00e5ff);
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+.theme-vintage .center-formula {
+  fill: var(--lcd-amber, #ffb300);
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6);
+}
+
+.center-sublabel {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.75rem;
+  fill: #888;
+  text-transform: uppercase;
+}
+
+/* Node Styling */
+.euclidean-node {
+  fill: #222;
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1.5px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.theme-vintage .euclidean-node {
+  fill: #0d0e10;
+  stroke: rgba(255, 179, 0, 0.25);
+}
+
+/* Active Node */
+.euclidean-node.is-active {
+  fill: var(--led-cyan, #00e5ff);
+  stroke: #fff;
+  stroke-width: 1px;
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+}
+
+.theme-vintage .euclidean-node.is-active {
+  fill: var(--lcd-amber, #ffb300);
+  stroke: #0d0e10;
+  stroke-width: 1.5px;
+  filter: drop-shadow(0 0 8px rgba(255, 179, 0, 0.6));
+}
+
+/* Playback node current position */
+.euclidean-node.is-current {
+  fill: #fff !important;
+  stroke: #fff !important;
+  transform: scale(1.3);
+  filter: drop-shadow(0 0 8px #fff) !important;
+}
+
+.theme-vintage .euclidean-node.is-current {
+  fill: #fff !important;
+  stroke: var(--lcd-amber, #ffb300) !important;
+  stroke-width: 2px !important;
+}
+
+/* Halo on play */
+.euclidean-node-halo {
+  fill: none;
+  stroke: rgba(0, 229, 255, 0.3);
+  stroke-width: 2px;
+  animation: pulse-ring 0.6s infinite ease-out;
+}
+
+.theme-vintage .euclidean-node-halo {
+  stroke: rgba(255, 179, 0, 0.45);
+}
+
+/* Node labels (Numbers around circle) */
+.euclidean-node-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.65rem;
+  fill: #555;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.theme-vintage .euclidean-node-label {
+  fill: rgba(255, 179, 0, 0.4);
+}
+
+.theme-vintage .euclidean-node-label.accent-text {
+  fill: #fff !important;
+  text-shadow: 0 0 8px var(--lcd-amber-glow);
+}
+
+/* Pulsing halo ring animation */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}

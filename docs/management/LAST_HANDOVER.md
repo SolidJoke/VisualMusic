@@ -1,31 +1,56 @@
-# Rapport de Passation Critique : VisualMusic v1.1
-
-## 1. Contexte Immédiat
-Nous terminons une phase intense de **Backlog Refinement**. L'objectif était de stabiliser l'architecture de navigation musicale (octaves, variantes, tessitures) avant de passer à l'implémentation, afin d'éviter les régressions chroniques observées sur les doigtés (barrés, indicateurs O/X).
-
-## 2. État du Backlog (Stream F : Navigation)
-Tout le Stream F est désormais **AFFINÉ**. Les spécifications techniques sont prêtes dans les fichiers suivants :
-- **F.1 (Navigation & Tessiture)** : [REF_DECISION_MATRIX_F1.md](file:///D:/IA/VisualMusic/docs/management/REF_DECISION_MATRIX_F1.md) -> Utiliser le contrat `fingeringMap` v2.
-- **F.2 (Refactoring App.jsx)** : [REF_DECISION_MATRIX_F2.md](file:///D:/IA/VisualMusic/docs/management/REF_DECISION_MATRIX_F2.md) -> Extraire `useMusicEngine`.
-- **F.3 (Observabilité)** : [REF_DECISION_MATRIX_F3.md](file:///D:/IA/VisualMusic/docs/management/REF_DECISION_MATRIX_F3.md) -> Créer `logs/dev.json`.
-- **F.5 (Théorie)** : [REF_DECISION_MATRIX_F5.md](file:///D:/IA/VisualMusic/docs/management/REF_DECISION_MATRIX_F5.md) -> Exploiter les données expertes.
-
-## 3. Données de Savoir Disponibles
-Les données d'IA expertes ont été injectées dans :
-`D:\IA\Aria\SAS\expert_theory_data.json`
-Elles contiennent :
-- Règles de **Voice Leading** (max stretch, pénalités).
-- **Substitutions Harmoniques** (Triton, Relatif Mineur, Dominantes secondaires).
-- **Extensions d'Accords** (9th, 11th, 13th, etc.).
-- **Tessitures MIDI** exactes par instrument.
-
-## 4. Points de Vigilance (Alerte Rouge)
-- **Régression de Données** : Ne jamais repasser à une structure de `Map` simple pour les doigtés. Utiliser l'objet `fingeringMap` structuré pour ne pas perdre les états 'muted'/'open'.
-- **God Component** : `App.jsx` est au bord de l'implosion (574 lignes). L'extraction de `useMusicEngine` est la priorité absolue du prochain tour.
-- **Workspace** : La nouvelle session DOIT s'ouvrir dans `D:\IA\` pour voir `Aria` et `VisualMusic`.
-
-## 5. Prochaine Action Suggérée
-Lancer l'implémentation de **F.2 (useMusicEngine)** en utilisant les types et données de **F.1** et **F.5**.
+# LAST HANDOVER — 2026-05-11 (Phase 2 - Stabilization Ongoing)
+> **Modèle sortant** : Antigravity (Pro)
+> **Dernière mise à jour** : 2026-05-11T07:15
+> **Statut global** : 🚨 CRASH IDENTIFIÉ | 🟡 BUG VISUEL MANCHE | ✅ Piano Visibilité Fixé
 
 ---
-*Fin de session Aria - 10 Mai 2026*
+
+## 🚨 RÈGLES ABSOLUES — LIRE EN PREMIER
+
+1. **`npm test` avant ET après chaque tâche** → doit rester **560/560** ✅
+2. **Ne jamais modifier** `src/core/fingeringLogic.js`, `src/core/theory.js` sans instruction explicite de l'expert.
+3. **Lire le §MAP** en bas de chaque fichier avec variables alpha avant toute modification.
+4. **Si les tests cassent → STOP**, ne pas continuer, reporter le blocage.
+
+---
+
+## ✅ ÉTAT DES LIEUX (Ce qui a été fait - Phase 2)
+- [x] **BUG-08** : Fix de la visibilité des notes de gamme sur le Piano (Dictionary Mode).
+- [x] **FEATURE-01** : Sélecteur d'octave complet (1-7) pour le mode "Single Note".
+- [x] **F.2.2** : Extraction du `MixerPanel` pour un code plus modulaire.
+- [x] **QW-03** : Audit i18n terminé pour `PositionSelector.jsx`.
+- [x] **Audit QA** : Session de test exploratoire terminée (voir `qa_report.md`).
+
+---
+
+## 🚨 TÂCHES CRITIQUES (Antigravity en cours)
+
+### FLASH-14 — Crash Tab "Accords"
+Le changement d'onglet vers "Accords" provoque un crash lié à une valeur `null` passée à `CustomSelect` sans option correspondante.
+- [ ] Patch `DictionaryPanel.jsx` pour inclure l'option "Toutes les positions" (null) par défaut.
+- [ ] Sécuriser `CustomSelect.jsx` contre les valeurs `null`.
+
+### FLASH-15 — Visibilité Manche (Fretboard)
+Les notes de gamme sont "subtiles" (invisibles) par défaut sur le manche, contrairement au Piano déjà fixé.
+- [ ] Aligner `fretboardUtils.js` sur la logique du Piano (supprimer `isSubtle` forcé).
+
+---
+
+## 🟡 TÂCHES EN ATTENTE (Pour Gemini Flash)
+
+### FLASH-08 — Couverture I18n
+Finaliser la localisation des labels techniques (Target Notes, Substitutions).
+
+### D.1.1 — Logarithmic Fret Spacing
+Appliquer l'espacement logarithmique aux frettes dans `Fretboard.jsx`.
+
+### G.2.2 — Common Progressions
+Intégrer les progressions d'accords classiques.
+
+---
+
+## 📊 FICHIERS À SURVEILLER
+- `src/core/fretboardUtils.js` (Cible FLASH-15)
+- `src/components/Panels/DictionaryPanel.jsx` (Cible FLASH-14)
+- `src/components/Common/CustomSelect.jsx` (Cible FLASH-14)
+

@@ -6,6 +6,7 @@ import StudioInfoBlock from './StudioInfoBlock';
 import LcdScreen from '../Common/LcdScreen';
 import CustomSelect from '../Common/CustomSelect';
 import { log } from '../../utils/debug';
+import extendedTheoryData from '../../core/extendedTheoryData.json';
 
 const StudioPanel = ({
   currentBrickIndex,
@@ -23,8 +24,20 @@ const StudioPanel = ({
   handleChordClick,
   inversionText,
   suggestedBassTrack,
-  setSuggestedBassTrack
+  setSuggestedBassTrack,
+  setCustomProgression,
+  customRhythm,
+  setCustomRhythm
 }) => {
+  const RHYTHM_PATTERNS = [
+    { id: 'default', name: 'Original', steps: null },
+    { id: 'straight', name: 'Straight 4/4', steps: [0] },
+    { id: 'sync1', name: 'Syncopated 1', steps: [0, 2] },
+    { id: 'sync2', name: 'Syncopated 2', steps: [0, 1, 2] },
+    { id: 'skank', name: 'Reggae Skank', steps: [2] },
+    { id: 'jazz', name: 'Jazz Comp', steps: [0, 3] },
+  ];
+
   const { lang, txt, notation, state } = useAppContext();
   const { uiTheme } = state;
   if (!activeBrick) return null;
@@ -51,13 +64,6 @@ const StudioPanel = ({
     <div
       className="vintage-chassis"
       data-testid="studio-panel"
-      style={{
-        textAlign: "center",
-        width: "100%",
-        boxSizing: "border-box",
-        maxWidth: "none",
-        margin: "0",
-      }}
     >
       <div className="screw screw-tl"></div>
       <div className="screw screw-tr"></div>
@@ -66,7 +72,7 @@ const StudioPanel = ({
 
       <StudioInfoBlock txt={txt} lang={lang} />
 
-      <div style={{ margin: "15px 0" }}>
+      <div style={{ margin: "15px 0", position: "relative", zIndex: 20 }}>
         <LcdScreen title={txt.styleSelection}>
           <CustomSelect
             value={currentBrickIndex}
@@ -121,6 +127,8 @@ const StudioPanel = ({
           marginTop: "20px",
           padding: "20px",
           boxSizing: "border-box",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         <div
@@ -131,39 +139,70 @@ const StudioPanel = ({
             marginBottom: "15px",
           }}
         >
-          <div>
-            <span
-              style={{
-                color: "#ccc",
-                marginRight: "10px",
-                fontSize: "16px",
-              }}
-            >
-              {txt.theme}
-            </span>
-            <br />
-            <br />
-            <button
-              onClick={() => setCurrentTheme("A")}
-              className={`btn-toggle ${currentTheme === "A" ? " btn-toggle--active" : ""}`}
-              style={{ marginRight: "5px" }}
-            >
-              {txt.varA}
-            </button>
-            <button
-              onClick={() => setCurrentTheme("B")}
-              className={`btn-toggle ${currentTheme === "B" ? " btn-toggle--active" : ""}`}
-            >
-              {txt.varB}
-            </button>
-            <button
-              onClick={handleSuggestBass}
-              className={`btn-premium ${suggestedBassTrack ? " active" : ""}`}
-              style={{ marginLeft: "10px", padding: "6px 12px", fontSize: "0.85rem" }}
-              title={txt.suggestBassTip || "Generate a bass line for this genre"}
-            >
-              {suggestedBassTrack ? "✨ Bass OK" : "🎸 Suggest Bass"}
-            </button>
+            <div style={{ marginBottom: "12px" }}>
+              <span
+                style={{
+                  color: "#ccc",
+                  marginRight: "10px",
+                  fontSize: "16px",
+                }}
+              >
+                {txt.theme}
+              </span>
+              <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "15px" }}>
+                <button
+                  onClick={() => setCurrentTheme("A")}
+                  className={`btn-premium ${currentTheme === "A" ? " active" : ""}`}
+                  style={{ flex: 1, padding: "8px 12px" }}
+                >
+                  {txt.varA}
+                </button>
+                <button
+                  onClick={() => setCurrentTheme("B")}
+                  className={`btn-premium ${currentTheme === "B" ? " active" : ""}`}
+                  style={{ flex: 1, padding: "8px 12px" }}
+                >
+                  {txt.varB}
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ marginTop: "10px" }}>
+              <button
+                onClick={handleSuggestBass}
+                className={`btn-premium ${suggestedBassTrack ? " active" : ""}`}
+                style={{ width: "100%", padding: "8px 12px", fontSize: "0.85rem" }}
+                title={txt.suggestBassTip || "Generate a bass line for this genre"}
+              >
+                {suggestedBassTrack ? "✨ Bass OK" : `🎸 ${txt.suggestBass || "Suggest Bass"}`}
+              </button>
+            </div>
+
+          <div style={{ textAlign: "center" }}>
+             <span style={{ color: "#888", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>Quick Start Progressions</span>
+             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", marginTop: "10px" }}>
+               {extendedTheoryData.axiomRules.progressions.map(p => (
+                 <button
+                   key={p.id}
+                   onClick={() => {
+                     log("studio", `Loading quick progression: ${p.name}`);
+                     setCustomProgression(p.degrees);
+                   }}
+                   className="btn-premium"
+                   style={{ fontSize: "0.7rem", padding: "4px 8px", borderRadius: "12px" }}
+                   title={p.degrees.join(" - ")}
+                 >
+                   {p.name}
+                 </button>
+               ))}
+               <button
+                 onClick={() => setCustomProgression(null)}
+                 className="btn-premium"
+                 style={{ fontSize: "0.7rem", padding: "4px 8px", borderRadius: "12px", opacity: 0.6 }}
+               >
+                 ↺ Reset
+               </button>
+             </div>
           </div>
 
           <div
@@ -199,10 +238,38 @@ const StudioPanel = ({
               theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
             />
           </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              justifyContent: "center",
+            }}
+          >
+            <span
+              style={{
+                color: "#ccc",
+                fontSize: "14px",
+                fontWeight: "bold",
+              }}
+            >
+              {"🥁 Rhythm"}
+            </span>
+            <CustomSelect
+              value={RHYTHM_PATTERNS.find(p => JSON.stringify(p.steps) === JSON.stringify(customRhythm))?.id || 'default'}
+              onChange={(val) => {
+                const pattern = RHYTHM_PATTERNS.find(p => p.id === val);
+                setCustomRhythm(pattern?.steps || null);
+              }}
+              options={RHYTHM_PATTERNS.map(p => ({ value: p.id, label: p.name }))}
+              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+            />
+          </div>
         </div>
         <strong>{txt.magicProg} </strong> <br />
         <br />
-        <div className="magic-progression-container">
+        <div className="magic-progression-container" style={{ position: "relative", zIndex: 5 }}>
 
           {generateChordsFromNNS(
             activeBrick.rootValue,

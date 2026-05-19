@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { BRICKS } from "../core/bricks";
 import { getScaleNotes, resolveNnsToChordType, resolveChordSemitones, MODES } from "../core/theory";
@@ -18,6 +17,9 @@ export function useStudioMode() {
   const [visualFocus, setVisualFocus] = useState("chords");
 
   const [suggestedBassTrack, setSuggestedBassTrack] = useState(null);
+  const [customProgression, setCustomProgression] = useState(null);
+  const [customRhythm, setCustomRhythm] = useState(null);
+  const [customDrums, setCustomDrums] = useState(null);
 
   const activeBrick = useMemo(() => BRICKS.at(Number(currentBrickIndex)), [currentBrickIndex]);
 
@@ -33,12 +35,35 @@ export function useStudioMode() {
         );
     }
 
+    const baseProgression = isB && activeBrick.nnsProgressionVariation ? activeBrick.nnsProgressionVariation : activeBrick.nnsProgression;
+
+    // Start with base drums
+    let baseDrums = isB && activeBrick.drumTracksVariation ? activeBrick.drumTracksVariation : activeBrick.drumTracks;
+    let finalDrums = baseDrums || [];
+
+    if (customDrums) {
+      finalDrums = baseDrums.map(track => {
+        if (customDrums[track.name] !== undefined) {
+          return { ...track, activeSteps: customDrums[track.name] };
+        }
+        return track;
+      });
+
+      // Also append tracks that might not be in baseDrums but exist in customDrums
+      Object.keys(customDrums).forEach(name => {
+        if (!finalDrums.some(t => t.name === name)) {
+          finalDrums.push({ name, activeSteps: customDrums[name] });
+        }
+      });
+    }
+
     return {
-      drums: isB && activeBrick.drumTracksVariation ? activeBrick.drumTracksVariation : activeBrick.drumTracks,
+      drums: finalDrums,
       melody: finalMelody,
-      progression: isB && activeBrick.nnsProgressionVariation ? activeBrick.nnsProgressionVariation : activeBrick.nnsProgression
+      progression: customProgression || baseProgression,
+      rhythm: customRhythm || activeBrick.chordRhythm || [0]
     };
-  }, [activeBrick, currentTheme, suggestedBassTrack]);
+  }, [activeBrick, currentTheme, suggestedBassTrack, customProgression, customRhythm, customDrums]);
 
   return {
     currentBrickIndex, setCurrentBrickIndex,
@@ -53,6 +78,9 @@ export function useStudioMode() {
     singlePlayContext, setSinglePlayContext,
     visualFocus, setVisualFocus,
     suggestedBassTrack, setSuggestedBassTrack,
+    customProgression, setCustomProgression,
+    customRhythm, setCustomRhythm,
+    customDrums, setCustomDrums,
     activeBrick,
     activeTracks
   };

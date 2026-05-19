@@ -4,12 +4,13 @@ import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
 import { calcActivePath } from "../../core/fretboardLogic";
 import { computeFretMetadata, getFretWidths } from "../../core/fretboardUtils";
 
+import { useAppContext } from "../../context/AppContext";
+
 const STRING_HEIGHT = 35;
 
 export default function Fretboard({
   instrument = "guitar",
   activeNotes = [],
-  notation = "us",
   stringTuning,
   rootValue = 0,
   targetValue = -1,
@@ -24,7 +25,11 @@ export default function Fretboard({
   fingeringMode = "numeric",
   fingering = null, // Format: { [stringIndex]: { [fret]: finger } }
   scaleAnchor = null,
+  isOutOfRange = false,
+  highlightTargetNotes = false,
+  appMode = "studio"
 }) {
+  const { notation } = useAppContext();
   const numFrets = 22;
   const fretboardRef = useRef(null);
   
@@ -48,25 +53,6 @@ export default function Fretboard({
     return cols.join(" ");
   }, [fretWidths]);
 
-  // Helper for barre positioning - estimates X based on DOM if available, else fractions
-  const getFretX = (fretIndex) => {
-    if (!fretboardRef.current) return 0;
-    const fretElements = fretboardRef.current.querySelectorAll(".dot-fret-cell");
-    if (fretElements[fretIndex]) {
-      return fretElements[fretIndex].offsetLeft;
-    }
-    return 0;
-  };
-
-  const getFretWidth = (fretIndex) => {
-    if (!fretboardRef.current) return 0;
-    const fretElements = fretboardRef.current.querySelectorAll(".dot-fret-cell");
-    if (fretElements[fretIndex]) {
-      return fretElements[fretIndex].offsetWidth;
-    }
-    return 0;
-  };
-
   const activePath = useMemo(() => {
     return calcActivePath({
       contextualScaleAbsoluteValues,
@@ -80,21 +66,33 @@ export default function Fretboard({
 
   const barreData = useMemo(() => {
     const actualMap = fingering?.fingeringMap || fingering;
-    if (!actualMap || !showFingering || dictType?.includes('scale')) return [];
+    if (!actualMap || dictType?.includes('scale')) return [];
 
-    const numStrings = strings.length;
     const fretFingerOneVisual = {}; 
 
-    Object.entries(actualMap).forEach(([strIdxStr, fretMap]) => {
-      const visualIdx = (numStrings - 1) - parseInt(strIdxStr, 10);
-      if (!fretMap) return;
-      Object.entries(fretMap).forEach(([fretStr, finger]) => {
-        const fret = parseInt(fretStr, 10);
-        if (fret > 0 && finger === 1) {
+    Object.entries(actualMap).forEach(([strIdxStr, stringData]) => {
+      const visualIdx = parseInt(strIdxStr, 10);
+      if (!stringData) return;
+
+      // Detect finger 1 (Barre)
+      // V2 Format: { fret, finger, status }
+      if (stringData.status === 'played' && stringData.finger === 1) {
+        const fret = stringData.fret;
+        if (fret > 0) {
           if (!fretFingerOneVisual[fret]) fretFingerOneVisual[fret] = [];
           fretFingerOneVisual[fret].push(visualIdx);
         }
-      });
+      } 
+      // Legacy Format: { [fret]: finger }
+      else if (typeof stringData === 'object' && !stringData.status) {
+        Object.entries(stringData).forEach(([fretStr, finger]) => {
+          const fret = parseInt(fretStr, 10);
+          if (!isNaN(fret) && fret > 0 && finger === 1) {
+            if (!fretFingerOneVisual[fret]) fretFingerOneVisual[fret] = [];
+            fretFingerOneVisual[fret].push(visualIdx);
+          }
+        });
+      }
     });
 
     return Object.entries(fretFingerOneVisual)
@@ -104,7 +102,7 @@ export default function Fretboard({
         minVisual: Math.min(...indices),
         maxVisual: Math.max(...indices),
       }));
-  }, [fingering, showFingering, dictType, strings]);
+  }, [fingering, dictType]);
 
   const renderDots = () => {
     const fretsWithDots = [3, 5, 7, 9, 12, 15, 17, 19, 21];
@@ -129,49 +127,101 @@ export default function Fretboard({
     );
   };
 
+  const renderStatusRow = () => {
+    // Collect status for each string from computeFretMetadata or from fingering directly
+    // Since we want it per string, we can look at the fingeringMap
+    const actualMap = fingering?.fingeringMap || fingering;
+    if (!actualMap) return null;
+
+    return (
+      <div className="fretboard-status-row" style={{ display: "grid", gridTemplateColumns: fretboardGridTemplate, gridColumn: "1 / -1", gridRow: "1 / -1", pointerEvents: "none", zIndex: 5 }}>
+        <div className="status-cell-label"></div> {/* Spacer for note names */}
+        {Array.from({ length: numFrets }).map((_, fretIdx) => {
+          const fret = fretIdx + 1;
+          return <div key={`status-fret-${fret}`} className="status-cell"></div>;
+        })}
+        {/* We actually only care about the top row (fret 0 equivalent area) */}
+        <div className="status-overlay-layer" style={{ gridColumn: "1 / 2", gridRow: "1", display: "flex", flexDirection: "column" }}>
+           {strings.map((_, stringIndex) => {
+              // Extract status for this string (usually from fret 0 or muted)
+              const stringData = actualMap[stringIndex];
+              let status = "";
+              let statusClass = "";
+              if (stringData?.status === 'muted') { status = "X"; statusClass = "is-muted"; }
+              else if (stringData?.status === 'played' && stringData.fret === 0) { status = "O"; statusClass = "is-open"; }
+              else if (stringData?.status === 'played' && stringData.fret > 0) { status = ""; }
+              else if (stringData?.status === 'muffled') { status = "M"; statusClass = "is-muffled"; }
+              
+              return (
+                <div key={`status-symbol-${stringIndex}`} className={`string-status-symbol ${statusClass}`} style={{ height: STRING_HEIGHT }}>
+                  {status}
+                </div>
+              );
+           })}
+        </div>
+      </div>
+    );
+  };
+
   const renderBarres = () => {
     if (barreData.length === 0) return null;
 
-    return barreData.map((b, idx) => {
-      return (
+    // Enforce single-fret barre: take only the first one found
+    const b = barreData[0];
+
+    return (
+      <div 
+        key={`barre-wrapper-${b.fret}`}
+        style={{ 
+          gridColumn: b.fret + 1, 
+          gridRow: "1 / -1", 
+          position: "relative",
+          pointerEvents: "none",
+          zIndex: 1.5,
+          height: "100%"
+        }}
+      >
         <div
-          key={`barre-${idx}`}
           className="fretboard-barre-indicator"
           style={{
-            gridColumn: b.fret + 1,
-            gridRow: "1 / -1",
             marginTop: `${b.minVisual * STRING_HEIGHT + STRING_HEIGHT * 0.15}px`,
             height: `${(b.maxVisual - b.minVisual) * STRING_HEIGHT + STRING_HEIGHT * 0.7}px`,
           }}
         />
-      );
-    });
+      </div>
+    );
   };
 
   return (
     <div 
-      className={`fretboard-container instrument-${instrument} ${fingering?.isOutOfRange ? "is-out-of-range" : ""}`}
+      className={`fretboard-container instrument-${instrument} ${(fingering?.isOutOfRange || isOutOfRange) ? "is-out-of-range" : ""}`}
       style={{ "--fretboard-grid": fretboardGridTemplate }}
       title={fingering?.isOutOfRange ? "⚠️ Accord hors tessiture instrument" : ""}
     >
       <h3 style={{ color: "#ccc", marginBottom: "10px" }}>
         {instrument === "bass" ? "🎸 Basse (4 cordes)" : "🎸 Guitare (6 cordes)"}
       </h3>
-      <div className="fretboard" ref={fretboardRef}>
+      <div className={`fretboard ${(fingering?.isOutOfRange || isOutOfRange) ? "fretboard--out-of-range" : ""}`} ref={fretboardRef}>
+        { (fingering?.isOutOfRange || isOutOfRange) && <div className="range-warning">🚫 Out of Range</div> }
+        {renderStatusRow()}
         {renderDots()}
         {renderBarres()}
         <div className="strings-layer">
           {strings.map((rawStringData, stringIndex) => {
             const openStringAbsValue = getAbsoluteNoteValue(rawStringData);
             return (
-              <div key={`string-${stringIndex}`} className="string-row">
+              <div 
+                key={`string-${stringIndex}`} 
+                className="string-row"
+                style={{ display: "grid", gridTemplateColumns: fretboardGridTemplate }}
+              >
                 {Array.from({ length: numFrets + 1 }).map((_, fret) => {
                   const meta = computeFretMetadata({
                     stringIndex, fret, openStringAbsValue, activeNotes, 
                     currentlyPlayingNotes, contextualScaleAbsoluteValues,
                     activePath, dictType, fingering, instrument,
                     rootValue, targetValue, showFingering, fingeringMode,
-                    singlePlayContext, notation, scaleAnchor
+                    singlePlayContext, notation, scaleAnchor, appMode
                   });
 
                   const inZone = fretboardZone === "all" || 
@@ -191,24 +241,21 @@ export default function Fretboard({
                       <div className="string-line"></div>
                       {fret === 0 && (
                         <div className="open-string-label-container">
-                          <span className="open-string-name">{meta.noteName}</span>
-                           {(meta.isNoteOpen || meta.isPlaying) && (
-                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} open-marker`}>
+                           <span className="open-string-name">{meta.noteName}</span>
+                           
+                           {/* Status symbols moved to top row */}
+
+                           {/* Note Marker for Open Strings */}
+                           {((meta.isActive && fret === 0) || meta.isPlaying) && (
+                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${highlightTargetNotes && meta.isTargetNote ? "is-target-note" : ""} open-marker`}>
                                {meta.label}
                              </span>
                            )}
-                          {(() => {
-                             const actualMap = fingering?.fingeringMap || (fingering && !fingering.isScaleBox ? fingering : null) || {};
-                             const stringFingering = actualMap[stringIndex] || {};
-                             if (stringFingering['X'] === true) return <span className="mute-x">X</span>;
-                             if (stringFingering[0] === 'O') return <span className="open-o">O</span>;
-                             return null;
-                          })()}
                         </div>
                       )}
-                      {(meta.isActive || meta.isPlaying) && !meta.isNoteOpen && (
-                        <div
-                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isSubtle && !meta.isPlaying ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""}`}
+                      {(meta.isActive || meta.isPlaying) && fret !== 0 && (
+                        <div 
+                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${highlightTargetNotes && meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""}`}
                           title={`${meta.noteInfo.us} / ${meta.noteInfo.eu}`}
                           style={{
                             opacity: inZone ? 1 : 0.25,
