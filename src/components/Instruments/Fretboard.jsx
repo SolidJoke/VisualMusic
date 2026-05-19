@@ -128,37 +128,46 @@ export default function Fretboard({
   };
 
   const renderStatusRow = () => {
-    // Collect status for each string from computeFretMetadata or from fingering directly
-    // Since we want it per string, we can look at the fingeringMap
+    // BUG-08 fix: position:absolute overlay instead of grid child.
+    // .fretboard is position:relative, not display:grid — gridColumn/gridRow were ignored,
+    // causing the status div to push content down and misalign O/X markers.
     const actualMap = fingering?.fingeringMap || fingering;
     if (!actualMap) return null;
 
     return (
-      <div className="fretboard-status-row" style={{ display: "grid", gridTemplateColumns: fretboardGridTemplate, gridColumn: "1 / -1", gridRow: "1 / -1", pointerEvents: "none", zIndex: 5 }}>
-        <div className="status-cell-label"></div> {/* Spacer for note names */}
-        {Array.from({ length: numFrets }).map((_, fretIdx) => {
-          const fret = fretIdx + 1;
-          return <div key={`status-fret-${fret}`} className="status-cell"></div>;
+      <div
+        className="fretboard-status-row"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "minmax(40px, 0.5fr)", // matches first grid column
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          pointerEvents: "none",
+          zIndex: 5,
+        }}
+      >
+        {strings.map((_, stringIndex) => {
+          const stringData = actualMap[stringIndex];
+          let status = "";
+          let statusClass = "";
+          if (stringData?.status === 'muted') { status = "X"; statusClass = "is-muted"; }
+          else if (stringData?.status === 'played' && stringData.fret === 0) { status = "O"; statusClass = "is-open"; }
+          else if (stringData?.status === 'played' && stringData.fret > 0) { status = ""; }
+          else if (stringData?.status === 'muffled') { status = "M"; statusClass = "is-muffled"; }
+
+          return (
+            <div
+              key={`status-symbol-${stringIndex}`}
+              className={`string-status-symbol ${statusClass}`}
+              style={{ height: STRING_HEIGHT }}
+            >
+              {status}
+            </div>
+          );
         })}
-        {/* We actually only care about the top row (fret 0 equivalent area) */}
-        <div className="status-overlay-layer" style={{ gridColumn: "1 / 2", gridRow: "1", display: "flex", flexDirection: "column" }}>
-           {strings.map((_, stringIndex) => {
-              // Extract status for this string (usually from fret 0 or muted)
-              const stringData = actualMap[stringIndex];
-              let status = "";
-              let statusClass = "";
-              if (stringData?.status === 'muted') { status = "X"; statusClass = "is-muted"; }
-              else if (stringData?.status === 'played' && stringData.fret === 0) { status = "O"; statusClass = "is-open"; }
-              else if (stringData?.status === 'played' && stringData.fret > 0) { status = ""; }
-              else if (stringData?.status === 'muffled') { status = "M"; statusClass = "is-muffled"; }
-              
-              return (
-                <div key={`status-symbol-${stringIndex}`} className={`string-status-symbol ${statusClass}`} style={{ height: STRING_HEIGHT }}>
-                  {status}
-                </div>
-              );
-           })}
-        </div>
       </div>
     );
   };

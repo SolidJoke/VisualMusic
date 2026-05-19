@@ -1,5 +1,7 @@
 # Implementation Plan: VisualMusic Fretboard & Layout Refactoring
 
+> **STATUT : ✅ COMPLÉTÉ (Bugs 07, 08 et 09 résolus le 2026-05-19)**
+
 L'objectif de ce plan est de corriger les 3 bugs (BUG-07, BUG-08, BUG-09) signalés tout en améliorant l'architecture du code pour éviter les régressions fréquentes causées par la complexité actuelle.
 
 ## User Review Required

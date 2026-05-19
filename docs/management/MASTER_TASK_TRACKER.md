@@ -66,6 +66,9 @@
 - [x] **SESS-11** — Fix BUG-01 (Fretboard crash safety)
 - [x] **SESS-12** — Style App Mode Toggle (Blue theme)
 - [x] **SESS-13** — Analyse BUG-06 (accords non affichés en mode dictionnaire) + spec FLASH-07
+- [x] **BUG-07** — Fix Sidebar empty rectangle (CSS grid template)
+- [x] **BUG-08** — Fix Fretboard width doubling & marker offsets (position: absolute)
+- [x] **BUG-09** — Fix Scale notes highlight mask on Fretboard (guard condition)
 
 ---
 
@@ -634,9 +637,9 @@ Après le fix, vérifier dans `InstrumentView.jsx` et `Fretboard.jsx` que `guita
 | BUG-04 | Notes Menu | Stacking context Sidebar fixed | ✅ FIXÉ |
 | BUG-05 | UI | Animation dictionnaire gamme/accord désync | P2 (Phase12.6) |
 | BUG-06 | DictionaryPanel | **CRITIQUE** Aucun accord affiché en mode Dictionnaire. Double bug : (1) collision noms props App.jsx→DictionaryPanel (guitarFingering passé comme α12, non lu) ; (2) mismatch type selectedVoicingIndexGuitar (int 0) vs p.id (probablement string). → FLASH-07 | 🔴 P0 |
-| BUG-07 | Sidebar | Studio Mode sidebar contains an empty useless rectangle pushing valuable panels down. | 🟡 P1 |
-| BUG-08 | Fretboard | Dictionary Mode fretboard width is doubled and string markers are shifted vertically when selecting chord/scale and selecting a position. | 🔴 P0 |
-| BUG-09 | Fretboard/Engine | Dictionary Mode Scale notes: display incorrect notes not belonging to the scale/pitch height and incorrect playback animations on the fretboard. | 🔴 P0 |
+| BUG-07 | Sidebar | Studio Mode sidebar contains an empty useless rectangle pushing valuable panels down. | ✅ FIXÉ |
+| BUG-08 | Fretboard | Dictionary Mode fretboard width is doubled and string markers are shifted vertically when selecting chord/scale and selecting a position. | ✅ FIXÉ |
+| BUG-09 | Fretboard/Engine | Dictionary Mode Scale notes: display incorrect notes not belonging to the scale/pitch height and incorrect playback animations on the fretboard. | ✅ FIXÉ |
 
 ---
 
