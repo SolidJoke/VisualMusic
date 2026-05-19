@@ -13,6 +13,7 @@
   color: #e0e6ed;
   overflow: hidden;
   user-select: none;
+  flex-shrink: 0;
 }
 
 /* Eurorack Panel Screws for Realism */
