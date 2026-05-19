@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAppContext } from '../../context/AppContext';
+import { NOTES } from '../../core/theory';
 
 /**
  * PositionSelector Component
@@ -21,14 +22,19 @@ const PositionSelector = ({
 }) => {
   const { lang, txt, notation } = useAppContext();
 
+  const getNoteLabel = (midiVal) => {
+    const note = NOTES[midiVal % 12];
+    return notation === 'eu' ? note.eu : note.us;
+  };
+
   const strings = instrumentType === "guitar" ? [
-    { idx: 5, label: notation === "eu" ? "Mi" : "E", openVal: 4 },
-    { idx: 4, label: notation === "eu" ? "La" : "A", openVal: 9 },
-    { idx: 3, label: notation === "eu" ? "Ré" : "D", openVal: 2 },
+    { idx: 5, label: getNoteLabel(4), openVal: 4 },
+    { idx: 4, label: getNoteLabel(9), openVal: 9 },
+    { idx: 3, label: getNoteLabel(2), openVal: 2 },
   ] : [
-    { idx: 3, label: notation === "eu" ? "Mi" : "E", openVal: 4 },
-    { idx: 2, label: notation === "eu" ? "La" : "A", openVal: 9 },
-    { idx: 1, label: notation === "eu" ? "Ré" : "D", openVal: 2 },
+    { idx: 3, label: getNoteLabel(4), openVal: 4 },
+    { idx: 2, label: getNoteLabel(9), openVal: 9 },
+    { idx: 1, label: getNoteLabel(2), openVal: 2 },
   ];
 
   const handlePrevVoicing = () => {
@@ -121,7 +127,8 @@ const PositionSelector = ({
           <span style={{ color: "#fff", fontSize: "12px", minWidth: "120px", textAlign: "center", fontWeight: "500" }}>
             {selectedVoicingIndex === null 
               ? (isScaleMode ? txt.fullNeck : txt.voicingAllNotes) 
-              : (availableVoicings.find(v => v.id === selectedVoicingIndex)?.label || "Position")}
+              : ((availableVoicings?.find(v => v.id === selectedVoicingIndex)?.label || "Position")
+                  .replace('-shape', `-${txt.shapeLabel || 'shape'}`))}
           </span>
 
           <button 

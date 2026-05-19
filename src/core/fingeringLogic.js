@@ -19,7 +19,7 @@ export const FINGER_LABELS = {
  */
 export const INSTRUMENT_RANGES = {
   guitar: { min: 40, max: 86 }, // E2 to D6 (22 frets)
-  bass: { min: 28, max: 53 },   // E1 to F4 (22 frets)
+  bass: { min: 28, max: 65 },   // E1 to F4 (22 frets)
 };
 
 /**
@@ -533,64 +533,115 @@ export function getAvailableBassFingerings(rootValue, chordType = 'chord_major',
 
 /**
  * Returns available scale patterns (positions/boxes) for guitar or bass.
+ *
+ * Uses Option-B architecture: returns `scaleFrets` (a flat list of {stringIndex, fret, noteValue})
+ * instead of a fingeringMap. This keeps scale display logic completely separate from chord logic,
+ * avoids the 1-note-per-string limitation of fingeringMap (V2 format), and is trivially readable
+ * for maintenance by any model.
+ *
+ * @param {number|string} rootValue - Chromatic root (0–11)
+ * @param {string} scaleType - e.g. 'scale_major'
+ * @param {'guitar'|'bass'} instrument
+ * @param {string[]} strings - Tuning array e.g. ['E2','A2','D3','G3','B3','E4']
+ * @param {string} sep - Separator word for label (e.g. 'of', 'de')
+ * @returns {Array<{id, label, scaleFrets: Array<{stringIndex, fret, noteValue}>}>}
  */
 export function getAvailableScaleFingerings(rootValue, scaleType, instrument = 'guitar', strings = [], sep = 'of') {
-  const positions = [];
-  const stringOpenValues = strings.map(s => getAbsoluteNoteValue(s)).reverse(); // Match 5:LowE, 0:HighE index logic
-  
+  // Import resolveScaleIntervals lazily to avoid circular deps — it's already available in theory.js
+  // We use dynamic require-style import but since this is ESM with a bundler, we use a local import.
+  // NOTE: fingeringLogic.js already imports from './theory' at the top. We need to add resolveScaleIntervals.
+  // For now we compute semitones inline from the scaleType key.
+  // Scale semitone intervals (from root) for all supported scale types:
+  const SCALE_SEMITONES = {
+    scale_major:             [0, 2, 4, 5, 7, 9, 11],
+    scale_minor:             [0, 2, 3, 5, 7, 8, 10],
+    scale_harmonic_minor:    [0, 2, 3, 5, 7, 8, 11],
+    scale_melodic_minor:     [0, 2, 3, 5, 7, 9, 11],
+    scale_dorian:            [0, 2, 3, 5, 7, 9, 10],
+    scale_phrygian:          [0, 1, 3, 5, 7, 8, 10],
+    scale_lydian:            [0, 2, 4, 6, 7, 9, 11],
+    scale_mixolydian:        [0, 2, 4, 5, 7, 9, 10],
+    scale_locrian:           [0, 1, 3, 5, 6, 8, 10],
+    scale_phrygian_dominant: [0, 1, 4, 5, 7, 8, 10],
+    scale_pentatonic_major:  [0, 2, 4, 7, 9],
+    scale_pentatonic_minor:  [0, 3, 5, 7, 10],
+    scale_blues_minor:       [0, 3, 5, 6, 7, 10],
+    scale_blues_major:       [0, 2, 3, 4, 7, 9],
+    scale_hirajoshi:         [0, 2, 3, 7, 8],
+    scale_hungarian_minor:   [0, 2, 3, 6, 7, 8, 11],
+    scale_whole_tone:        [0, 2, 4, 6, 8, 10],
+    scale_chromatic:         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  };
+
+  const semitones = SCALE_SEMITONES[scaleType] || SCALE_SEMITONES['scale_major'];
+  const semitoneSet = new Set(semitones.map(s => (Number(rootValue) + s) % 12));
+
+  // stringOpenValues[i] = absolute MIDI value of open string i.
+  // Convention: strings input is low→high (e.g. ['E2','A2','D3','G3','B3','E4']).
+  // We reverse it so that index 0 = HIGHEST string (E4), matching the Fretboard
+  // component which also calls .reverse() before iterating with stringIndex.
+  // This ensures scaleFrets coordinates are directly usable by Fretboard and playback.
+  const stringOpenValues = strings.map(s => getAbsoluteNoteValue(s)).reverse();
   const numStrings = strings.length;
   const isBass = instrument === 'bass';
   const span = isBass ? 3 : 4;
 
-  // We offer 5 boxes for guitar, 3-4 for bass
-  // Box 1: Root on lowest string
-  // Box 2: Root on string above, etc.
-  // To keep it simple, we'll find all root positions and create a box around them
-  
+  // Find all frets where the root appears, to anchor positions.
+  // sIdx here directly equals stringIndex (0=high, N-1=low) — same as Fretboard.
   const rootPositions = [];
-  stringOpenValues.forEach((openVal, sIdx) => {
-    const sIdxLogical = (numStrings - 1) - sIdx;
+  stringOpenValues.forEach((openVal, stringIndex) => {
     for (let f = 0; f <= 15; f++) {
-      if ((openVal + f) % 12 === rootValue) {
-        rootPositions.push({ stringIndex: sIdxLogical, fret: f });
+      if ((openVal + f) % 12 === Number(rootValue) % 12) {
+        rootPositions.push({ stringIndex, fret: f });
       }
     }
   });
 
-  // Unique boxes by start fret
+  // Build candidate start frets from root positions
   const startFrets = new Set();
   rootPositions.forEach(pos => {
-    // 5 standard CAGED-like positions can be approximated by root-relative offsets
-    // Position starting at root, or root-1, or root-2...
     [0, -1, -2, -3].forEach(offset => {
-        const start = Math.max(0, pos.fret + offset);
-        if (start <= 12) startFrets.add(start);
+      const start = Math.max(0, pos.fret + offset);
+      if (start <= 12) startFrets.add(start);
     });
   });
 
   const sortedStarts = Array.from(startFrets).sort((a, b) => a - b);
-  
-  // Filter to keep ~5 well-spaced positions
   const filteredStarts = [];
   let last = -99;
   sortedStarts.forEach(s => {
     if (s >= last + 2) {
-        filteredStarts.push(s);
-        last = s;
+      filteredStarts.push(s);
+      last = s;
     }
   });
 
-  filteredStarts.slice(0, 5).forEach((start, idx) => {
-    positions.push({
-      id: `pos_${start}`,
-      label: `${idx + 1} ${sep} ${filteredStarts.slice(0, 5).length}`,
-      fingering: { 
-        fingeringMap: {}, // Handled by the filter in Fretboard for scales
-        isScaleBox: true,
-        startFret: start,
-        endFret: start + span
+  const positions = filteredStarts.slice(0, 5).map((start, idx) => {
+    const endFret = start + span;
+
+    // Build exact list of frets in this position window that belong to the scale.
+    // stringIndex = sIdx (0=high string), consistent with Fretboard convention.
+    const scaleFrets = [];
+    stringOpenValues.forEach((openVal, stringIndex) => {
+      for (let fret = start; fret <= endFret; fret++) {
+        const noteValue = (openVal + fret) % 12;
+        if (semitoneSet.has(noteValue)) {
+          scaleFrets.push({ stringIndex, fret, noteValue });
+        }
       }
     });
+
+    return {
+      id: `pos_${start}`,
+      label: `${idx + 1} ${sep} ${filteredStarts.slice(0, 5).length}`,
+      positionIndex: idx,
+      // scaleFrets is the Option-B model: a flat list of exact fret positions.
+      // fingeringMap is intentionally absent — chord rendering is unaffected.
+      scaleFrets,
+      // Keep startFret/endFret for playback handler compatibility during transition
+      startFret: start,
+      endFret,
+    };
   });
 
   return positions;
@@ -601,6 +652,7 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
  * Returns all possible ways to play a single note (by MIDI value) on guitar or bass.
  */
 export function getAvailableSingleNoteFingerings(midiValue, instrument = 'guitar', notation = 'us') {
+  if (midiValue === undefined || midiValue === null || isNaN(midiValue)) return [];
   const positions = [];
   const stringOpenMidis = instrument === 'bass' ? [28, 33, 38, 43] : [40, 45, 50, 55, 59, 64];
   const strings = instrument === 'bass' ? [3, 2, 1, 0] : [5, 4, 3, 2, 1, 0];
@@ -640,8 +692,9 @@ function shapeToFingeringObj(shape) {
   const result = {};
   for (const [strIdx, data] of Object.entries(shape)) {
     if (data === null) {
-      // Muted string
-      result[strIdx] = { 'X': true };
+      // Muted string: represent as an empty object or with a special status
+      // Fretboard expects { [fret]: finger }
+      result[strIdx] = { muted: true };
     } else if (data.finger === 'O') {
       // Open string
       result[strIdx] = { 0: 'O' };

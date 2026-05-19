@@ -20,13 +20,17 @@ export function useDictionaryMode() {
   const [scaleAnchor, setScaleAnchor] = useState(null); // { stringIndex, fret, absoluteValue }
   const [dictOctave, setDictOctave] = useState(0); // -1, 0, +1
 
-  // Reset voicing indices and anchor when root or type changes
+  // Reset voicing indices when root or type changes.
+  // For scales: default to open position ('pos_0') so the fretboard shows a focused view immediately.
+  // For chords/notes: reset to null (auto-computed best fingering).
   useEffect(() => {
-    const isChord = dictType.includes("chord");
-    setSelectedVoicingIndexGuitar(isChord ? 0 : null);
-    setSelectedVoicingIndexBass(isChord ? 0 : null);
+    const isScale = dictType?.includes('scale');
+    const defaultIdx = isScale ? 'pos_0' : null;
+    setSelectedVoicingIndexGuitar(defaultIdx);
+    setSelectedVoicingIndexBass(defaultIdx);
     setScaleAnchor(null);
   }, [dictRoot, dictType]);
+
 
   const activeNotes = useMemo(() => {
     let notes = [];
@@ -39,7 +43,7 @@ export function useDictionaryMode() {
         ...n,
         absoluteValue: n.value + (baseOctave + 1) * 12
       }));
-    } else if (dictType.includes("chord")) {
+    } else if (dictType && dictType.includes("chord")) {
       const chordData = resolveChordSemitones(dictType);
       if (chordData) {
         notes = chordData.semitones.map((semi, i) => {

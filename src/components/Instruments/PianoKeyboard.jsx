@@ -34,8 +34,8 @@ export default function PianoKeyboard({
     if (!harmonicMode) return [];
     const midi = Number(rootValue) + 48;
     const baseFreq = 440 * Math.pow(2, (midi - 69) / 12);
-    return getHarmonicSeries(baseFreq, 32);
-  }, [harmonicMode, rootValue]);
+    return getHarmonicSeries(baseFreq, 32, notation);
+  }, [harmonicMode, rootValue, notation]);
 
   const harmonicMap = React.useMemo(() => {
     const map = {};
@@ -143,7 +143,12 @@ export default function PianoKeyboard({
         return (n.value % 12 === i % 12) && (octave === 2);
       });
       const isActive = !!activeNote;
-      const isPlaying = currentlyPlayingNotes.includes(absoluteValue);
+      const isPlaying = currentlyPlayingNotes.some(item => {
+        if (typeof item === 'object' && item !== null) {
+          return item.absoluteValue === absoluteValue;
+        }
+        return item === absoluteValue;
+      });
 
       const isScaleMode = dictType?.includes("scale");
       const hasContextualScale =
@@ -166,7 +171,6 @@ export default function PianoKeyboard({
         if (isActive) {
           const interval = (i - rootValue + 12) % 12;
           if (interval === 0) orderToDisplay = "1";
-          else isSubtle = true;
         }
       } else {
         if (isActive && activeNote.order) orderToDisplay = activeNote.order;
