@@ -143,6 +143,7 @@ export const translations = {
     voicingOf: "sur",
     fullNeck: "Tout le manche",
     barreLegend: " = Barré",
+    shapeLabel: "forme",
     octaveBase: "Octave Base:",
     hideExplanations: "Masquer la légende",
     legendAndExplanations: "📖 Légende & Théorie",
@@ -191,6 +192,8 @@ export const translations = {
     studioInfoSkankTitle: "Variations Rythmiques",
     studioInfoSkankDesc: "Certains genres (comme le Reggae) jouent sur le contretemps. Le séquenceur s'adapte automatiquement au style choisi.",
     studioInfoTips: "💡 Astuce : Cliquez sur un accord pour voir ses doigtés sur les manches.",
+    suggestBass: "Suggérer Basse",
+    suggestBassTip: "Générer une ligne de basse pour ce style"
   },
   en: {
     langLabel: "🇬🇧 EN",
@@ -336,6 +339,7 @@ export const translations = {
     voicingOf: "of",
     fullNeck: "Full neck",
     barreLegend: " = Barre",
+    shapeLabel: "shape",
     octaveBase: "Base Octave:",
     hideExplanations: "Hide Legend",
     legendAndExplanations: "📖 Legend & Theory",
@@ -384,6 +388,8 @@ export const translations = {
     studioInfoSkankTitle: "Rhythmic Variations",
     studioInfoSkankDesc: "Some genres (like Reggae) play on the offbeat. The sequencer automatically adapts to the chosen style.",
     studioInfoTips: "💡 Tip: Click a chord to see its fingerings on the fretboards.",
+    suggestBass: "Suggest Bass",
+    suggestBassTip: "Generate a bass line for this genre"
   },
   pt: {
     langLabel: "🇵🇹 PT",

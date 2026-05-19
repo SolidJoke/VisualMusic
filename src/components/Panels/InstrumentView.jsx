@@ -153,6 +153,7 @@ const InstrumentView = ({
             scaleAnchor={scaleAnchor}
             isOutOfRange={isGuitarOutOfRange}
             highlightTargetNotes={highlightTargetNotes}
+            appMode={appMode}
           />
           
           <br />
@@ -192,6 +193,7 @@ const InstrumentView = ({
             scaleAnchor={scaleAnchor}
             isOutOfRange={isBassOutOfRange}
             highlightTargetNotes={highlightTargetNotes}
+            appMode={appMode}
           />
         </div>
       )}

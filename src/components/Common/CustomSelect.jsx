@@ -58,17 +58,24 @@ const CustomSelect = ({
       {/* Hidden native select for testing and accessibility */}
       <select 
         data-testid={testId}
-        value={value} 
-        onChange={(e) => handleSelect(isNaN(e.target.value) ? e.target.value : Number(e.target.value))}
+        value={value ?? ""} 
+        onChange={(e) => {
+          const val = e.target.value;
+          handleSelect(val === "" ? null : (isNaN(val) ? val : Number(val)));
+        }}
         style={{ display: 'none' }}
       >
         {options.map((opt, i) => (
           opt.items ? (
             <optgroup key={i} label={opt.label}>
-              {opt.items.map(sub => <option key={sub.value} value={sub.value}>{sub.label}</option>)}
+              {opt.items.map(sub => (
+                <option key={sub.value ?? "null"} value={sub.value ?? ""}>
+                  {sub.label}
+                </option>
+              ))}
             </optgroup>
           ) : (
-            <option key={i} value={opt.value}>{opt.label}</option>
+            <option key={i} value={opt.value ?? ""}>{opt.label}</option>
           )
         ))}
       </select>

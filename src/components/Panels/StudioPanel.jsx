@@ -64,13 +64,6 @@ const StudioPanel = ({
     <div
       className="vintage-chassis"
       data-testid="studio-panel"
-      style={{
-        textAlign: "center",
-        width: "100%",
-        boxSizing: "border-box",
-        maxWidth: "none",
-        margin: "0",
-      }}
     >
       <div className="screw screw-tl"></div>
       <div className="screw screw-tr"></div>
@@ -79,7 +72,7 @@ const StudioPanel = ({
 
       <StudioInfoBlock txt={txt} lang={lang} />
 
-      <div style={{ margin: "15px 0" }}>
+      <div style={{ margin: "15px 0", position: "relative", zIndex: 20 }}>
         <LcdScreen title={txt.styleSelection}>
           <CustomSelect
             value={currentBrickIndex}
@@ -134,6 +127,8 @@ const StudioPanel = ({
           marginTop: "20px",
           padding: "20px",
           boxSizing: "border-box",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         <div
@@ -144,40 +139,44 @@ const StudioPanel = ({
             marginBottom: "15px",
           }}
         >
-          <div>
-            <span
-              style={{
-                color: "#ccc",
-                marginRight: "10px",
-                fontSize: "16px",
-              }}
-            >
-              {txt.theme}
-            </span>
-            <br />
-            <br />
-            <button
-              onClick={() => setCurrentTheme("A")}
-              className={`btn-toggle ${currentTheme === "A" ? " btn-toggle--active" : ""}`}
-              style={{ marginRight: "5px" }}
-            >
-              {txt.varA}
-            </button>
-            <button
-              onClick={() => setCurrentTheme("B")}
-              className={`btn-toggle ${currentTheme === "B" ? " btn-toggle--active" : ""}`}
-            >
-              {txt.varB}
-            </button>
-            <button
-              onClick={handleSuggestBass}
-              className={`btn-premium ${suggestedBassTrack ? " active" : ""}`}
-              style={{ marginLeft: "10px", padding: "6px 12px", fontSize: "0.85rem" }}
-              title={txt.suggestBassTip || "Generate a bass line for this genre"}
-            >
-              {suggestedBassTrack ? "✨ Bass OK" : "🎸 Suggest Bass"}
-            </button>
-          </div>
+            <div style={{ marginBottom: "12px" }}>
+              <span
+                style={{
+                  color: "#ccc",
+                  marginRight: "10px",
+                  fontSize: "16px",
+                }}
+              >
+                {txt.theme}
+              </span>
+              <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "15px" }}>
+                <button
+                  onClick={() => setCurrentTheme("A")}
+                  className={`btn-premium ${currentTheme === "A" ? " active" : ""}`}
+                  style={{ flex: 1, padding: "8px 12px" }}
+                >
+                  {txt.varA}
+                </button>
+                <button
+                  onClick={() => setCurrentTheme("B")}
+                  className={`btn-premium ${currentTheme === "B" ? " active" : ""}`}
+                  style={{ flex: 1, padding: "8px 12px" }}
+                >
+                  {txt.varB}
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ marginTop: "10px" }}>
+              <button
+                onClick={handleSuggestBass}
+                className={`btn-premium ${suggestedBassTrack ? " active" : ""}`}
+                style={{ width: "100%", padding: "8px 12px", fontSize: "0.85rem" }}
+                title={txt.suggestBassTip || "Generate a bass line for this genre"}
+              >
+                {suggestedBassTrack ? "✨ Bass OK" : `🎸 ${txt.suggestBass || "Suggest Bass"}`}
+              </button>
+            </div>
 
           <div style={{ textAlign: "center" }}>
              <span style={{ color: "#888", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>Quick Start Progressions</span>
@@ -270,7 +269,7 @@ const StudioPanel = ({
         </div>
         <strong>{txt.magicProg} </strong> <br />
         <br />
-        <div className="magic-progression-container">
+        <div className="magic-progression-container" style={{ position: "relative", zIndex: 5 }}>
 
           {generateChordsFromNNS(
             activeBrick.rootValue,

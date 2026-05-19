@@ -191,7 +191,12 @@ export function useSequencer({
         const currentNns = progression[chordIndex];
         const rhythm = rhythmRef.current || [0];
         
-        if (rhythm.includes(stepCounter % 4)) {
+        const isAbsolute16 = rhythm.some(step => step > 3);
+        const shouldPlay = isAbsolute16 
+          ? rhythm.includes(stepCounter % 16) 
+          : rhythm.includes(stepCounter % 4);
+          
+        if (shouldPlay) {
            const chords = generateChordsFromNNS(brick.rootValue, brick.modeName, [currentNns]);
            if (chords.length > 0) {
              const c = chords[0];

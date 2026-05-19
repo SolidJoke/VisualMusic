@@ -1,5 +1,5 @@
 import React from 'react';
-import MixerStrip from '../Audio/MixerStrip';
+import MixerPanel from './MixerPanel';
 import LcdScreen from '../Common/LcdScreen';
 import CustomSelect from '../Common/CustomSelect';
 import { useAppContext } from '../../context/AppContext';
@@ -55,7 +55,8 @@ const PlaybackPanel = ({
             onClick={togglePlayback}
             className={`btn-playback-premium ${isPlaying ? 'stop' : 'play'}`}
           >
-            {isPlaying ? txt.stopAudio : txt.enableAudio}
+            <div className="btn-playback-icon"></div>
+            <span>{isPlaying ? txt.stopAudio : txt.enableAudio}</span>
           </button>
         )}
 
@@ -93,16 +94,11 @@ const PlaybackPanel = ({
         </div>
       </div>
 
-      <details style={{ width: "100%", marginBottom: "20px" }}>
-        <summary style={{ cursor: "pointer", color: "#ccc", fontWeight: "bold", outline: "none", marginBottom: "10px", padding: "10px", backgroundColor: "rgba(255,255,255,0.05)", borderRadius: "8px" }}>
-          🎚️ {txt.mixerVolumes || "Mixer Volumes"}
-        </summary>
-        <MixerStrip
-          instrumentVolumes={instrumentVolumes}
-          handleInstrumentVolumeChange={handleInstrumentVolumeChange}
-          isPlaying={isPlaying}
-        />
-      </details>
+      <MixerPanel
+        instrumentVolumes={instrumentVolumes}
+        handleInstrumentVolumeChange={handleInstrumentVolumeChange}
+        isPlaying={isPlaying}
+      />
 
       {appMode === "studio" && (
         <div className="glass-panel" style={{ padding: "12px", marginBottom: "20px" }}>

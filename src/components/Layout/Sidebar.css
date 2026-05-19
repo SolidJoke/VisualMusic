@@ -3,10 +3,12 @@
   top: 0;
   left: 0;
   height: 100vh;
+  min-height: 100%; /* Ensure it spans the full container even if viewport varies */
   z-index: 2000; /* Ensure it stays above EVERYTHING (Header 600, etc) */
   transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 .app-sidebar.is-open {
@@ -21,10 +23,10 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: visible; /* CRITICAL: Allow CustomSelect popups to be visible outside the sidebar width */
-  padding: 80px 20px 40px 20px;
+  padding: 60px 15px 30px 15px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
@@ -102,9 +104,12 @@
 }
 
 .app-sidebar .vintage-chassis {
-  padding: 15px;
+  padding: 10px;
   margin: 0;
   border-radius: 8px;
+  min-height: auto;
+  position: relative;
+  z-index: 60;
 }
 
 /* Fix z-index stacking context for CustomSelect dropdowns */

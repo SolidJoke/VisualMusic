@@ -463,6 +463,82 @@ export const CHORDS = {
 };
 
 /**
+ * Returns a short, human-readable name for a chord (e.g., "C7", "Gbm").
+ * Uses the US notation by default for internal mapping.
+ * @param {number} rootValue - Chromatic root (0-11, C=0)
+ * @param {string} chordType - The dictType of the chord
+ * @returns {string|null} e.g. "Cmaj7"
+ */
+export const getChordShortName = (rootValue, chordType) => {
+    const root = NOTES[rootValue % 12]?.us;
+    if (!root || !chordType) return null;
+    
+    // Map chord types to their common short suffixes
+    const suffixMap = {
+        chord_major: "",
+        chord_minor: "m",
+        chord_dim: "dim",
+        chord_aug: "aug",
+        chord_sus2: "sus2",
+        chord_sus4: "sus4",
+        chord_maj7: "maj7",
+        chord_m7: "m7",
+        chord_7: "7",
+        chord_dim7: "dim7",
+        chord_m7b5: "m7b5",
+        chord_add9: "add9",
+        chord_9: "9",
+        chord_m9: "m9"
+    };
+
+    const suffix = suffixMap[chordType];
+    return suffix !== undefined ? `${root}${suffix}` : `${root}?`;
+};
+
+/**
+ * Resolves a short name (e.g. "C7", "Am") back to rootValue and dictType.
+ * @param {string} shortName 
+ * @returns {object|null} { rootValue, dictType }
+ */
+export const resolveChordFromShortName = (shortName) => {
+    if (!shortName) return null;
+    
+    // Normalize flats to sharps for lookup if needed, but our NOTES us/eu often have both
+    // Actually, let's just find the root part first.
+    let rootPart = shortName.substring(0, 1);
+    let suffixPart = shortName.substring(1);
+    if (shortName.length > 1 && (shortName[1] === '#' || shortName[1] === 'b')) {
+        rootPart = shortName.substring(0, 2);
+        suffixPart = shortName.substring(2);
+    }
+    
+    const rootIdx = NOTES.findIndex(n => n.us === rootPart || n.eu === rootPart);
+    if (rootIdx === -1) return null;
+    
+    const reverseSuffixMap = {
+        "": "chord_major",
+        "m": "chord_minor",
+        "dim": "chord_dim",
+        "aug": "chord_aug",
+        "sus2": "chord_sus2",
+        "sus4": "chord_sus4",
+        "maj7": "chord_maj7",
+        "Maj7": "chord_maj7",
+        "m7": "chord_m7",
+        "7": "chord_7",
+        "dim7": "chord_dim7",
+        "m7b5": "chord_m7b5",
+        "add9": "chord_add9",
+        "9": "chord_9",
+        "m9": "chord_m9"
+    };
+    
+    const dictType = reverseSuffixMap[suffixPart];
+    return dictType ? { rootValue: rootIdx, dictType } : null;
+};
+
+
+/**
  * Resolves a dictType string to its chord data (semitones, category, etc.)
  * @param {string} dictType - e.g. 'chord_major', 'chord_m7'
  * @returns {object|null} Chord data or null if not found

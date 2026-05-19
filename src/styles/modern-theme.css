@@ -23,8 +23,8 @@
   --role-third: oklch(75% 0.2 150);
   --role-fifth: hsl(250, 100%, 70%);
   --role-fifth: oklch(70% 0.2 250);
-  --role-scale: hsla(250, 20%, 60%, 0.6);
-  --role-scale: oklch(60% 0.05 250 / 0.6);
+  --role-scale: hsla(250, 30%, 65%, 0.9);
+  --role-scale: oklch(65% 0.1 250 / 0.9);
   --role-target: hsl(90, 100%, 85%);
   --role-target: oklch(85% 0.2 90);
   --role-extension: hsl(280, 50%, 60%);
