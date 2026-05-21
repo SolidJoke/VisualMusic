@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, memo } from "react";
 
-export default function AudioVisualizer({ analyser, width = "100%", height = "60px" }) {
+const AudioVisualizer = memo(function AudioVisualizer({ analyser, width = "100%", height = "60px" }) {
   const canvasRef = useRef(null);
   const requestRef = useRef();
+  const isVisibleRef = useRef(true);
 
   useEffect(() => {
     if (!analyser || !canvasRef.current) return;
@@ -22,6 +23,9 @@ export default function AudioVisualizer({ analyser, width = "100%", height = "60
 
     const draw = () => {
       requestRef.current = requestAnimationFrame(draw);
+
+      // Skip drawing if not visible — saves CPU when scrolled off-screen or tab hidden
+      if (!isVisibleRef.current) return;
 
       // analyser.getValue() returns Float32Array of dB values (usually -100 to 0)
       const values = analyser.getValue();
@@ -56,7 +60,7 @@ export default function AudioVisualizer({ analyser, width = "100%", height = "60
         const hue = i * (360 / bufferLength);
         ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
 
-        // Draw centered vertically or from bottom? Let's do from bottom
+        // Draw from bottom
         ctx.beginPath();
         ctx.roundRect(x, H - barHeight, barWidth - 1, barHeight, 2);
         ctx.fill();
@@ -65,10 +69,18 @@ export default function AudioVisualizer({ analyser, width = "100%", height = "60
       }
     };
 
+    // Pause rAF loop when element is not visible — saves 60fps CPU cycles
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { threshold: 0 }
+    );
+    observer.observe(canvas);
+
     draw();
 
     return () => {
       cancelAnimationFrame(requestRef.current);
+      observer.disconnect();
     };
   }, [analyser]);
 
@@ -80,4 +92,6 @@ export default function AudioVisualizer({ analyser, width = "100%", height = "60
       />
     </div>
   );
-}
+});
+
+export default AudioVisualizer;

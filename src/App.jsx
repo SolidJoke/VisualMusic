@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./App.css";
 import "./styles/vintage-theme.css";
 import "./styles/modern-theme.css";
 
-import MixerStrip from "./components/Audio/MixerStrip";
+
 import DictionaryPanel from "./components/Panels/DictionaryPanel";
 import StudioPanel from "./components/Panels/StudioPanel";
 import ControlPanel from "./components/Panels/ControlPanel";
@@ -22,40 +22,12 @@ import AboutModal from "./components/Modals/AboutModal";
 import TheoryModal from "./components/Modals/TheoryModal";
 import { log } from "./utils/debug";
 import { useAppContext } from "./context/AppContext";
-import { getInversionType, getChordIntervalLabel } from "./core/harmonyEngine";
-
+import { MusicEngineProvider } from "./context/MusicEngineContext";
 import {
-  getScaleNotes,
-  generateChordsFromNNS,
-  MODES,
-  NOTES,
-  getClosestInversion,
-  getAbsoluteNoteValue,
-  resolveScaleIntervals,
-  getScaleNotesGeneric,
-  toRoman,
-  resolveChordSemitones,
-  resolveNnsToChordType,
-} from "./core/theory";
-import { getGuitarFingering, getBassFingering, getAvailableGuitarFingerings, getAvailableBassFingerings, getAvailableScaleFingerings } from "./core/fingeringLogic";
-import { BRICKS } from "./core/bricks";
-import {
-  chordSynth,
-  kickSynth,
-  snareSynth,
-  hatSynth,
-  bassSynth,
   applyGenrePreset,
-  initPianoSampler,
-  getPianoSynth,
-  setInstrumentVolume,
-  playDictionaryNote,
   masterAnalyser,
   setBpm,
-  startAudioEngine,
-  setMasterVolume,
 } from "./audio/AudioEngine";
-
 
 
 function App() {
@@ -91,11 +63,14 @@ function App() {
   const setFingeringMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'fingeringMode', value: val } });
   const setPlaybackInstrument = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'playbackInstrument', value: val } });
   const setLayoutMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'layoutMode', value: val } });
-  const setActiveTab = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'activeTab', value: val } });
+  // Memoized: passed to InstrumentView (memoized), stable ref avoids unnecessary re-renders
+  const setActiveTab = useCallback(
+    (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'activeTab', value: val } }),
+    [dispatch]
+  );
   const setChordDisplayMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'chordDisplayMode', value: val } });
   const setUiTheme = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } });
 
-  const playTokenRef = useRef(0);
 
   const {
     currentBrickIndex, setCurrentBrickIndex,
@@ -110,9 +85,9 @@ function App() {
     singlePlayContext, setSinglePlayContext,
     visualFocus, setVisualFocus,
     suggestedBassTrack, setSuggestedBassTrack,
-    customProgression, setCustomProgression,
+    setCustomProgression,
     customRhythm, setCustomRhythm,
-    customDrums, setCustomDrums,
+    setCustomDrums,
     activeBrick,
     activeTracks
   } = useStudioMode();
@@ -194,7 +169,6 @@ function App() {
     currentStep,
     togglePlayback,
     handleBpmChange,
-    isPianoReady,
     activeChordTrack
   } = useSequencer({
     appMode,
@@ -212,8 +186,7 @@ function App() {
   const {
     handleChordClick,
     playDictionaryAudio,
-    autoPlayNote,
-    ensureAudioReady
+    autoPlayNote
   } = usePlaybackHandlers({
     isAudioReady,
     setIsAudioReady,
@@ -263,7 +236,7 @@ function App() {
     setCurrentAbsoluteNotes([]);
     setSuggestedBassTrack(null);
     setCustomProgression(null);
-  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression]);
+  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression, setClickedChord, setCurrentAbsoluteNotes]);
 
   // Handlers implemented via usePlaybackHandlers
 
@@ -283,6 +256,101 @@ function App() {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  const musicEngineContextValue = useMemo(() => ({
+    masterAnalyser,
+    layoutMode,
+    activeTab,
+    setActiveTab,
+    appMode,
+    displayMode,
+    activeDrums,
+    activeMelody,
+    activeChordTrack,
+    currentStep,
+    currentBpm,
+    activeBrick,
+    activeProgression,
+    chordOctaveOffset,
+    dictType,
+    currentRootValue,
+    targetValue,
+    activeNotes,
+    fretboardActiveNotes,
+    autoPlayNote,
+    currentlyPlayingNotes,
+    contextualScaleAbsoluteValues,
+    showFingering,
+    fingeringMode,
+    clickedChord,
+    selectedRootStringGuitar,
+    setSelectedRootStringGuitar,
+    selectedRootStringBass,
+    setSelectedRootStringBass,
+    guitarFingering,
+    bassFingering,
+    fretboardZone,
+    lastClickedContext,
+    singlePlayContext,
+    selectedVoicingIndexGuitar,
+    setSelectedVoicingIndexGuitar,
+    selectedVoicingIndexBass,
+    setSelectedVoicingIndexBass,
+    availableGuitarFingerings,
+    availableBassFingerings,
+    visualFocus,
+    scaleAnchor,
+    setScaleAnchor,
+    isGuitarOutOfRange,
+    isBassOutOfRange,
+    highlightTargetNotes
+  }), [
+    layoutMode,
+    activeTab,
+    setActiveTab,
+    appMode,
+    displayMode,
+    activeDrums,
+    activeMelody,
+    activeChordTrack,
+    currentStep,
+    currentBpm,
+    activeBrick,
+    activeProgression,
+    chordOctaveOffset,
+    dictType,
+    currentRootValue,
+    targetValue,
+    activeNotes,
+    fretboardActiveNotes,
+    autoPlayNote,
+    currentlyPlayingNotes,
+    contextualScaleAbsoluteValues,
+    showFingering,
+    fingeringMode,
+    clickedChord,
+    selectedRootStringGuitar,
+    setSelectedRootStringGuitar,
+    selectedRootStringBass,
+    setSelectedRootStringBass,
+    guitarFingering,
+    bassFingering,
+    fretboardZone,
+    lastClickedContext,
+    singlePlayContext,
+    selectedVoicingIndexGuitar,
+    setSelectedVoicingIndexGuitar,
+    selectedVoicingIndexBass,
+    setSelectedVoicingIndexBass,
+    availableGuitarFingerings,
+    availableBassFingerings,
+    visualFocus,
+    scaleAnchor,
+    setScaleAnchor,
+    isGuitarOutOfRange,
+    isBassOutOfRange,
+    highlightTargetNotes
+  ]);
 
   return (
     <div className={`app-container app-container-inner theme-${uiTheme} ${uiTheme === 'vintage' ? 'vintage-chassis' : ''}`}>
@@ -444,54 +512,9 @@ function App() {
 
           {/* --- MAIN CONTENT AREA --- */}
           <div className="layout-col layout-center">
-            <InstrumentView
-              masterAnalyser={masterAnalyser}
-              layoutMode={layoutMode}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              appMode={appMode}
-              displayMode={displayMode}
-              activeDrums={activeDrums}
-              activeMelody={activeMelody}
-              activeChordTrack={activeChordTrack}
-              currentStep={currentStep}
-              currentBpm={currentBpm}
-              activeBrick={activeBrick}
-              activeProgression={activeProgression}
-              chordOctaveOffset={chordOctaveOffset}
-              dictType={dictType}
-              currentRootValue={currentRootValue}
-              targetValue={targetValue}
-              activeNotes={activeNotes}
-              fretboardActiveNotes={fretboardActiveNotes}
-              autoPlayNote={autoPlayNote}
-              currentlyPlayingNotes={currentlyPlayingNotes}
-              contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
-              showFingering={showFingering}
-              fingeringMode={fingeringMode}
-              clickedChord={clickedChord}
-              selectedRootStringGuitar={selectedRootStringGuitar}
-              setSelectedRootStringGuitar={setSelectedRootStringGuitar}
-              selectedRootStringBass={selectedRootStringBass}
-              setSelectedRootStringBass={setSelectedRootStringBass}
-              guitarFingering={guitarFingering}
-              bassFingering={bassFingering}
-              fretboardZone={fretboardZone}
-              lastClickedContext={lastClickedContext}
-              singlePlayContext={singlePlayContext}
-              selectedVoicingIndexGuitar={selectedVoicingIndexGuitar}
-              setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
-              selectedVoicingIndexBass={selectedVoicingIndexBass}
-              setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
-              availableGuitarFingerings={availableGuitarFingerings}
-              availableBassFingerings={availableBassFingerings}
-              visualFocus={visualFocus}
-              scaleAnchor={scaleAnchor}
-              setScaleAnchor={setScaleAnchor}
-              isGuitarOutOfRange={isGuitarOutOfRange}
-              isBassOutOfRange={isBassOutOfRange}
-              highlightTargetNotes={highlightTargetNotes}
-            />
+            <MusicEngineProvider value={musicEngineContextValue}>
+              <InstrumentView />
+            </MusicEngineProvider>
           </div>
         </div>
       </div>

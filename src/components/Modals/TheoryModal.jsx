@@ -1,5 +1,5 @@
 import React from 'react';
-import { MODES } from '../../core/theory.js';
+import { SCALES } from '../../core/theory.js';
 
 const TheoryModal = ({ isOpen, onClose, txt }) => {
   if (!isOpen) return null;
@@ -32,11 +32,12 @@ const TheoryModal = ({ isOpen, onClose, txt }) => {
           {txt.modesEmotionTitle}
         </h3>
         <ul className="modes-list">
-          {Object.entries(MODES).map(([name, data]) => {
+          {Object.values(SCALES).filter(scale => scale.modeKey).map((scale) => {
+            const name = scale.modeKey;
             const modeTxt = txt.modes?.[name] || {};
-            const emotion = modeTxt.emotion || data.emotion;
-            const description = modeTxt.description || data.description;
-            const magicNote = modeTxt.magicNote || data.magicNote;
+            const emotion = modeTxt.emotion;
+            const description = modeTxt.description;
+            const magicNote = modeTxt.magicNote;
             const magicLabel = txt.magicNoteLabel || "Magic Note";
 
             return (

@@ -193,7 +193,52 @@ export const translations = {
     studioInfoSkankDesc: "Certains genres (comme le Reggae) jouent sur le contretemps. Le séquenceur s'adapte automatiquement au style choisi.",
     studioInfoTips: "💡 Astuce : Cliquez sur un accord pour voir ses doigtés sur les manches.",
     suggestBass: "Suggérer Basse",
-    suggestBassTip: "Générer une ligne de basse pour ce style"
+    suggestBassTip: "Générer une ligne de basse pour ce style",
+    voicing: {
+      issues: {
+        SPAN_TOO_WIDE: {
+          message: (span, max) => `Écart de ${span} frettes — difficile pour une main de taille standard (max recommandé : ${max}).`,
+          rule: "Un écart supérieur à 4 frettes est acrobatique. Considérez une inversion plus proche."
+        },
+        MUDDY_BASS: {
+          message: (intervalName) => `Intervalle de ${intervalName} entre les deux notes les plus graves — risque de sonorité "bouillonnante" en dessous de Do3.`,
+          rule: "Règle de la série harmonique : dans les graves, les harmoniques se chevauchent. Espacez les intervalles dans le registre grave (idéalement une 5te ou une octave)."
+        },
+        UNPLAYABLE_STRETCH: {
+          message: (count, max) => `${count} notes simultanées — impossible à jouer d'une seule main (max ${max}).`,
+          rule: "Un pianiste ne peut physiquement couvrir que 6 notes maximum avec une main. Répartissez les notes sur les deux mains ou supprimez des doublons."
+        }
+      },
+      intervals: {
+        0: 'unisson',
+        1: '2nde mineure (demi-ton)',
+        2: '2nde majeure (ton)',
+        3: '3ce mineure',
+        4: '3ce majeure',
+        5: '4te juste',
+        6: 'triton',
+        7: '5te juste',
+        8: '6te mineure',
+        9: '6te majeure',
+        10: '7ème mineure',
+        11: '7ème majeure',
+        12: 'octave',
+        default: (semitones) => `${semitones} demi-tons`
+      },
+      inversions: {
+        0: 'Position fondamentale',
+        1: '1ère inversion',
+        2: '2ème inversion',
+        3: '3ème inversion',
+        default: (invIndex) => `${invIndex}ème inversion`
+      }
+    },
+    suggestedVoicings: "Voicings suggérés :",
+    voicingImpossible: "⛔ Voicing impossible",
+    voicingDifficult: "⚠️ Voicing difficile",
+    expandDetails: "▼ Détails",
+    collapseDetails: "▲ Réduire",
+    dismissAlert: "Ignorer cette alerte",
   },
   en: {
     langLabel: "🇬🇧 EN",
@@ -389,7 +434,52 @@ export const translations = {
     studioInfoSkankDesc: "Some genres (like Reggae) play on the offbeat. The sequencer automatically adapts to the chosen style.",
     studioInfoTips: "💡 Tip: Click a chord to see its fingerings on the fretboards.",
     suggestBass: "Suggest Bass",
-    suggestBassTip: "Generate a bass line for this genre"
+    suggestBassTip: "Generate a bass line for this genre",
+    voicing: {
+      issues: {
+        SPAN_TOO_WIDE: {
+          message: (span, max) => `Fret span of ${span} — difficult for a standard hand size (recommended max: ${max}).`,
+          rule: "A span greater than 4 frets is acrobatic. Consider a closer inversion."
+        },
+        MUDDY_BASS: {
+          message: (intervalName) => `Interval of ${intervalName} between the lowest notes — risk of "muddy" sound below C3.`,
+          rule: "Harmonic series rule: lower register harmonics overlap heavily. Space out intervals in the bass (ideally a 5th or octave)."
+        },
+        UNPLAYABLE_STRETCH: {
+          message: (count, max) => `${count} simultaneous notes — impossible to play with one hand (max ${max}).`,
+          rule: "A pianist can physically only span about 6 notes per hand. Spread the notes across both hands or remove doublings."
+        }
+      },
+      intervals: {
+        0: 'unison',
+        1: 'minor 2nd (half step)',
+        2: 'major 2nd (whole step)',
+        3: 'minor 3rd',
+        4: 'major 3rd',
+        5: 'perfect 4th',
+        6: 'tritone',
+        7: 'perfect 5th',
+        8: 'minor 6th',
+        9: 'major 6th',
+        10: 'minor 7th',
+        11: 'major 7th',
+        12: 'octave',
+        default: (semitones) => `${semitones} semitones`
+      },
+      inversions: {
+        0: 'Root position',
+        1: '1st inversion',
+        2: '2nd inversion',
+        3: '3rd inversion',
+        default: (invIndex) => `${invIndex}th inversion`
+      }
+    },
+    suggestedVoicings: "Suggested voicings:",
+    voicingImpossible: "⛔ Unplayable voicing",
+    voicingDifficult: "⚠️ Difficult voicing",
+    expandDetails: "▼ Details",
+    collapseDetails: "▲ Collapse",
+    dismissAlert: "Dismiss this alert",
   },
   pt: {
     langLabel: "🇵🇹 PT",
@@ -570,6 +660,51 @@ export const translations = {
     studioInfoSkankTitle: "Variações Rítmicas",
     studioInfoSkankDesc: "Alguns gêneros (como Reggae) tocam no contratempo. O sequenciador se adapta automaticamente ao estilo escolhido.",
     studioInfoTips: "💡 Dica: Clique em um acorde para ver seus dedilhados nos braços.",
+    suggestedVoicings: "Voicings sugeridos:",
+    voicingImpossible: "⛔ Voicing impossível",
+    voicingDifficult: "⚠️ Voicing difícil",
+    expandDetails: "▼ Detalhes",
+    collapseDetails: "▲ Recolher",
+    dismissAlert: "Ignorar este alerta",
+    voicing: {
+      issues: {
+        SPAN_TOO_WIDE: {
+          message: (span, max) => `Extensão de ${span} trastes — difícil para uma mão média (máx recomendado: ${max}).`,
+          rule: "Uma extensão maior que 4 trastes é acrobática. Considere uma inversão mais próxima."
+        },
+        MUDDY_BASS: {
+          message: (intervalName) => `Intervalo de ${intervalName} entre as duas notas mais graves — risco de som "embolado" abaixo de C3.`,
+          rule: "Regra da série harmônica: nos graves, os harmônicos se sobrepõem. Espace os intervalos na região grave (idealmente uma quinta ou oitava)."
+        },
+        UNPLAYABLE_STRETCH: {
+          message: (count, max) => `${count} notas simultâneas — impossível tocar com uma só mão (máx ${max}).`,
+          rule: "Um pianista só pode cobrir fisicamente 6 notas no máximo com uma mão. Distribua as notas entre as duas mãos ou remova duplicações."
+        }
+      },
+      intervals: {
+        0: 'uníssono',
+        1: '2ª menor (semitom)',
+        2: '2ª maior (tom)',
+        3: '3ª menor',
+        4: '3ª maior',
+        5: '4ª justa',
+        6: 'trítono',
+        7: '5ª justa',
+        8: '6ª menor',
+        9: '6ª maior',
+        10: '7ª menor',
+        11: '7ª maior',
+        12: 'oitava',
+        default: (semitones) => `${semitones} semitons`
+      },
+      inversions: {
+        0: 'Posição fundamental',
+        1: '1ª inversão',
+        2: '2ª inversão',
+        3: '3ª inversão',
+        default: (invIndex) => `${invIndex}ª inversão`
+      }
+    }
   },
   zh: {
     langLabel: "🇨🇳 ZH",
@@ -750,5 +885,50 @@ export const translations = {
     studioInfoSkankTitle: "节奏变化",
     studioInfoSkankDesc: "某些流派 (如雷鬼) 强调弱拍。音序器会自动适应所选风格。",
     studioInfoTips: "💡 提示：点击和弦即可在指板上查看指法。",
+    suggestedVoicings: "建议的声位:",
+    voicingImpossible: "⛔ 无法演奏的声位",
+    voicingDifficult: "⚠️ 困难的声位",
+    expandDetails: "▼ 详情",
+    collapseDetails: "▲ 收起",
+    dismissAlert: "忽略此警告",
+    voicing: {
+      issues: {
+        SPAN_TOO_WIDE: {
+          message: (span, max) => `跨度为 ${span} 品 — 对普通手型来说很难（建议最大：${max}）。`,
+          rule: "超过 4 品的跨度是非常杂技的。考虑更近的转位。"
+        },
+        MUDDY_BASS: {
+          message: (intervalName) => `最低两个音之间的 ${intervalName} 音程 — 在 C3 以下有产生“浑浊”声音的风险。`,
+          rule: "泛音列法则：在低音区，泛音会重叠。在低音区拉开音程距离（理想情况下为五度或八度）。"
+        },
+        UNPLAYABLE_STRETCH: {
+          message: (count, max) => `同时弹奏 ${count} 个音 — 无法用单手弹奏（最大 ${max}）。`,
+          rule: "钢琴家一只手最多只能物理覆盖 6 个音符。将音符分配给双手或删除重复音符。"
+        }
+      },
+      intervals: {
+        0: '同度',
+        1: '小二度 (半音)',
+        2: '大二度 (全音)',
+        3: '小三度',
+        4: '大三度',
+        5: '纯四度',
+        6: '三全音',
+        7: '纯五度',
+        8: '小六度',
+        9: '大六度',
+        10: '小七度',
+        11: '大七度',
+        12: '八度',
+        default: (semitones) => `${semitones} 半音`
+      },
+      inversions: {
+        0: '原位',
+        1: '第一转位',
+        2: '第二转位',
+        3: '第三转位',
+        default: (invIndex) => `第 ${invIndex} 转位`
+      }
+    }
   },
 };

@@ -19,43 +19,66 @@
 
 import React, { useMemo, useState } from 'react';
 import { analyzeVoicingRules, suggestReVoicing } from '../../core/voicingEngine.js';
+import { useAppContext } from '../../context/AppContext';
 import './VoicingAlert.css';
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function IssueTag({ issue }) {
+function IssueTag({ issue, txt }) {
   const severityColor = issue.severity === 'error'
     ? 'var(--color-alert-error, #ff6b6b)'
     : 'var(--color-alert-warning, #ffd166)';
 
+  const voicingTxt = txt?.voicing || {};
+  const issueDef = voicingTxt.issues?.[issue.type];
+  
+  // Format message based on issue type
+  let message = '';
+  let rule = '';
+  
+  if (issueDef) {
+    rule = issueDef.rule;
+    if (issue.type === 'SPAN_TOO_WIDE') message = issueDef.message(issue.span, issue.max);
+    else if (issue.type === 'MUDDY_BASS') {
+      const intervalName = voicingTxt.intervals?.[issue.interval] || voicingTxt.intervals?.default?.(issue.interval);
+      message = issueDef.message(intervalName);
+    }
+    else if (issue.type === 'UNPLAYABLE_STRETCH') message = issueDef.message(issue.count, issue.max);
+  }
+
   return (
     <div
       className="voicing-alert__issue"
-      title={issue.rule}
+      title={rule}
       style={{ borderLeft: `3px solid ${severityColor}` }}
     >
       <span className="voicing-alert__issue-icon">
         {issue.severity === 'error' ? '⛔' : '⚠️'}
       </span>
-      <span className="voicing-alert__issue-message">{issue.message}</span>
+      <span className="voicing-alert__issue-message">{message}</span>
     </div>
   );
 }
 
-function SuggestionList({ suggestions }) {
+function SuggestionList({ suggestions, txt }) {
   if (!suggestions || suggestions.length === 0) return null;
+  const voicingTxt = txt?.voicing || {};
 
   return (
     <div className="voicing-alert__suggestions">
-      <span className="voicing-alert__suggestions-label">Voicings suggérés :</span>
+      <h4>{txt?.suggestedVoicings || "Suggested voicings:"}</h4>
       <div className="voicing-alert__suggestions-list">
-        {suggestions.slice(0, 3).map((s, i) => (
-          <span key={i} className="voicing-alert__suggestion-chip">
-            {s.label}
-          </span>
-        ))}
+        {suggestions.slice(0, 3).map((s, i) => {
+          const invNameFn = voicingTxt.inversions?.[s.invIndex] || voicingTxt.inversions?.default;
+          const label = invNameFn ? `${typeof invNameFn === 'function' ? invNameFn(s.invIndex) : invNameFn} (Octave ${s.octave})` : `Inv ${s.invIndex} (Octave ${s.octave})`;
+          return (
+            <span key={i} className="voicing-alert__suggestion-chip">
+              {label}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -66,6 +89,7 @@ function SuggestionList({ suggestions }) {
 // ---------------------------------------------------------------------------
 
 export default function VoicingAlert({ fingeringMap, midiNotes, instrument, rootValue, intervals }) {
+  const { txt } = useAppContext();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
@@ -103,7 +127,7 @@ export default function VoicingAlert({ fingeringMap, midiNotes, instrument, root
       {/* Header row */}
       <div className="voicing-alert__header">
         <span className="voicing-alert__title">
-          {hasCritical ? '⛔ Voicing impossible' : '⚠️ Voicing difficile'}
+          {hasCritical ? (txt?.voicingImpossible || '⛔ Unplayable voicing') : (txt?.voicingDifficult || '⚠️ Difficult voicing')}
         </span>
 
         <div className="voicing-alert__controls">
@@ -111,14 +135,14 @@ export default function VoicingAlert({ fingeringMap, midiNotes, instrument, root
             className="voicing-alert__toggle"
             onClick={() => setIsExpanded(e => !e)}
             aria-expanded={isExpanded}
-            aria-label={isExpanded ? 'Réduire les détails' : 'Voir les détails'}
+            aria-label={isExpanded ? (txt?.collapseDetails || 'Collapse') : (txt?.expandDetails || 'Details')}
           >
-            {isExpanded ? '▲ Réduire' : '▼ Détails'}
+            {isExpanded ? (txt?.collapseDetails || '▲ Collapse') : (txt?.expandDetails || '▼ Details')}
           </button>
           <button
             className="voicing-alert__dismiss"
             onClick={() => setIsDismissed(true)}
-            aria-label="Ignorer cette alerte"
+            aria-label={txt?.dismissAlert || "Dismiss this alert"}
           >
             ✕
           </button>
@@ -129,9 +153,9 @@ export default function VoicingAlert({ fingeringMap, midiNotes, instrument, root
       {isExpanded && (
         <div className="voicing-alert__body">
           {analysis.issues.map((issue, i) => (
-            <IssueTag key={i} issue={issue} />
+            <IssueTag key={i} issue={issue} txt={txt} />
           ))}
-          <SuggestionList suggestions={suggestions} />
+          <SuggestionList suggestions={suggestions} txt={txt} />
         </div>
       )}
     </div>

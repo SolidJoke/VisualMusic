@@ -43,58 +43,29 @@ export function getFretX(fret, widths) {
 /**
  * Computes all metadata for a single fret on a single string.
  */
-export function computeFretMetadata(params) {
-  const {
-    stringIndex,
-    fret,
-    openStringAbsValue,
-    activeNotes,
-    currentlyPlayingNotes,
-    contextualScaleAbsoluteValues,
-    activePath,
-    dictType,
-    fingering,
-    instrument,
-    rootValue,
-    targetValue,
-    showFingering,
-    fingeringMode,
-    singlePlayContext,
-    notation,
-    scaleAnchor,
-  } = params;
-
-  const absoluteValue = openStringAbsValue + fret;
-  const noteValue = absoluteValue % 12;
-  const noteInfo = NOTES[noteValue] || { us: '?', eu: '?', value: noteValue };
-
-  // 1. Basic active state
-  // In dictionary mode, we often want to see the scale/note across the whole neck
-  // unless a specific voicing is active.
-  const isDictionaryMode = params.appMode === "dictionary";
+function resolveActiveState({ activeNotes, dictType, fingering }, noteValue, absoluteValue, isDictionaryMode) {
   const activeNote = activeNotes.find((n) => {
-    // BUG-09 fix: also exclude scaleFrets mode from modulo-12 matching.
-    // When scaleFrets is active, isActive will be set by the scaleFrets mask below —
-    // allowing modulo-12 matching here would light up the entire neck first.
+    // Exclude scaleFrets mode from modulo-12 matching
     if (isDictionaryMode && dictType && (dictType.includes('scale') || dictType.includes('chord')) && !fingering?.fingeringMap && !fingering?.isScaleBox && !fingering?.scaleFrets) {
       return (n.value % 12) === (noteValue % 12);
     }
-    // Otherwise, try strict absolute matching first
+    // Strict absolute matching
     if (n.absoluteValue !== undefined && n.absoluteValue === absoluteValue) return true;
-    // Fallback for Dictionary Mode: match by pitch class if no strict match found
-    // ONLY if we are NOT in a specific voicing/box/scaleFrets mode
+    // Fallback for Dictionary Mode
     if (isDictionaryMode && !fingering?.fingeringMap && !fingering?.isScaleBox && !fingering?.scaleFrets) {
       return (n.value % 12) === (noteValue % 12);
     }
     return false;
   });
-  let isActive = !!activeNote;
+  return { isActive: !!activeNote, activeNote };
+}
 
-  // 2. Playing state
+function resolvePlayingState({ currentlyPlayingNotes, singlePlayContext }, stringIndex, fret, absoluteValue, instrument) {
   let isPlaying = false;
   const hasInstrumentCoordinates = currentlyPlayingNotes.some(
     n => typeof n === 'object' && n !== null && n.instrument === instrument
   );
+  
   for (const n of currentlyPlayingNotes) {
     if (typeof n === 'object' && n !== null) {
       if (n.absoluteValue === absoluteValue && n.stringIndex === stringIndex && n.fret === fret) {
@@ -104,9 +75,6 @@ export function computeFretMetadata(params) {
         }
       }
     } else if (n === absoluteValue && !hasInstrumentCoordinates) {
-      // Notes highlight during playback if absolute values match, 
-      // but only if there is no instrument-specific coordinate playback for our current instrument,
-      // to avoid duplicate/multi-octave highlighting.
       isPlaying = true;
       break;
     }
@@ -115,57 +83,41 @@ export function computeFretMetadata(params) {
   if (isPlaying && singlePlayContext?.instrument === instrument) {
     isPlaying = singlePlayContext.stringIndex === stringIndex && singlePlayContext.fret === fret;
   }
+  return isPlaying;
+}
 
-  // Defensive: when scaleFrets is active, ONLY coordinate-exact matches count.
-  // Raw integers must never trigger highlights in scale-position mode.
-  if (isPlaying && fingering?.scaleFrets) {
-    const hasExactCoordinate = currentlyPlayingNotes.some(n =>
-      typeof n === 'object' && n !== null && n.stringIndex === stringIndex && n.fret === fret
-    );
-    if (!hasExactCoordinate) {
-      isPlaying = false;
-    }
-  }
+function resolveVoicingMask({ fingering, currentlyPlayingNotes, showFingering, appMode }, stringIndex, fret, absoluteValue, instrument, isActiveIn, isPlayingIn) {
+  let isActive = isActiveIn;
+  let isPlaying = isPlayingIn;
+  let actualFingering = null;
+  let isOutOfBox = false;
 
-  // 3. Voicing Masking
-  //
-  // Shared reads used by both scale and chord masking branches, and by section 3.5 / 4 below.
-  const isScaleMode = dictType?.includes("scale");
-  const fingeringMap = fingering?.fingeringMap || fingering;
-  const actualFingering = (!fingering?.scaleFrets) ? fingeringMap?.[stringIndex] : null;
-
-  // Option-B: Scale position mode. When fingering.scaleFrets is present, use it exclusively.
-  // This is a flat list of {stringIndex, fret} pairs computed by getAvailableScaleFingerings.
-  // Simple, explicit, zero cross-talk with chord fingeringMap logic.
   if (fingering?.scaleFrets) {
-    const inPosition = fingering.scaleFrets.some(
-      sf => sf.stringIndex === stringIndex && sf.fret === fret
-    );
-    isActive = inPosition;
-    // Only allow playback highlight if the note is exactly at this position fret
+    const inPosition = fingering.scaleFrets.some(sf => sf.stringIndex === stringIndex && sf.fret === fret);
+    if (isActive && !inPosition) {
+      isOutOfBox = true;
+    }
     if (isPlaying && !inPosition) {
       const isSpecificallyTargeted = currentlyPlayingNotes.some(n =>
         typeof n === 'object' && n !== null && n.stringIndex === stringIndex && n.fret === fret
       );
       if (!isSpecificallyTargeted) {
-        // Log mismatch: isPlaying was triggered for a cell outside the specifically targeted note.
-        // This usually means the absoluteValue matched a wrong cell (pitch class collision).
         logPlayingMismatch(stringIndex, fret, absoluteValue, currentlyPlayingNotes);
         isPlaying = false;
       }
     }
-    // Skip the fingeringMap voicing mask below — not applicable to scales
   } else {
-    // Chord / single-note voicing masking (fingeringMap-based, unchanged)
+    const fingeringMap = fingering?.fingeringMap || fingering;
+    actualFingering = fingeringMap?.[stringIndex];
+    
     const isVoicingMaskActive = (instrument === "guitar" || instrument === "bass") && 
-      (showFingering || params.appMode === "dictionary") && 
+      (showFingering || appMode === "dictionary") && 
       fingering && 
       (fingering.isScaleBox || (fingeringMap && Object.keys(fingeringMap).length > 0));
 
-    let isPartOfVoicing = false;
     if (isVoicingMaskActive) {
+      let isPartOfVoicing = false;
       if (actualFingering) {
-        // V2 format Support
         if (actualFingering.status === 'open' && fret === 0) {
           isPartOfVoicing = true;
         } else if (actualFingering.status === 'played' && actualFingering.fret === fret) {
@@ -173,43 +125,39 @@ export function computeFretMetadata(params) {
         } else if (actualFingering.status === 'muted') {
           isPartOfVoicing = false;
         } else {
-          // Legacy format Support ( { fret: finger } )
           let finger = actualFingering[fret];
-          if (finger === undefined && actualFingering.fret === fret) {
-            finger = actualFingering.finger;
-          }
+          if (finger === undefined && actualFingering.fret === fret) finger = actualFingering.finger;
           isPartOfVoicing = finger !== undefined && finger !== 'X';
         }
       }
-      
-      // In voicing mode, the mask determines active state
       isActive = isPartOfVoicing;
       
-      // Fix: If the note is playing globally but is not part of this specific voicing mask, don't animate it
       if (isPlaying && !isPartOfVoicing) {
         const isSpecificallyTargeted = currentlyPlayingNotes.some(n => 
           typeof n === 'object' && n !== null && n.stringIndex === stringIndex && n.fret === fret
         );
-        if (!isSpecificallyTargeted) {
-          isPlaying = false;
-        }
+        if (!isSpecificallyTargeted) isPlaying = false;
       }
     }
   }
+  return { isActive, isPlaying, actualFingering, isOutOfBox };
+}
 
-
-  // 3.5 Scale Anchor Masking (Local Root Focus)
+function resolveScaleAnchorMask({ scaleAnchor }, fret, instrument, isActiveIn, isScaleMode) {
+  let isActive = isActiveIn;
+  let isOutOfBoxFromAnchor = false;
   if (isScaleMode && scaleAnchor && (instrument === "guitar" || instrument === "bass")) {
-    // If we have an anchor, show notes in a 5-fret box around it
-    // Pattern: -1 to +4 frets from anchor
     const isWithinBox = fret >= scaleAnchor.fret - 1 && fret <= scaleAnchor.fret + 4;
-    if (!isWithinBox) isActive = false;
+    if (!isWithinBox) isOutOfBoxFromAnchor = true;
   }
+  return { isActive, isOutOfBoxFromAnchor };
+}
 
-  // 4. Role & Labels
+function resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue, isActive, isPlaying, activeNote, isScaleMode, noteInfo, actualFingering, isOutOfBox) {
+  const { contextualScaleAbsoluteValues, activePath, rootValue, targetValue, showFingering, fingeringMode, notation } = params;
   let roleClass = "";
   let orderToDisplay = null;
-  let isSubtle = false;
+  let isSubtle = isOutOfBox || false;
   let isTargetNote = false;
 
   const hasContextualScale = contextualScaleAbsoluteValues?.length > 0;
@@ -221,16 +169,14 @@ export function computeFretMetadata(params) {
       if (hasPath && isScaleMode) {
         const inPath = activePath.find(p => p.stringIndex === stringIndex && p.fret === fret);
         if (inPath) orderToDisplay = ctxNote.order;
-        // Removed isSubtle forced state to ensure visibility without playback
       } else {
         orderToDisplay = ctxNote.order;
+      }
     }
-  }
-} else if (isScaleMode) {
+  } else if (isScaleMode) {
     if (isActive) {
       const interval = (noteValue - rootValue + 12) % 12;
       if (interval === 0) orderToDisplay = "1";
-      // Removed isSubtle = true for scales to ensure they are visible without playback
     }
   } else if (isActive && activeNote?.order) {
     orderToDisplay = activeNote.order;
@@ -240,15 +186,13 @@ export function computeFretMetadata(params) {
     if (noteValue === targetValue) {
       roleClass = "role-target";
       isTargetNote = true;
-    }
-    else if (orderToDisplay) {
+    } else if (orderToDisplay) {
       const order = String(orderToDisplay);
       if (order === "1") roleClass = "role-root";
       else if (order.includes("3")) roleClass = "role-third";
       else if (order.includes("5")) roleClass = "role-fifth";
       else roleClass = "role-extension";
     } else {
-      // Fallback for notes that are playing but not part of the explicit activeNote/order logic
       const interval = (noteValue - rootValue + 12) % 12;
       if (interval === 0) roleClass = "role-root";
       else if (interval === 3 || interval === 4) roleClass = "role-third";
@@ -257,10 +201,7 @@ export function computeFretMetadata(params) {
     }
   }
 
-  // Fingering text and Interval metadata
   let label = orderToDisplay || noteInfo[notation];
-  const intervalMeta = getIntervalMetadata((noteValue - rootValue + 12) % 12);
-  
   if (showFingering && !isScaleMode && actualFingering) {
     let fingerNum = null;
     if (actualFingering.status === 'played' && actualFingering.fret === fret) {
@@ -268,42 +209,71 @@ export function computeFretMetadata(params) {
     } else if (actualFingering[fret] !== undefined) {
       fingerNum = actualFingering[fret];
     }
-
     if (fingerNum) {
       const labels = (fingeringMode === 'anatomic' || fingeringMode === 'classical') ? FINGER_LABELS.anatomic : FINGER_LABELS.numeric;
       label = labels[fingerNum] ?? fingerNum;
     }
   }
 
+  return { roleClass, orderToDisplay, isSubtle, isTargetNote, label };
+}
+
+function resolveStringStatus(fingering, stringIndex) {
+  const actualFingeringMap = fingering?.fingeringMap || (fingering && !fingering.isScaleBox ? fingering : null);
+  if (!actualFingeringMap) return null;
+  const stringData = actualFingeringMap[stringIndex];
+  if (!stringData) return null;
+
+  if (stringData.status) return stringData.status;
+  if (stringData['X'] === true || stringData.finger === 'X') return 'muted';
+  if (stringData[0] === 'O' || stringData.finger === 'O') return 'open';
+  if (Object.keys(stringData).some(k => !isNaN(parseInt(k, 10)))) return 'played';
+  return null;
+}
+
+/**
+ * Computes all metadata for a single fret on a single string.
+ */
+export function computeFretMetadata(params) {
+  const { stringIndex, fret, openStringAbsValue, dictType, instrument } = params;
+  const absoluteValue = openStringAbsValue + fret;
+  const noteValue = absoluteValue % 12;
+  const noteInfo = NOTES[noteValue] || { us: '?', eu: '?', value: noteValue };
+  
+  const isDictionaryMode = params.appMode === "dictionary";
+  const isScaleMode = dictType?.includes("scale");
+
+  // 1. Basic active state
+  const { isActive: initialIsActive, activeNote } = resolveActiveState(params, noteValue, absoluteValue, isDictionaryMode);
+
+  // 2. Playing state
+  let isPlaying = resolvePlayingState(params, stringIndex, fret, absoluteValue, instrument);
+
+  // 3. Voicing Masking
+  const voicingRes = resolveVoicingMask(params, stringIndex, fret, absoluteValue, instrument, initialIsActive, isPlaying);
+  let isActive = voicingRes.isActive;
+  isPlaying = voicingRes.isPlaying;
+  const actualFingering = voicingRes.actualFingering;
+
+  // 3.5 Scale Anchor Masking
+  const anchorRes = resolveScaleAnchorMask(params, fret, instrument, isActive, isScaleMode);
+  isActive = anchorRes.isActive;
+  const isOutOfBox = voicingRes.isOutOfBox || anchorRes.isOutOfBoxFromAnchor;
+
+  // 4. Role & Labels
+  const roleRes = resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue, isActive, isPlaying, activeNote, isScaleMode, noteInfo, actualFingering, isOutOfBox);
+
   return {
     absoluteValue,
     noteValue,
-    noteName: noteInfo[notation],
+    noteName: noteInfo[params.notation],
     isActive,
     isPlaying,
-    isSubtle,
-    roleClass,
-    label,
-    isTargetNote,
+    isSubtle: roleRes.isSubtle,
+    roleClass: roleRes.roleClass,
+    label: roleRes.label,
+    isTargetNote: roleRes.isTargetNote,
     noteInfo,
-    stringStatus: (() => {
-      const actualFingeringMap = fingering?.fingeringMap || (fingering && !fingering.isScaleBox ? fingering : null);
-      if (!actualFingeringMap) return null;
-      
-      const stringData = actualFingeringMap[stringIndex];
-      if (!stringData) return null;
-
-      // V2 Format
-      if (stringData.status) {
-        return stringData.status; // 'open', 'muted', 'played', 'muffled', etc.
-      }
-      
-      // Legacy Format
-      if (stringData['X'] === true || stringData.finger === 'X') return 'muted';
-      if (stringData[0] === 'O' || stringData.finger === 'O') return 'open';
-      if (Object.keys(stringData).some(k => !isNaN(parseInt(k, 10)))) return 'played';
-      
-      return null;
-    })()
+    stringStatus: resolveStringStatus(params.fingering, stringIndex)
   };
 }

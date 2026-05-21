@@ -1,6 +1,6 @@
 import React from 'react';
 import { BRICKS } from '../../core/bricks';
-import { MODES, generateChordsFromNNS, toRoman } from '../../core/theory';
+import { SCALES, generateChordsFromNNS, toRoman } from '../../core/theory';
 import { useAppContext } from '../../context/AppContext';
 import StudioInfoBlock from './StudioInfoBlock';
 import LcdScreen from '../Common/LcdScreen';
@@ -46,7 +46,7 @@ const StudioPanel = ({
     import('../../core/bassEngine').then(({ suggestBassPattern }) => {
       const chords = generateChordsFromNNS(
         activeBrick.rootValue,
-        activeBrick.modeName,
+        activeBrick.scaleKey,
         activeProgression
       );
       const newPattern = suggestBassPattern(activeBrick.name.en, chords);
@@ -93,7 +93,7 @@ const StudioPanel = ({
 
       <div style={{ marginTop: "15px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px" }}>
         <span className="info-badge" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #444' }}>
-          🎵 {activeBrick.modeName}
+          🎵 {SCALES[activeBrick.scaleKey]?.modeKey || activeBrick.scaleKey}
         </span>
         <span className="info-badge" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #444' }}>
           🎸 {activeBrick.tuning || "Standard"}
@@ -273,7 +273,7 @@ const StudioPanel = ({
 
           {generateChordsFromNNS(
             activeBrick.rootValue,
-            activeBrick.modeName,
+            activeBrick.scaleKey,
             activeProgression,
           ).map((c, i) => {
             const isSelected =

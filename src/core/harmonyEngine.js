@@ -212,12 +212,14 @@ export function getInversionType(bassNoteAbsolute, rootValue, nns) {
  */
 export function getChordIntervalLabel(index, semitone) {
   if (index === 0)    return 1;
+  if (semitone === 2)  return '2';   // sus2 second
   if (semitone === 3)  return 'b3';
   if (semitone === 4)  return 3;
+  if (semitone === 5)  return '4';   // sus4 fourth
   if (semitone === 6)  return 'b5';
   if (semitone === 7)  return 5;
   if (semitone === 10) return 'b7';
   if (semitone === 11) return 7;
   if (semitone > 12)   return 9;
-  return index + 2; // safe fallback (sus2=2, sus4=4, aug5=5+, etc.)
+  return index + 2; // fallback for aug5 and other edge cases
 }

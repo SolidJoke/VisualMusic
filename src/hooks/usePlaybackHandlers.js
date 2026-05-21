@@ -1,9 +1,10 @@
 import { useRef, useCallback } from "react";
-import { NOTES, MODES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, getClosestInversion, resolveChordSemitones, getChordNotesAbsolute, resolveNnsToChordType } from "../core/theory";
+import { NOTES, SCALES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, getClosestInversion, resolveChordSemitones, getChordNotesAbsolute, resolveNnsToChordType } from "../core/theory";
 import { playDictionaryNote, getPianoSynth, startAudioEngine, setMasterVolume } from "../audio/AudioEngine";
 import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
 import { calcActivePath } from "../core/fretboardLogic";
 import { logScalePosition, logPlaybackSequence, logNotePlay } from "../core/debugScale";
+import { getInstrumentTuning, fingeringMapToAbsolutePitches, buildAscDescSequence } from "./playbackUtils";
 
 export function usePlaybackHandlers({
   isAudioReady,
@@ -60,21 +61,11 @@ export function usePlaybackHandlers({
 
       const fingeringMap = localFingering?.fingeringMap;
       
-      if (fingeringMap) {
-        const tuning = playbackInstrument === "bass" 
-          ? (activeBrick?.bassStrings || ["E1", "A1", "D2", "G2"])
-          : (activeBrick?.guitarStrings || ["E2", "A2", "D3", "G3", "B3", "E4"]);
-        
+    if (fingeringMap) {
+        const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
         const reversedTuning = [...tuning].reverse();
-        Object.entries(fingeringMap).forEach(([strIdxStr, fretMap]) => {
-          const strIdx = parseInt(strIdxStr, 10);
-          const openNote = getAbsoluteNoteValue(reversedTuning[strIdx]);
-          Object.entries(fretMap).forEach(([fretStr, finger]) => {
-            if (finger !== 'X') {
-              absolutePitches.push(openNote + parseInt(fretStr, 10));
-            }
-          });
-        });
+        absolutePitches = fingeringMapToAbsolutePitches(fingeringMap, reversedTuning)
+          .map(p => p.absoluteValue);
       }
     }
 
@@ -117,9 +108,7 @@ export function usePlaybackHandlers({
         : (playbackInstrument === "bass") ? bassFingering : null;
 
       if (currentFingering?.scaleFrets && (playbackInstrument === "guitar" || playbackInstrument === "bass")) {
-        const tuning = playbackInstrument === "bass"
-          ? (activeBrick?.bassStrings || ["E1", "A1", "D2", "G2"])
-          : (activeBrick?.guitarStrings || ["E2", "A2", "D3", "G3", "B3", "E4"]);
+        const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
         const reversedTuning = [...tuning].reverse();
 
         // Compute coordinate objects with real MIDI values from string tuning.
@@ -154,11 +143,7 @@ export function usePlaybackHandlers({
         // Debug: log position content
         logScalePosition(playbackInstrument, currentFingering.positionIndex ?? 0, currentFingering.scaleFrets, reversedTuning);
 
-        // Ascending then descending
-        absolutePitches = [...boxNotes];
-        for (let i = boxNotes.length - 2; i >= 0; i--) {
-          absolutePitches.push(boxNotes[i]);
-        }
+        absolutePitches = buildAscDescSequence(boxNotes);
 
         // Debug: log full sequence
         logPlaybackSequence(absolutePitches);
@@ -171,7 +156,7 @@ export function usePlaybackHandlers({
       } else {
         // Fallback: piano or no position selected — use theoretical intervals
         const scaleData = resolveScaleIntervals(dictType);
-        const intervals = scaleData ? scaleData.intervals : MODES["Ionian"].intervals;
+        const intervals = scaleData ? scaleData.intervals : SCALES.scale_major.intervals;
         const baseOctave = 4 + (dictOctave || 0);
         let currentPitch = Number(dictRoot) + (baseOctave + 1) * 12;
         absolutePitches.push(currentPitch);
@@ -181,9 +166,7 @@ export function usePlaybackHandlers({
           absolutePitches.push(currentPitch);
         });
 
-        for (let i = absolutePitches.length - 2; i >= 0; i--) {
-          absolutePitches.push(absolutePitches[i]);
-        }
+        absolutePitches = buildAscDescSequence(absolutePitches);
 
         notesToPlay = absolutePitches.map((p) => {
           const val = typeof p === "object" ? p.absoluteValue : p;
@@ -196,26 +179,9 @@ export function usePlaybackHandlers({
       const fingeringMap = currentFingering?.fingeringMap;
       
       if (fingeringMap && (playbackInstrument === "guitar" || playbackInstrument === "bass")) {
-        const tuning = playbackInstrument === "bass" 
-          ? (activeBrick?.bassStrings || ["E1", "A1", "D2", "G2"])
-          : (activeBrick?.guitarStrings || ["E2", "A2", "D3", "G3", "B3", "E4"]);
-        
+        const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
         const reversedTuning = [...tuning].reverse();
-        Object.entries(fingeringMap).forEach(([strIdxStr, fretMap]) => {
-          const strIdx = parseInt(strIdxStr, 10);
-          const openNote = getAbsoluteNoteValue(reversedTuning[strIdx]);
-          Object.entries(fretMap).forEach(([fretStr, finger]) => {
-            if (finger !== 'X') {
-              const fret = parseInt(fretStr, 10);
-              absolutePitches.push({
-                absoluteValue: openNote + fret,
-                stringIndex: strIdx,
-                fret: fret,
-                instrument: playbackInstrument
-              });
-            }
-          });
-        });
+        absolutePitches = fingeringMapToAbsolutePitches(fingeringMap, reversedTuning, playbackInstrument);
       }
 
       if (absolutePitches.length === 0) {
@@ -263,9 +229,7 @@ export function usePlaybackHandlers({
         
         // Skip if scaleFrets already handled above (absolutePitches are already enriched objects)
         if (!currentFingering?.scaleFrets) {
-          const tuning = playbackInstrument === "bass" 
-            ? (activeBrick?.bassStrings || ["E1", "A1", "D2", "G2"])
-            : (activeBrick?.guitarStrings || ["E2", "A2", "D3", "G3", "B3", "E4"]);
+          const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
 
           if (currentFingering?.isScaleBox) {
             // Legacy fallback (should not be reached with new architecture, kept for safety)
@@ -366,7 +330,7 @@ export function usePlaybackHandlers({
         let absolutePitches = [];
         if (dictType?.includes("scale")) {
           const scaleData = resolveScaleIntervals(dictType);
-          const intervals = scaleData ? scaleData.intervals : MODES["Ionian"].intervals;
+          const intervals = scaleData ? scaleData.intervals : SCALES.scale_major.intervals;
           let currentPitch = absNote;
           absolutePitches.push(currentPitch);
           intervals.forEach((interval) => {
@@ -383,25 +347,9 @@ export function usePlaybackHandlers({
           const currentFingering = inst === "guitar" ? guitarFingering : (inst === "bass" ? bassFingering : null);
 
           if (currentFingering?.fingeringMap && (inst === "guitar" || inst === "bass")) {
-            const tuning = inst === "bass" 
-              ? (activeBrick?.bassStrings || ["E1", "A1", "D2", "G2"])
-              : (activeBrick?.guitarStrings || ["E2", "A2", "D3", "G3", "B3", "E4"]);
-            
+            const tuning = getInstrumentTuning(inst, activeBrick);
             const reversedTuning = [...tuning].reverse();
-            Object.entries(currentFingering.fingeringMap).forEach(([strIdxStr, fretMap]) => {
-              const strIdx = parseInt(strIdxStr, 10);
-              const openNote = getAbsoluteNoteValue(reversedTuning[strIdx]);
-              Object.entries(fretMap).forEach(([fretStr, finger]) => {
-                if (finger !== 'X') {
-                  const fret = parseInt(fretStr, 10);
-                  absolutePitches.push({
-                    absoluteValue: openNote + fret,
-                    stringIndex: strIdx,
-                    fret: fret
-                  });
-                }
-              });
-            });
+            absolutePitches = fingeringMapToAbsolutePitches(currentFingering.fingeringMap, reversedTuning);
           }
 
           if (absolutePitches.length === 0) {
@@ -411,9 +359,7 @@ export function usePlaybackHandlers({
           }
           // Map absolutePitches to path items where possible
           if (playbackInstrument === "guitar" || playbackInstrument === "bass") {
-            const tuning = playbackInstrument === "bass" 
-              ? (activeBrick?.bassStrings || ["E1", "A1", "D2", "G2"])
-              : (activeBrick?.guitarStrings || ["E2", "A2", "D3", "G3", "B3", "E4"]);
+          const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
             
             const path = calcActivePath({
               contextualScaleAbsoluteValues: absolutePitches.map(p => ({ absoluteValue: p })),

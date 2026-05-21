@@ -60,8 +60,8 @@ describe('analyzeVoicingRules — SPAN_TOO_WIDE', () => {
     const map = buildGuitarMap([9, 5, 5, 5, 5, 2]);
     const result = analyzeVoicingRules(map, 'guitar');
     const issue = result.issues.find(i => i.type === VOICING_ISSUE_TYPES.SPAN_TOO_WIDE);
-    expect(issue.message).toBeTruthy();
-    expect(typeof issue.message).toBe('string');
+    expect(issue.span).toBe(7);
+    expect(issue.max).toBe(4);
   });
 });
 
@@ -136,8 +136,6 @@ describe('analyzeVoicingRules — Issue structure contract', () => {
     result.issues.forEach(issue => {
       expect(issue).toHaveProperty('type');
       expect(issue).toHaveProperty('severity');
-      expect(issue).toHaveProperty('message');
-      expect(issue).toHaveProperty('rule');
     });
   });
 });
@@ -157,7 +155,8 @@ describe('suggestReVoicing', () => {
   it('each suggestion should have a label and a notes array', () => {
     const suggestions = suggestReVoicing(0, [0, 4, 7], 'guitar');
     suggestions.forEach(s => {
-      expect(s).toHaveProperty('label');
+      expect(s).toHaveProperty('invIndex');
+      expect(s).toHaveProperty('octave');
       expect(s).toHaveProperty('notes');
       expect(Array.isArray(s.notes)).toBe(true);
     });

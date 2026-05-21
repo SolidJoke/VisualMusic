@@ -72,12 +72,6 @@ export function analyzeVoicingRules(voicing, instrument) {
     if (stretchResult) issues.push(stretchResult);
   }
 
-  // For piano with MIDI array, also check muddy bass for arrays
-  if ((instrument === 'guitar' || instrument === 'bass') && Array.isArray(voicing)) {
-    const muddyResult = _checkMuddyBass(voicing);
-    if (muddyResult) issues.push(muddyResult);
-  }
-
   const isPlayable = issues.every(i => i.severity !== 'error') &&
                      !issues.some(i => i.type === VOICING_ISSUE_TYPES.SPAN_TOO_WIDE);
 
@@ -98,12 +92,13 @@ export function suggestReVoicing(rootValue, intervals, instrument) {
   const noteCount = intervals.length;
 
   // Generate all inversions across octaves 3–5
+  // MIDI standard: C4 = 60 = (4+1)*12. Consistent with theory.js getChordNotesAbsolute.
   for (let octave = 3; octave <= 5; octave++) {
     for (let inv = 0; inv < noteCount; inv++) {
       const notes = [];
       for (let i = 0; i < noteCount; i++) {
         const idx = (inv + i) % noteCount;
-        let pitch = octave * 12 + rootValue + intervals[idx];
+        let pitch = (octave + 1) * 12 + rootValue + intervals[idx];
         // Ensure ascending
         if (notes.length > 0 && pitch <= notes[notes.length - 1]) pitch += 12;
         notes.push(pitch);
@@ -117,17 +112,19 @@ export function suggestReVoicing(rootValue, intervals, instrument) {
       const GUITAR_SPAN_SEMITONE_LIMIT = GUITAR_MAX_SPAN * 2; // 8 semitones
 
       if (instrument === 'piano' && notes.length <= PIANO_MAX_NOTES) {
-        const inversionName = _inversionName(inv, noteCount);
         suggestions.push({
-          label: `${inversionName} (Octave ${octave})`,
+          invIndex: inv,
+          noteCount,
+          octave,
           notes,
           span: spanMidi,
           instrument,
         });
       } else if ((instrument === 'guitar' || instrument === 'bass') && spanMidi <= GUITAR_SPAN_SEMITONE_LIMIT) {
-        const inversionName = _inversionName(inv, noteCount);
         suggestions.push({
-          label: `${inversionName} (Octave ${octave})`,
+          invIndex: inv,
+          noteCount,
+          octave,
           notes,
           span: spanMidi,
           instrument,
@@ -189,8 +186,8 @@ function _checkSpan(fingeringMap) {
   return {
     type: VOICING_ISSUE_TYPES.SPAN_TOO_WIDE,
     severity: 'warning',
-    message: `Écart de ${span} frettes — difficile pour une main de taille standard (max recommandé : ${GUITAR_MAX_SPAN}).`,
-    rule: 'Un écart supérieur à 4 frettes est acrobatique. Considérez une inversion plus proche.',
+    span,
+    max: GUITAR_MAX_SPAN,
   };
 }
 
@@ -213,12 +210,10 @@ function _checkMuddyBass(midiNotes) {
   const interval = secondLowest - lowest;
   if (interval > MUDDY_BASS_MAX_INTERVAL) return null;
 
-  const intervalName = _semitoneIntervalName(interval);
   return {
     type: VOICING_ISSUE_TYPES.MUDDY_BASS,
     severity: 'warning',
-    message: `Intervalle de ${intervalName} entre les deux notes les plus graves — risque de sonorité "bouillonnante" en dessous de Do3.`,
-    rule: 'Règle de la série harmonique : dans les graves, les harmoniques se chevauchent. Espacez les intervalles dans le registre grave (idéalement une 5te ou une octave).',
+    interval,
   };
 }
 
@@ -234,42 +229,7 @@ function _checkUnplayableStretch(midiNotes) {
   return {
     type: VOICING_ISSUE_TYPES.UNPLAYABLE_STRETCH,
     severity: 'error',
-    message: `${midiNotes.length} notes simultanées — impossible à jouer d'une seule main (max ${PIANO_MAX_NOTES}).`,
-    rule: 'Un pianiste ne peut physiquement couvrir que 6 notes maximum avec une main. Répartissez les notes sur les deux mains ou supprimez des doublons.',
+    count: midiNotes.length,
+    max: PIANO_MAX_NOTES,
   };
-}
-
-/**
- * Human-readable inversion name.
- * @param {number} invIndex - 0 = root position, 1 = 1st inversion, etc.
- * @param {number} noteCount
- * @returns {string}
- */
-function _inversionName(invIndex, noteCount) {
-  const names = ['Position fondamentale', '1ère inversion', '2ème inversion', '3ème inversion'];
-  return names[invIndex] || `${invIndex}ème inversion`;
-}
-
-/**
- * Human-readable semitone interval name.
- * @param {number} semitones
- * @returns {string}
- */
-function _semitoneIntervalName(semitones) {
-  const names = {
-    0: 'unisson',
-    1: '2nde mineure (demi-ton)',
-    2: '2nde majeure (ton)',
-    3: '3ce mineure',
-    4: '3ce majeure',
-    5: '4te juste',
-    6: 'triton',
-    7: '5te juste',
-    8: '6te mineure',
-    9: '6te majeure',
-    10: '7ème mineure',
-    11: '7ème majeure',
-    12: 'octave',
-  };
-  return names[semitones] || `${semitones} demi-tons`;
 }

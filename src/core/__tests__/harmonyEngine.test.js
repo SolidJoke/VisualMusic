@@ -262,8 +262,19 @@ describe('getChordIntervalLabel', () => {
     expect(getChordIntervalLabel(4, 14)).toBe(9);
   });
 
-  it('should return index+2 as fallback for unusual intervals', () => {
-    // sus2: semitone=2 → not matching any case → index+2 = 1+2 = 3 (fallback)
-    expect(getChordIntervalLabel(1, 2)).toBe(3);
+  it('should return "2" for semitone 2 (sus2 second)', () => {
+    // sus2 chord: [0, 2, 7] — the second (semitone 2) must be labeled '2', not the fallback
+    expect(getChordIntervalLabel(1, 2)).toBe('2');
+  });
+
+  it('should return "4" for semitone 5 (sus4 fourth)', () => {
+    // sus4 chord: [0, 5, 7] — the fourth (semitone 5) must be labeled '4', not the fallback
+    expect(getChordIntervalLabel(1, 5)).toBe('4');
+  });
+
+  it('should return index+2 as fallback for genuinely unlabeled intervals (e.g. aug5)', () => {
+    // aug chord: [0, 4, 8] — semitone 8 has no explicit case → falls to index+2 = 2+2 = 4
+    // This is acceptable as a display fallback for unusual intervals
+    expect(getChordIntervalLabel(2, 8)).toBe(4);
   });
 });

@@ -1,3 +1,5 @@
+@import './styles/tokens.css';
+
 :root {
   /* ─── HEADER ACTIONS ─── */
   --header-btn-width: 110px;
@@ -44,7 +46,7 @@
 
 .btn-header-action:hover, .btn-header-action.active {
   background: var(--glass-bg-hover);
-  border-color: var(--accent) !important;
+  border-color: var(--accent);
   color: var(--text-primary);
   box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px var(--accent-glow);
 }
@@ -71,11 +73,11 @@
 
 /* Explicit border for better affordance on dark backgrounds */
 .btn-header-action, .btn-toggle, .btn-premium {
-  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
 }
 
 .btn-header-action.active, .btn-toggle--active, .btn-premium.active {
-  border-color: var(--accent) !important;
+  border-color: var(--accent);
 }
 
 
@@ -113,7 +115,7 @@
   gap: 10px;
   text-shadow: none;
   background: transparent;
-  border: 1px solid var(--accent) !important;
+  border: 1px solid var(--accent);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -126,7 +128,7 @@
   background: var(--accent);
   color: #000;
   box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px rgba(255,255,255,0.2);
-  border-color: #fff !important;
+  border-color: #fff;
 }
 
 .btn-playback-premium:hover:not(.stop) {
@@ -188,89 +190,7 @@
   box-shadow: 0 0 15px var(--accent-glow) !important;
 }
 
-:root {
-  --glass-shadow:   0 4px 32px hsla(226, 50%, 2%, 0.6);
 
-  /* ─── APP MODE SELECTOR (Specific) ─── */
-  --color-mode-active: #2563eb;
-  --color-mode-active-border: #3b82f6;
-  --color-mode-active-glow: rgba(37, 99, 235, 0.4);
-
-  /* ─── ACCENT PRINCIPAL ───────────────────────────────────── */
-
-  /* Lavande électrique : neutre, musical, premium */
-  --accent-hue: 258;
-  --accent:     hsl(258, 70%, 72%);
-  --accent-dim: hsla(258, 70%, 72%, 0.15);
-  --accent-glow:hsla(258, 70%, 72%, 0.25);
-
-  /* Rétro-compatibilité avec l'ancien --theme-primary */
-  --theme-primary:     var(--accent);
-  --theme-primary-dim: var(--accent-dim);
-
-  /* ─── BORDURES ───────────────────────────────────────────── */
-  --border-subtle:  hsla(226, 20%, 100%, 0.05);
-  --border-default: hsla(226, 20%, 100%, 0.10);
-  --border-muted:   hsla(226, 20%, 100%, 0.15);
-  --border-dim:     hsla(226, 20%, 100%, 0.20);
-
-  /* ─── TEXTE ──────────────────────────────────────────────── */
-  --text-primary:   hsl(220, 20%, 90%);
-  --text-secondary: hsl(220, 15%, 75%);
-  --text-muted:     hsl(220, 10%, 55%);
-  --text-faint:     hsl(220, 10%, 40%);
-  --text-dim:       hsl(220, 10%, 30%);
-  --text-bright:    hsl(0, 0%, 100%);
-
-  /* ─── COULEURS RÔLES MUSICAUX (Vibrant & Functional) ─── */
-  --role-root:   hsl(0, 85%, 65%);       /* Red (Vibrant) */
-  --role-third:  hsl(150, 80%, 60%);     /* Green (Vibrant) */
-  --role-fifth:  hsl(210, 85%, 65%);     /* Blue (Vibrant) */
-  --role-scale:  hsla(220, 15%, 75%, 0.3); /* Slate (Subtle) */
-  --role-target: hsl(45, 100%, 65%);      /* Gold (Vibrant) */
-  --role-extension: hsl(280, 70%, 65%);   /* Purple (Vibrant) */
-
-  /* ─── COULEURS D'ÉTAT ────────────────────────────────────── */
-  --color-error:   hsl(4, 70%, 58%);
-  --color-warning: hsl(36, 90%, 55%);
-  --color-success: hsl(145, 60%, 50%);
-  --color-info:    hsl(210, 80%, 72%);
-
-  /* ─── SÉQUENCEUR ─────────────────────────────────────────── */
-  --seq-kick:  hsl(0,   80%, 62%);
-  --seq-snare: hsl(220, 80%, 62%);
-  --seq-hat:   hsl(47,  90%, 58%);
-  --seq-bass:  hsl(155, 70%, 55%);
-  --seq-rim:   hsl(30,  85%, 58%);
-  --seq-crash: hsl(0, 0%, 85%);
-
-  /* ─── TYPOGRAPHIE ────────────────────────────────────────── */
-  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-
-  /* ─── ESPACEMENTS & RAYONS ───────────────────────────────── */
-  --radius-sm:  6px;
-  --radius-md:  8px;
-  --radius-lg:  16px;
-  --radius-xl:  24px;
-
-  /* ─── TRANSITIONS ────────────────────────────────────────── */
-  --transition-fast:   150ms ease;
-  --transition-normal: 220ms ease;
-  --transition-slow:   350ms ease;
-}
-
-/* ─── ROLE STYLES (Restored) ─── */
-.role-root { background-color: var(--role-root) !important; color: white !important; }
-.role-third { background-color: var(--role-third) !important; color: black !important; }
-.role-fifth { background-color: var(--role-fifth) !important; color: white !important; }
-.role-target { background-color: var(--role-target) !important; color: black !important; }
-.role-extension { background-color: var(--role-extension) !important; color: white !important; }
-.role-scale { 
-  background-color: var(--role-scale) !important; 
-  border: 1px solid var(--text-muted);
-  color: var(--text-secondary) !important;
-}
 
 
 body {
@@ -503,8 +423,8 @@ h1 {
 }
 
 .magic-progression-container button {
-  font-size: 0.85rem !important;
-  padding: 8px 10px !important;
+  font-size: 0.85rem;
+  padding: 8px 10px;
   width: 100%;           /* Fill grid cell */
   min-width: 0;          /* Allow shrinking if needed */
   height: 42px;          /* Matching other CTAs */
@@ -616,7 +536,7 @@ input[type="range"]::-webkit-slider-runnable-track {
 .btn-toggle--active {
   background-color: var(--theme-primary);
   color: #000;
-  border-color: var(--theme-primary) !important;
+  border-color: var(--theme-primary);
   box-shadow: 0 0 15px var(--accent-glow);
 }
 .btn-toggle:hover:not(.btn-toggle--active) {

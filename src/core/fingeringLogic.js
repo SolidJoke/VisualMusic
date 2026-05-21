@@ -1,4 +1,5 @@
-import { getAbsoluteNoteValue, NOTES } from "./theory";
+import { getAbsoluteNoteValue, NOTES, resolveScaleSemitones } from "./theory";
+import { TUNINGS } from "./tunings";
 
 /**
  * Calculates optimal fingering positions for guitar and bass chords.
@@ -300,7 +301,8 @@ function analyzeVoicing(fingeringMap, instrument, rootValue, octave = 0) {
   const range = INSTRUMENT_RANGES[instrument];
   
   // We need to calculate absolute pitches to verify range
-  const tuning = instrument === 'bass' ? [43, 38, 33, 28] : [64, 59, 55, 50, 45, 40]; // Reversed order
+  const tuningStrings = instrument === 'bass' ? TUNINGS.BASS_STANDARD : TUNINGS.GUITAR_STANDARD;
+  const tuning = [...tuningStrings].reverse().map(getAbsoluteNoteValue);
   
   for (const strIdx in fingeringMap) {
     const sIdx = parseInt(strIdx, 10);
@@ -547,33 +549,11 @@ export function getAvailableBassFingerings(rootValue, chordType = 'chord_major',
  * @returns {Array<{id, label, scaleFrets: Array<{stringIndex, fret, noteValue}>}>}
  */
 export function getAvailableScaleFingerings(rootValue, scaleType, instrument = 'guitar', strings = [], sep = 'of') {
-  // Import resolveScaleIntervals lazily to avoid circular deps — it's already available in theory.js
-  // We use dynamic require-style import but since this is ESM with a bundler, we use a local import.
-  // NOTE: fingeringLogic.js already imports from './theory' at the top. We need to add resolveScaleIntervals.
-  // For now we compute semitones inline from the scaleType key.
-  // Scale semitone intervals (from root) for all supported scale types:
-  const SCALE_SEMITONES = {
-    scale_major:             [0, 2, 4, 5, 7, 9, 11],
-    scale_minor:             [0, 2, 3, 5, 7, 8, 10],
-    scale_harmonic_minor:    [0, 2, 3, 5, 7, 8, 11],
-    scale_melodic_minor:     [0, 2, 3, 5, 7, 9, 11],
-    scale_dorian:            [0, 2, 3, 5, 7, 9, 10],
-    scale_phrygian:          [0, 1, 3, 5, 7, 8, 10],
-    scale_lydian:            [0, 2, 4, 6, 7, 9, 11],
-    scale_mixolydian:        [0, 2, 4, 5, 7, 9, 10],
-    scale_locrian:           [0, 1, 3, 5, 6, 8, 10],
-    scale_phrygian_dominant: [0, 1, 4, 5, 7, 8, 10],
-    scale_pentatonic_major:  [0, 2, 4, 7, 9],
-    scale_pentatonic_minor:  [0, 3, 5, 7, 10],
-    scale_blues_minor:       [0, 3, 5, 6, 7, 10],
-    scale_blues_major:       [0, 2, 3, 4, 7, 9],
-    scale_hirajoshi:         [0, 2, 3, 7, 8],
-    scale_hungarian_minor:   [0, 2, 3, 6, 7, 8, 11],
-    scale_whole_tone:        [0, 2, 4, 6, 8, 10],
-    scale_chromatic:         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-  };
-
-  const semitones = SCALE_SEMITONES[scaleType] || SCALE_SEMITONES['scale_major'];
+  // Use theory.js as the single source of truth for scale semitones.
+  // resolveScaleSemitones() returns cumulative semitones from root (e.g. [0,2,4,5,7,9,11]).
+  // Fallback to major scale if scaleType is unknown (defensive — should not happen in practice).
+  const resolvedSemitones = resolveScaleSemitones(scaleType);
+  const semitones = resolvedSemitones ?? resolveScaleSemitones('scale_major');
   const semitoneSet = new Set(semitones.map(s => (Number(rootValue) + s) % 12));
 
   // stringOpenValues[i] = absolute MIDI value of open string i.
@@ -582,9 +562,7 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
   // component which also calls .reverse() before iterating with stringIndex.
   // This ensures scaleFrets coordinates are directly usable by Fretboard and playback.
   const stringOpenValues = strings.map(s => getAbsoluteNoteValue(s)).reverse();
-  const numStrings = strings.length;
   const isBass = instrument === 'bass';
-  const span = isBass ? 3 : 4;
 
   // Find all frets where the root appears, to anchor positions.
   // sIdx here directly equals stringIndex (0=high, N-1=low) — same as Fretboard.
@@ -617,6 +595,8 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
   });
 
   const positions = filteredStarts.slice(0, 5).map((start, idx) => {
+    // Méthode Simandl : span de 3 frettes pour la basse uniquement dans les graves (frettes <= 7)
+    const span = (isBass && start <= 7) ? 3 : 4;
     const endFret = start + span;
 
     // Build exact list of frets in this position window that belong to the scale.

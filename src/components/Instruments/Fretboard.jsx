@@ -3,45 +3,60 @@ import "./Fretboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
 import { calcActivePath } from "../../core/fretboardLogic";
 import { computeFretMetadata, getFretWidths } from "../../core/fretboardUtils";
+import { TUNINGS } from "../../core/tunings";
 
 import { useAppContext } from "../../context/AppContext";
+import { useMusicEngineContext } from "../../context/MusicEngineContext";
 
 const STRING_HEIGHT = 35;
 
 export default function Fretboard({
-  instrument = "guitar",
-  activeNotes = [],
-  stringTuning,
-  rootValue = 0,
-  targetValue = -1,
-  fretboardZone = "all",
-  onNoteClick,
-  currentlyPlayingNotes = [],
-  contextualScaleAbsoluteValues = [],
-  dictType = null,
-  lastClickedContext = null,
-  singlePlayContext = null,
-  showFingering = false,
-  fingeringMode = "numeric",
-  fingering = null, // Format: { [stringIndex]: { [fret]: finger } }
-  scaleAnchor = null,
-  isOutOfRange = false,
-  highlightTargetNotes = false,
-  appMode = "studio"
+  instrument = "guitar"
 }) {
+  const {
+    activeNotes: rawActiveNotes = [],
+    fretboardActiveNotes,
+    currentRootValue: rootValue = 0,
+    targetValue = -1,
+    fretboardZone = "all",
+    autoPlayNote: onNoteClick,
+    currentlyPlayingNotes = [],
+    contextualScaleAbsoluteValues = [],
+    dictType: rawDictType = null,
+    lastClickedContext = null,
+    singlePlayContext = null,
+    showFingering = false,
+    fingeringMode = "numeric",
+    guitarFingering,
+    bassFingering,
+    scaleAnchor = null,
+    isGuitarOutOfRange,
+    isBassOutOfRange,
+    highlightTargetNotes = false,
+    appMode = "studio",
+    activeBrick
+  } = useMusicEngineContext();
+
+  const activeNotes = fretboardActiveNotes || rawActiveNotes;
+  const fingering = instrument === "bass" ? bassFingering : guitarFingering;
+  const isOutOfRange = instrument === "bass" ? isBassOutOfRange : isGuitarOutOfRange;
+  const dictType = appMode === "dictionary" ? rawDictType : null;
+
+  const stringTuning = instrument === "bass"
+    ? (activeBrick?.bassStrings || TUNINGS.BASS_STANDARD)
+    : (activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD);
+
   const { notation } = useAppContext();
   const numFrets = 22;
   const fretboardRef = useRef(null);
   
   const strings = useMemo(() => {
-    const defaultGuitar = ["E2", "A2", "D3", "G3", "B3", "E4"];
-    const defaultBass = ["E1", "A1", "D2", "G2"];
     return (
       stringTuning
         ? stringTuning
         : instrument === "bass"
-          ? defaultBass
-          : defaultGuitar
+          ? TUNINGS.BASS_STANDARD
+          : TUNINGS.GUITAR_STANDARD
     ).slice().reverse();
   }, [stringTuning, instrument]);
 
