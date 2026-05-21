@@ -10,7 +10,7 @@ export function useStudioMode() {
   const [currentTheme, setCurrentTheme] = useState("A");
   const [currentAbsoluteNotes, setCurrentAbsoluteNotes] = useState([]);
   const [currentlyPlayingNotes, setCurrentlyPlayingNotes] = useState([]);
-  const [chordOctaveOffset, setChordOctaveOffset] = useState(0);
+  const [chordOctaveOffset, setChordOctaveOffset] = useState(0); // -3..+3 (offset relative to C4)
   const [contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues] = useState([]);
   const [lastClickedContext, setLastClickedContext] = useState(null);
   const [singlePlayContext, setSinglePlayContext] = useState(null);

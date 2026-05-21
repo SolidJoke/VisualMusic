@@ -229,11 +229,13 @@ const StudioPanel = ({
                 setCurrentAbsoluteNotes([]);
               }}
               options={[
+                { value: -3, label: "-3 Oct." },
                 { value: -2, label: "-2 Oct." },
                 { value: -1, label: "-1 Oct." },
                 { value: 0, label: "C4" },
                 { value: 1, label: "+1 Oct." },
                 { value: 2, label: "+2 Oct." },
+                { value: 3, label: "+3 Oct." },
               ]}
               theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
             />
