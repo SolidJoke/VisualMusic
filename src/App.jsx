@@ -198,6 +198,7 @@ function App() {
     setCurrentAbsoluteNotes,
     setCurrentlyPlayingNotes,
     setContextualScaleAbsoluteValues,
+    lastClickedContext,
     setLastClickedContext,
     setSinglePlayContext,
     dictRoot,
