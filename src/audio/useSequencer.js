@@ -145,150 +145,142 @@ export function useSequencer({
     const repeat = (time) => {
       Tone.Draw.schedule(() => setCurrentStep(stepCounter), time);
 
-      if (appModeRef.current === "dictionary") {
-        stepCounter = (stepCounter + 1) % 16;
-        return;
-      }
-
-      const drums = drumRef.current;
-      const melodies = melodyRef.current;
-      const progression = progressionRef.current;
-      const rootVal = rootRef.current;
-      const brick = brickRef.current;
-      const octaveOffset = octaveRef.current;
-
-      let frameNotes = [];
-
-      // --- 1. Drums ---
-      if (drums && drums.length > 0) {
-        drums.forEach((track) => {
-          const relativeStep = stepCounter % 16;
-          if (track.activeSteps.includes(relativeStep)) {
-            let vel =
-              track.lowVelocitySteps && track.lowVelocitySteps.includes(relativeStep)
-                ? 0.3
-                : 0.8;
-            let name = track.name.toLowerCase();
-
-            if (name.includes("kick")) {
-              kickSynth.triggerAttackRelease("C1", "8n", time, vel);
-            } else if (
-              name.includes("snare") ||
-              name.includes("clap") ||
-              name.includes("rim")
-            ) {
-              snareSynth.triggerAttackRelease("16n", time, vel);
-            } else {
-              hatSynth.triggerAttackRelease("32n", time, vel);
-            }
-          }
-        });
-      }
-
-      // --- 2. Chords (Harmonic progression) ---
-      if (progression && progression.length > 0 && brick) {
-        const chordIndex = Math.floor(stepCounter / 16) % progression.length;
-        const currentNns = progression[chordIndex];
-        const rhythm = rhythmRef.current || [0];
-        
-        const isAbsolute16 = rhythm.some(step => step > 3);
-        const shouldPlay = isAbsolute16 
-          ? rhythm.includes(stepCounter % 16) 
-          : rhythm.includes(stepCounter % 4);
-          
-        if (shouldPlay) {
-           const chords = generateChordsFromNNS(brick.rootValue, brick.modeName, [currentNns]);
-           if (chords.length > 0) {
-             const c = chords[0];
-             const rootValChord = c.rootNote.value;
-             const chordType = resolveNnsToChordType(c.nns);
-             const semitones = resolveChordSemitones(chordType)?.semitones || [0, 4, 7];
-             const baseOctave = 4 + (octaveOffset || 0);
-             const absPitches = semitones.map(s => rootValChord + s + baseOctave * 12);
-             
-             const notesToPlay = absPitches.map(p => `${notation === 'eu' ? NOTES[p % 12].eu : NOTES[p % 12].us}${Math.floor(p / 12)}`);
-             const duration = rhythm.length > 1 ? "16n" : "4n";
-             playDictionaryNote("piano", notesToPlay, duration, time);
-             frameNotes = [...frameNotes, ...absPitches];
-           }
+      try {
+        if (appModeRef.current === "dictionary") {
+          stepCounter = (stepCounter + 1) % 16;
+          return;
         }
-      }
 
-      // --- 3. Melodies / Bass ---
-      if (melodies && melodies.length > 0) {
-        melodies.forEach((track) => {
-          const relativeStep = stepCounter % 16;
-          if (track.activeSteps.includes(relativeStep)) {
-            let vel =
-              track.lowVelocitySteps && track.lowVelocitySteps.includes(relativeStep)
-                ? 0.4
-                : 0.9;
+        const drums = drumRef.current;
+        const melodies = melodyRef.current;
+        const progression = progressionRef.current;
+        const rootVal = rootRef.current;
+        const brick = brickRef.current;
+        const octaveOffset = octaveRef.current;
 
-            const isBass = track.name.toLowerCase().includes("bass");
-            let octave = isBass ? 2 : 4;
-            let finalNoteName;
-            let absNote;
+        let frameNotes = [];
 
-            // Bass Intelligence: Follow chord progression + Leading Tones
-            if (isBass && progression && progression.length > 0 && brick) {
-               const chordIndex = Math.floor(stepCounter / 16) % progression.length;
-               const currentNns = progression[chordIndex];
-               const chords = generateChordsFromNNS(brick.rootValue, brick.modeName, [currentNns]);
+        // --- 1. Drums ---
+        if (drums && drums.length > 0) {
+          drums.forEach((track) => {
+            const relativeStep = stepCounter % 16;
+            if (track.activeSteps.includes(relativeStep)) {
+              let vel = track.lowVelocitySteps && track.lowVelocitySteps.includes(relativeStep) ? 0.3 : 0.8;
+              let name = track.name.toLowerCase();
+
+              if (name.includes("kick")) {
+                kickSynth.triggerAttackRelease("C1", "8n", time, vel);
+              } else if (name.includes("snare") || name.includes("clap") || name.includes("rim")) {
+                snareSynth.triggerAttackRelease("16n", time, vel);
+              } else {
+                hatSynth.triggerAttackRelease("32n", time, vel);
+              }
+            }
+          });
+        }
+
+        // --- 2. Chords (Harmonic progression) ---
+        if (progression && progression.length > 0 && brick) {
+          const chordIndex = Math.floor(stepCounter / 16) % progression.length;
+          const currentNns = progression[chordIndex];
+          const rhythm = rhythmRef.current || [0];
+          
+          const isAbsolute16 = rhythm.some(step => step > 3);
+          const shouldPlay = isAbsolute16 ? rhythm.includes(stepCounter % 16) : rhythm.includes(stepCounter % 4);
+            
+          if (shouldPlay) {
+             const chords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [currentNns]);
+             if (chords.length > 0) {
+               const c = chords[0];
+               const rootValChord = c.rootNote.value;
+               const chordType = resolveNnsToChordType(c.nns);
+               const semitones = resolveChordSemitones(chordType)?.semitones || [0, 4, 7];
+               const baseOctave = 4 + (octaveOffset || 0);
+               const absPitches = semitones.map(s => rootValChord + s + baseOctave * 12);
                
-               if (chords.length > 0) {
-                 const currentChordRoot = chords[0].rootNote.value;
-                 const intervalLabel = (track.pitchSteps && track.pitchSteps[relativeStep]) || 'R';
-                 
-                 // Leading tone logic on the last step of the measure
-                 if (relativeStep === 15 && progression.length > 1) {
-                    const nextChordIndex = (chordIndex + 1) % progression.length;
-                    const nextChords = generateChordsFromNNS(brick.rootValue, brick.modeName, [progression[nextChordIndex]]);
-                    if (nextChords.length > 0) {
-                      const resolved = getLeadingTone(nextChords[0].rootNote.value, octave, notation);
-                      finalNoteName = resolved.name;
-                      absNote = resolved.midi;
-                    }
-                 }
-
-                 if (!finalNoteName) {
-                   const resolved = getBassNote(currentChordRoot, intervalLabel, octave, notation);
-                   finalNoteName = resolved.name;
-                   absNote = resolved.midi;
-                 }
-               }
-            }
-
-            // Fallback (or non-bass melody)
-            if (!finalNoteName) {
-              finalNoteName = `${noteNamesArray[rootVal % 12]}${octave}`;
-              absNote = getAbsoluteNoteValue(finalNoteName);
-            }
-
-            bassSynth.triggerAttackRelease(finalNoteName, "16n", time, vel);
-            frameNotes.push(absNote);
+               const notesToPlay = absPitches.map(p => `${notation === 'eu' ? NOTES[p % 12].eu : NOTES[p % 12].us}${Math.floor(p / 12)}`);
+               const duration = rhythm.length > 1 ? "16n" : "4n";
+               playDictionaryNote("piano", notesToPlay, duration, time);
+               frameNotes = [...frameNotes, ...absPitches];
+             }
           }
-        });
-      }
+        }
 
-      if (frameNotes.length > 0) {
-        Tone.Draw.schedule(() => {
-          setCurrentlyPlayingNotes(frameNotes);
-          setTimeout(() => setCurrentlyPlayingNotes([]), 150);
-        }, time);
-      }
+        // --- 3. Melodies / Bass ---
+        if (melodies && melodies.length > 0) {
+          melodies.forEach((track) => {
+            const relativeStep = stepCounter % 16;
+            if (track.activeSteps.includes(relativeStep)) {
+              let vel = track.lowVelocitySteps && track.lowVelocitySteps.includes(relativeStep) ? 0.4 : 0.9;
+              const isBass = track.name.toLowerCase().includes("bass");
+              let octave = isBass ? 2 : 4;
+              let finalNoteName;
+              let absNote;
 
-      stepCounter = (stepCounter + 1) % 64;
+              if (isBass && progression && progression.length > 0 && brick) {
+                 const chordIndex = Math.floor(stepCounter / 16) % progression.length;
+                 const currentNns = progression[chordIndex];
+                 const chords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [currentNns]);
+                 
+                 if (chords.length > 0) {
+                   const currentChordRoot = chords[0].rootNote.value;
+                   const intervalLabel = (track.pitchSteps && track.pitchSteps[relativeStep]) || 'R';
+                   
+                   if (relativeStep === 15 && progression.length > 1) {
+                      const nextChordIndex = (chordIndex + 1) % progression.length;
+                      const nextChords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [progression[nextChordIndex]]);
+                      if (nextChords.length > 0) {
+                        const resolved = getLeadingTone(nextChords[0].rootNote.value, octave, notation);
+                        finalNoteName = resolved.name;
+                        absNote = resolved.midi;
+                      }
+                   }
+
+                   if (!finalNoteName) {
+                     const resolved = getBassNote(currentChordRoot, intervalLabel, octave, notation);
+                     finalNoteName = resolved.name;
+                     absNote = resolved.midi;
+                   }
+                 }
+              }
+
+              if (!finalNoteName) {
+                finalNoteName = `${noteNamesArray[rootVal % 12]}${octave}`;
+                absNote = getAbsoluteNoteValue(finalNoteName);
+              }
+
+              bassSynth.triggerAttackRelease(finalNoteName, "16n", time, vel);
+              frameNotes.push(absNote);
+            }
+          });
+        }
+
+        if (frameNotes.length > 0) {
+          Tone.Draw.schedule(() => {
+            setCurrentlyPlayingNotes(frameNotes);
+            setTimeout(() => setCurrentlyPlayingNotes([]), 150);
+          }, time);
+        }
+      } catch (err) {
+        console.error("Error in useSequencer repeat loop:", err);
+      } finally {
+        stepCounter = (stepCounter + 1) % 64;
+      }
     };
 
+    let repeatId = null;
+
     if (isPlaying) {
-      Tone.Transport.scheduleRepeat(repeat, "16n");
+      repeatId = Tone.Transport.scheduleRepeat(repeat, "16n");
     } else {
-      Tone.Transport.cancel();
+      if (repeatId !== null) Tone.Transport.clear(repeatId);
       setCurrentStep(-1);
       stepCounter = 0;
     }
 
-    return () => Tone.Transport.cancel();
+    return () => {
+      if (repeatId !== null) Tone.Transport.clear(repeatId);
+    };
   }, [isPlaying, setCurrentlyPlayingNotes]);
 
   const togglePlayback = async () => {
@@ -305,9 +297,10 @@ export function useSequencer({
     }
 
     if (isPlaying) {
-      Tone.Transport.pause();
+      Tone.Transport.stop();
       setIsPlaying(false);
     } else {
+      Tone.Transport.stop();
       Tone.Transport.start();
       setIsPlaying(true);
     }
