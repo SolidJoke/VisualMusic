@@ -1,0 +1,78 @@
+/* =======================================================
+   tokens.css — VisualMusic Design System Tokens
+   Source unique de vérité pour toutes les variables CSS.
+   Importé en tête de App.css.
+   Les thèmes (vintage-theme.css, modern-theme.css) sur-
+   chargent ces valeurs via sélecteurs .theme-vintage etc.
+   ======================================================= */
+
+:root {
+  --glass-shadow:   0 4px 32px hsla(226, 50%, 2%, 0.6);
+
+  /* ─── APP MODE SELECTOR ─── */
+  --color-mode-active:        #2563eb;
+  --color-mode-active-border: #3b82f6;
+  --color-mode-active-glow:   rgba(37, 99, 235, 0.4);
+
+  /* ─── ACCENT PRINCIPAL ───────────────────────────────────── */
+  /* Lavande électrique : neutre, musical, premium */
+  --accent-hue: 258;
+  --accent:     hsl(258, 70%, 72%);
+  --accent-dim: hsla(258, 70%, 72%, 0.15);
+  --accent-glow:hsla(258, 70%, 72%, 0.25);
+
+  /* Rétro-compatibilité avec l'ancien --theme-primary */
+  --theme-primary:     var(--accent);
+  --theme-primary-dim: var(--accent-dim);
+
+  /* ─── BORDURES ───────────────────────────────────────────── */
+  --border-subtle:  hsla(226, 20%, 100%, 0.05);
+  --border-default: hsla(226, 20%, 100%, 0.10);
+  --border-muted:   hsla(226, 20%, 100%, 0.15);
+  --border-dim:     hsla(226, 20%, 100%, 0.20);
+
+  /* ─── TEXTE ──────────────────────────────────────────────── */
+  --text-primary:   hsl(220, 20%, 90%);
+  --text-secondary: hsl(220, 15%, 75%);
+  --text-muted:     hsl(220, 10%, 55%);
+  --text-faint:     hsl(220, 10%, 40%);
+  --text-dim:       hsl(220, 10%, 30%);
+  --text-bright:    hsl(0, 0%, 100%);
+
+  /* ─── COULEURS RÔLES MUSICAUX ────────────────────────────── */
+  --role-root:      hsl(0, 85%, 65%);           /* Red     */
+  --role-third:     hsl(150, 80%, 60%);          /* Green   */
+  --role-fifth:     hsl(210, 85%, 65%);          /* Blue    */
+  --role-scale:     hsla(220, 15%, 75%, 0.3);    /* Slate   */
+  --role-target:    hsl(45, 100%, 65%);          /* Gold    */
+  --role-extension: hsl(280, 70%, 65%);          /* Purple  */
+
+  /* ─── COULEURS D'ÉTAT ────────────────────────────────────── */
+  --color-error:   hsl(4, 70%, 58%);
+  --color-warning: hsl(36, 90%, 55%);
+  --color-success: hsl(145, 60%, 50%);
+  --color-info:    hsl(210, 80%, 72%);
+
+  /* ─── SÉQUENCEUR ─────────────────────────────────────────── */
+  --seq-kick:  hsl(0,   80%, 62%);
+  --seq-snare: hsl(220, 80%, 62%);
+  --seq-hat:   hsl(47,  90%, 58%);
+  --seq-bass:  hsl(155, 70%, 55%);
+  --seq-rim:   hsl(30,  85%, 58%);
+  --seq-crash: hsl(0, 0%, 85%);
+
+  /* ─── TYPOGRAPHIE ────────────────────────────────────────── */
+  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ─── ESPACEMENTS & RAYONS ───────────────────────────────── */
+  --radius-sm:  6px;
+  --radius-md:  8px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+
+  /* ─── TRANSITIONS ────────────────────────────────────────── */
+  --transition-fast:   150ms ease;
+  --transition-normal: 220ms ease;
+  --transition-slow:   350ms ease;
+}

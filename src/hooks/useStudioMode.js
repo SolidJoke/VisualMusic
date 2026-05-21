@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { BRICKS } from "../core/bricks";
-import { getScaleNotes, resolveNnsToChordType, resolveChordSemitones, MODES } from "../core/theory";
+import { getScaleNotes, resolveNnsToChordType, resolveChordSemitones } from "../core/theory";
 import { getChordIntervalLabel } from "../core/harmonyEngine";
 
 export function useStudioMode() {

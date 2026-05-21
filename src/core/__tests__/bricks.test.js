@@ -82,9 +82,9 @@ describe('BRICKS data integrity', () => {
           expect(brick.bassStrings.length).toBe(4);
         });
 
-        it('[expert_progressions] has modeName string', () => {
-          expect(typeof brick.modeName).toBe('string');
-          expect(brick.modeName).toBeTruthy();
+        it('[expert_progressions] has scaleKey string', () => {
+          expect(typeof brick.scaleKey).toBe('string');
+          expect(brick.scaleKey).toBeTruthy();
         });
 
         it('[expert_progressions] has rootValue between 0 and 11', () => {

@@ -70,72 +70,7 @@ export const getAbsoluteNoteValue = (noteName) => {
 };
 
 
-export const MODES = {
-    Ionian: { 
-        name: "Ionian (Majeur)", 
-        emotion: "Joyeux, Triomphant, Lumineux", 
-        description: "La base de la musique populaire. Stable et résolu.",
-        intervals: [2, 2, 1, 2, 2, 2, 1], 
-        targetInterval: 11,
-        magicNote: null
-    },
-    Dorian: { 
-        name: "Dorian", 
-        emotion: "Nostalgique, Jazzy, Sophistiqué, Funky", 
-        description: "Utilisé pour des grooves hypnotiques.",
-        intervals: [2, 1, 2, 2, 2, 1, 2], 
-        targetInterval: 9,
-        magicNote: "6te Majeure"
-    },
-    Phrygian: { 
-        name: "Phrygian", 
-        emotion: "Sombre, Exotique, Metal", 
-        description: "Idéal pour le Metal et le Flamenco.",
-        intervals: [1, 2, 2, 2, 1, 2, 2], 
-        targetInterval: 1,
-        magicNote: "2nde bémol"
-    },
-    Lydian: { 
-        name: "Lydian", 
-        emotion: "Flottant, Magique, Spatial", 
-        description: "Très utilisé dans les musiques de films.",
-        intervals: [2, 2, 2, 1, 2, 2, 1], 
-        targetInterval: 6,
-        magicNote: "4te augmentée"
-    },
-    Mixolydian: { 
-        name: "Mixolydian", 
-        emotion: "Bluesy, Rock, Rebelle", 
-        description: "Le mode du Rock classique et du Blues.",
-        intervals: [2, 2, 1, 2, 2, 1, 2], 
-        targetInterval: 10,
-        magicNote: "7ème bémol"
-    },
-    Aeolian: { 
-        name: "Aeolian (Mineur)", 
-        emotion: "Triste, Mélancolique, Sentimental", 
-        description: "Le mineur naturel par excellence.",
-        intervals: [2, 1, 2, 2, 1, 2, 2], 
-        targetInterval: 8,
-        magicNote: null
-    },
-    Locrian: { 
-        name: "Locrian", 
-        emotion: "Extrêmement tendu, Instable", 
-        description: "Crée un sentiment de chaos et d'insécurité.",
-        intervals: [1, 2, 2, 1, 2, 2, 2], 
-        targetInterval: 6,
-        magicNote: "5te diminuée"
-    },
-    PhrygianDominant: { 
-        name: "Phrygian Dominant", 
-        emotion: "Épique, Oriental", 
-        description: "Très typé Moyen-Orient et Metal.",
-        intervals: [1, 3, 1, 2, 1, 2, 2], 
-        targetInterval: 1,
-        magicNote: "3ce Majeure"
-    }
-};
+// MODES object has been merged into SCALES
 
 export const resolveNnsToChordType = (nns) => {
     if (!nns) return 'chord_major';
@@ -183,8 +118,10 @@ export const FINGERING_SHAPES = {
     }
 };
 
-export function getScaleNotes(rootValue, modeName) {
-    const mode = MODES[modeName].intervals;
+export function getScaleNotes(rootValue, scaleKey) {
+    const scale = SCALES[scaleKey];
+    if (!scale) return [];
+    const mode = scale.intervals;
     let currentNotes = [];
     let currentIndex = rootValue;
     let order = 1;
@@ -196,8 +133,8 @@ export function getScaleNotes(rootValue, modeName) {
     return currentNotes;
 }
 
-export function generateChordsFromNNS(rootValue, modeName, nnsArray) {
-    const scaleNotes = getScaleNotes(rootValue, modeName);
+export function generateChordsFromNNS(rootValue, scaleKey, nnsArray) {
+    const scaleNotes = getScaleNotes(rootValue, scaleKey);
     return nnsArray.map(nnsStr => {
         // NNS Notation: 1, 2-, 3-, 4, 5, 6-, 7°
         // Also support Roman: I, ii, iii, IV, V, vi, vii°
@@ -228,7 +165,7 @@ export function generateChordsFromNNS(rootValue, modeName, nnsArray) {
         if (normalizedStr.includes('b') && !normalizedStr.includes('b5')) {
             // Find chromatic distance from root
             let semitonesFromRoot = 0;
-            const modeIntervals = MODES[modeName]?.intervals || [2,2,1,2,2,2,1];
+            const modeIntervals = SCALES[scaleKey]?.intervals || [2,2,1,2,2,2,1];
             for(let i=0; i<degree; i++) semitonesFromRoot += modeIntervals[i];
             
             let alteredValue = (rootValue + semitonesFromRoot - 1 + 12) % 12;
@@ -329,26 +266,31 @@ export const SCALE_CATEGORIES = {
   symmetric: { labelKey: "catSymmetric", order: 5 },
 };
 
-const makeScale = (key, category, intervals) => ({
+const makeScale = (key, category, intervals, targetInterval = null, modeKey = null) => ({
   key,
   category,
   intervals,
   noteCount: intervals.length,
+  targetInterval,
+  modeKey,
   emotion: { fr: "", en: "", pt: "", zh: "" },
   description: { fr: "", en: "", pt: "", zh: "" }
 });
 
 export const SCALES = {
-  scale_major: makeScale('scale_major', "diatonic", [2, 2, 1, 2, 2, 2, 1]),
-  scale_minor: makeScale('scale_minor', "diatonic", [2, 1, 2, 2, 1, 2, 2]),
+  scale_major: makeScale('scale_major', "diatonic", [2, 2, 1, 2, 2, 2, 1], 11, "Ionian"),
+  scale_minor: makeScale('scale_minor', "diatonic", [2, 1, 2, 2, 1, 2, 2], 8, "Aeolian"),
   scale_harmonic_minor: makeScale('scale_harmonic_minor', "diatonic", [2, 1, 2, 2, 1, 3, 1]),
+  // Note sur la mineure mélodique :
+  // Implémentation du mode "Jazz" (invariant) : la descente utilise les mêmes intervalles
+  // que la montée. La théorie classique nécessiterait de descendre en mineure naturelle.
   scale_melodic_minor: makeScale('scale_melodic_minor', "diatonic", [2, 1, 2, 2, 2, 2, 1]),
-  scale_dorian: makeScale('scale_dorian', "diatonic", [2, 1, 2, 2, 2, 1, 2]),
-  scale_phrygian: makeScale('scale_phrygian', "diatonic", [1, 2, 2, 2, 1, 2, 2]),
-  scale_lydian: makeScale('scale_lydian', "diatonic", [2, 2, 2, 1, 2, 2, 1]),
-  scale_mixolydian: makeScale('scale_mixolydian', "diatonic", [2, 2, 1, 2, 2, 1, 2]),
-  scale_locrian: makeScale('scale_locrian', "diatonic", [1, 2, 2, 1, 2, 2, 2]),
-  scale_phrygian_dominant: makeScale('scale_phrygian_dominant', "diatonic", [1, 3, 1, 2, 1, 2, 2]),
+  scale_dorian: makeScale('scale_dorian', "diatonic", [2, 1, 2, 2, 2, 1, 2], 9, "Dorian"),
+  scale_phrygian: makeScale('scale_phrygian', "diatonic", [1, 2, 2, 2, 1, 2, 2], 1, "Phrygian"),
+  scale_lydian: makeScale('scale_lydian', "diatonic", [2, 2, 2, 1, 2, 2, 1], 6, "Lydian"),
+  scale_mixolydian: makeScale('scale_mixolydian', "diatonic", [2, 2, 1, 2, 2, 1, 2], 10, "Mixolydian"),
+  scale_locrian: makeScale('scale_locrian', "diatonic", [1, 2, 2, 1, 2, 2, 2], 6, "Locrian"),
+  scale_phrygian_dominant: makeScale('scale_phrygian_dominant', "diatonic", [1, 3, 1, 2, 1, 2, 2], 1, "PhrygianDominant"),
   scale_pentatonic_major: makeScale('scale_pentatonic_major', "pentatonic", [2, 2, 3, 2, 3]),
   scale_pentatonic_minor: makeScale('scale_pentatonic_minor', "pentatonic", [3, 2, 2, 3, 2]),
   scale_blues_minor: makeScale('scale_blues_minor', "blues", [3, 2, 1, 1, 3, 2]),

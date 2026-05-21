@@ -5,8 +5,6 @@ import {
     SCALE_CATEGORIES,
     getScaleNotesGeneric,
     resolveScaleIntervals,
-    NOTES,
-    MODES,
 } from '../theory';
 
 // =============================================================
@@ -69,18 +67,6 @@ describe('SCALES dictionary integrity', () => {
         }
     );
 
-    // Cross-check: SCALES entries for major/minor must match MODES
-    it('scale_major intervals must match MODES.Ionian', () => {
-        expect(SCALES.scale_major.intervals).toEqual(MODES.Ionian.intervals);
-    });
-
-    it('scale_minor intervals must match MODES.Aeolian', () => {
-        expect(SCALES.scale_minor.intervals).toEqual(MODES.Aeolian.intervals);
-    });
-
-    it('scale_dorian intervals must match MODES.Dorian', () => {
-        expect(SCALES.scale_dorian.intervals).toEqual(MODES.Dorian.intervals);
-    });
 });
 
 describe('SCALE_CATEGORIES', () => {

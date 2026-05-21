@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import AudioVisualizer from "../Visualizer/AudioVisualizer";
 import PianoKeyboard from "../Instruments/PianoKeyboard";
 import Fretboard from "../Instruments/Fretboard";
@@ -7,60 +7,63 @@ import TheoryLegend from "./TheoryLegend";
 import PositionSelector from "../Layout/PositionSelector";
 
 import { useAppContext } from '../../context/AppContext';
+import { useMusicEngineContext } from "../../context/MusicEngineContext";
 
 /**
  * InstrumentView Component
  * 
  * Main container for all musical instruments and visual feedback.
  */
-const InstrumentView = ({
-  masterAnalyser,
-  layoutMode,
-  activeTab,
-  setActiveTab,
-  appMode,
-  displayMode,
-  activeDrums,
-  activeMelody,
-  activeChordTrack,
-  currentStep,
-  currentBpm,
-  activeBrick,
-  activeProgression,
-  chordOctaveOffset,
-  dictType,
-  currentRootValue,
-  targetValue,
-  activeNotes,
-  fretboardActiveNotes,
-  autoPlayNote,
-  currentlyPlayingNotes,
-  contextualScaleAbsoluteValues,
-  showFingering,
-  fingeringMode,
-  clickedChord,
-  selectedRootStringGuitar,
-  setSelectedRootStringGuitar,
-  selectedRootStringBass,
-  setSelectedRootStringBass,
-  guitarFingering,
-  bassFingering,
-  availableGuitarFingerings,
-  availableBassFingerings,
-  fretboardZone,
-  lastClickedContext,
-  singlePlayContext,
-  selectedVoicingIndexGuitar,
-  setSelectedVoicingIndexGuitar,
-  selectedVoicingIndexBass,
-  setSelectedVoicingIndexBass,
-  visualFocus = "chords",
-  scaleAnchor = null,
-  setScaleAnchor,
-  isGuitarOutOfRange = false,
-  isBassOutOfRange = false,
-  highlightTargetNotes = false
-}) => {
+const InstrumentView = memo(function InstrumentView() {
+  const {
+    masterAnalyser,
+    layoutMode,
+    activeTab,
+    setActiveTab,
+    appMode,
+    displayMode,
+    activeDrums,
+    activeMelody,
+    activeChordTrack,
+    currentStep,
+    currentBpm,
+    activeBrick,
+    activeProgression,
+    chordOctaveOffset,
+    dictType,
+    currentRootValue,
+    targetValue,
+    activeNotes,
+    fretboardActiveNotes,
+    autoPlayNote,
+    currentlyPlayingNotes,
+    contextualScaleAbsoluteValues,
+    showFingering,
+    fingeringMode,
+    clickedChord,
+    selectedRootStringGuitar,
+    setSelectedRootStringGuitar,
+    selectedRootStringBass,
+    setSelectedRootStringBass,
+    guitarFingering,
+    bassFingering,
+    availableGuitarFingerings,
+    availableBassFingerings,
+    fretboardZone,
+    lastClickedContext,
+    singlePlayContext,
+    selectedVoicingIndexGuitar,
+    setSelectedVoicingIndexGuitar,
+    selectedVoicingIndexBass,
+    setSelectedVoicingIndexBass,
+    visualFocus = "chords",
+    scaleAnchor = null,
+    setScaleAnchor,
+    isGuitarOutOfRange = false,
+    isBassOutOfRange = false,
+    highlightTargetNotes = false
+  } = useMusicEngineContext();
+
   const { lang, txt, notation } = useAppContext();
   const isScaleMode = (appMode === "dictionary" && dictType?.includes("scale"));
 
@@ -103,16 +106,7 @@ const InstrumentView = ({
 
       {(appMode === "dictionary" || layoutMode === "all" || activeTab === "piano") && (
         <div className="scrollable-instrument" style={{ width: "100%" }}>
-          <PianoKeyboard
-            activeNotes={activeNotes}
-            numOctaves={7}
-            rootValue={currentRootValue}
-            targetValue={targetValue}
-            onNoteClick={autoPlayNote}
-            currentlyPlayingNotes={currentlyPlayingNotes}
-            contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
-            dictType={appMode === "dictionary" ? dictType : null}
-          />
+          <PianoKeyboard />
         </div>
       )}
 
@@ -134,27 +128,7 @@ const InstrumentView = ({
             />
           )}
 
-          <Fretboard
-            instrument="guitar"
-            activeNotes={fretboardActiveNotes || activeNotes}
-            stringTuning={activeBrick.guitarStrings || ['E2', 'A2', 'D3', 'G3', 'B3', 'E4']}
-            rootValue={currentRootValue}
-            targetValue={targetValue}
-            fretboardZone={fretboardZone}
-            onNoteClick={autoPlayNote}
-            currentlyPlayingNotes={currentlyPlayingNotes}
-            contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
-            dictType={appMode === "dictionary" ? dictType : null}
-            lastClickedContext={lastClickedContext}
-            singlePlayContext={singlePlayContext}
-            showFingering={showFingering}
-            fingeringMode={fingeringMode}
-            fingering={guitarFingering}
-            scaleAnchor={scaleAnchor}
-            isOutOfRange={isGuitarOutOfRange}
-            highlightTargetNotes={highlightTargetNotes}
-            appMode={appMode}
-          />
+          <Fretboard instrument="guitar" />
           
           <br />
 
@@ -174,31 +148,11 @@ const InstrumentView = ({
             />
           )}
 
-          <Fretboard
-            instrument="bass"
-            activeNotes={fretboardActiveNotes || activeNotes}
-            stringTuning={activeBrick.bassStrings || ['E1', 'A1', 'D2', 'G2']}
-            rootValue={currentRootValue}
-            targetValue={targetValue}
-            fretboardZone={fretboardZone}
-            onNoteClick={autoPlayNote}
-            currentlyPlayingNotes={currentlyPlayingNotes}
-            contextualScaleAbsoluteValues={contextualScaleAbsoluteValues}
-            dictType={appMode === "dictionary" ? dictType : null}
-            lastClickedContext={lastClickedContext}
-            singlePlayContext={singlePlayContext}
-            showFingering={showFingering}
-            fingeringMode={fingeringMode}
-            fingering={bassFingering}
-            scaleAnchor={scaleAnchor}
-            isOutOfRange={isBassOutOfRange}
-            highlightTargetNotes={highlightTargetNotes}
-            appMode={appMode}
-          />
+          <Fretboard instrument="bass" />
         </div>
       )}
     </div>
   );
-};
+});
 
 export default InstrumentView;

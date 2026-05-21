@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 import InstrumentView from "../Panels/InstrumentView";
 import { AppProvider } from "../../context/AppContext";
+import { MusicEngineProvider } from "../../context/MusicEngineContext";
 
 // Mock des composants enfants
 vi.mock("../Visualizer/AudioVisualizer", () => ({
@@ -30,16 +31,20 @@ describe("InstrumentView Smoke Test", () => {
       instrumentsScale: "Instrument Scales"
     };
 
+    const value = {
+      layoutMode: "tabs",
+      activeTab: "piano",
+      masterAnalyser: null,
+      activeBrick: {},
+      availableGuitarFingerings: [],
+      availableBassFingerings: []
+    };
+
     const html = renderToString(
       <AppProvider>
-        <InstrumentView 
-          layoutMode="tabs" 
-          activeTab="piano" 
-          masterAnalyser={null} 
-          activeBrick={{}}
-          availableGuitarFingerings={[]}
-          availableBassFingerings={[]}
-        />
+        <MusicEngineProvider value={value}>
+          <InstrumentView />
+        </MusicEngineProvider>
       </AppProvider>
     );
 
@@ -56,16 +61,20 @@ describe("InstrumentView Smoke Test", () => {
       instrumentsScale: "Instrument Scales"
     };
 
+    const value = {
+      layoutMode: "all",
+      appMode: "studio",
+      masterAnalyser: null,
+      activeBrick: {},
+      availableGuitarFingerings: [],
+      availableBassFingerings: []
+    };
+
     const html = renderToString(
       <AppProvider>
-        <InstrumentView 
-          layoutMode="all"
-          appMode="studio"
-          masterAnalyser={null}
-          activeBrick={{}}
-          availableGuitarFingerings={[]}
-          availableBassFingerings={[]}
-        />
+        <MusicEngineProvider value={value}>
+          <InstrumentView />
+        </MusicEngineProvider>
       </AppProvider>
     );
 

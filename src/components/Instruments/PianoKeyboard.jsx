@@ -3,6 +3,7 @@ import "./PianoKeyboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
 import { getHarmonicSeries } from "../../core/acousticEngine";
 import { useAppContext } from "../../context/AppContext";
+import { useMusicEngineContext } from "../../context/MusicEngineContext";
 
 const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 const BLACK_KEYS = [1, 3, 6, 8, 10];
@@ -16,16 +17,21 @@ const FLAT_EQUIVALENTS = {
   10: { us: "Bb", eu: "Sib" },
 };
 
-export default function PianoKeyboard({
-  activeNotes = [],
-  numOctaves = 7,
-  rootValue = 0,
-  targetValue = -1,
-  onNoteClick,
-  currentlyPlayingNotes = [],
-  contextualScaleAbsoluteValues = [],
-  dictType = null
-}) {
+export default function PianoKeyboard() {
+  const {
+    activeNotes = [],
+    currentRootValue: rootValue = 0,
+    targetValue = -1,
+    autoPlayNote: onNoteClick,
+    currentlyPlayingNotes = [],
+    contextualScaleAbsoluteValues = [],
+    dictType: rawDictType = null,
+    appMode
+  } = useMusicEngineContext();
+
+  const dictType = appMode === "dictionary" ? rawDictType : null;
+  const numOctaves = 7;
+
   const { lang, txt, notation, state } = useAppContext();
   const { harmonicMode } = state;
   const keys = [];
