@@ -11,7 +11,9 @@ import {
   getScaleNotes, 
   resolveChordSemitones, 
   SCALES,
-  resolveNnsToChordType
+  resolveNnsToChordType,
+  isNoteInRange,
+  computeAbsoluteNote
 } from "../core/theory";
 import { TUNINGS } from "../core/tunings";
 import { getInversionType, getChordIntervalLabel } from "../core/harmonyEngine";
@@ -296,6 +298,32 @@ export function useMusicEngine({
     return getAvailableBassFingerings(rootVal, chordType, appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0), notation);
   }, [clickedChord, appMode, dictRoot, dictType, activeBrick.bassStrings, chordOctaveOffset, dictOctave, notation]);
 
+  // isOutOfRange: covers both chords AND scales (Option A: warning only, audio is not blocked)
+  const isGuitarOutOfRange = useMemo(() => {
+    if (appMode !== "dictionary") return false;
+    if (dictType?.includes("chord")) {
+      return !!(!guitarFingering || guitarFingering.isOutOfRange);
+    }
+    if (dictType?.includes("scale")) {
+      // Check if the root note itself is out of guitar range at the selected octave
+      const rootMidi = computeAbsoluteNote(Number(dictRoot ?? 0), dictOctave ?? 0);
+      return !isNoteInRange(rootMidi, 'guitar');
+    }
+    return false;
+  }, [appMode, dictType, guitarFingering, dictRoot, dictOctave]);
+
+  const isBassOutOfRange = useMemo(() => {
+    if (appMode !== "dictionary") return false;
+    if (dictType?.includes("chord")) {
+      return !!(!bassFingering || bassFingering.isOutOfRange);
+    }
+    if (dictType?.includes("scale")) {
+      const rootMidi = computeAbsoluteNote(Number(dictRoot ?? 0), dictOctave ?? 0);
+      return !isNoteInRange(rootMidi, 'bass');
+    }
+    return false;
+  }, [appMode, dictType, bassFingering, dictRoot, dictOctave]);
+
   return {
     ...musicContext,
     inversionText,
@@ -303,7 +331,7 @@ export function useMusicEngine({
     bassFingering,
     availableGuitarFingerings,
     availableBassFingerings,
-    isGuitarOutOfRange: !!(appMode === "dictionary" && dictType?.includes("chord") && (!guitarFingering || guitarFingering.isOutOfRange)),
-    isBassOutOfRange: !!(appMode === "dictionary" && dictType?.includes("chord") && (!bassFingering || bassFingering.isOutOfRange))
+    isGuitarOutOfRange,
+    isBassOutOfRange
   };
 }

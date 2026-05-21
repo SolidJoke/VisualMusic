@@ -18,7 +18,7 @@ export function useDictionaryMode() {
   const [selectedVoicingIndexGuitar, setSelectedVoicingIndexGuitar] = useState(null);
   const [selectedVoicingIndexBass, setSelectedVoicingIndexBass] = useState(null);
   const [scaleAnchor, setScaleAnchor] = useState(null); // { stringIndex, fret, absoluteValue }
-  const [dictOctave, setDictOctave] = useState(0); // -1, 0, +1
+  const [dictOctave, setDictOctave] = useState(0); // -3..+3 (offset relative to octave 4)
 
   // Reset voicing indices when root or type changes.
   // For scales: default to open position ('pos_0') so the fretboard shows a focused view immediately.

@@ -609,3 +609,61 @@ export function getLeadingTone(nextChordRootValue, baseOctave = 2, notation = 'u
     midi: leadingMidi
   };
 }
+
+// ---------------------------------------------------------
+// OCTAVE RANGE UTILITIES
+// ---------------------------------------------------------
+
+/**
+ * Physical MIDI note ranges for each instrument.
+ * Guitar standard: E2 (40) → ~D6 (86) with 22 frets
+ * Bass standard:   E1 (28) → ~B3 (59) with 22 frets
+ * Piano:           A0 (21) → C8 (108)
+ */
+export const INSTRUMENT_MIDI_RANGES = {
+  guitar: { min: 40, max: 86 },
+  bass:   { min: 28, max: 59 },
+  piano:  { min: 21, max: 108 },
+};
+
+/**
+ * Computes the absolute MIDI note value for a root note at a given dictOctave offset.
+ * Formula: absoluteValue = rootValue + (5 + dictOctave) * 12
+ *   - dictOctave=0 → baseOctave=4 → (4+1)*12 = 60 → C at MIDI 60 (C5 in project convention)
+ * @param {number} rootValue - Semitone value of the note (0=C, 1=C#, ..., 11=B)
+ * @param {number} dictOctave - Octave offset, range -3 to +3
+ * @returns {number} Absolute MIDI note number
+ */
+export function computeAbsoluteNote(rootValue, dictOctave) {
+  const baseOctave = 4 + dictOctave;
+  return rootValue + (baseOctave + 1) * 12;
+}
+
+/**
+ * Returns true if a MIDI note is within the physical playable range of the instrument.
+ * Returns true for unknown instruments (no restriction applied).
+ * @param {number} midiNote - Absolute MIDI note number
+ * @param {string} instrument - 'guitar' | 'bass' | 'piano' | other
+ * @returns {boolean}
+ */
+export function isNoteInRange(midiNote, instrument) {
+  const range = INSTRUMENT_MIDI_RANGES[instrument];
+  if (!range) return true; // unknown instrument: no restriction
+  return midiNote >= range.min && midiNote <= range.max;
+}
+
+/**
+ * Returns true if ALL notes in the sequence are within the instrument's playable range.
+ * Accepts an array of numbers (MIDI values) or objects with an `absoluteValue` property.
+ * Returns true for an empty sequence.
+ * @param {Array<number|{absoluteValue: number}>} notes - Sequence of notes
+ * @param {string} instrument - 'guitar' | 'bass' | 'piano' | other
+ * @returns {boolean}
+ */
+export function isSequenceInRange(notes, instrument) {
+  if (!notes || notes.length === 0) return true;
+  return notes.every((n) => {
+    const midi = typeof n === 'object' ? n.absoluteValue : n;
+    return isNoteInRange(midi, instrument);
+  });
+}
