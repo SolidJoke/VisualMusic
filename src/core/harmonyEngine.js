@@ -223,3 +223,129 @@ export function getChordIntervalLabel(index, semitone) {
   if (semitone > 12)   return 9;
   return index + 2; // fallback for aug5 and other edge cases
 }
+
+// ---------------------------------------------------------------------------
+// Playability Score (G.4.3)
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculates a playability/complexity score for a chord progression.
+ * Starts at 100 and applies penalties for non-diatonic chords, complex extensions, 
+ * large harmonic leaps, and intrinsic dissonance.
+ * 
+ * @param {Array} progression - Array of chord objects (e.g. { nns, rootValue, dictType })
+ * @returns {Object} { score, label, color, details }
+ */
+export function calculatePlayabilityScore(progression) {
+  if (!progression || progression.length === 0) return { score: 100, label: "Vide", color: "#888", details: [] };
+
+  let score = 100;
+  let nonDiatonicCount = 0;
+  let complexExtensionsCount = 0;
+  let jumpPenaltyCount = 0;
+  let totalDissonance = 0;
+  let details = [];
+
+  for (let i = 0; i < progression.length; i++) {
+    const chord = progression[i];
+    if (!chord) continue;
+
+    // Support both Dictionary format (rootValue, dictType) and NNS format (rootNote, nns)
+    const rootVal = chord.rootValue ?? (chord.rootNote ? chord.rootNote.value : 0);
+    let type = chord.dictType || "";
+    const nns = chord.nns || "";
+
+    if (!type) {
+      if (nns.includes('maj7')) type = 'chord_maj7';
+      else if (nns.includes('m7b5')) type = 'chord_m7b5';
+      else if (nns.includes('dim7')) type = 'chord_dim7';
+      else if (nns.includes('m7') || nns.includes('-7')) type = 'chord_m7';
+      else if (nns.includes('7')) type = 'chord_7';
+      else if (nns.includes('dim') || nns.includes('°')) type = 'chord_dim';
+      else if (nns.includes('aug') || nns.includes('+')) type = 'chord_aug';
+      else if (nns.includes('m') || nns.includes('-')) type = 'chord_minor';
+      else type = 'chord_major';
+    }
+
+    // 1. Extensions penalty
+    // Grades by complexity: 7th chords (-2), complex extensions (-4), aug/dim (-3)
+    // NOTE: dim7 and m7b5 are intentionally excluded here — they are handled
+    //       in block 4 (intrinsic dissonance) to avoid double-counting.
+    if (type === 'chord_maj7' || type === 'chord_m7' || type === 'chord_7') {
+      score -= 2;
+    } else if (type === 'chord_9' || type === 'chord_m9' || type === 'chord_add9' || type.includes('11') || type.includes('13')) {
+      score -= 4;
+      complexExtensionsCount++;
+    } else if (type === 'chord_aug') {
+      score -= 3;
+    }
+
+    // 2. Diatonicity penalty
+    const isNonDiatonic = nns.includes('b') || nns.includes('#') || 
+                          (nns.startsWith('2') && !nns.includes('-') && !nns.includes('dim')) ||
+                          (nns.startsWith('3') && !nns.includes('-') && !nns.includes('dim')) ||
+                          (nns.startsWith('6') && !nns.includes('-') && !nns.includes('dim')) ||
+                          (nns.startsWith('1') && nns.includes('-')) ||
+                          (nns.startsWith('4') && nns.includes('-')) ||
+                          (nns.startsWith('5') && nns.includes('-'));
+    if (isNonDiatonic) {
+      score -= 5;
+      nonDiatonicCount++;
+    }
+
+    // 3. Harmonic Leaps (Circle of Fifths distance)
+    if (i > 0 && progression[i-1]) {
+      const prevChord = progression[i-1];
+      const prevRoot = prevChord.rootValue ?? (prevChord.rootNote ? prevChord.rootNote.value : 0);
+      
+      const circleOfFifthsPosition = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
+      const prevPos = circleOfFifthsPosition.indexOf(prevRoot);
+      const currPos = circleOfFifthsPosition.indexOf(rootVal);
+      
+      if (prevPos !== -1 && currPos !== -1) {
+        let distance = Math.abs(prevPos - currPos);
+        if (distance > 6) distance = 12 - distance;
+        
+        if (distance > 3) {
+          score -= (distance - 3) * 2; 
+          jumpPenaltyCount++;
+        }
+      }
+    }
+    
+    // 4. Intrinsic dissonance
+    // dim7 and m7b5 are only penalized here (NOT in block 1) to avoid double-counting.
+    // chord_9 types are already penalized in block 1 (-4) so excluded here.
+    if (type === 'chord_m7b5' || type === 'chord_dim7') {
+      totalDissonance += 5; // high inherent tension (tritone + diminished intervals)
+    } else if (type === 'chord_aug') {
+      totalDissonance += 2; // augmented has inherent dissonance too
+    } else if (type === 'chord_7') {
+      totalDissonance += 1; // mild tension from the minor 7th
+    }
+  }
+
+  score -= totalDissonance;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  // Generate details
+  if (nonDiatonicCount > 0) details.push(`${nonDiatonicCount} accord(s) hors tonalité (-${nonDiatonicCount * 5} pts)`);
+  if (complexExtensionsCount > 0) details.push(`${complexExtensionsCount} extension(s) complexe(s) (-${complexExtensionsCount * 4} pts)`);
+  if (jumpPenaltyCount > 0) details.push(`${jumpPenaltyCount} saut(s) harmonique(s) brusque(s)`);
+  if (totalDissonance > 0) details.push(`Tension interne (dissonance) : -${totalDissonance} pts`);
+  if (details.length === 0) details.push("Progression très standard.");
+
+  // Determine Label and Color
+  let label = "Facile / Pop";
+  let color = "#4ade80"; // green
+
+  if (score < 50) {
+    label = "Complexe / Expérimental";
+    color = "#f87171"; // red
+  } else if (score < 80) {
+    label = "Modéré / Jazz";
+    color = "#fbbf24"; // amber
+  }
+
+  return { score, label, color, details };
+}

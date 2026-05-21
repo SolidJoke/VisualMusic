@@ -21,13 +21,13 @@
 - [x] **14.7** — **Toggle Mode** : ✅ Style Premium Blue implémenté (SESS-12).
 - [ ] **BUG-07** — **Studio Sidebar Empty space** : Remove empty useless spacer in Studio Mode sidebar.
 - [ ] **BUG-08** — **Dictionary Fretboard Width & Marker Shift** : Resolve doubled width and vertically shifted string markers.
-- [ ] **BUG-09** — **Dictionary Scale Notes & Highlight Sync** : Fix incorrect notes showing on selected scale and sync highlights.
+- [x] **BUG-09** — **Dictionary Scale Notes & Highlight Sync** : L'octave finale est maintenant affichée visuellement sur le clavier (fixé). ✅
 
 > **Note** : 14.2 (notes inaudibles Studio) et 14.3 (Crash Z-index Studio) sont à vérifier — peuvent avoir été corrigés avec la refonte architecture.
 
 ---
 
-## 🟠 P1 — Architecture & Qualité de Code
+## 🟡 P1 — Architecture & Qualité de Code
 
 ### Stream A — Hygiene & Reliability
 
@@ -112,9 +112,9 @@
 ### Stream C — Intelligence Harmonique
 
 #### C.1 — Intégration Tonal.js [ANALYSE REQUISE]
-- [ ] **C.1.1** — Audit fonctions theory.js → mapping Tonal API. *→ Sonnet (SONNET-01)*
-- [ ] **C.1.2** — Créer `tonal-adapter.js` wrapper. *→ Flash (après SONNET-01)*
-- [ ] **C.1.3** — Migration function par function avec tests. *→ Pro*
+- [x] **C.1.1** — Audit fonctions theory.js → mapping Tonal API. ✅
+- [x] **C.1.2** — Créer `tonal-adapter.js` wrapper. ✅
+- [x] **C.1.3** — Migration function par function avec tests (getScaleNotes / getChordNotesAbsolute). ✅
 
 #### C.2 — Assistant Proactif [VISION FUTURE]
 - [ ] **C.2.1** — "Next Chord" HUD : 3 alternatives harmoniques au step suivant. *→ Future*
@@ -248,23 +248,3 @@
 ### Risque 3 — Mode Expert vs Mode Scale
 - Logiques de filtrage différentes → peuvent entrer en conflit
 - Solution : `fretboardUtils.js` comme unique juge de visibilité
-
-### Risque 4 — Saturation Contexte Agent
-- Gemini Flash peut manquer de contexte sur les fichiers > 200L
-- **Règle** : Flash ne touche jamais App.jsx, Fretboard.jsx, fingeringLogic.js sans specs explicites
-
----
-
-## 📋 Orchestration Agentique (Hiérarchie)
-
-| Modèle | Rôle | Tâches types |
-|--------|------|-------------|
-| **Claude Sonnet** | Stratège, Architecture | Analyse, specs, refactoring complexe |
-| **Gemini Pro** | Architecte | Découpage atomique, TDD setup, migrations |
-| **Gemini Flash** | Exécuteur | Fixes visuels, tâches < 50L, CSS, rapports |
-
-> Voir `docs/management/MASTER_TASK_TRACKER.md` pour les specs Flash-ready détaillées.
-
----
-
-*Dernière mise à jour : 2026-05-10 — Claude Sonnet · Merge BACKLOG.md + REFINED_BACKLOG.md*

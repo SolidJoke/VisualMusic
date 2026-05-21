@@ -43,7 +43,8 @@ function App() {
     activeTab,
     chordDisplayMode,
     uiTheme,
-    highlightTargetNotes
+    highlightTargetNotes,
+    useShellVoicings
   } = state;
 
   const setAppMode = (newMode) => {
@@ -70,6 +71,7 @@ function App() {
   );
   const setChordDisplayMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'chordDisplayMode', value: val } });
   const setUiTheme = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } });
+  const setUseShellVoicings = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'useShellVoicings', value: val } });
 
 
   const {
@@ -198,6 +200,7 @@ function App() {
     setCurrentAbsoluteNotes,
     setCurrentlyPlayingNotes,
     setContextualScaleAbsoluteValues,
+    lastClickedContext,
     setLastClickedContext,
     setSinglePlayContext,
     dictRoot,
@@ -210,7 +213,8 @@ function App() {
     setScaleAnchor,
     scaleAnchor,
     notation,
-    dictOctave
+    dictOctave,
+    useShellVoicings
   });
 
   useEffect(() => {
@@ -256,6 +260,25 @@ function App() {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  // Keyboard shortcuts: Space = Play/Stop, S = Studio, D = Dictionary
+  // Guard: disabled when focus is inside an input/select/textarea
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        if (appMode !== 'dictionary') togglePlayback();
+      } else if (e.key === 's' || e.key === 'S') {
+        setAppMode('studio');
+      } else if (e.key === 'd' || e.key === 'D') {
+        setAppMode('dictionary');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [appMode, togglePlayback, setAppMode]);
 
   const musicEngineContextValue = useMemo(() => ({
     masterAnalyser,
@@ -415,6 +438,13 @@ function App() {
             isOpen={sidebarOpen} 
             toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
             uiTheme={uiTheme}
+            appMode={appMode}
+            setAppMode={setAppMode}
+            isPlaying={isPlaying}
+            togglePlayback={togglePlayback}
+            currentBpm={currentBpm}
+            handleBpmChange={handleBpmChange}
+            txt={txt}
           >
             {appMode === "studio" && (
               <>
@@ -445,6 +475,7 @@ function App() {
                   setCustomRhythm={setCustomRhythm}
                   setCustomDrums={setCustomDrums}
                   currentStep={currentStep}
+                  txt={txt.comp}
                 />
               </>
             )}
@@ -484,17 +515,16 @@ function App() {
               setPlaybackInstrument={setPlaybackInstrument}
               appMode={appMode}
               dictType={dictType}
+              useShellVoicings={useShellVoicings}
+              setUseShellVoicings={setUseShellVoicings}
             />
 
             <PlaybackPanel
               appMode={appMode}
-              setAppMode={setAppMode}
               isPlaying={isPlaying}
-              togglePlayback={togglePlayback}
               masterVolume={masterVolume}
               setMasterVolume={setMasterVolume}
               currentBpm={currentBpm}
-              handleBpmChange={handleBpmChange}
               instrumentVolumes={instrumentVolumes}
               handleInstrumentVolumeChange={handleInstrumentVolumeChange}
               displayMode={displayMode}

@@ -6,13 +6,10 @@ import { useAppContext } from '../../context/AppContext';
 
 const PlaybackPanel = ({
   appMode,
-  setAppMode,
   isPlaying,
-  togglePlayback,
   masterVolume,
   setMasterVolume,
   currentBpm,
-  handleBpmChange,
   instrumentVolumes,
   handleInstrumentVolumeChange,
   displayMode,
@@ -30,36 +27,9 @@ const PlaybackPanel = ({
   const { uiTheme } = state;
   return (
     <div className="layout-col layout-right playback-panel-container">
-      <div className="vintage-module app-mode-selector" style={{ display: "flex", gap: "5px" }}>
-        <button
-          onClick={() => setAppMode("studio")}
-          className={`btn-premium ${appMode === "studio" ? " active" : ""}`}
-          style={{ width: "100%", padding: "12px", fontSize: "0.9rem" }}
-          data-testid="btn-mode-studio"
-        >
-          {txt.studioMode}
-        </button>
-        <button
-          onClick={() => setAppMode("dictionary")}
-          className={`btn-premium ${appMode === "dictionary" ? " active" : ""}`}
-          style={{ width: "100%", padding: "12px", fontSize: "0.9rem" }}
-          data-testid="btn-mode-dictionary"
-        >
-          {txt.dictMode}
-        </button>
-      </div>
+      {/* Mode selector and play button moved to Sidebar fixed header */}
 
       <div className={`vintage-module playback-controls${isPlaying ? " is-playing" : ""}`}>
-        {appMode !== "dictionary" && (
-          <button
-            onClick={togglePlayback}
-            className={`btn-playback-premium ${isPlaying ? 'stop' : 'play'}`}
-          >
-            <div className="btn-playback-icon"></div>
-            <span>{isPlaying ? txt.stopAudio : txt.enableAudio}</span>
-          </button>
-        )}
-
 
         <div className="sliders-group">
           <div className="slider-item">
@@ -74,21 +44,6 @@ const PlaybackPanel = ({
               onChange={(e) => setMasterVolume(e.target.value)}
               className="premium-slider"
               style={{ '--value': `${((masterVolume + 40) / 40) * 100}%` }}
-            />
-          </div>
-
-          <div className="slider-item">
-            <LcdScreen title={txt.tempoBpm}>
-              {currentBpm}
-            </LcdScreen>
-            <input
-              type="range"
-              min="60"
-              max="200"
-              value={currentBpm}
-              onChange={handleBpmChange}
-              className="premium-slider accent"
-              style={{ '--value': `${((currentBpm - 60) / 140) * 100}%` }}
             />
           </div>
         </div>

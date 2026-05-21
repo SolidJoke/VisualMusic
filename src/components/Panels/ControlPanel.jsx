@@ -13,7 +13,9 @@ const ControlPanel = ({
   playbackInstrument,
   setPlaybackInstrument,
   appMode,
-  dictType
+  dictType,
+  useShellVoicings,
+  setUseShellVoicings
 }) => {
   const { txt, notation } = useAppContext();
   return (
@@ -56,6 +58,17 @@ const ControlPanel = ({
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="controls-group" style={{ flexDirection: "column", gap: "8px", alignItems: "center" }}>
+        <button
+          onClick={() => setUseShellVoicings(!useShellVoicings)}
+          className={`btn-premium ${useShellVoicings ? " active" : ""}`}
+          style={{ width: "100%", fontSize: "0.75rem" }}
+          title="Alléger les accords en retirant la quinte (1-3-7)"
+        >
+          {useShellVoicings ? "🎹 Shell Voicings : ON" : "🎹 Shell Voicings : OFF"}
+        </button>
       </div>
 
       <div className="controls-group" style={{ flexDirection: "column", gap: "8px", alignItems: "center" }}>

@@ -146,6 +146,14 @@ export default function PianoKeyboard() {
         // In Dictionary Mode or if no absolute pitch provided,
         // we restrict display to a single central octave (Octave 4) to avoid clutter.
         // Octave 4 is index 2 in our 0-indexed octave loop (starting at C2).
+        const isRoot = (n.value % 12) === (rootValue % 12);
+        const isScaleMode = dictType?.includes("scale");
+        
+        // In scale mode, we want to highlight the 8th note (the octave) to complete the visual scale
+        if (isScaleMode && isRoot && octave === 3) {
+            return true;
+        }
+
         return (n.value % 12 === i % 12) && (octave === 2);
       });
       const isActive = !!activeNote;

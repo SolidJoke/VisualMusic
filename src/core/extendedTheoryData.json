@@ -102,5 +102,43 @@
         "rootIntervals": [5, 4, 9]
       }
     ]
+  },
+  "moodProfiles": {
+    "chords": {
+      "chord_major": { "tension": 1, "genres": ["Pop", "Rock", "Classical", "Folk"], "tempo": "Any" },
+      "chord_minor": { "tension": 2, "genres": ["Pop", "Rock", "Classical", "Jazz"], "tempo": "Any" },
+      "chord_dim": { "tension": 8, "genres": ["Classical", "Jazz", "Metal"], "tempo": "Transition" },
+      "chord_aug": { "tension": 7, "genres": ["Jazz", "Classical", "Prog"], "tempo": "Suspense" },
+      "chord_sus2": { "tension": 3, "genres": ["Pop", "Rock", "Ambient"], "tempo": "Any" },
+      "chord_sus4": { "tension": 4, "genres": ["Pop", "Rock", "Classical"], "tempo": "Any" },
+      "chord_maj7": { "tension": 2, "genres": ["Jazz", "R&B", "Bossa Nova", "Lofi"], "tempo": "60-100 BPM" },
+      "chord_m7": { "tension": 2, "genres": ["Jazz", "Funk", "Soul", "Pop"], "tempo": "90-120 BPM" },
+      "chord_7": { "tension": 6, "genres": ["Blues", "Jazz", "Rock", "Funk"], "tempo": "Any" },
+      "chord_dim7": { "tension": 9, "genres": ["Classical", "Jazz", "Gypsy"], "tempo": "Transition" },
+      "chord_m7b5": { "tension": 7, "genres": ["Jazz", "Bossa Nova", "Classical"], "tempo": "Transition" },
+      "chord_add9": { "tension": 2, "genres": ["Pop", "Acoustic", "Modern"], "tempo": "Any" },
+      "chord_9": { "tension": 6, "genres": ["Funk", "Soul", "Blues"], "tempo": "90-110 BPM" },
+      "chord_m9": { "tension": 3, "genres": ["Jazz", "Neo-Soul", "R&B"], "tempo": "70-95 BPM" }
+    },
+    "scales": {
+      "scale_major": { "tension": 1, "genres": ["Pop", "Classical", "Folk", "Country"], "tempo": "Any" },
+      "scale_minor": { "tension": 2, "genres": ["Rock", "Pop", "Classical", "Metal"], "tempo": "Any" },
+      "scale_harmonic_minor": { "tension": 6, "genres": ["Classical", "Metal", "Flamenco"], "tempo": "Any" },
+      "scale_melodic_minor": { "tension": 5, "genres": ["Jazz", "Classical"], "tempo": "Any" },
+      "scale_dorian": { "tension": 3, "genres": ["Jazz", "Funk", "Rock", "Celtic"], "tempo": "90-120 BPM" },
+      "scale_phrygian": { "tension": 7, "genres": ["Metal", "Flamenco", "Electronic"], "tempo": "Any" },
+      "scale_lydian": { "tension": 4, "genres": ["Jazz", "Cinematic", "Prog"], "tempo": "Any" },
+      "scale_mixolydian": { "tension": 3, "genres": ["Blues", "Rock", "Country"], "tempo": "Any" },
+      "scale_locrian": { "tension": 9, "genres": ["Metal", "Avant-Garde"], "tempo": "Any" },
+      "scale_phrygian_dominant": { "tension": 8, "genres": ["Metal", "Middle Eastern", "Klezmer"], "tempo": "Any" },
+      "scale_pentatonic_major": { "tension": 1, "genres": ["Blues", "Rock", "Pop", "Country"], "tempo": "Any" },
+      "scale_pentatonic_minor": { "tension": 2, "genres": ["Blues", "Rock", "Metal", "Pop"], "tempo": "Any" },
+      "scale_blues_minor": { "tension": 4, "genres": ["Blues", "Rock", "Jazz"], "tempo": "Any" },
+      "scale_blues_major": { "tension": 3, "genres": ["Blues", "Country", "Rock"], "tempo": "Any" },
+      "scale_hirajoshi": { "tension": 5, "genres": ["World", "Cinematic", "Ambient"], "tempo": "Any" },
+      "scale_hungarian_minor": { "tension": 7, "genres": ["World", "Gypsy", "Classical"], "tempo": "Any" },
+      "scale_whole_tone": { "tension": 8, "genres": ["Jazz", "Cinematic", "Impressionist"], "tempo": "Suspense" },
+      "scale_chromatic": { "tension": 10, "genres": ["Avant-Garde", "Jazz"], "tempo": "Transition" }
+    }
   }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BRICKS } from '../../core/bricks';
-import { SCALES, generateChordsFromNNS, toRoman } from '../../core/theory';
+import { SCALES, generateChordsFromNNS, toRoman, getNextChordSuggestions } from '../../core/theory';
+import { calculatePlayabilityScore } from '../../core/harmonyEngine';
 import { useAppContext } from '../../context/AppContext';
 import StudioInfoBlock from './StudioInfoBlock';
 import LcdScreen from '../Common/LcdScreen';
@@ -60,6 +61,14 @@ const StudioPanel = ({
     return txt.chordQualMaj || 'Maj.';
   };
 
+  const currentChords = activeBrick ? generateChordsFromNNS(
+    activeBrick.rootValue,
+    activeBrick.scaleKey,
+    activeProgression
+  ) : [];
+
+  const playability = calculatePlayabilityScore(currentChords);
+
   return (
     <div
       className="vintage-chassis"
@@ -78,13 +87,13 @@ const StudioPanel = ({
             value={currentBrickIndex}
             onChange={(val) => setCurrentBrickIndex(Number(val))}
             options={[
-              { label: "🎷 Jazz & Bossa", items: BRICKS.filter(b => b._group === 'jazz').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-              { label: "🌍 World & Groove", items: BRICKS.filter(b => b._group === 'world').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-              { label: "🎤 Urban & Hip-Hop", items: BRICKS.filter(b => b._group === 'urban').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-              { label: "🎓 Progressions Expertes (NNS)", items: BRICKS.filter(b => b._group === 'expert_progressions').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] || b.name.en })) },
-              { label: "🎹 Pop & Funk", items: BRICKS.filter(b => b._group === 'pop').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-              { label: "🎸 Rock & Metal", items: BRICKS.filter(b => b._group === 'rock').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-              { label: "🎧 Electronic", items: BRICKS.filter(b => b._group === 'electronic').map((b, i) => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🎷 Jazz & Bossa", items: BRICKS.filter(b => b._group === 'jazz').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🌍 World & Groove", items: BRICKS.filter(b => b._group === 'world').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🎤 Urban & Hip-Hop", items: BRICKS.filter(b => b._group === 'urban').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🎓 Progressions Expertes (NNS)", items: BRICKS.filter(b => b._group === 'expert_progressions').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] || b.name.en })) },
+              { label: "🎹 Pop & Funk", items: BRICKS.filter(b => b._group === 'pop').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🎸 Rock & Metal", items: BRICKS.filter(b => b._group === 'rock').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
+              { label: "🎧 Electronic", items: BRICKS.filter(b => b._group === 'electronic').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
             ]}
             theme="vintage" /* Style selector inside LCD is always vintage style */
           />
@@ -273,11 +282,7 @@ const StudioPanel = ({
         <br />
         <div className="magic-progression-container" style={{ position: "relative", zIndex: 5 }}>
 
-          {generateChordsFromNNS(
-            activeBrick.rootValue,
-            activeBrick.scaleKey,
-            activeProgression,
-          ).map((c, i) => {
+          {currentChords.map((c, i, arr) => {
             const isSelected =
               clickedChord && clickedChord.nns === c.nns;
             const chordText =
@@ -289,8 +294,23 @@ const StudioPanel = ({
                     ? c.chordNameUS
                     : c.chordNameEU;
 
+            const isAntiClimax = (i === arr.length - 1 && c.role?.startsWith("Tonic") && arr.length >= 3);
+
             return (
-              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", position: "relative" }}>
+                {/* Tension Alert (G.2.5) */}
+                {isAntiClimax && (
+                  <div 
+                    title="Alerte tension : Terminer sur la Tonique casse la boucle. Essayez une Dominante (V) pour relancer la progression."
+                    style={{ position: "absolute", top: "-20px", fontSize: "12px", cursor: "help" }}
+                  >
+                    ⚠️
+                  </div>
+                )}
+                {/* DEGREE ANALYSIS (G.2.1) */}
+                <span style={{ fontSize: "14px", color: "#90caf9", fontWeight: "bold", marginBottom: "2px" }}>
+                  {toRoman(c.nns)}
+                </span>
                 <button
                   onClick={() => {
                     log("studio", `Selecting magic chord ${c.chordNameUS}`, c);
@@ -318,7 +338,7 @@ const StudioPanel = ({
           })}
         </div>
         {clickedChord && (
-          <div style={{ marginTop: "15px" }}>
+          <div style={{ marginTop: "15px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
             <button
               onClick={() => {
                 setClickedChord(null);
@@ -328,6 +348,29 @@ const StudioPanel = ({
             >
               {txt.backRoot}
             </button>
+            
+            {/* Chord Suggestions (G.3.4) */}
+            {(() => {
+              const suggestions = getNextChordSuggestions(clickedChord.nns);
+              if (suggestions.length === 0) return null;
+              
+              return (
+                <div 
+                  className="dict-panel__emotion-card" 
+                  style={{ fontSize: "12px", width: "100%", textAlign: "center" }}
+                >
+                  <div style={{ color: "#facc15", fontWeight: "bold", marginBottom: "8px" }}>💡 Accords Suivants Suggérés</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {suggestions.map((s, idx) => (
+                      <div key={idx} style={{ background: "rgba(0,0,0,0.2)", padding: "4px", borderRadius: "4px" }}>
+                        <strong>{toRoman(s.chord)}</strong> <br/>
+                        <span style={{ fontSize: "10px", color: "#ccc" }}>{s.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
         {inversionText && (
@@ -340,6 +383,61 @@ const StudioPanel = ({
             }}
           >
             🎹 {inversionText}
+          </div>
+        )}
+
+        {/* Playability Score Gauge (G.4.3) */}
+        {currentChords.length > 0 && (
+          <div style={{
+            marginTop: "25px",
+            padding: "15px",
+            background: "rgba(0,0,0,0.4)",
+            borderRadius: "12px",
+            border: `1px solid ${playability.color}40`,
+            textAlign: "center"
+          }}>
+            <div style={{ fontSize: "12px", color: "#ccc", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
+              📊 {txt.playabilityScore || "Score de Jouabilité"}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "15px", justifyContent: "center" }}>
+              <div style={{ 
+                fontSize: "24px", 
+                fontWeight: "bold", 
+                color: playability.color,
+                textShadow: `0 0 10px ${playability.color}80` 
+              }}>
+                {playability.score}/100
+              </div>
+              <div style={{ fontSize: "14px", color: playability.color }}>
+                {playability.label}
+              </div>
+            </div>
+            
+            <div style={{ 
+              width: "100%", 
+              height: "6px", 
+              background: "rgba(255,255,255,0.1)", 
+              borderRadius: "3px",
+              marginTop: "10px",
+              overflow: "hidden"
+            }}>
+              <div style={{
+                width: `${playability.score}%`,
+                height: "100%",
+                background: playability.color,
+                transition: "width 0.5s ease-in-out"
+              }} />
+            </div>
+
+            {playability.details.length > 0 && (
+              <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                {playability.details.map((detail, idx) => (
+                  <div key={idx} style={{ fontSize: "11px", color: "#aaa" }}>
+                    • {detail}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
