@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppContext } from "../../context/AppContext";
-import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord, resolveChordSemitones, resolveScaleSemitones, getChordShortName, resolveChordFromShortName } from "../../core/theory";
+import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord, resolveChordSemitones, resolveScaleSemitones, getChordShortName, resolveChordFromShortName, getRelatedScales, getAbsoluteChordSuggestions } from "../../core/theory";
 import VoicingAlert from "../Intelligence/VoicingAlert";
 import CustomSelect from "../Common/CustomSelect";
 import DualToggle from "../Common/DualToggle";
@@ -8,6 +8,7 @@ import { log } from "../../utils/debug";
 import { getAvailableGuitarFingerings, getAvailableBassFingerings, getAvailableScaleFingerings, getAvailableSingleNoteFingerings } from "../../core/fingeringLogic";
 import HarmonicSeriesPanel from "./HarmonicSeriesPanel";
 import expertData from "../../core/expert_theory_data.json";
+import extendedData from "../../core/extendedTheoryData.json";
 
 // Map dictType keys to translation keys for scale names
 const SCALE_LABEL_MAP = {
@@ -113,7 +114,6 @@ export default function DictionaryPanel({
   const groupedScales = getGroupedScales();
   const groupedChords = getGroupedChords();
 
-  // Get the current item's emotion for the info tooltip (works for both scales and chords)
   const currentItem = SCALES[dictType] || CHORDS[dictType] || null;
   const emotionText = currentItem
     ? currentItem.emotion[lang] || currentItem.emotion.en
@@ -121,6 +121,44 @@ export default function DictionaryPanel({
   const descriptionText = currentItem
     ? currentItem.description[lang] || currentItem.description.en
     : null;
+
+  let moodProfile = null;
+  if (extendedData && extendedData.moodProfiles) {
+    if (family === 'chord') moodProfile = extendedData.moodProfiles.chords[dictType];
+    if (family === 'scale') moodProfile = extendedData.moodProfiles.scales[dictType];
+  }
+
+  const renderMoodProfile = () => {
+    if (!moodProfile) return null;
+    
+    // Tension Color
+    let tensionColor = "#4ade80"; // green
+    if (moodProfile.tension >= 4) tensionColor = "#facc15"; // yellow
+    if (moodProfile.tension >= 7) tensionColor = "#ef4444"; // red
+
+    return (
+      <div className="dict-panel__mood-profile" style={{ marginTop: "10px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+          <span style={{ fontSize: "11px", opacity: 0.7 }}>Tension</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ width: "60px", height: "4px", background: "rgba(255,255,255,0.1)", borderRadius: "2px", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${(moodProfile.tension / 10) * 100}%`, background: tensionColor }}></div>
+            </div>
+            <span style={{ fontSize: "11px", color: tensionColor, fontWeight: "bold", width: "16px", textAlign: "right" }}>{moodProfile.tension}</span>
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+          <span style={{ fontSize: "11px", opacity: 0.7 }}>Tempo</span>
+          <span style={{ fontSize: "11px" }}>{moodProfile.tempo}</span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "6px" }}>
+          {moodProfile.genres.map((g, i) => (
+            <span key={i} style={{ fontSize: "10px", padding: "2px 6px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px" }}>{g}</span>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const recommendedScales = family === "chord" ? getRecommendedScalesForChord(dictType) : [];
 
@@ -281,6 +319,7 @@ export default function DictionaryPanel({
                     {descriptionText}
                   </div>
                 )}
+                {renderMoodProfile()}
               </div>
             )}
 
@@ -337,6 +376,41 @@ export default function DictionaryPanel({
                 })()}
               </div>
             </div>
+            
+            {/* Chord Suggestions (G.3.4) */}
+            {(() => {
+              const suggestions = getAbsoluteChordSuggestions(dictRoot, dictType);
+              if (suggestions.length === 0) return null;
+              
+              return (
+                <div className="dict-panel__substitutions" style={{ marginTop: '1.2rem' }}>
+                  <div className="field-label" style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+                    💡 {txt.suggestedNextChords || "Accords Suivants Suggérés"}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {suggestions.map((s, idx) => {
+                      const noteStr = notation === "us" ? NOTES[s.targetRoot].us : NOTES[s.targetRoot].eu;
+                      const chordStr = txt[CHORD_LABEL_MAP[s.targetType]] || CHORDS[s.targetType]?.key;
+                      
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setDictRoot(s.targetRoot);
+                            setDictType(s.targetType);
+                          }}
+                          className="tag-btn"
+                          title={s.reason}
+                          style={{ fontSize: '0.75rem', padding: '6px 10px', borderRadius: '8px', background: 'rgba(250, 204, 21, 0.1)', border: '1px solid rgba(250, 204, 21, 0.3)' }}
+                        >
+                          <span style={{ fontWeight: 'bold', color: '#facc15' }}>{noteStr} {chordStr}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -367,6 +441,29 @@ export default function DictionaryPanel({
                     {descriptionText}
                   </div>
                 )}
+                {renderMoodProfile()}
+              </div>
+            )}
+
+            {/* Related/Parallel major/minor scale chips */}
+            {dictType.includes('scale') && (
+              <div className="dict-related-scales" style={{ display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+                {getRelatedScales(dictRoot, dictType).map((rel, idx) => {
+                  const rootName = notation === "us" ? NOTES[rel.rootValue].us : NOTES[rel.rootValue].eu;
+                  return (
+                    <button 
+                      key={idx}
+                      className="btn-premium"
+                      style={{ fontSize: "11px", padding: "4px 8px", cursor: "pointer" }}
+                      onClick={() => {
+                        setDictRoot(rel.rootValue);
+                        setDictType(rel.scaleKey);
+                      }}
+                    >
+                      {rel.label}: {rootName}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

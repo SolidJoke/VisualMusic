@@ -128,7 +128,9 @@ const InstrumentView = memo(function InstrumentView() {
             />
           )}
 
-          <Fretboard instrument="guitar" />
+          <div className="fretboard-scroll-container">
+            <Fretboard instrument="guitar" />
+          </div>
           
           <br />
 
@@ -148,7 +150,9 @@ const InstrumentView = memo(function InstrumentView() {
             />
           )}
 
-          <Fretboard instrument="bass" />
+          <div className="fretboard-scroll-container">
+            <Fretboard instrument="bass" />
+          </div>
         </div>
       )}
     </div>

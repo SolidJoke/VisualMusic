@@ -31,7 +31,8 @@ export function usePlaybackHandlers({
   setScaleAnchor,
   scaleAnchor,
   notation = 'us',
-  dictOctave = 0
+  dictOctave = 0,
+  useShellVoicings = false
 }) {
   const scheduler = useAudioScheduler({
     isAudioReady,
@@ -67,6 +68,7 @@ export function usePlaybackHandlers({
     setClickedChord,
     notation,
     scheduler,
+    useShellVoicings
   });
 
   const { playSingleNote, autoPlayNote } = useFretboardPlayback({

@@ -1,8 +1,9 @@
 import { useCallback } from "react";
-import { NOTES, resolveNnsToChordType, getClosestInversion } from "../core/theory";
+import { NOTES, resolveNnsToChordType, getClosestInversion, getClosestInversionN, resolveChordSemitones } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches } from "./playbackUtils";
+import { applyShellVoicing } from "../core/voicingEngine";
 
 export function useStudioPlayback({
   playbackInstrument,
@@ -16,6 +17,7 @@ export function useStudioPlayback({
   setClickedChord,
   notation = 'us',
   scheduler,
+  useShellVoicings = false,
 }) {
   const handleChordClick = useCallback(async (c, chordIndexInProgression) => {
     await scheduler.ensureAudioReady();
@@ -48,7 +50,16 @@ export function useStudioPlayback({
       const prevNotes = chordIndexInProgression === 0 ? [] : currentAbsoluteNotes;
       
       const baseOctave = 4 + (chordOctaveOffset || 0);
-      absolutePitches = getClosestInversion(prevNotes, rootVal, thirdInterval, fifthInterval, baseOctave);
+      const chordData = resolveChordSemitones(chordType);
+      const semitones = chordData ? chordData.semitones : [0, thirdInterval, fifthInterval];
+      
+      absolutePitches = getClosestInversionN(prevNotes, rootVal, semitones, baseOctave);
+    }
+    
+    if (useShellVoicings && playbackInstrument === "piano") {
+       // Only apply shell voicings for piano to avoid breaking guitar fingering maps
+       const baseMidiRoot = (4 + (chordOctaveOffset || 0)) * 12 + rootVal;
+       absolutePitches = applyShellVoicing(absolutePitches, baseMidiRoot);
     }
 
     const notesToPlay = absolutePitches.map((n) => {

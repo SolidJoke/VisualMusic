@@ -3,27 +3,105 @@
   top: 0;
   left: 0;
   height: 100vh;
-  min-height: 100%; /* Ensure it spans the full container even if viewport varies */
-  z-index: 2000; /* Ensure it stays above EVERYTHING (Header 600, etc) */
+  min-height: 100%;
+  z-index: 2000;
   transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   overflow: visible;
 }
 
-.app-sidebar.is-open {
-  width: 420px;
+.app-sidebar.is-open  { width: 420px; }
+.app-sidebar.is-closed { width: 60px; }
+
+/* ─── Fixed Header (mode selector + play + BPM) ─────────────────────────── */
+
+.sidebar-fixed-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: inherit;
+  z-index: 10;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
-.app-sidebar.is-closed {
-  width: 60px;
+.app-sidebar.is-closed .sidebar-fixed-header {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
+
+/* Mode selector row */
+.sidebar-mode-row {
+  display: flex;
+  gap: 5px;
+}
+
+.sidebar-mode-row .btn-premium {
+  flex: 1;
+  padding: 9px 6px;
+  font-size: 0.82rem;
+}
+
+/* Play + BPM row */
+.sidebar-play-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-play-row .btn-playback-premium {
+  flex: 1;
+  min-height: 36px;
+}
+
+/* BPM badge — clickable, toggles inline input */
+.bpm-badge {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 5px 9px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-weight: bold;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.bpm-badge:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--accent);
+}
+
+.bpm-badge input {
+  width: 44px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: bold;
+  text-align: center;
+  padding: 0;
+  cursor: text;
+}
+
+/* ─── Sidebar scrollable content ─────────────────────────────────────────── */
 
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
-  overflow-x: visible; /* CRITICAL: Allow CustomSelect popups to be visible outside the sidebar width */
-  padding: 60px 15px 30px 15px;
+  overflow-x: visible; /* CRITICAL: Allow CustomSelect popups to overflow */
+  padding: 15px 15px 30px 15px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -36,7 +114,8 @@
   pointer-events: none;
 }
 
-/* Toggle Button */
+/* ─── Toggle Button ──────────────────────────────────────────────────────── */
+
 .sidebar-toggle {
   position: absolute;
   top: 20px;
@@ -62,7 +141,44 @@
   transform: scale(1.1);
 }
 
-/* Theme specific styles */
+/* ─── Rail Icons (visible when sidebar is closed) ────────────────────────── */
+
+.sidebar-rail-icons {
+  position: absolute;
+  top: 70px;
+  left: 0;
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-top: 10px;
+  transition: opacity 0.2s ease;
+}
+
+.app-sidebar.is-open .sidebar-rail-icons {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rail-icon {
+  font-size: 1.3rem;
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+
+.rail-icon.is-playing {
+  opacity: 1;
+  animation: rail-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes rail-pulse {
+  from { transform: scale(1);   opacity: 0.7; }
+  to   { transform: scale(1.2); opacity: 1;   }
+}
+
+/* ─── Theme styles ───────────────────────────────────────────────────────── */
+
 .app-sidebar.theme-modern {
   background: var(--lg-panel-bg);
   backdrop-filter: blur(40px) saturate(180%);
@@ -83,21 +199,20 @@
   background: linear-gradient(90deg, var(--vintage-wood-dark), var(--vintage-wood-light));
 }
 
-/* Scrollbar for sidebar */
-.sidebar-content::-webkit-scrollbar {
-  width: 6px;
-}
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+
+.sidebar-content::-webkit-scrollbar { width: 6px; }
 
 .sidebar-content::-webkit-scrollbar-thumb {
   background: var(--accent-dim);
   border-radius: 10px;
 }
 
-.sidebar-content::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
-}
+.sidebar-content::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
-/* Fix "brown square" bug: hide wooden side panels if they appear in the sidebar */
+/* ─── Internal component fixes ───────────────────────────────────────────── */
+
+/* Hide wood panels when chassis is inside sidebar */
 .app-sidebar .vintage-chassis::before,
 .app-sidebar .vintage-chassis::after {
   display: none !important;
@@ -112,18 +227,7 @@
   z-index: 60;
 }
 
-/* Fix z-index stacking context for CustomSelect dropdowns */
-.dict-panel {
-  position: relative;
-  z-index: 100; /* Increased to ensure it's above ControlPanel */
-}
-
-.control-panel-container {
-  position: relative;
-  z-index: 50;
-}
-
-.playback-panel-container {
-  position: relative;
-  z-index: 10;
-}
+/* z-index stacking for CustomSelect dropdowns */
+.dict-panel             { position: relative; z-index: 100; }
+.control-panel-container { position: relative; z-index: 50; }
+.playback-panel-container { position: relative; z-index: 10; }

@@ -22,7 +22,8 @@ export default function CompositionPanel({
   setSuggestedBassTrack,
   setCustomRhythm,
   setCustomDrums,
-  currentStep = -1
+  currentStep = -1,
+  txt = {}
 }) {
   // 1. Math State
   const [subdivisions, setSubdivisions] = useState(16);
@@ -187,7 +188,7 @@ export default function CompositionPanel({
     <div className="composition-panel" id="composition-panel">
       <div className="panel-header">
         <div className="panel-led-indicator pulse-slow"></div>
-        <h3>MATH COMPOSITION ASSISTANT</h3>
+        <h3>{txt.title || "MATH COMPOSITION ASSISTANT"}</h3>
         <div className="eurorack-screw top-left"></div>
         <div className="eurorack-screw top-right"></div>
       </div>
@@ -195,14 +196,14 @@ export default function CompositionPanel({
       <div className="panel-body">
         {/* Row 1: Preset Select */}
         <div className="panel-section presets-section">
-          <label className="section-label">RHYTHMIC PRESETS</label>
+          <label className="section-label">{txt.presets || "RHYTHMIC PRESETS"}</label>
           <div className="select-container">
             <select
               value={selectedPreset}
               onChange={handlePresetChange}
               className="retro-select"
             >
-              <option value="">-- CUSTOM GEOMETRY --</option>
+              <option value="">{txt.customGeo || "-- CUSTOM GEOMETRY --"}</option>
               {Object.entries(EUCLIDEAN_PRESETS).map(([key, value]) => (
                 <option key={key} value={key}>
                   {value.label} (E({value.k}, {value.n}))
@@ -214,11 +215,11 @@ export default function CompositionPanel({
 
         {/* Row 2: Sliders & Controls */}
         <div className="panel-section sliders-section">
-          <label className="section-label">GEOMETRIC PARAMETERS</label>
+          <label className="section-label">{txt.geoParams || "GEOMETRIC PARAMETERS"}</label>
 
           <div className="slider-group">
             <div className="slider-header">
-              <span>SUBDIVISIONS (n)</span>
+              <span>{txt.subdivisions || "SUBDIVISIONS (n)"}</span>
               <span className="lcd-value">{subdivisions}</span>
             </div>
             <input
@@ -233,7 +234,7 @@ export default function CompositionPanel({
 
           <div className="slider-group">
             <div className="slider-header">
-              <span>PULSES / BEATS (k)</span>
+              <span>{txt.pulses || "PULSES / BEATS (k)"}</span>
               <span className="lcd-value">{pulses}</span>
             </div>
             <input
@@ -248,7 +249,7 @@ export default function CompositionPanel({
 
           <div className="slider-group">
             <div className="slider-header">
-              <span>ROTATION / SHIFT (r)</span>
+              <span>{txt.rotation || "ROTATION / SHIFT (r)"}</span>
               <span className="lcd-value">{rotation}</span>
             </div>
             <input
@@ -265,7 +266,7 @@ export default function CompositionPanel({
         {/* Playback Controls */}
         <div className="panel-section playback-section">
             <button onClick={togglePlayback} className={`retro-btn ${isPlaying ? "active" : ""}`}>
-                {isPlaying ? "STOP" : "PLAY"}
+                {isPlaying ? (txt.stop || "STOP") : (txt.play || "PLAY")}
             </button>
             <div className="slider-group">
                 <span>BPM: {bpm}</span>
@@ -299,7 +300,7 @@ export default function CompositionPanel({
                 />
                 <span className="switch-slider"></span>
               </label>
-              <span className="switch-label">SHOW COMPLEMENTS</span>
+              <span className="switch-label">{txt.showComp || "SHOW COMPLEMENTS"}</span>
             </div>
 
             <div className="retro-switch-container">
@@ -317,7 +318,7 @@ export default function CompositionPanel({
                 />
                 <span className="switch-slider"></span>
               </label>
-              <span className="switch-label">PHASING MODE</span>
+              <span className="switch-label">{txt.phasingMode || "PHASING MODE"}</span>
             </div>
 
             <div className="retro-switch-container">
@@ -336,7 +337,7 @@ export default function CompositionPanel({
                 />
                 <span className="switch-slider"></span>
               </label>
-              <label htmlFor="isorhythm-mode-switch" className="switch-label">ISORHYTHM MODE</label>
+              <label htmlFor="isorhythm-mode-switch" className="switch-label">{txt.isoMode || "ISORHYTHM MODE"}</label>
             </div>
 
             <div className="retro-switch-container">
@@ -356,7 +357,7 @@ export default function CompositionPanel({
                 />
                 <span className="switch-slider"></span>
               </label>
-              <label htmlFor="meshuggah-mode-switch" className="switch-label">MESHUGGAH MODE</label>
+              <label htmlFor="meshuggah-mode-switch" className="switch-label">{txt.meshMode || "MESHUGGAH MODE"}</label>
             </div>
 
             <div className="retro-switch-container">
@@ -376,13 +377,13 @@ export default function CompositionPanel({
                 />
                 <span className="switch-slider"></span>
               </label>
-              <label htmlFor="polyrhythm-mode-switch" className="switch-label">POLYRHYTHM ALGEBRA</label>
+              <label htmlFor="polyrhythm-mode-switch" className="switch-label">{txt.polyAlg || "POLYRHYTHM ALGEBRA"}</label>
             </div>
 
             <div className="metadata-badge">
-              <span className="badge-title">SYMMETRY:</span>
+              <span className="badge-title">{txt.symmetry || "SYMMETRY:"}</span>
               <span className={`badge-value ${isSelfComp ? "self-comp" : ""}`}>
-                {isSelfComp ? "SELF-COMPLEMENTARY" : "ASYMMETRICAL"}
+                {isSelfComp ? (txt.selfComp || "SELF-COMPLEMENTARY") : (txt.asym || "ASYMMETRICAL")}
               </span>
             </div>
           </div>
@@ -390,7 +391,7 @@ export default function CompositionPanel({
 
         {/* Row 4: Binary Grid Display */}
         <div className="panel-section grid-section">
-          <label className="section-label">BINARY RHYTHM MATRIX</label>
+          <label className="section-label">{txt.grid || "BINARY RHYTHM MATRIX"}</label>
           <div className="binary-grid">
             {pattern.map((val, idx) => {
               const isActiveStep = activeStep >= 0 && (idx === activeStep % subdivisions);
@@ -412,10 +413,10 @@ export default function CompositionPanel({
 
         {showPhasing && (
           <div className="panel-section phasing-section">
-            <label className="section-label">PHASING VISUALIZER (STEVE REICH)</label>
+            <label className="section-label">{txt.phasingVis || "PHASING VISUALIZER (STEVE REICH)"}</label>
             <div className="slider-group">
               <div className="slider-header">
-                <span>PHASING SHIFT</span>
+                <span>{txt.phasingShift || "PHASING SHIFT"}</span>
                 <span className="lcd-value">+{phasingOffset}</span>
               </div>
               <input
@@ -437,10 +438,10 @@ export default function CompositionPanel({
 
         {showIsorhythm && (
           <div className="panel-section isorhythm-section">
-            <label className="section-label">ISORHYTHM ENGINE (TALEA & COLOR)</label>
+            <label className="section-label">{txt.isoEngine || "ISORHYTHM ENGINE (TALEA & COLOR)"}</label>
             
             <div className="retro-input-container">
-              <span className="input-label">PITCH COLOR SEQUENCE:</span>
+              <span className="input-label">{txt.pitchSeq || "PITCH COLOR SEQUENCE:"}</span>
               <input
                 type="text"
                 value={isorhythmPitches}
@@ -454,15 +455,15 @@ export default function CompositionPanel({
               <div className="isorhythm-display">
                 <div className="isorhythm-lcd-row">
                   <div className="lcd-panel">
-                    <span className="lcd-label">TALEA PLS:</span>
+                    <span className="lcd-label">{txt.taleaPls || "TALEA PLS:"}</span>
                     <span className="lcd-value">{isorhythmResult.pulses}</span>
                   </div>
                   <div className="lcd-panel">
-                    <span className="lcd-label">COLOR LEN:</span>
+                    <span className="lcd-label">{txt.colorLen || "COLOR LEN:"}</span>
                     <span className="lcd-value">{isorhythmResult.colorLength}</span>
                   </div>
                   <div className="lcd-panel">
-                    <span className="lcd-label">CYCLE STEPS:</span>
+                    <span className="lcd-label">{txt.cycleSteps || "CYCLE STEPS:"}</span>
                     <span className="lcd-value">{isorhythmResult.totalSteps}</span>
                   </div>
                 </div>
@@ -476,7 +477,7 @@ export default function CompositionPanel({
                         className={`isorhythm-step-cell ${note ? "has-note" : "is-rest"} ${isActive ? "active-step" : ""}`}
                       >
                         <span className="step-idx">{idx + 1}</span>
-                        <span className="step-note">{note || "REST"}</span>
+                        <span className="step-note">{note || (txt.rest || "REST")}</span>
                       </div>
                     );
                   })}
@@ -488,12 +489,12 @@ export default function CompositionPanel({
 
         {showRealignment && (
           <div className="panel-section realignment-section">
-            <label className="section-label">FORCED REALIGNMENT (MESHUGGAH CALCULATOR)</label>
+            <label className="section-label">{txt.realignment || "FORCED REALIGNMENT (MESHUGGAH CALCULATOR)"}</label>
             
             <div className="slider-group">
               <div className="slider-header">
-                <span>METRIC BOUNDARY</span>
-                <span className="lcd-value">{realignmentBoundary} STEPS</span>
+                <span>{txt.metricBound || "METRIC BOUNDARY"}</span>
+                <span className="lcd-value">{realignmentBoundary} {txt.steps || "STEPS"}</span>
               </div>
               <input
                 type="range"
@@ -530,21 +531,21 @@ export default function CompositionPanel({
         {/* COMP-08 — Polyrhythm Algebra Section */}
         {showPolyrhythm && (
           <div className="panel-section polyrhythm-section">
-            <label className="section-label">POLYRHYTHM ALGEBRA (ANDREW MILNE)</label>
+            <label className="section-label">{txt.polyEngine || "POLYRHYTHM ALGEBRA (ANDREW MILNE)"}</label>
 
             {/* Balance indicator */}
             {balanceInfo && (
               <div className={`balance-indicator ${balanceInfo.isBalanced ? 'balanced' : 'unbalanced'}`}>
-                <span className="lcd-label">BARYCENTER:</span>
+                <span className="lcd-label">{txt.barycenter || "BARYCENTER:"}</span>
                 <span className="lcd-value balance-status">
-                  {balanceInfo.isBalanced ? '✦ PERFECTLY BALANCED' : `⊕ OFFSET ${(balanceInfo.offset * 100).toFixed(1)}%`}
+                  {balanceInfo.isBalanced ? (txt.perfectBal || "✦ PERFECTLY BALANCED") : `${txt.offset || "⊕ OFFSET"} ${(balanceInfo.offset * 100).toFixed(1)}%`}
                 </span>
               </div>
             )}
 
             {/* Polygon operations editor */}
             <div className="poly-ops-editor">
-              <span className="input-label">POLYGON OPERATIONS:</span>
+              <span className="input-label">{txt.polyOps || "POLYGON OPERATIONS:"}</span>
               {polyOps.map((op, idx) => {
                 const polyColors = ['#a78bfa', '#f59e0b', '#34d399', '#f87171', '#60a5fa'];
                 const color = polyColors[idx % polyColors.length];
@@ -595,8 +596,8 @@ export default function CompositionPanel({
                       }}
                       className="retro-select mini poly-op-select"
                     >
-                      <option value="+">+ ADD</option>
-                      <option value="-">- SUB</option>
+                      <option value="+">{txt.add || "+ ADD"}</option>
+                      <option value="-">{txt.sub || "- SUB"}</option>
                     </select>
 
                     {polyOps.length > 1 && (
@@ -615,7 +616,7 @@ export default function CompositionPanel({
                   onClick={() => setPolyOps([...polyOps, { k: 3, offset: 0, op: '+' }])}
                   className="retro-btn poly-add-btn"
                 >
-                  + ADD POLYGON
+                  {txt.addPoly || "+ ADD POLYGON"}
                 </button>
               )}
             </div>
@@ -623,7 +624,7 @@ export default function CompositionPanel({
             {/* Result binary grid */}
             {polyrhythmResult && (
               <div className="polyrhythm-result">
-                <span className="input-label">ALGEBRAIC RESULT:</span>
+                <span className="input-label">{txt.algResult || "ALGEBRAIC RESULT:"}</span>
                 <div className="binary-grid">
                   {polyrhythmResult.pattern.map((val, idx) => {
                     const isActiveStep = activeStep >= 0 && (idx === activeStep % subdivisions);
@@ -645,21 +646,21 @@ export default function CompositionPanel({
 
         {/* Row 5: Export to Sequencer */}
         <div className="panel-section export-section">
-          <label className="section-label">SEQUENCER EXPORT PANEL</label>
+          <label className="section-label">{txt.exportPanel || "SEQUENCER EXPORT PANEL"}</label>
           
           <div className="export-controls">
             <div className="target-select">
-              <span>TARGET:</span>
+              <span>{txt.target || "TARGET:"}</span>
               <select
                 value={exportTarget}
                 onChange={(e) => setExportTarget(e.target.value)}
                 className="retro-select mini"
               >
-                <option value="Kick">KICK DRUM</option>
-                <option value="Snare">SNARE DRUM</option>
-                <option value="Hat">HI-HAT</option>
-                <option value="Bass">BASS LINE</option>
-                <option value="Chords">CHORD RHYTHM</option>
+                <option value="Kick">{txt.kick || "KICK DRUM"}</option>
+                <option value="Snare">{txt.snare || "SNARE DRUM"}</option>
+                <option value="Hat">{txt.hat || "HI-HAT"}</option>
+                <option value="Bass">{txt.bass || "BASS LINE"}</option>
+                <option value="Chords">{txt.chordsOut || "CHORD RHYTHM"}</option>
               </select>
             </div>
 
@@ -667,7 +668,7 @@ export default function CompositionPanel({
               onClick={handleExport}
               className={`retro-btn export-btn ${showExportSuccess ? "success" : ""}`}
             >
-              {showExportSuccess ? "RHYTHM DEPLOYED !" : "EXPORT TO TRACK"}
+              {showExportSuccess ? (txt.exportSuccess || "RHYTHM DEPLOYED !") : (txt.exportBtn || "EXPORT TO TRACK")}
             </button>
           </div>
 
@@ -677,7 +678,7 @@ export default function CompositionPanel({
               className="retro-btn clear-btn"
               title="Reset all tracks back to original brick rhythm patterns"
             >
-              RESET ALL OVERRIDES
+              {txt.resetAll || "RESET ALL OVERRIDES"}
             </button>
           </div>
         </div>

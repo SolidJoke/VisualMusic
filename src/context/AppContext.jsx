@@ -19,7 +19,8 @@ const initialState = {
   uiTheme: 'vintage',
   showLegend: false,
   harmonicMode: false,
-  highlightTargetNotes: false
+  highlightTargetNotes: false,
+  useShellVoicings: false
 };
 
 function appReducer(state, action) {

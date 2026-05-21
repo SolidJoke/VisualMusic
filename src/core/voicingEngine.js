@@ -233,3 +233,23 @@ function _checkUnplayableStretch(midiNotes) {
     max: PIANO_MAX_NOTES,
   };
 }
+
+/**
+ * Applies a shell voicing reduction to an array of MIDI notes.
+ * Omits the perfect 5th (7 semitones from root) to lighten the chord,
+ * prioritizing Root, 3rd, and 7th. Essential for Jazz voicings.
+ * 
+ * @param {number[]} midiNotes - Absolute MIDI notes of the chord
+ * @param {number} rootMidi - The absolute MIDI note of the root (used as reference)
+ * @returns {number[]} Filtered array of MIDI notes
+ */
+export function applyShellVoicing(midiNotes, rootMidi) {
+  if (!midiNotes || midiNotes.length <= 3) return midiNotes; // Don't reduce triads
+
+  return midiNotes.filter(note => {
+    const intervalFromRoot = ((note - rootMidi) % 12 + 12) % 12;
+    // Omit perfect 5th (7 semitones)
+    if (intervalFromRoot === 7) return false;
+    return true;
+  });
+}

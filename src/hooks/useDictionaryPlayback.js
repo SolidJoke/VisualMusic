@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { NOTES, SCALES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute } from "../core/theory";
+import { NOTES, SCALES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { logScalePosition, logPlaybackSequence, logNotePlay } from "../core/debugScale";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches, buildAscDescSequence } from "./playbackUtils";
@@ -95,10 +95,14 @@ export function useDictionaryPlayback({
       }
 
       if (absolutePitches.length === 0) {
-        const chordData = resolveChordSemitones(dictType);
-        const semitones = chordData ? chordData.semitones : CHORDS["chord_major"].semitones;
         const baseOctave = 4 + (chordOctaveOffset || 0);
-        absolutePitches = getChordNotesAbsolute(Number(dictRoot), semitones, baseOctave);
+        absolutePitches = getChordAbsolute(Number(dictRoot), dictType, baseOctave);
+        
+        if (!absolutePitches || absolutePitches.length === 0) {
+          const chordData = resolveChordSemitones(dictType);
+          const semitones = chordData ? chordData.semitones : CHORDS["chord_major"].semitones;
+          absolutePitches = getChordNotesAbsolute(Number(dictRoot), semitones, baseOctave);
+        }
       }
 
       notesToPlay = absolutePitches.map((p) => {

@@ -829,6 +829,14 @@ input[type="range"]::-webkit-slider-runnable-track {
   margin-top: 0.75rem;
 }
 
+.fretboard-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding-bottom: 8px;
+}
+
 /* ═══════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════ */
@@ -1157,4 +1165,67 @@ input[type="range"]::-webkit-slider-runnable-track {
 }
 .app-footer-text:hover {
   color: #ccc;
-}
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE-FIRST RESPONSIVE LAYOUT & TOUCH TARGETS (DES-3.2 / DES-3.4)
+═══════════════════════════════════════════════════════ */
+
+/* Mobile-First layout: Flex column by default */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  width: 100%;
+}
+
+/* Fretboard scrolling wrapper */
+.fretboard-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+/* Ensure Fretboard doesn't shrink when scrolling */
+.fretboard-scroll-container svg {
+  min-width: 800px; /* Minimum width for scrollability on mobile */
+  display: block;
+}
+
+/* Responsive grid layout on desktop (>= 1024px) */
+@media (min-width: 1024px) {
+  .app-container {
+    display: flex; /* keep flex since inner elements are block/flex */
+  }
+}
+
+/* Tactile Touch Targets: guarantee 44px min-height on small screens */
+@media (max-width: 768px) {
+  button, 
+  select, 
+  .btn-premium, 
+  .btn-segment, 
+  .btn-header-action, 
+  .select-lang,
+  .custom-select__trigger,
+  .btn-toggle,
+  .btn-playback-premium {
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+  
+  /* Select inputs internal padding adjustments */
+  select {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+}
+

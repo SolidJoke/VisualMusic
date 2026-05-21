@@ -1,4 +1,8 @@
 // src/core/theory.js
+import { getScaleNotesAdapter, getChordNotesAbsoluteAdapter } from './tonal-adapter';
+import expertData from './expert_theory_data.json';
+
+export const getChordAbsolute = getChordNotesAbsoluteAdapter;
 
 export const NOTES = [
     { value: 0, us: 'C', eu: 'Do' }, { value: 1, us: 'C#', eu: 'Do#' },
@@ -119,18 +123,7 @@ export const FINGERING_SHAPES = {
 };
 
 export function getScaleNotes(rootValue, scaleKey) {
-    const scale = SCALES[scaleKey];
-    if (!scale) return [];
-    const mode = scale.intervals;
-    let currentNotes = [];
-    let currentIndex = rootValue;
-    let order = 1;
-    mode.forEach(interval => {
-        const note = NOTES.at(currentIndex % 12);
-        currentNotes.push({ ...note, order: order++ });
-        currentIndex += interval;
-    });
-    return currentNotes;
+    return getScaleNotesAdapter(rootValue, scaleKey);
 }
 
 export function generateChordsFromNNS(rootValue, scaleKey, nnsArray) {
@@ -322,6 +315,20 @@ export const resolveScaleSemitones = (dictType) => {
         semitones.push(current);
     }
     return semitones;
+};
+
+export const getRelatedScales = (rootValue, scaleKey) => {
+    const root = Number(rootValue);
+    const related = [];
+    
+    if (scaleKey === 'scale_major') {
+        related.push({ label: 'Relative Minor', rootValue: (root + 9) % 12, scaleKey: 'scale_minor' });
+        related.push({ label: 'Parallel Minor', rootValue: root, scaleKey: 'scale_minor' });
+    } else if (scaleKey === 'scale_minor') {
+        related.push({ label: 'Relative Major', rootValue: (root + 3) % 12, scaleKey: 'scale_major' });
+        related.push({ label: 'Parallel Major', rootValue: root, scaleKey: 'scale_major' });
+    }
+    return related;
 };
 
 // ---------------------------------------------------------
@@ -571,6 +578,125 @@ export const CHORD_SCALE_MAP = {
  */
 export const getRecommendedScalesForChord = (chordType) => {
     return CHORD_SCALE_MAP[chordType] || [];
+};
+
+/**
+ * Returns suggested next chords (diatonic and secondary dominants) for a given NNS degree.
+ * Accepts both numeric NNS format ('2-', '5', '7°') and roman format ('vi', 'VI7', 'vii°').
+ * @param {string} currentNns - The NNS degree of the current chord (e.g. '2-', 'VI7')
+ * @returns {Array} Array of suggestions { chord: string, reason: string }
+ */
+export const getNextChordSuggestions = (currentNns) => {
+    if (!currentNns) return [];
+    
+    const mapping = expertData.harmonicSubstitutions.secondaryDominants;
+    
+    // If the current chord IS already a secondary dominant string (e.g. 'VI7', 'II7'),
+    // check the raw input directly against the mapping values first.
+    for (const [target, dom] of Object.entries(mapping)) {
+        if (currentNns === dom) {
+            return [{ chord: target, reason: 'Résolution naturelle (Dominante Secondaire)' }];
+        }
+    }
+
+    // Convert numeric NNS to roman notation for diatonicFlow lookup ('2-' → 'ii', '5' → 'V').
+    // toRoman handles both numeric and already-roman inputs gracefully.
+    const romanNns = toRoman(currentNns);
+    
+    // Normalise: strip the diminished suffix '°' for the diatonicFlow lookup key
+    // e.g. 'vii°' → 'vii', 'VII°' → 'VII'
+    const romanBase = romanNns.replace('°', '');
+    
+    const suggestions = [];
+    
+    // Standard diatonic flow (Circle of fifths mostly)
+    const diatonicFlow = {
+        'I':   'IV', // I → IV or V (special case below)
+        'ii':  'V',
+        'iii': 'vi',
+        'IV':  'V',
+        'V':   'I',
+        'vi':  'ii',
+        'vii': 'I'
+    };
+    
+    const nextDiatonic = diatonicFlow[romanBase];
+    if (nextDiatonic) {
+        suggestions.push({ chord: nextDiatonic, reason: 'Enchaînement diatonique classique' });
+        // If the current chord can be transformed into a secondary dominant to reach the next chord
+        const targetDominant = mapping[nextDiatonic];
+        if (targetDominant) {
+            suggestions.push({ 
+                chord: targetDominant, 
+                reason: `Transformation en dominante pour viser ${toRoman(nextDiatonic)}` 
+            });
+        }
+    }
+    
+    // Special case for I: can also go to V or vi (in addition to IV)
+    if (romanBase === 'I') {
+        suggestions.push({ chord: 'V', reason: 'Mouvement vers la dominante' });
+        suggestions.push({ chord: 'vi', reason: 'Mouvement vers la relative mineure' });
+    }
+    
+    return suggestions;
+};
+
+
+/**
+ * Returns suggested next chords for an absolute chord (Dictionary Mode).
+ * Since we don't have a tonal context, we use standard functional harmony resolutions.
+ * @param {number} rootValue - Chromatic root (0-11)
+ * @param {string} dictType - Chord type key (e.g. 'chord_major', 'chord_7')
+ * @returns {Array} Array of suggestions { targetRoot: number, targetType: string, reason: string }
+ */
+export const getAbsoluteChordSuggestions = (rootValue, dictType) => {
+    const suggestions = [];
+    
+    // Perfect 4th ascending (5 semitones)
+    const p4 = (rootValue + 5) % 12;
+    
+    if (dictType === 'chord_7' || dictType === 'chord_9' || dictType === 'chord_13') {
+        suggestions.push({
+            targetRoot: p4,
+            targetType: 'chord_major',
+            reason: 'Résolution parfaite (V -> I)'
+        });
+        suggestions.push({
+            targetRoot: p4,
+            targetType: 'chord_minor',
+            reason: 'Résolution parfaite mineure (V -> i)'
+        });
+    } 
+    else if (dictType === 'chord_minor' || dictType === 'chord_m7' || dictType === 'chord_m9') {
+        suggestions.push({
+            targetRoot: p4,
+            targetType: 'chord_7',
+            reason: 'Progression Jazz (ii -> V)'
+        });
+    }
+    else if (dictType === 'chord_major' || dictType === 'chord_maj7') {
+        suggestions.push({
+            targetRoot: p4,
+            targetType: 'chord_major',
+            reason: 'Mouvement de Sous-Dominante (I -> IV)'
+        });
+        // Dominant transformation (Secondary dominant V/IV)
+        suggestions.push({
+            targetRoot: rootValue,
+            targetType: 'chord_7',
+            reason: 'Transformation en dominante (I -> I7)'
+        });
+    }
+    else if (dictType === 'chord_m7b5' || dictType === 'chord_dim7') {
+        suggestions.push({
+            targetRoot: p4,
+            targetType: 'chord_7',
+            reason: 'Progression mineure (ii° -> V)'
+        });
+    }
+    
+    return suggestions;
 };
 
 export const PITCH_MAP = {

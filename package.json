@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@tonaljs/tonal": "^4.10.0",
     "@tonejs/midi": "^2.0.28",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
