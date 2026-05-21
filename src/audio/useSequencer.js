@@ -305,7 +305,7 @@ export function useSequencer({
     }
 
     if (isPlaying) {
-      Tone.Transport.pause();
+      Tone.Transport.stop();
       setIsPlaying(false);
     } else {
       Tone.Transport.start();
