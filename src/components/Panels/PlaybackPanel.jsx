@@ -52,6 +52,10 @@ const PlaybackPanel = ({
       <MixerPanel
         instrumentVolumes={instrumentVolumes}
         handleInstrumentVolumeChange={handleInstrumentVolumeChange}
+        masterVolume={masterVolume}
+        setMasterVolume={setMasterVolume}
+        txt={txt}
+        uiTheme={uiTheme}
         isPlaying={isPlaying}
       />
 

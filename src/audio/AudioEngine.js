@@ -16,7 +16,14 @@ import * as Tone from "tone";
 import { DRUM_PRESETS, BASS_PRESETS, PIANO_PRESET } from "./InstrumentPresets";
 
 // ─── Safety & Analysis: Hard Limiter and FFT ──────────────────────────
-// const limiter = new Tone.Limiter({ threshold: -1 }); // Crashes on Tone.js v15 module load
+const masterLimiter = new Tone.Compressor({
+  threshold: -6,
+  ratio: 20,
+  attack: 0.001,
+  release: 0.1,
+  knee: 3
+});
+
 export const masterAnalyser = new Tone.Analyser({
   type: "fft",
   size: 64, // 64 bins for a chunky, sleek visualizer
@@ -38,7 +45,7 @@ export const instrumentVols = {
  */
 export function setInstrumentVolume(instrument, dbValue) {
   if (instrumentVols[instrument]) {
-    instrumentVols[instrument].volume.value = dbValue;
+    instrumentVols[instrument].volume.rampTo(dbValue, 0.05);
   }
 }
 
@@ -48,10 +55,11 @@ export function setBpm(bpm) {
 
 export async function startAudioEngine() {
   await Tone.start();
+  Tone.context.lookAhead = 0.1; // 100ms buffer — réduit les glitches sous charge CPU
 }
 
 export function setMasterVolume(vol) {
-  Tone.Destination.volume.value = vol;
+  Tone.Destination.volume.rampTo(vol, 0.05);
 }
 
 // ─── Effects Bus ─────────────────────────────────────────────────────
@@ -361,6 +369,7 @@ export function applyGenrePreset(group) {
   });
 }
 
-masterAnalyser.connect(Tone.Destination);
+masterAnalyser.connect(masterLimiter);
+masterLimiter.connect(Tone.Destination);
 
 // ─── Exports ─────────────────────────────────────────────────────────

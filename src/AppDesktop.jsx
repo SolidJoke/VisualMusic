@@ -17,6 +17,7 @@ import { useStudioMode } from "./hooks/useStudioMode";
 import { useDictionaryMode } from "./hooks/useDictionaryMode";
 import { usePlaybackHandlers } from "./hooks/usePlaybackHandlers";
 import { useMusicEngine } from "./hooks/useMusicEngine";
+import useDebugExport from "./hooks/useDebugExport";
 import { translations } from "./i18n/translations";
 import AboutModal from "./components/Modals/AboutModal";
 import TheoryModal from "./components/Modals/TheoryModal";
@@ -30,7 +31,7 @@ import {
 } from "./audio/AudioEngine";
 
 
-function App() {
+function AppDesktop() {
   const { lang, txt, notation, state, dispatch } = useAppContext();
   const { 
     appMode,
@@ -212,9 +213,28 @@ function App() {
     chordOctaveOffset,
     setScaleAnchor,
     scaleAnchor,
-    notation,
     dictOctave,
     useShellVoicings
+  });
+
+  const { exportDebugSnapshot } = useDebugExport({
+    appContextState: state,
+    musicEngineState: {
+      dictRoot,
+      dictType,
+      activeNotes,
+      currentlyPlayingNotes,
+      guitarFingering,
+      bassFingering,
+    },
+    sequencerState: {
+      isAudioReady,
+      isPlaying,
+      masterVolume,
+      currentBpm,
+      instrumentVolumes,
+    },
+    errors: [],
   });
 
   useEffect(() => {
@@ -430,6 +450,16 @@ function App() {
             >
               {txt.about}
             </button>
+
+            {import.meta.env.DEV && (
+              <button
+                onClick={exportDebugSnapshot}
+                className="btn-header-action"
+                title="Export debug state as JSON"
+              >
+                🐛 Debug
+              </button>
+            )}
           </div>
         </div>
 
@@ -561,4 +591,4 @@ function App() {
   );
 }
 
-export default App;
+export default AppDesktop;

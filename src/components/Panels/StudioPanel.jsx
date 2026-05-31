@@ -109,26 +109,30 @@ const StudioPanel = ({
         </span>
       </div>
 
-      <div className="effects-text" style={{ color: 'var(--led-cyan)', opacity: 0.8 }}>
-        💡 {activeBrick.effects?.[lang] || ""}
-      </div>
+      {activeBrick.effects?.[lang] && (
+        <div className="effects-text" style={{ color: 'var(--led-cyan)', opacity: 0.8 }}>
+          💡 {activeBrick.effects[lang]}
+        </div>
+      )}
       {activeBrick.inspiration?.[lang] && (
         <div style={{ color: '#888', fontSize: '13px', marginTop: '6px', fontStyle: 'italic', paddingLeft: '12px' }}>
           {activeBrick.inspiration[lang]}
         </div>
       )}
-      <div
-        style={{
-          color: "#aaa",
-          fontSize: "13px",
-          marginTop: "5px",
-          fontStyle: "italic",
-          textAlign: "left",
-          paddingLeft: "12px",
-        }}
-      >
-        🎧 {activeBrick.examples?.[lang] || ""}
-      </div>
+      {activeBrick.examples?.[lang] && (
+        <div
+          style={{
+            color: "#aaa",
+            fontSize: "13px",
+            marginTop: "5px",
+            fontStyle: "italic",
+            textAlign: "left",
+            paddingLeft: "12px",
+          }}
+        >
+          🎧 {activeBrick.examples[lang]}
+        </div>
+      )}
 
       <div
         className="glass-panel"

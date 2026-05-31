@@ -10,7 +10,7 @@ import { useMusicEngineContext } from "../../context/MusicEngineContext";
 
 const STRING_HEIGHT = 35;
 
-export default function Fretboard({
+function Fretboard({
   instrument = "guitar"
 }) {
   const {
@@ -300,3 +300,5 @@ export default function Fretboard({
     </div>
   );
 }
+
+export default React.memo(Fretboard);

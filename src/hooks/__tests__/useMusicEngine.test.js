@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { useMusicEngine } from '../useMusicEngine';
 
 // Mock theory and fingering logic if necessary, or use real ones for high-fidelity tests

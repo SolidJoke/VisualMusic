@@ -1,6 +1,6 @@
 
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { useStudioMode } from '../useStudioMode';
 
 // Mock BRICKS if necessary, but we can probably use the real ones if they are simple

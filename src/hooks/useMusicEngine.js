@@ -17,6 +17,7 @@ import {
 } from "../core/theory";
 import { TUNINGS } from "../core/tunings";
 import { getInversionType, getChordIntervalLabel } from "../core/harmonyEngine";
+import { suggestReVoicing, getBestVoiceLeading } from "../core/voicingEngine";
 
 /**
  * useMusicEngine Hook
@@ -41,7 +42,8 @@ export function useMusicEngine({
   dictActiveNotes,
   dictOctave,
   fingeringMode,
-  notation
+  notation,
+  prevAbsoluteNotes
 }) {
 
   // --- 1. Harmonization & Active Notes ---
@@ -324,9 +326,27 @@ export function useMusicEngine({
     return false;
   }, [appMode, dictType, bassFingering, dictRoot, dictOctave]);
 
+  const suggestedInversionIndex = useMemo(() => {
+    if (!prevAbsoluteNotes || prevAbsoluteNotes.length === 0 || !clickedChord || appMode !== 'studio') return null;
+    const chordType = resolveNnsToChordType(clickedChord.nns);
+    const chordData = resolveChordSemitones(chordType);
+    if (!chordData) return null;
+    
+    // Defaulting to piano instrument range for voicing logic as it has the widest bounds,
+    // or using the globally selected playbackInstrument if available via context/props (we don't have it directly here without adding it, let's use 'piano' for general voice leading)
+    const suggestions = suggestReVoicing(clickedChord.rootNote.value, chordData.semitones, 'piano');
+    const bestIndex = getBestVoiceLeading(prevAbsoluteNotes, suggestions);
+    
+    if (bestIndex >= 0 && suggestions[bestIndex]) {
+       return suggestions[bestIndex].invIndex;
+    }
+    return null;
+  }, [prevAbsoluteNotes, clickedChord, appMode]);
+
   return {
     ...musicContext,
     inversionText,
+    suggestedInversionIndex,
     guitarFingering,
     bassFingering,
     availableGuitarFingerings,

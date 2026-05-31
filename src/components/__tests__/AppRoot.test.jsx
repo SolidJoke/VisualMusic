@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, it, vi } from "vitest";
 import { renderToString } from "react-dom/server";
-import App from "../../App";
+import AppDesktop from "../../AppDesktop";
 
 vi.mock("../../audio/AudioEngine", () => ({
   masterAnalyser: { 
@@ -60,7 +60,7 @@ describe("App runtime error trap", () => {
     try {
       renderToString(
         <AppProvider>
-          <App />
+          <AppDesktop />
         </AppProvider>
       );
     } catch(e) {
