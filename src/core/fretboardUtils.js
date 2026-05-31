@@ -3,7 +3,7 @@
  * Decouples computation from the React view.
  */
 
-import { NOTES, getAbsoluteNoteValue, getIntervalMetadata } from "./theory";
+import { NOTES } from "./theory";
 import { FINGER_LABELS } from "./fingeringLogic";
 import { logPlayingMismatch } from "./debugScale";
 

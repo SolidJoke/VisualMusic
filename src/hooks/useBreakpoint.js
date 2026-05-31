@@ -61,7 +61,10 @@ export default function useBreakpoint() {
       mediaTablet.removeEventListener("change", handleTabletChange);
       mediaDesktop.removeEventListener("change", handleDesktopChange);
     };
-  }, [isSSR]);
+  // isSSR is intentionally omitted from deps: typeof window is a runtime constant, never changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   return { breakpoint };
 }

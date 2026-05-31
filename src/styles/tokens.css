@@ -9,6 +9,9 @@
 :root {
   --glass-shadow:   0 4px 32px hsla(226, 50%, 2%, 0.6);
 
+  /* ─── BACKGROUNDS ────────────────────────────────────────── */
+  --color-bg-app:   hsl(232, 23%, 8%);   /* Deep dark app background */
+
   /* ─── APP MODE SELECTOR ─── */
   --color-mode-active:        #2563eb;
   --color-mode-active-border: #3b82f6;

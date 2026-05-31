@@ -286,6 +286,10 @@ export function useSequencer({
   const togglePlayback = async () => {
     if (!isAudioReady) {
       await Tone.start();
+      // Apply lookAhead buffer here — must be set AFTER Tone.start() to be effective.
+      // Reduces audio glitches under high CPU load (scheduling safety margin).
+      Tone.context.lookAhead = 0.1;
+      // Set initial volume directly (no rampTo needed: audio context just started, no audible click risk)
       Tone.Destination.volume.value = masterVolume;
       Tone.Transport.bpm.value = currentBpm;
       initPianoSampler(() => setIsPianoReady(true));

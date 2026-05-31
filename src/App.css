@@ -243,7 +243,7 @@ body {
 .btn-premium {
   padding: 7px 16px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--glass-border);
+  border: 1.5px solid var(--glass-border);
   background: var(--glass-bg);
   color: var(--text-secondary);
   font-family: var(--font-body);
@@ -261,7 +261,8 @@ body {
 .btn-premium:hover {
   background: var(--glass-bg-hover);
   color: var(--text-primary);
-  border-color: var(--border-muted);
+  border-color: var(--accent);
+  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px var(--accent-glow);
 }
 .btn-premium.active,
 .btn-premium[aria-pressed="true"] {

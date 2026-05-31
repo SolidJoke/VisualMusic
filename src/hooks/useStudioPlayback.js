@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { NOTES, resolveNnsToChordType, getClosestInversion, getClosestInversionN, resolveChordSemitones } from "../core/theory";
+import { NOTES, resolveNnsToChordType, getClosestInversionN, resolveChordSemitones } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches } from "./playbackUtils";

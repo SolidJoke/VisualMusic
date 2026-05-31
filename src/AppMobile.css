@@ -1,0 +1,35 @@
+/* AppMobile.css — Styles for the mobile placeholder screen */
+
+.app-mobile-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--color-bg-app);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  padding: 24px;
+  text-align: center;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.app-mobile-placeholder__icon {
+  font-size: 2rem;
+}
+
+.app-mobile-placeholder__title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.app-mobile-placeholder__text {
+  font-size: 0.9rem;
+  margin: 0;
+  max-width: 280px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}

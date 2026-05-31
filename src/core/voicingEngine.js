@@ -253,3 +253,41 @@ export function applyShellVoicing(midiNotes, rootMidi) {
     return true;
   });
 }
+
+/**
+ * Computes a voice leading score for a set of candidate inversions,
+ * given the absolute notes of the previous chord.
+ * Lower score is better (less total movement).
+ * 
+ * @param {number[]} prevNotes - Array of MIDI note numbers of the previous chord
+ * @param {ReVoicingSuggestion[]} suggestions - Array of suggestions from suggestReVoicing
+ * @returns {number} The index of the best suggestion in the array, or -1 if no suggestions
+ */
+export function getBestVoiceLeading(prevNotes, suggestions) {
+  if (!suggestions || suggestions.length === 0) return -1;
+  if (!prevNotes || prevNotes.length === 0) return 0; // default to first if no previous context
+
+  let bestIndex = 0;
+  let minScore = Infinity;
+
+  const prevSorted = [...prevNotes].sort((a, b) => a - b);
+
+  for (let i = 0; i < suggestions.length; i++) {
+    const currentNotes = [...suggestions[i].notes].sort((a, b) => a - b);
+    
+    let score = 0;
+    const maxLen = Math.max(currentNotes.length, prevSorted.length);
+    for (let j = 0; j < maxLen; j++) {
+       const p = j < prevSorted.length ? prevSorted[j] : prevSorted[prevSorted.length - 1];
+       const c = j < currentNotes.length ? currentNotes[j] : currentNotes[currentNotes.length - 1];
+       score += Math.abs(p - c);
+    }
+
+    if (score < minScore) {
+      minScore = score;
+      bestIndex = i;
+    }
+  }
+
+  return bestIndex;
+}

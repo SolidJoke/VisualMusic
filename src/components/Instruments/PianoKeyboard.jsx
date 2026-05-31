@@ -17,7 +17,7 @@ const FLAT_EQUIVALENTS = {
   10: { us: "Bb", eu: "Sib" },
 };
 
-export default function PianoKeyboard() {
+function PianoKeyboard() {
   const {
     activeNotes = [],
     currentRootValue: rootValue = 0,
@@ -257,3 +257,5 @@ export default function PianoKeyboard() {
     </div>
   );
 }
+
+export default React.memo(PianoKeyboard);

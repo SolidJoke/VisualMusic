@@ -9,6 +9,7 @@ vi.mock("tone", () => {
     return 123;
   });
   return {
+    context: { lookAhead: 0 },
     Transport: {
       bpm: { value: 120 },
       scheduleRepeat,
@@ -49,7 +50,7 @@ describe("Sequencer Bug Reproduction", () => {
       {
         initialProps: {
           appMode: "studio",
-          activeBrick: { rootValue: 0, modeName: "scale_major", _group: "pop", bpm: 120 },
+          activeBrick: { rootValue: 0, scaleKey: "scale_major", _group: "pop", bpm: 120 },
           activeDrums: [{ name: "kick", activeSteps: [0, 4, 8, 12] }],
           activeMelody: [],
           activeProgression: ["I", "IV", "V", "I"],
@@ -91,7 +92,7 @@ describe("Sequencer Bug Reproduction", () => {
     // Re-render the hook (e.g. parent re-renders)
     rerender({
       appMode: "studio",
-      activeBrick: { rootValue: 0, modeName: "scale_major", _group: "pop", bpm: 120 },
+      activeBrick: { rootValue: 0, scaleKey: "scale_major", _group: "pop", bpm: 120 },
       activeDrums: [{ name: "kick", activeSteps: [0, 4, 8, 12] }],
       activeMelody: [],
       activeProgression: ["I", "IV", "V", "I"],
