@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
-import App from "../App";
+import AppDesktop from "../AppDesktop";
 import { AppProvider } from "../context/AppContext";
 
 // Mocking Tone.js
@@ -51,7 +51,7 @@ describe("App Integration Tests", () => {
   it("renders the app title", () => {
     render(
       <AppProvider>
-        <App />
+        <AppDesktop />
       </AppProvider>
     );
     // Title is rendered from translations. Assuming 'VisualMusic' for now.
@@ -63,7 +63,7 @@ describe("App Integration Tests", () => {
   it("switches from Studio mode to Dictionary mode", async () => {
     render(
       <AppProvider>
-        <App />
+        <AppDesktop />
       </AppProvider>
     );
     
@@ -83,7 +83,7 @@ describe("App Integration Tests", () => {
   it("selects a chord in Dictionary mode and updates the view", async () => {
     render(
       <AppProvider>
-        <App />
+        <AppDesktop />
       </AppProvider>
     );
     

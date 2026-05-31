@@ -5,7 +5,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import App from '../App';
+import AppDesktop from '../AppDesktop';
 import { AppProvider } from '../context/AppContext';
 
 // Mocking Tone.js
@@ -53,7 +53,7 @@ describe('Bass Intelligence Integration', () => {
     it('should show "Suggest Bass" button in Studio mode', async () => {
         render(
             <AppProvider>
-                <App />
+                <AppDesktop />
             </AppProvider>
         );
 
@@ -69,7 +69,7 @@ describe('Bass Intelligence Integration', () => {
     it('should change button text after suggesting bass', async () => {
         render(
             <AppProvider>
-                <App />
+                <AppDesktop />
             </AppProvider>
         );
 

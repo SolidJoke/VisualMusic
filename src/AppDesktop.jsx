@@ -31,7 +31,7 @@ import {
 } from "./audio/AudioEngine";
 
 
-function App() {
+function AppDesktop() {
   const { lang, txt, notation, state, dispatch } = useAppContext();
   const { 
     appMode,
@@ -591,4 +591,4 @@ function App() {
   );
 }
 
-export default App;
+export default AppDesktop;
