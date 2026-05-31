@@ -136,7 +136,7 @@ export function useSequencer({
   };
 
   useEffect(() => {
-    Tone.Destination.volume.value = masterVolume;
+    Tone.Destination.volume.rampTo(masterVolume, 0.05);
   }, [masterVolume]);
 
   useEffect(() => {

@@ -20,7 +20,7 @@ vi.mock("tone", () => {
     },
     Draw: { schedule: vi.fn((cb) => cb()) },
     start: vi.fn().mockResolvedValue(),
-    Destination: { volume: { value: 0 } },
+    Destination: { volume: { value: 0, rampTo: vi.fn() } },
   };
 });
 

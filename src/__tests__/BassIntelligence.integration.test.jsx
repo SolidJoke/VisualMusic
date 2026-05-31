@@ -20,7 +20,7 @@ vi.mock("tone", () => ({
     stop: vi.fn(),
   },
   Draw: { schedule: vi.fn() },
-  Destination: { volume: { value: 0 } },
+  Destination: { volume: { value: 0, rampTo: vi.fn() } },
   Analyser: vi.fn(() => ({
     dispose: vi.fn(),
   })),
