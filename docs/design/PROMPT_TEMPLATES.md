@@ -6,14 +6,26 @@ Ce fichier liste les prompts testés et validés pour générer des maquettes et
 **Objectif** : Générer l'interface principale (Studio) avec une approche DAW Professionnelle (Ableton Live), conservant une densité fonctionnelle élevée tout en étant structurée.
 
 ```text
-Create a professional "Pro DAW" main studio interface for VisualMusic. 
+Strict redesign of the VisualMusic Studio interface. You MUST NOT invent features (no compressors, EQs, or random audio effects). You MUST include the exact functionalities listed below. 
 
-Layout Structure:
-- Sidebar (Left): Professional dark sidebar with a large 'PLAY' primary button. Below it, collapsible accordions for 'Style Controls' (Key, Mode, Tempo) and 'Math Composition Assistant' (Complexity, Density sliders). Use 1px borders and tight spacing (8px grid).
-- Header: Minimal TopAppBar with navigation (Studio, Dictionary, Library, Academy) and user profile.
-- Main Content (Top): High-density Multi-track Sequencer. Rows for Drums, Chords, and Bass. Grid-based layout. CRITICAL: Visualize velocity/intensity. High-velocity notes are solid Primary Blue (#2e90fa); low-velocity 'ghost' notes are semi-transparent/faded with a thin blue border. 
-- Main Content (Bottom): Modular Instrument View with Tabs (Piano, Guitar, Bass). Piano tab is active. The Piano Roll should feature detailed keys with subtle glowing active states on specific notes to match the sequencer data.
-- Detail: Use a strict 8px grid, #131313 surface, #262626 borders, and professional typography (Hanken Grotesk). The vibe is 'Linear meets Ableton'—premium, dark, and highly functional. Preserve all existing sliders and controls from the reference studio.
+Left Sidebar (Control Panel):
+1. Top Section: Mode switch (Studio / Dictionary). Large 'PLAY' button.
+2. Section 'Style Musical': MUST include a dropdown for 'Genre' (e.g., Pop, Jazz, Rock) and a dropdown for 'Theme' (e.g., Epic, Sad). Do not omit these!
+3. Section 'Paramètres d'Accords': Include a dropdown for 'Renversement' (Inversion).
+4. Section 'Assistant Mathématique' (Collapsible): Sliders for 'Complexité Rythmique' and 'Densité'.
+
+Main Area (Top) - Sequencer (PianoRoll):
+- A grid matrix showing time horizontally.
+- Must contain exactly 3 tracks visually distinct: 'Boîte à rythmes' (Drums), 'Séquenceur Harmonique' (Chords), 'Séquenceur Mélodique' (Bass).
+- Show note cells in the grid. Active notes are solid Primary Blue. Ghost notes (low velocity) MUST be shown as dim/hollow squares with a blue border. 
+
+Main Area (Bottom) - Instrument Tabs:
+- A tab bar to select the visible instrument: [Piano] [Guitare] [Basse]. 
+- Show the 'Guitare' tab active. 
+- Technical constraint for Guitar: It MUST look like a guitar fretboard. 6 horizontal lines representing strings. Vertical lines representing 22 frets. Dots/circles on the fretboard to indicate active notes (e.g., C#, Eb), glowing in Primary Blue. Do not draw a literal wooden guitar, draw a precise technical fretboard diagram.
+- Bottom Bar: Global BPM input/display, Master Volume slider.
+
+Style: Dark Mode, Strict 8px grid, Pro DAW aesthetic (Ableton/FL Studio), borders #262626, surface #131313. Zero hallucinations.
 ```
 
 ## 2. Prompt Variante Mobile
