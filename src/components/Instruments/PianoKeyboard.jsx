@@ -32,7 +32,7 @@ function PianoKeyboard() {
   const dictType = appMode === "dictionary" ? rawDictType : null;
   const numOctaves = 7;
 
-  const { lang, txt, notation, state } = useAppContext();
+  const { notation, state } = useAppContext();
   const { harmonicMode } = state;
   const keys = [];
 
@@ -190,7 +190,6 @@ function PianoKeyboard() {
         if (isActive && activeNote.order) orderToDisplay = activeNote.order;
       }
 
-      const roleClass = getKeyRoleClass(i, isActive);
       const subtleClass = isSubtle ? "subtle-highlight" : "";
 
       if (isBlack) {

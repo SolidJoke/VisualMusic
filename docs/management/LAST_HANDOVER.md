@@ -1,56 +1,58 @@
-# LAST HANDOVER — 2026-05-11 (Phase 2 - Stabilization Ongoing)
-> **Modèle sortant** : Antigravity (Pro)
-> **Dernière mise à jour** : 2026-05-11T07:15
-> **Statut global** : 🚨 CRASH IDENTIFIÉ | 🟡 BUG VISUEL MANCHE | ✅ Piano Visibilité Fixé
+# LAST HANDOVER — 2026-06-06
+> **Agent sortant** : ARIA (Claude Sonnet 4.6 Thinking)  
+> **Dernière mise à jour** : 2026-06-06T11:48  
+> **Statut global** : ✅ STABLE | Tests 795/795 | Backlog nettoyé
 
 ---
 
 ## 🚨 RÈGLES ABSOLUES — LIRE EN PREMIER
 
-1. **`npm test` avant ET après chaque tâche** → doit rester **560/560** ✅
-2. **Ne jamais modifier** `src/core/fingeringLogic.js`, `src/core/theory.js` sans instruction explicite de l'expert.
-3. **Lire le §MAP** en bas de chaque fichier avec variables alpha avant toute modification.
-4. **Si les tests cassent → STOP**, ne pas continuer, reporter le blocage.
+1. **`npx vitest run` avant ET après chaque tâche** → doit rester **795/795** ✅
+2. **Ne jamais modifier** `src/core/fingeringLogic.js` sans instruction explicite.
+3. **Lire `BACKLOG_V2.md`** — c'est la SEULE source de vérité du backlog désormais.
+4. **Si les tests cassent → STOP**, ne pas continuer.
 
 ---
 
-## ✅ ÉTAT DES LIEUX (Ce qui a été fait - Phase 2)
-- [x] **BUG-08** : Fix de la visibilité des notes de gamme sur le Piano (Dictionary Mode).
-- [x] **FEATURE-01** : Sélecteur d'octave complet (1-7) pour le mode "Single Note".
-- [x] **F.2.2** : Extraction du `MixerPanel` pour un code plus modulaire.
-- [x] **QW-03** : Audit i18n terminé pour `PositionSelector.jsx`.
-- [x] **Audit QA** : Session de test exploratoire terminée (voir `qa_report.md`).
+## ✅ ÉTAT DES LIEUX (Ce qui a été fait — Session 2026-06-06)
+
+- [x] **A.1.3** — Refactoring Fretboard complet (PR #52 mergée)
+  - `fretboardUtils.js` : +3 fonctions pures (`getStringTuning`, `getFretboardGridTemplate`, `extractBarreData`)
+  - `src/hooks/useFretboard.js` : nouveau hook d'orchestration
+  - `Fretboard.jsx` : composant "dumb" (JSX seulement)
+- [x] **BACKLOG_V2.md** — Audit complet du backlog, 15+ items marqués TODO sont en réalité FAITS. Nouveau fichier de référence créé.
 
 ---
 
-## 🚨 TÂCHES CRITIQUES (Antigravity en cours)
+## 📊 RÉSUMÉ DE L'AUDIT BACKLOG
 
-### FLASH-14 — Crash Tab "Accords"
-Le changement d'onglet vers "Accords" provoque un crash lié à une valeur `null` passée à `CustomSelect` sans option correspondante.
-- [ ] Patch `DictionaryPanel.jsx` pour inclure l'option "Toutes les positions" (null) par défaut.
-- [ ] Sécuriser `CustomSelect.jsx` contre les valeurs `null`.
+**Items découverts comme déjà implémentés (non reflétés dans les anciens docs) :**
+- Substitutions harmoniques, Target Notes, Rythme Manuel, Degrés romains, Quick Start Progressions, Mode Harmoniques, Sélecteur Octave Note Unique, Accords Suggérés, Alerte Anticlimax, Score Jouabilité, Modes Relatifs, VoicingAlert, React.memo PianoKeyboard, Frettage logarithmique, Affichage gammes sans play, I18n PositionSelector, Crash CustomSelect+null
 
-### FLASH-15 — Visibilité Manche (Fretboard)
-Les notes de gamme sont "subtiles" (invisibles) par défaut sur le manche, contrairement au Piano déjà fixé.
-- [ ] Aligner `fretboardUtils.js` sur la logique du Piano (supprimer `isSubtle` forcé).
-
----
-
-## 🟡 TÂCHES EN ATTENTE (Pour Gemini Flash)
-
-### FLASH-08 — Couverture I18n
-Finaliser la localisation des labels techniques (Target Notes, Substitutions).
-
-### D.1.1 — Logarithmic Fret Spacing
-Appliquer l'espacement logarithmique aux frettes dans `Fretboard.jsx`.
-
-### G.2.2 — Common Progressions
-Intégrer les progressions d'accords classiques.
+**Ce qui reste vraiment à faire :**
+- 🟠 P1 : **BUG-02** (surbrillance octaves Studio) + **A.1.2** (dead code cleanup)
+- 🟡 P2 : D.1.2, BUG-10, A.2.1/A.2.2
+- 🔵 P3 : Tonal.js, Design Tokens, App.jsx
+- 🎵 P4 : Stream COMP (Composition Engine)
 
 ---
 
-## 📊 FICHIERS À SURVEILLER
-- `src/core/fretboardUtils.js` (Cible FLASH-15)
-- `src/components/Panels/DictionaryPanel.jsx` (Cible FLASH-14)
-- `src/components/Common/CustomSelect.jsx` (Cible FLASH-14)
+## 🔴 TÂCHES PRIORITAIRES (Pour la prochaine session)
 
+### BUG-02 — Surbrillance octaves Studio (P1)
+- **Problème** : Cliquer un accord Studio allume potentiellement toutes les octaves du pitch class sur le manche
+- **Investigation** : Vérifier dans `MusicEngineContext.jsx` que `fretboardActiveNotes` est bien exposé, et dans `useFretboard.js` que `activeNotes = fretboardActiveNotes || rawActiveNotes` prend bien la priorité
+- **Fichiers** : `src/context/MusicEngineContext.jsx`, `src/hooks/useFretboard.js`
+
+### A.1.2 — Dead Code Cleanup (P1)
+- **Fichiers à supprimer** : `src/hooks/useUIState.js`, `src/ErrorBoundary.jsx`, `puppeteer_test.js`, `test.js` (racine)
+- **Source** : `docs/management/dead_code_report.md`
+
+---
+
+## 📁 FICHIERS À SURVEILLER
+
+- `src/hooks/useFretboard.js` [NOUVEAU — refacto A.1.3]
+- `src/core/fretboardUtils.js` [MODIFIÉ — +3 fonctions pures]
+- `src/components/Instruments/Fretboard.jsx` [MODIFIÉ — composant dumb]
+- `docs/management/BACKLOG_V2.md` [NOUVEAU — référence backlog]
