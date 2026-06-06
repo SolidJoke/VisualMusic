@@ -27,7 +27,7 @@ describe("acousticEngine", () => {
   });
 
   describe("getHarmonicSeries", () => {
-    it("should generate the first 16 harmonics by default", () => {
+    it("should generate the first 16 harmonics by default (US notation)", () => {
       const harmonics = getHarmonicSeries(110); // A2 = 110Hz
       expect(harmonics.length).toBe(16);
       
@@ -56,6 +56,31 @@ describe("acousticEngine", () => {
       expect(harmonics[4].noteName).toBe("C#5");
       // The major third is around -14 cents
       expect(harmonics[4].centsOffset).toBeCloseTo(-14, 0);
+    });
+
+    // BUG-10 — non-regression test: EU notation must be respected in HarmonicSeriesPanel
+    it("should use EU notation when notation='eu' is passed (BUG-10)", () => {
+      const harmonics = getHarmonicSeries(110, 16, "eu"); // A2 = 110Hz
+      expect(harmonics.length).toBe(16);
+
+      // H1: A2 in US → La2 in EU
+      expect(harmonics[0].noteName).toBe("La2");
+
+      // H2: A3 in US → La3 in EU
+      expect(harmonics[1].noteName).toBe("La3");
+
+      // H3: E4 in US → Mi4 in EU
+      expect(harmonics[2].noteName).toBe("Mi4");
+
+      // H5: C#5 in US → Do#5 in EU
+      expect(harmonics[4].noteName).toBe("Do#5");
+    });
+
+    it("should default to US notation when no notation param is given", () => {
+      const harmonicsDefault = getHarmonicSeries(110, 1);
+      const harmonicsUS = getHarmonicSeries(110, 1, "us");
+      expect(harmonicsDefault[0].noteName).toBe(harmonicsUS[0].noteName);
+      expect(harmonicsDefault[0].noteName).toBe("A2");
     });
   });
 });
