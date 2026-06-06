@@ -1,15 +1,14 @@
 /* src/components/Sequencer/PianoRoll.css */
 
 /* ─── Layout ──────────────────────────────────────────────────────── */
-
 .piano-roll {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    background-color: rgba(26, 26, 26, 0.8);
-    padding: 20px;
+    gap: 8px; /* Strict 8px grid */
+    background-color: var(--lg-panel-bg);
+    padding: 16px;
     border-radius: 8px;
-    border: 1px solid #333;
+    border: var(--lg-border);
     width: 100%;
     box-sizing: border-box;
     margin: 0 auto;
@@ -18,43 +17,43 @@
 .piano-roll-header {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .track-row {
     display: flex;
-    align-items: flex-end; /* Align to bottom for variable-height steps */
+    align-items: flex-end;
 }
 
 .track-name {
     width: 140px;
     min-width: 140px;
-    color: #ccc;
-    font-size: 14px;
-    font-weight: bold;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
     text-align: left;
     padding-bottom: 4px;
 }
 
 .steps-container {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     flex: 1;
     align-items: flex-end; 
-    justify-content: center; /* Center steps for 4K */
+    justify-content: center;
 }
 
 /* ─── Steps ───────────────────────────────────────────────────────── */
-
 .step-lamp {
     flex: 1;
     min-width: 12px; 
     max-width: 80px;
-    height: 40px;
+    height: 32px;
     box-sizing: border-box;
-    background-color: #2a2a2a;
+    background-color: var(--lg-panel-bg-elevated);
     border-radius: 4px;
-    border: 1px solid #222;
+    border: var(--lg-border);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -65,123 +64,97 @@
     overflow: hidden;
 }
 
-.step-lamp::after {
-    content: "";
-    position: absolute;
-    width: 30%;
-    height: 30%;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    filter: blur(2px);
-    opacity: 0;
-    transition: opacity 0.15s ease;
+/* Base Active State (Velocity handling is below) */
+.step-lamp.active {
+    background: var(--lg-accent);
+    border-color: var(--lg-accent);
+    color: #fff;
 }
 
-.step-lamp.active::after {
-    opacity: 1;
-    background: #fff;
-    box-shadow: 0 0 10px #fff, 0 0 20px currentColor;
+/* High Velocity (Solid) */
+.step-lamp.active:not(.step--ghost) {
+    box-shadow: 0 0 8px var(--lg-accent-glow);
 }
 
-/* Ghost note: shorter step with dashed border */
+/* Ghost note: Low velocity (dim/hollow with border) */
 .step--ghost {
-    height: 22px !important;
-    border-style: dashed !important;
-    opacity: 0.4;
-    filter: saturate(0.5) brightness(0.7);
+    height: 24px !important;
+    background-color: transparent !important;
+    border: 1px solid var(--lg-accent) !important;
+    opacity: 0.6;
+    box-shadow: none !important;
 }
-
 
 /* Currently playing step */
 .step--current {
     border: 2px solid #fff !important;
-    transform: scale(1.1);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 /* Beat marker (every 4 steps) */
 .step--beat {
-    border-left: 2px solid rgba(0, 229, 255, 0.4) !important;
+    border-left: 2px solid var(--text-tertiary) !important;
 }
 
 /* Measure marker (every 16 steps) */
 .step--measure {
-    border-left: 4px solid var(--theme-primary, #ffd700) !important;
+    border-left: 2px solid var(--text-primary) !important;
 }
-
 
 /* ─── Labels inside steps ─────────────────────────────────────────── */
-
-.step__ghost-label {
-    font-size: 10px;
-    line-height: 1;
-    position: absolute;
-    top: 1px;
-    right: 2px;
-}
-
 .step__pitch-label {
-    font-size: 9px;
-    font-weight: bold;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
     color: #fff;
-    text-shadow: 0 0 3px rgba(0,0,0,0.8);
     line-height: 1;
 }
 
-/* ─── Instrument Colors ───────────────────────────────────────────── */
+/* ─── Instrument Colors (Flat Pro DAW Style) ──────────────────────── */
+/* Instead of neon gradients, we use precise distinct colors */
 
 .bg-kick.active { 
-    background: linear-gradient(145deg, #ff1744, #b71c1c) !important;
-    box-shadow: 0 0 18px rgba(255, 23, 68, 0.9), inset 0 0 12px rgba(255, 255, 255, 0.4);
-    color: #ff1744; 
+    background-color: #F79009 !important; /* amber */
+    border-color: #F79009 !important;
 }
-
+.bg-kick.step--ghost { 
+    border-color: #F79009 !important; 
+    background-color: rgba(247, 144, 9, 0.1) !important;
+}
 
 .bg-snare.active, .bg-clap.active, .bg-rim.active { 
-    background: linear-gradient(145deg, #2979ff, #0d47a1) !important;
-    box-shadow: 0 0 18px rgba(41, 121, 255, 0.9), inset 0 0 12px rgba(255, 255, 255, 0.4);
-    color: #2979ff;
+    background-color: #2e90fa !important; /* primary blue */
+    border-color: #2e90fa !important;
 }
-
+.bg-snare.step--ghost, .bg-clap.step--ghost, .bg-rim.step--ghost { 
+    border-color: #2e90fa !important; 
+    background-color: rgba(46, 144, 250, 0.1) !important;
+}
 
 .bg-hat.active, .bg-crash.active { 
-    background: linear-gradient(145deg, #ffea00, #f57f17) !important;
-    box-shadow: 0 0 18px rgba(255, 234, 0, 0.9), inset 0 0 12px rgba(255, 255, 255, 0.4);
-    color: #ffea00;
+    background-color: #bdc7de !important; /* secondary */
+    border-color: #bdc7de !important;
 }
-
+.bg-hat.step--ghost, .bg-crash.step--ghost { 
+    border-color: #bdc7de !important; 
+    background-color: rgba(189, 199, 222, 0.1) !important;
+}
 
 .bg-bass.active { 
-    background: linear-gradient(145deg, #00e676, #1b5e20) !important;
-    box-shadow: 0 0 18px rgba(0, 230, 118, 0.9), inset 0 0 12px rgba(255, 255, 255, 0.4);
-    color: #00e676;
+    background-color: #32D583 !important; /* green */
+    border-color: #32D583 !important;
 }
-
+.bg-bass.step--ghost { 
+    border-color: #32D583 !important; 
+    background-color: rgba(50, 213, 131, 0.1) !important;
+}
 
 .bg-chords.active { 
-    background: linear-gradient(145deg, #e1bee7, #ba68c8) !important;
-    box-shadow: 0 0 15px rgba(225, 190, 231, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.3);
-    color: #e1bee7;
+    background-color: #ffb782 !important; /* tertiary */
+    border-color: #ffb782 !important;
 }
-
-/* Ghost variants keep color but with reduced glow */
-.step--ghost.bg-kick { box-shadow: 0 0 4px rgba(255, 82, 82, 0.3); }
-.step--ghost.bg-snare, .step--ghost.bg-rim { box-shadow: 0 0 4px rgba(68, 138, 255, 0.3); }
-.step--ghost.bg-hat { box-shadow: 0 0 4px rgba(255, 235, 59, 0.3); }
-.step--ghost.bg-bass { box-shadow: 0 0 4px rgba(105, 240, 174, 0.3); }
-.step--beat {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 8px rgba(0, 229, 255, 0.2) !important;
-}
-
-.step--beat::after {
-  content: "";
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent-dim);
+.bg-chords.step--ghost { 
+    border-color: #ffb782 !important; 
+    background-color: rgba(255, 183, 130, 0.1) !important;
 }

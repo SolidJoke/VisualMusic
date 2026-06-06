@@ -2,7 +2,9 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #121212; /* Fond sombre MAO */
-  color: #e0e0e0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #131313; /* Fond sombre Pro DAW */
+  color: #e5e2e1;
+  font-family: 'Hanken Grotesk', 'Inter', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

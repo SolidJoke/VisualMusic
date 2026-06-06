@@ -144,20 +144,24 @@ const StudioPanel = ({
           zIndex: 10,
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "15px",
-            marginBottom: "15px",
-          }}
-        >
+        <details className="vintage-module" style={{ marginTop: "20px" }}>
+          <summary className="btn-premium" style={{ listStyle: "none", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+            ⚙️ {txt.advancedSettings || "Advanced Settings"}
+          </summary>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "15px",
+              marginTop: "15px",
+            }}
+          >
             <div style={{ marginBottom: "12px" }}>
               <span
                 style={{
-                  color: "#ccc",
+                  color: "var(--text-secondary)",
                   marginRight: "10px",
-                  fontSize: "16px",
+                  fontSize: "14px",
                 }}
               >
                 {txt.theme}
@@ -192,7 +196,7 @@ const StudioPanel = ({
             </div>
 
           <div style={{ textAlign: "center" }}>
-             <span style={{ color: "#888", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>Quick Start Progressions</span>
+             <span style={{ color: "var(--text-tertiary)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>Quick Start Progressions</span>
              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", marginTop: "10px" }}>
                {extendedTheoryData.axiomRules.progressions.map(p => (
                  <button
@@ -228,7 +232,7 @@ const StudioPanel = ({
           >
             <span
               style={{
-                color: "#ccc",
+                color: "var(--text-secondary)",
                 fontSize: "14px",
                 fontWeight: "bold",
               }}
@@ -250,7 +254,7 @@ const StudioPanel = ({
                 { value: 2, label: "+2 Oct." },
                 { value: 3, label: "+3 Oct." },
               ]}
-              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+              theme="modern"
             />
           </div>
 
@@ -264,7 +268,7 @@ const StudioPanel = ({
           >
             <span
               style={{
-                color: "#ccc",
+                color: "var(--text-secondary)",
                 fontSize: "14px",
                 fontWeight: "bold",
               }}
@@ -278,10 +282,11 @@ const StudioPanel = ({
                 setCustomRhythm(pattern?.steps || null);
               }}
               options={RHYTHM_PATTERNS.map(p => ({ value: p.id, label: p.name }))}
-              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+              theme="modern"
             />
           </div>
         </div>
+        </details>
         <strong>{txt.magicProg} </strong> <br />
         <br />
         <div className="magic-progression-container" style={{ position: "relative", zIndex: 5 }}>
