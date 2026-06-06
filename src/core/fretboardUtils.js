@@ -6,6 +6,7 @@
 import { NOTES } from "./theory";
 import { FINGER_LABELS } from "./fingeringLogic";
 import { logPlayingMismatch } from "./debugScale";
+import { TUNINGS } from "./tunings";
 
 /**
  * Calculates the width of each fret in a logarithmic progression (Rule of 18).
@@ -276,4 +277,77 @@ export function computeFretMetadata(params) {
     noteInfo,
     stringStatus: resolveStringStatus(params.fingering, stringIndex)
   };
+}
+
+// ─── Fonctions extraites de Fretboard.jsx (refactoring A.1.3) ────────────────
+
+/**
+ * Déduit l'accordage actif en fonction de l'instrument et du brick actif.
+ * @param {string} instrument - "guitar" | "bass"
+ * @param {object|null} activeBrick - brick actif du contexte musical
+ * @returns {number[]} tableau de valeurs de corde (accordage)
+ */
+export function getStringTuning(instrument, activeBrick) {
+  if (instrument === "bass") {
+    return activeBrick?.bassStrings || TUNINGS.BASS_STANDARD;
+  }
+  return activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD;
+}
+
+/**
+ * Génère la valeur CSS `grid-template-columns` logarithmique pour le fretboard.
+ * La première colonne est fixe (corde à vide), les suivantes suivent la règle de 18.
+ * @param {number[]} fretWidths - tableau de largeurs relatives (issu de getFretWidths)
+ * @returns {string} valeur CSS `grid-template-columns`
+ */
+export function getFretboardGridTemplate(fretWidths) {
+  const cols = ["minmax(40px, 0.5fr)"];
+  fretWidths.forEach(w => cols.push(`${w.toFixed(4)}fr`));
+  return cols.join(" ");
+}
+
+/**
+ * Détecte les données de barré à partir d'un fingeringMap.
+ * Supporte le format V2 ({ fret, finger, status }) et le format Legacy ({ [fret]: finger }).
+ * N'est actif que pour les types dictionnaire non-gamme.
+ * @param {object|null} fingeringMap - map de doigté par corde
+ * @param {string|null} dictType - type de dictionnaire courant
+ * @returns {Array<{fret: number, minVisual: number, maxVisual: number}>}
+ */
+export function extractBarreData(fingeringMap, dictType) {
+  if (!fingeringMap || dictType?.includes('scale')) return [];
+
+  const fretFingerOneVisual = {};
+
+  Object.entries(fingeringMap).forEach(([strIdxStr, stringData]) => {
+    const visualIdx = parseInt(strIdxStr, 10);
+    if (!stringData) return;
+
+    // Format V2 : { fret, finger, status }
+    if (stringData.status === 'played' && stringData.finger === 1) {
+      const fret = stringData.fret;
+      if (fret > 0) {
+        if (!fretFingerOneVisual[fret]) fretFingerOneVisual[fret] = [];
+        fretFingerOneVisual[fret].push(visualIdx);
+      }
+    }
+    // Format Legacy : { [fret]: finger }
+    else if (typeof stringData === 'object' && !stringData.status) {
+      Object.entries(stringData).forEach(([fretStr, finger]) => {
+        const fret = parseInt(fretStr, 10);
+        if (!isNaN(fret) && fret > 0 && finger === 1) {
+          if (!fretFingerOneVisual[fret]) fretFingerOneVisual[fret] = [];
+          fretFingerOneVisual[fret].push(visualIdx);
+        }
+      });
+    }
+  });
+
+  return Object.entries(fretFingerOneVisual)
+    .filter(([_, indices]) => indices.length >= 2)
+    .map(([fret, indices]) => ({
+      fret: parseInt(fret, 10),
+      minVisual: Math.min(...indices),
+      maxVisual: Math.max(...indices),
+    }));
 }
