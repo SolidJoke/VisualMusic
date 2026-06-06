@@ -2,35 +2,21 @@
 
 Ce fichier liste les prompts testés et validés pour générer des maquettes et composants compatibles avec l'ADN de VisualMusic. À utiliser systématiquement avec Google Stitch ou d'autres IA de génération de design.
 
-## 1. Prompt Global - Refonte d'Écran Principal (Desktop)
-**Objectif** : Générer l'interface principale (Studio) en réduisant drastiquement la charge cognitive.
+## 1. Prompt Global - Refonte d'Écran Principal (Desktop) - Style "Pro DAW"
+**Objectif** : Générer l'interface principale (Studio) avec une approche DAW Professionnelle (Ableton Live), conservant une densité fonctionnelle élevée tout en étant structurée.
 
 ```text
-Redesign l'interface principale de l'application web 'VisualMusic'.
-L'interface est décomposée en deux zones majeures :
-1. Une Sidebar latérale (panneau de contrôle) contenant :
-   - Un sélecteur de mode ("Studio" ou "Dictionnaire") en haut.
-   - Un gros bouton d'action principale "PLAY" pour lire la séquence musicale.
-   - Un panneau d'information éducative (collapsible).
-   - Des contrôles de style musical (menus déroulants) et paramètres d'accords.
-   - Un panneau "Assistant de composition mathématique" avec des sliders (collapsible).
-2. Une zone de contenu principale très large (actuellement surchargée) avec :
-   - Un séquenceur musical (Boîte à rythmes, Accords, Basse) : une série de grilles avec des cases activables.
-   - Un clavier de piano complet affichant les notes jouées.
-   - Un manche de guitare (6 cordes) affichant les accords.
-   - Un manche de basse (4 cordes).
+Create a professional "Pro DAW" main studio interface for VisualMusic. 
 
-Objectifs stricts pour cette refonte (Vibe Design) :
-- **Apparence d'application premium** (inspirations: Linear, Notion, Ableton Live).
-- **Très faible charge cognitive** : l'interface doit paraître claire, minimale et aérée malgré la complexité métier.
-- **Réduction de la superposition** : les informations secondaires doivent être repliables, masquées par défaut ou reléguées derrière des menus/tabs. Au lieu d'empiler tous les séquenceurs et manches d'instruments, proposer un design où l'utilisateur peut se focaliser sur l'essentiel (par exemple, un seul instrument principal visible, ou des tabs pour alterner).
-- **Hiérarchie visuelle stricte** : max 5 points d'attention majeurs à l'écran. Ne pas abuser des couleurs néon, utiliser la couleur de manière chirurgicale (pour le bouton Play ou la note en cours de lecture).
-- **Design System** : Utiliser le design system fraîchement configuré (grille 8px, bordures homogènes, couleurs sobres WCAG AA, ombres discrètes).
-
-Génère la version "Desktop" idéale de cet écran principal (Mode Studio).
+Layout Structure:
+- Sidebar (Left): Professional dark sidebar with a large 'PLAY' primary button. Below it, collapsible accordions for 'Style Controls' (Key, Mode, Tempo) and 'Math Composition Assistant' (Complexity, Density sliders). Use 1px borders and tight spacing (8px grid).
+- Header: Minimal TopAppBar with navigation (Studio, Dictionary, Library, Academy) and user profile.
+- Main Content (Top): High-density Multi-track Sequencer. Rows for Drums, Chords, and Bass. Grid-based layout. CRITICAL: Visualize velocity/intensity. High-velocity notes are solid Primary Blue (#2e90fa); low-velocity 'ghost' notes are semi-transparent/faded with a thin blue border. 
+- Main Content (Bottom): Modular Instrument View with Tabs (Piano, Guitar, Bass). Piano tab is active. The Piano Roll should feature detailed keys with subtle glowing active states on specific notes to match the sequencer data.
+- Detail: Use a strict 8px grid, #131313 surface, #262626 borders, and professional typography (Hanken Grotesk). The vibe is 'Linear meets Ableton'—premium, dark, and highly functional. Preserve all existing sliders and controls from the reference studio.
 ```
 
-## 2. Prompt Variante Mobile (Prochaine Étape)
+## 2. Prompt Variante Mobile
 **Objectif** : Adapter le layout au format mobile (max 768px).
 
 ```text
