@@ -13,7 +13,7 @@ import { getHarmonicSeries, midiToFreq } from "../../core/acousticEngine";
  * @param {number} dictOctave - Octave offset from default (0 = C4 area)
  */
 export default function HarmonicSeriesPanel({ dictRoot, dictOctave }) {
-  const { lang, txt, notation } = useAppContext();
+  const { txt, notation } = useAppContext();
 
   const harmonics = getHarmonicSeries(
     midiToFreq(48 + Number(dictRoot) + dictOctave * 12),

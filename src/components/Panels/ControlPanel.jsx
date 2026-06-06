@@ -3,7 +3,6 @@ import React from 'react';
 import { useAppContext } from '../../context/AppContext';
 
 const ControlPanel = ({
-  setNotation,
   chordDisplayMode,
   setChordDisplayMode,
   showFingering,
@@ -13,11 +12,10 @@ const ControlPanel = ({
   playbackInstrument,
   setPlaybackInstrument,
   appMode,
-  dictType,
   useShellVoicings,
   setUseShellVoicings
 }) => {
-  const { txt, notation } = useAppContext();
+  const { txt } = useAppContext();
   return (
     <div className="glass-panel control-panel-container">
       {appMode !== "dictionary" && (

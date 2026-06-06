@@ -21,7 +21,6 @@ const InstrumentView = memo(function InstrumentView() {
     activeTab,
     setActiveTab,
     appMode,
-    displayMode,
     activeDrums,
     activeMelody,
     activeChordTrack,
@@ -32,12 +31,6 @@ const InstrumentView = memo(function InstrumentView() {
     chordOctaveOffset,
     dictType,
     currentRootValue,
-    targetValue,
-    activeNotes,
-    fretboardActiveNotes,
-    autoPlayNote,
-    currentlyPlayingNotes,
-    contextualScaleAbsoluteValues,
     showFingering,
     fingeringMode,
     clickedChord,
@@ -49,22 +42,15 @@ const InstrumentView = memo(function InstrumentView() {
     bassFingering,
     availableGuitarFingerings,
     availableBassFingerings,
-    fretboardZone,
-    lastClickedContext,
-    singlePlayContext,
     selectedVoicingIndexGuitar,
     setSelectedVoicingIndexGuitar,
     selectedVoicingIndexBass,
     setSelectedVoicingIndexBass,
-    visualFocus = "chords",
     scaleAnchor = null,
     setScaleAnchor,
-    isGuitarOutOfRange = false,
-    isBassOutOfRange = false,
-    highlightTargetNotes = false
   } = useMusicEngineContext();
 
-  const { lang, txt, notation } = useAppContext();
+  const { txt } = useAppContext();
   const isScaleMode = (appMode === "dictionary" && dictType?.includes("scale"));
 
   return (

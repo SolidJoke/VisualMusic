@@ -11,7 +11,6 @@ function Fretboard({
 }) {
   const {
     strings,
-    fretWidths,
     fretboardGridTemplate,
     activePath,
     barreData,
@@ -27,7 +26,6 @@ function Fretboard({
     onNoteClick,
     currentlyPlayingNotes,
     contextualScaleAbsoluteValues,
-    lastClickedContext,
     singlePlayContext,
     showFingering,
     fingeringMode,

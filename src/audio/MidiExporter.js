@@ -16,7 +16,7 @@ function getStepTime(step, bpm) {
   return step * getStepDuration(bpm);
 }
 
-export function exportDrums(drumTracks, bpm, genreName) {
+export function exportDrums(drumTracks, bpm, _genreName) {
   const midi = new Midi();
   midi.header.setTempo(bpm);
   
@@ -120,7 +120,7 @@ export function exportBass(melodyTracks, brick, progression, bpm) {
   return midi.toArray();
 }
 
-export function exportChords(brick, progression, octaveOffset, bpm, genreName) {
+export function exportChords(brick, progression, octaveOffset, bpm, _genreName) {
   const midi = new Midi();
   midi.header.setTempo(bpm);
   
