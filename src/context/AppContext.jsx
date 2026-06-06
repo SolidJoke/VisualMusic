@@ -16,7 +16,7 @@ const initialState = {
   playbackInstrument: 'piano',
   layoutMode: 'all',
   activeTab: 'sequencer',
-  uiTheme: 'vintage',
+  uiTheme: 'modern',
   showLegend: false,
   harmonicMode: false,
   highlightTargetNotes: false,
