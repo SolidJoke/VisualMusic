@@ -9,7 +9,8 @@ import {
   extractBarreData,
 } from "../core/fretboardUtils";
 
-const NUM_FRETS = 22;
+// D.1.2 — numFrets par instrument : bass → 20 frets, guitar → 22 frets
+const getNumFrets = (instrument) => instrument === "bass" ? 20 : 22;
 
 /**
  * Hook d'orchestration du Fretboard.
@@ -33,6 +34,7 @@ const NUM_FRETS = 22;
  * }}
  */
 export function useFretboard(instrument) {
+  const numFrets = getNumFrets(instrument);
   const {
     activeNotes: rawActiveNotes = [],
     fretboardActiveNotes,
@@ -77,8 +79,8 @@ export function useFretboard(instrument) {
     [stringTuning]
   );
 
-  // ── Largeurs des cases (dépend uniquement du nombre de cases, constant) ──
-  const fretWidths = useMemo(() => getFretWidths(NUM_FRETS), []);
+  // ── Largeurs des cases (dépend de l'instrument car numFrets varie) ──
+  const fretWidths = useMemo(() => getFretWidths(numFrets), [numFrets]);
 
   // ── Template CSS (dépend des largeurs, lui-même stable) ──
   const fretboardGridTemplate = useMemo(
@@ -95,9 +97,9 @@ export function useFretboard(instrument) {
         lastClickedContext,
         instrument,
         strings,
-        numFrets: NUM_FRETS,
+        numFrets,
       }),
-    [contextualScaleAbsoluteValues, dictType, lastClickedContext, instrument, strings]
+    [contextualScaleAbsoluteValues, dictType, lastClickedContext, instrument, strings, numFrets]
   );
 
   // ── Données de barré ──
@@ -113,7 +115,7 @@ export function useFretboard(instrument) {
     fretboardGridTemplate,
     activePath,
     barreData,
-    numFrets: NUM_FRETS,
+    numFrets,
 
     // Données de note / contexte
     activeNotes,
