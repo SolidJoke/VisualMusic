@@ -22,7 +22,7 @@
 | Tests | ✅ **797/797** passants (+2 non-régression BUG-10) |
 | Branche | `refonte/ux-design` |
 | Dernier commit | `5cbf461` — test(acousticEngine): EU notation non-regression (BUG-10) |
-| Étape courante | **Phase A — En attente captures Gabriel (UX-01)** |
+| Étape courante | **Phase B — En attente de validation Gabriel (Stitch Mocks)** |
 
 ---
 
@@ -43,25 +43,35 @@
 - **Tests** : 797/797 ✅ (+2)
 - **Vérification manuelle recommandée** : Toggle "EU (Do, Ré)" → ouvrir Harmonic Mode → les noms EU doivent s'afficher
 
+### Phase A — Captures & Audit IA (UX-01 & UX-02) ✅
+- **Script Playwright** : Création de `take_screenshots.js` pour automatiser les captures.
+- **Captures effectuées** : 4K, QHD, FHD, Tablet, Mobile pour Studio et Dictionnaire, sauvegardées dans `docs/design/screenshots/`.
+- **Audit IA** : Fichier `docs/design/UX_AUDIT.md` créé, identifiant les problèmes majeurs (surcharge cognitive, composants superposés, responsive tablet cassé).
+
+### Phase B — Design Bible (UX-04) ✅
+- **Fichier** : `docs/design/DESIGN_BIBLE.md`
+- **Contenu** : Règles strictes de responsive (breakpoints), hiérarchie P0-P4, règles anti-surcharge (The 90% Rule), palettes et inspirations (Notion, Linear, Ableton).
+
 ---
 
 ## 🔄 ÉTAPE EN COURS
 
-### Phase A — UX-01 : Captures multi-résolution (ACTION GABRIEL)
+### Phase B — Utilisation de Stitch MCP (UX-03 & UX-05) ✅
+- **Design System** : `DESIGN_BIBLE.md` uploadé et converti en Design System Stitch (Asset `500a1f8785464bd48571c511ee0e2477`).
+- **Génération Desktop** : Mockup Desktop généré avec Stitch MCP (ID `b5b3ca5be0894b70a9971a8bd0e741af`). Réduction de surcharge, hiérarchie claire, tabs pour instruments.
+- **Génération Mobile** : Mockup Mobile généré. Sidebar convertie en Bottom Navigation, réglages dans un Bottom Sheet.
+- **Prompts (UX-05)** : Fichier `docs/design/PROMPT_TEMPLATES.md` créé pour référence future.
+
+---
+
+## 🔄 ÉTAPE EN COURS
+
+### Phase B — Validation des maquettes Stitch (ACTION GABRIEL)
 
 **Statut** : ⏳ EN ATTENTE — action requise de Gabriel  
-**Ce qu'il faut faire** : Prendre des captures d'écran de l'app en cours aux résolutions suivantes :
-
-| Résolution | Dimensions | Mode à capturer |
-|------------|------------|------------------|
-| 4K | 3840×2160 | Studio + Dictionary |
-| QHD | 2560×1440 | Studio + Dictionary |
-| FHD | 1920×1080 | Studio + Dictionary |
-| Tablet | 1024×768 | Studio + Dictionary |
-| Mobile | 375×812 | Studio + Dictionary |
-
-**Sauvegarder dans** : `docs/design/screenshots/`  
-**Ensuite** : Signaler à ARIA pour passer à UX-02 (audit Stitch)
+**Ce qu'il faut faire** : 
+1. Aller sur le projet Stitch ID `1663511171782434009` pour visualiser les propositions Desktop et Mobile.
+2. Gabriel : me faire un retour sur les maquettes. Si elles te conviennent ("Vibe" validée), dis-moi de passer à la phase d'implémentation (Phase C : Breakpoints CSS & Composants adaptatifs).
 
 ---
 
@@ -71,12 +81,12 @@
 |---|-----|-------|--------|
 | 1 | BUG-10 | Notation EU/US HarmonicSeriesPanel | ✅ FAIT |
 | 2 | D.1.2 | numFrets bass→20 / guitar→22 | ✅ FAIT |
-| 3 | UX-01 | Captures multi-résolution | ⏳ TODO (Gabriel) |
-| 4 | UX-02 | Audit Stitch | ⏳ TODO (Pré-req: UX-01) |
-| 5 | UX-03 | Génération variantes Stitch | ⏳ TODO (Pré-req: UX-02) |
-| 6 | UX-04 | Design Bible | ⏳ TODO (Pré-req: UX-03) |
-| 7 | UX-05 | Template prompts Stitch | ⏳ TODO |
-| 8 | UX-06 | Breakpoints CSS | ⏳ TODO (Pré-req: UX-04) |
+| 3 | UX-01 | Captures multi-résolution | ✅ FAIT |
+| 4 | UX-02 | Audit Stitch | ✅ FAIT |
+| 5 | UX-04 | Design Bible | ✅ FAIT |
+| 6 | UX-05 | Template prompts Stitch | ✅ FAIT |
+| 7 | UX-03 | Génération variantes Stitch | ✅ FAIT |
+| 8 | UX-06 | Breakpoints CSS | ⏳ TODO (Attente validation Gabriel) |
 | 9 | UX-07 | Composants adaptatifs | ⏳ TODO (Pré-req: UX-06) |
 | 10 | UX-08 | Audit anti-surcharge | ⏳ TODO (Pré-req: UX-04) |
 | 11 | UX-09 | Checklist design nouvelles features | ⏳ TODO |
