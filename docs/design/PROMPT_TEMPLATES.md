@@ -28,7 +28,20 @@ Main Area (Bottom) - Instrument Tabs:
 Style: Dark Mode, Strict 8px grid, Pro DAW aesthetic (Ableton/FL Studio), borders #262626, surface #131313. Zero hallucinations.
 ```
 
-## 2. Prompt Variante Mobile
+## 2. Prompt "Reskin 4K" (Basé sur Screenshots)
+**Objectif** : Demander à Stitch de re-designer l'interface exacte de VisualMusic en se basant sur des captures d'écran uploadées, sans modifier la structure 4K.
+
+```text
+CRITICAL INSTRUCTION: Base your design STRICTLY on the screenshots recently uploaded to this project. We are doing a 1-to-1 RESKIN of the 4K Desktop view. DO NOT hallucinate any new structural layouts.
+
+1. Layout Preservation (4K View): Keep the exact structural arrangement shown in the screenshots. The main area must stack the Piano Keyboard, Guitar Fretboard, and Bass Fretboard exactly as they appear in the references. The sequencers must also remain where they are. 
+
+2. Simplification via CTAs (Left Sidebar): Clean up the left Control Panel. Keep the primary controls visible (Play button, Mode Switch, Tempo, Genre). However, group the heavy/complex settings (like 'Math Composition Assistant' sliders or detailed chord inversions) behind clean CTA buttons (e.g. "⚙️ Advanced Settings" or "Edit Math Parameters") that represent popups. Do not delete the features, just hide them behind elegant buttons.
+
+3. Aesthetic Upgrade (Pro DAW): Apply a premium dark mode (Ableton Live / FL Studio vibe). Use the Design System: #131313 background, #262626 subtle borders. Remove the old "neon" or "vintage" styling from the screenshots and replace it with clean, sharp 8px grid alignments, using Primary Blue (#2e90fa) for active elements and ghosted styling for low-velocity notes in the sequencer.
+```
+
+## 3. Prompt Variante Mobile
 **Objectif** : Adapter le layout au format mobile (max 768px).
 
 ```text
@@ -42,7 +55,7 @@ Contraintes Mobiles :
 5. **Aesthetics** : Conserver le design system sombre, premium, inspiré de Linear/Ableton.
 ```
 
-## 3. Prompt de Composant Spécifique (Ex: Fretboard)
+## 4. Prompt de Composant Spécifique (Ex: Fretboard)
 **Objectif** : Redesigner un composant très spécifique sans toucher au reste de l'écran.
 
 ```text
