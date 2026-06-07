@@ -20,7 +20,7 @@ export default function HarmonicSeriesPanel({ dictRoot, dictOctave }) {
   const harmonics = getHarmonicSeries(
     midiToFreq(48 + Number(dictRoot) + dictOctave * 12),
     16,
-    notation
+    notation?.toLowerCase()
   );
 
   return (
