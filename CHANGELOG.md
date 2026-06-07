@@ -2,7 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased / Latest] - 2026-05-21
+## [1.0.0] - 2026-06-07
+
+### Added
+- Info Tooltips (`?`) for complex features (Shell Voicings, Playability Score, Suggest Bass, Progressions, Inversions) using Stitch's glassmorphic design language.
+- Added missing translations for "Math & Rythmes" modal header and dictionary warning.
+
+### Changed
+- Complete UX/UI overhaul: Introduced Zen Studio (minimalist, off-black, pastel accents) and Neon Monolith (cyberpunk, glowing neon) themes.
+- Redesigned Sidebar and Modal layout for cleaner margins and unified spacing.
+- Improved color contrast across both themes for better accessibility.
+- Set harmonic block in Studio mode to be collapsed by default.
+
+## [0.9.0] - 2026-05-21
 
 ### Added
 - Internationalization (i18n) for the Math Composition Assistant in FR, EN, PT, ZH.
