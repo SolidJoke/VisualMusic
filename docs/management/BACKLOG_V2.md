@@ -11,10 +11,10 @@
 | Indicateur | Valeur |
 |------------|--------|
 | Tests | ✅ **797/797** passants (Vitest) |
-| Branche principale | `main` (propre) |
-| Dernier commit | `6405c82` — fix(mobile): UX-14 hover:none + BUG-12 BottomNav (Jules J-05, PR #58) |
+| Branche principale | `main` — propre, commit `72a6557` |
+| Dernier commit | `72a6557` — fix(responsive): CSS zoom piano+fretboard (PR #67) |
 | Architecture | Hook `useFretboard` + fonctions pures `fretboardUtils` |
-| Design | Phase D Mobile en cours — maquettes Stitch validées par Gabriel |
+| Design | Scrubber minimap ✅ (PR #65) · Zoom responsive partiel ⚠️ (PR #66+#67) |
 
 ---
 
@@ -117,6 +117,11 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 - [x] **BUG-11** — Double DOM Sidebar+BottomNav → `useMediaQuery` (Jules J-04, PR #57)
 - [x] **BUG-12** — BottomNav drawer toggle fix → `transform: translateY` (Jules J-05, PR #58)
 - [x] **BUG-13** — Vite MIME error BottomNav.css → résolu par correction CSS (Jules J-05, PR #58)
+- [x] **PR #63** — Séquenceur paginé [16][32][64] + Viewport navigator fretboard (Jules J-09)
+- [x] **PR #64** — Fretboard proportions : STRING_HEIGHT=36, 5 frettes, grid uniforme (ARIA)
+- [x] **PR #65** — Minimap scrubber fretboard style Ableton (ARIA)
+- [x] **PR #66** — Responsive scaling clamp() CSS (Jules J-11) — ⚠️ résultat insuffisant, voir UX-SCALE
+- [x] **PR #67** — Zoom CSS paliers 0.55/0.68/0.82 (ARIA) — ⚠️ insuffisant à <900px viewport, voir UX-SCALE
 
 ---
 
@@ -130,12 +135,40 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 > **Règle** : Aucune nouvelle feature musicale — focus UX uniquement  
 > **Branche** : `refonte/ux-design` ou par phase
 
-#### ⚡ Quick Wins (~1h, traiter en premier)
+#### ⚡ Quick Wins pré-MEP (~2h total Jules — à traiter en PRIORITÉ avant build Netlify)
 
 | ID | Tâche | Fichier | Statut |
 |----|-------|---------|--------|
-| **BUG-10** | Notation EU/US dans HarmonicSeriesPanel — vérifier `notation` appliqué à `getHarmonicSeries` | `HarmonicSeriesPanel.jsx` | `[ ]` TODO |
-| **D.1.2** | `numFrets` par instrument : `bass → 20`, `guitar → 22` | `useFretboard.js` | `[ ]` TODO |
+| **BUG-10** | Notation EU/US dans HarmonicSeriesPanel — appliquer `notation` à `getHarmonicSeries` | `HarmonicSeriesPanel.jsx` | `[ ]` TODO |
+| **HEADER-MOB** | Header mobile cassé : "Vmu: VisualMusic Coach" overflow/rose sur mobile | `App.css` ou `AppDesktop.jsx` | `[ ]` TODO Jules |
+| **D.1.2** | `numFrets` par instrument : `bass → 20`, `guitar → 22` (actuellement les deux à 22) | `useFretboard.js` | `[ ]` TODO Jules |
+
+#### 🔴 UX-SCALE — Scaling responsive instruments (PROBLÈME OUVERT — à résoudre prochaine session)
+
+> **Contexte** : PRs #66 et #67 ont tenté deux approches (clamp sur éléments individuels, puis zoom CSS par paliers). Les deux sont insuffisantes à des viewports étroits (~1024px ou moins). Le problème racine : le piano (7 octaves × 2450px) et les fretboards restent trop grands même avec zoom 0.55.
+
+**Analyse du problème :**
+- À 1024px fenêtre, sidebar 210px → zone contenu 814px
+- Piano à zoom 0.55 = 2450 × 0.55 = **1347px** → déborde encore de ~530px
+- Pour tenir dans 814px : zoom requis ≈ **0.33** → lisibilité des notes très compromise
+- Conclusion : le zoom CSS pur **ne peut pas** résoudre ce cas sans rendre les instruments illisibles
+
+**Vraie solution requise — 3 options à évaluer (prochaine session ARIA) :**
+
+| ID | Option | Complexité | Approche |
+|----|--------|------------|----------|
+| **UX-SCALE-01** | 🥇 Piano : `visibleOctaveCount` + scrubber (miroir du fretboard) | Moyenne — JSX PianoKeyboard.jsx | Afficher 2 octaves (<1440px) avec scrubber pour naviguer. Identique à ce qu'on a fait pour le fretboard avec `visibleFretCount=5`. **Vraie solution long terme.** |
+| **UX-SCALE-02** | Zoom plus agressif + lisibilité minimale garantie | Faible — CSS only | Descendre à `zoom: 0.35` à <900px. Risque : notes illisibles. Acceptable comme fix temporaire. |
+| **UX-SCALE-03** | Layout en onglets à <1200px (Piano / Guitare séparés) | Faible — CSS + InstrumentView.jsx | Activer `layoutMode: tabs` automatiquement quand viewport < 1200px. Évite le problème de place en n'affichant qu'un instrument à la fois. |
+
+**Recommandation ARIA :** Implémenter **UX-SCALE-01** (visibleOctaveCount piano + scrubber) comme solution pérenne. C'est la même logique que le fretboard — déjà validée et appréciée. En attendant, **UX-SCALE-03** (layout tabs auto) est le fix le plus rapide et le plus propre.
+
+**Périmètre d'impact UX-SCALE-01 :**
+- `PianoKeyboard.jsx` : ajouter `is4K`, `visibleOctaveCount = is4K ? 7 : 2`, `octaveOffset` state, `scrubberRef`, drag handler
+- `PianoKeyboard.css` : ajouter `.piano-scrubber`, `.piano-scrubber-thumb`, `.piano-scrubber-note`
+- Protections : `fingeringLogic.js` = interdit · `Fretboard.jsx` = interdit
+
+**⚠️ ARIA prendra la main directement sur UX-SCALE-01** (fichier sensible, logique musicale).
 
 #### Phase A — Audit Stitch (captures → maquettes, zéro code)
 
@@ -177,11 +210,12 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 | **UX-07b** | BottomNav mobile + drawer | `BottomNav.jsx/.css`, `AppMobile.jsx` | `[x]` FAIT ✅ PR #56 |
 | **UX-08** | Audit anti-surcharge : test 90% sur chaque composant | `DESIGN_BIBLE.md` | `[ ]` TODO |
 | **UX-09** | Checklist design nouvelles features (6 critères) | `docs/design/DESIGN_CHECKLIST.md` | `[ ]` TODO |
-| **UX-11** | Piano scrollable + tactile mobile | `PianoKeyboard` | `[x]` FAIT |
-| **UX-12** | Fretboard scrollable + tactile mobile | `Fretboard` | `[x]` FAIT |
-| **UX-13** | Séquenceur compact mobile | `PianoRoll` | `[x]` FAIT |
-| **UX-16** | Modales fullscreen + sticky back header | `Modal` | `[x]` FAIT |
-| **12.6** | Animation sync gamme/accord en Dictionary | `DictionaryPanel.jsx` | `[ ]` TODO |
+| **UX-11** | Piano scrollable + tactile mobile | `PianoKeyboard.css` | `[x]` FAIT ✅ PR #59 |
+| **UX-12** | Fretboard scrollable + tactile mobile | `Fretboard.css` | `[x]` FAIT ✅ PR #59 |
+| **UX-13** | Séquenceur compact mobile | `SequencerPanel.jsx`, `PianoRoll.css` | `[x]` FAIT ✅ PR #59 |
+| **UX-14** | `@media (hover: none)` touch states | `App.css`, `Sidebar.css`, `BottomNav.css` | `[x]` FAIT ✅ PR #58 |
+| **UX-15** | BottomNav drawer fix | `BottomNav.jsx/.css` | `[x]` FAIT ✅ PR #58 |
+| **UX-16** | Modales fullscreen + sticky ← Retour | `Modal.jsx/.css` | `[x]` FAIT ✅ PR #59 |
 
 ≥ 2560px — 4K       : interface complète, scaling possible
 1440–2559px — QHD   : panneaux P3 repliables par défaut
@@ -360,4 +394,5 @@ npx eslint "src/**/*.{js,jsx}" --ignore-pattern "**/__tests__/**"
 ---
 
 *Créé : 2026-06-06T11:47 par ARIA*  
-*Mis à jour : 2026-06-07T17:45 - PR #xx (UX-11, UX-12, UX-13, UX-16), Responsive Mobile Instruments. Jules J-04 à lancer : fix double DOM + dead code audit commit.*
+*Créé : 2026-06-06T11:47 par ARIA*  
+*Mis à jour : 2026-06-07T17:49 — PR #59 (UX-11/12/13/16 GEMINI-04), Phase D Mobile complète. Jules J-06 en cours : BUG-10 + unused imports + console.log cleanup.*
