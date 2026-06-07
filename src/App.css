@@ -1256,3 +1256,26 @@ input[type="range"]::-webkit-slider-runnable-track {
     border-bottom: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   UX-06B & UX-07B (GEMINI-03 UPDATES)
+═══════════════════════════════════════════════════════ */
+
+@media (max-width: 1439px) {
+    .main-layout-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .layout-col {
+        width: 100%;
+    }
+}
+
+@media (max-width: 767px) {
+  .app-container-inner {
+    padding-left: 0 !important;
+    padding-bottom: 64px !important; /* Space for BottomNav */
+  }
+  .app-header {
+    margin-top: 10px;
+  }
+}

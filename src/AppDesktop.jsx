@@ -9,6 +9,7 @@ import StudioPanel from "./components/Panels/StudioPanel";
 import ControlPanel from "./components/Panels/ControlPanel";
 import PlaybackPanel from "./components/Panels/PlaybackPanel";
 import Sidebar from "./components/Layout/Sidebar";
+import BottomNav from "./components/Layout/BottomNav";
 import CustomSelect from "./components/Common/CustomSelect";
 import InstrumentView from "./components/Panels/InstrumentView";
 import CompositionPanel from "./components/Intelligence/CompositionPanel";
@@ -461,39 +462,61 @@ function AppDesktop() {
         </div>
 
         <div className={`main-layout-grid ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-          <Sidebar 
-            isOpen={sidebarOpen} 
-            toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-            uiTheme={uiTheme}
-            appMode={appMode}
-            setAppMode={setAppMode}
-            isPlaying={isPlaying}
-            togglePlayback={togglePlayback}
-            playDictionaryAudio={playDictionaryAudio}
-            currentBpm={currentBpm}
-            handleBpmChange={handleBpmChange}
-            txt={txt}
-          >
-            {/* CTA Buttons in Sidebar */}
-            <button 
-              className={`sidebar-cta-btn ${showStudioModal ? 'active' : ''}`}
-              onClick={() => setShowStudioModal(true)}
-            >
-              {txt.studioHarmony || "Studio & Harmonie"}
-            </button>
-            <button 
-              className={`sidebar-cta-btn ${showMathModal ? 'active' : ''}`}
-              onClick={() => setShowMathModal(true)}
-            >
-              {txt.mathRhythms || "Math & Rythmes"}
-            </button>
-            <button 
-              className={`sidebar-cta-btn ${showAudioModal ? 'active' : ''}`}
-              onClick={() => setShowAudioModal(true)}
-            >
-              {txt.instrumentsAudio || "Instruments & Audio"}
-            </button>
-          </Sidebar>
+          {(() => {
+            const ctaButtons = (
+              <>
+                <button 
+                  className={`sidebar-cta-btn ${showStudioModal ? 'active' : ''}`}
+                  onClick={() => setShowStudioModal(true)}
+                >
+                  {txt.studioHarmony || "Studio & Harmonie"}
+                </button>
+                <button 
+                  className={`sidebar-cta-btn ${showMathModal ? 'active' : ''}`}
+                  onClick={() => setShowMathModal(true)}
+                >
+                  {txt.mathRhythms || "Math & Rythmes"}
+                </button>
+                <button 
+                  className={`sidebar-cta-btn ${showAudioModal ? 'active' : ''}`}
+                  onClick={() => setShowAudioModal(true)}
+                >
+                  {txt.instrumentsAudio || "Instruments & Audio"}
+                </button>
+              </>
+            );
+
+            return (
+              <>
+                <Sidebar 
+                  isOpen={sidebarOpen} 
+                  toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+                  uiTheme={uiTheme}
+                  appMode={appMode}
+                  setAppMode={setAppMode}
+                  isPlaying={isPlaying}
+                  togglePlayback={togglePlayback}
+                  playDictionaryAudio={playDictionaryAudio}
+                  currentBpm={currentBpm}
+                  handleBpmChange={handleBpmChange}
+                  txt={txt}
+                >
+                  {ctaButtons}
+                </Sidebar>
+                <BottomNav
+                  appMode={appMode}
+                  setAppMode={setAppMode}
+                  isPlaying={isPlaying}
+                  togglePlayback={togglePlayback}
+                  playDictionaryAudio={playDictionaryAudio}
+                  uiTheme={uiTheme}
+                  txt={txt}
+                >
+                  {ctaButtons}
+                </BottomNav>
+              </>
+            );
+          })()}
 
           {/* --- MODALS --- */}
           <Modal uiTheme={uiTheme} isOpen={showStudioModal} onClose={() => setShowStudioModal(false)} title="🎭 Studio & Harmonie">

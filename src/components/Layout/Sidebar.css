@@ -253,3 +253,15 @@
 }
 
 .sidebar-content::-webkit-scrollbar-thumb:hover { background: #404753; }
+
+/* ─── Responsive Breakpoints ─────────────────────────────────────────────── */
+
+@media (max-width: 1439px) {
+  .app-sidebar.is-open { width: 280px; } /* Compressible on 1080p */
+}
+
+@media (max-width: 767px) {
+  .app-sidebar {
+    display: none !important;
+  }
+}
