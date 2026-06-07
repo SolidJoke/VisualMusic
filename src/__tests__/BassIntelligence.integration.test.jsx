@@ -63,8 +63,8 @@ describe('Bass Intelligence Integration', () => {
         fireEvent.click(studioBtn);
 
         // Open Studio & Harmonie Modal
-        const assistantBtn = screen.getByText(/Studio & Harmonie/i);
-        fireEvent.click(assistantBtn);
+        const assistantBtns = screen.getAllByText(/Studio & Harmonie/i);
+        fireEvent.click(assistantBtns[0]);
 
         // Check for Suggest Bass button
         const suggestBtn = screen.getByText(/Suggest Bass|Suggérer Basse/i);
@@ -82,8 +82,8 @@ describe('Bass Intelligence Integration', () => {
         fireEvent.click(studioBtn);
 
         // Open Studio & Harmonie Modal
-        const assistantBtn = screen.getByText(/Studio & Harmonie/i);
-        fireEvent.click(assistantBtn);
+        const assistantBtns = screen.getAllByText(/Studio & Harmonie/i);
+        fireEvent.click(assistantBtns[0]);
 
         const suggestBtn = screen.getByText(/Suggest Bass|Suggérer Basse/i);
         fireEvent.click(suggestBtn);

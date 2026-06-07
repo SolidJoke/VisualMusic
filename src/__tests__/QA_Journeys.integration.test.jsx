@@ -67,9 +67,9 @@ describe("QA Testing Sessions - Integration Journeys", () => {
         </AppProvider>
       );
 
-      // 1.5 Open Studio modal
-      const studioBtn = screen.getByText(/Studio & Harmonie/i);
-      fireEvent.click(studioBtn);
+      // 2. Open Studio Modal
+      const studioBtns = screen.getAllByText(/Studio & Harmonie/i);
+      fireEvent.click(studioBtns[0]);
 
       // Verify default state is studio
       expect(screen.getByTestId("studio-panel")).toBeDefined();
@@ -98,8 +98,8 @@ describe("QA Testing Sessions - Integration Journeys", () => {
       fireEvent.click(playbackBtn);
 
       // 6. Ouvrir la modale Instrument & Audio puis le PlaybackPanel (Mixer)
-      const audioBtn = screen.getByText(/Instruments & Audio/i);
-      fireEvent.click(audioBtn);
+      const audioBtns = screen.getAllByText(/Instruments & Audio/i);
+      fireEvent.click(audioBtns[0]);
 
       const sliders = document.querySelectorAll(".premium-slider");
       expect(sliders.length).toBeGreaterThan(0);
@@ -122,8 +122,8 @@ describe("QA Testing Sessions - Integration Journeys", () => {
       );
 
       // 1. Ouvrir la modale et vérifier StudioPanel
-      const studioBtn = screen.getByText(/Studio & Harmonie/i);
-      fireEvent.click(studioBtn);
+      const studioBtns = screen.getAllByText(/Studio & Harmonie/i);
+      fireEvent.click(studioBtns[0]);
       expect(screen.getByTestId("studio-panel")).toBeDefined();
 
       // Lancer la lecture générale via la classe .btn-playback-premium
@@ -132,8 +132,8 @@ describe("QA Testing Sessions - Integration Journeys", () => {
       fireEvent.click(playBtn);
 
       // Ouvrir le panneau de réglages instruments (nouvelle modale)
-      const settingsBtn = screen.getByText(/Instruments & Audio/i);
-      fireEvent.click(settingsBtn);
+      const settingsBtns = screen.getAllByText(/Instruments & Audio/i);
+      fireEvent.click(settingsBtns[0]);
 
       // 3. Changer le preset d'instrument
       const pianoBtn = screen.getByRole("button", { name: /piano/i });
@@ -175,9 +175,9 @@ describe("QA Testing Sessions - Integration Journeys", () => {
         </AppProvider>
       );
 
-      // Desktop s'affiche
-      const studioBtn = await screen.findByText(/Studio & Harmonie/i);
-      fireEvent.click(studioBtn);
+      // Wait for it to be ready
+      const studioBtns = await screen.findAllByText(/Studio & Harmonie/i);
+      fireEvent.click(studioBtns[0]);
       expect(await screen.findByTestId("studio-panel")).toBeDefined();
     });
 
@@ -191,8 +191,8 @@ describe("QA Testing Sessions - Integration Journeys", () => {
       );
 
       // Tablet s'affiche (AppTablet délègue actuellement à AppDesktop)
-      const studioBtn = await screen.findByText(/Studio & Harmonie/i);
-      fireEvent.click(studioBtn);
+      const studioBtns = await screen.findAllByText(/Studio & Harmonie/i);
+      fireEvent.click(studioBtns[0]);
       expect(await screen.findByTestId("studio-panel")).toBeDefined();
     });
 
@@ -205,8 +205,9 @@ describe("QA Testing Sessions - Integration Journeys", () => {
         </AppProvider>
       );
 
-      // Mobile s'affiche (on s'attend à voir le placeholder de version mobile)
-      expect(await screen.findByText(/La version mobile est en cours de développement/i)).toBeDefined();
+      // Mobile layout delegate to AppDesktop, so it renders the normal components
+      const titles = await screen.findAllByRole("heading", { level: 1 });
+      expect(titles.length).toBeGreaterThan(0);
     });
   });
 });

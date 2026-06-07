@@ -10,11 +10,11 @@
 
 | Indicateur | Valeur |
 |------------|--------|
-| Tests | ✅ **795/795** passants (Vitest, happy-dom) |
+| Tests | ✅ **797/797** passants (Vitest, happy-dom) |
 | Branche principale | `main` (propre) |
-| Dernier commit | `2b82cce` — chore(cleanup): dead code + unused vars (PR #53) |
+| Dernier commit | `80d73ac` — feat(ux): UX-06 + UX-07 responsive 1440p (PR #55) |
 | Architecture | Hook `useFretboard` + fonctions pures `fretboardUtils` |
-| Design | Glassmorphism Phase 9 en place — refonte responsive planifiée |
+| Design | Phase C Pro DAW Reskin validée 4K — responsive 1440p implémenté (PR #55) |
 
 ---
 
@@ -95,11 +95,14 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 - [x] **BUG-07** — Sidebar rectangle vide (CSS grid)
 - [x] **BUG-08** — Fretboard width doubling + marker offsets
 - [x] **BUG-09** — Scale notes highlight mask (guard condition)
+- [x] **14.2** — Notes inaudibles Studio : vérifié manuellement OK (2026-06-07)
+- [x] **14.3** — Z-index tooltips Studio : vérifié manuellement OK (2026-06-07)
 - [x] **14.5** — Header overflow
 - [x] **14.7** — Toggle Mode Premium Blue
+- [x] **FIX-01** — Wording MODE M + overflow CSS `.retro-switch-container` (Jules J-01, PR #54)
 
 ### QA & Tests
-- [x] **QA** — 795 tests Vitest au vert (`QA_Journeys.integration.test.jsx` inclus)
+- [x] **QA** — 797 tests Vitest au vert (797/797 après PR #54 + #55)
 
 ---
 
@@ -165,11 +168,13 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 
 | ID | Tâche | Fichiers | Statut |
 |----|-------|----------|--------|
-| **UX-06** | Breakpoints CSS (5 paliers) | `App.css`, `AppDesktop.jsx` | `[ ]` TODO · Pré-req : UX-04 |
-| **UX-07** | Composants adaptatifs : `CollapsiblePanel.jsx`, `Drawer.jsx` (ARIA + keyboard nav obligatoires) | `src/components/Layout/` | `[ ]` TODO · Pré-req : UX-06 |
-| **UX-08** | Audit anti-surcharge : passer en revue chaque composant existant avec le test 90% | Section `DESIGN_BIBLE.md` | `[ ]` TODO · Pré-req : UX-04 |
+| **UX-06** | Breakpoints CSS 1440p — collapse panels P2/P3 | `App.css`, `StudioPanel`, `CompositionPanel`, `HarmonicSeriesPanel`, `TheoryLegend` | `[x]` FAIT ✅ PR #55 |
+| **UX-07** | Sidebar toggle button `‹`/`›` | `Sidebar.jsx` | `[x]` FAIT ✅ PR #55 |
+| **UX-06b** | Breakpoints CSS 1080p (colonne unique, sidebar compressible) | `App.css`, composants | `[ ]` TODO · GEMINI-03 |
+| **UX-07b** | Bottom Nav mobile + drawer | `src/components/Layout/` | `[ ]` TODO · GEMINI-03 |
+| **UX-08** | Audit anti-surcharge : test 90% sur chaque composant | Section `DESIGN_BIBLE.md` | `[ ]` TODO |
 | **UX-09** | Checklist design nouvelles features (6 critères) | `docs/design/DESIGN_CHECKLIST.md` | `[ ]` TODO |
-| **12.6** | Animation sync gamme/accord en Dictionary (highlight progressif des notes) | `DictionaryPanel.jsx` | `[ ]` TODO · Pré-req : UX-04 |
+| **12.6** | Animation sync gamme/accord en Dictionary | `DictionaryPanel.jsx` | `[ ]` TODO |
 
 **Breakpoints CSS cibles :**
 ```
@@ -350,4 +355,4 @@ npx eslint "src/**/*.{js,jsx}" --ignore-pattern "**/__tests__/**"
 ---
 
 *Créé : 2026-06-06T11:47 par ARIA*  
-*Mis à jour : 2026-06-06T23:00 — Fusion BACKLOG.md (racine) + BACKLOG_V2.md, audit complet, 3 conversations planifiées*
+*Mis à jour : 2026-06-07T13:18 — FIX-01 (PR #54 Jules), UX-06 + UX-07 (PR #55 GEMINI-02), 797/797 tests, GEMINI-03 (1080p) à lancer*
