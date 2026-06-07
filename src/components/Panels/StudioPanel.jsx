@@ -6,7 +6,6 @@ import { useAppContext } from '../../context/AppContext';
 import StudioInfoBlock from './StudioInfoBlock';
 import LcdScreen from '../Common/LcdScreen';
 import CustomSelect from '../Common/CustomSelect';
-import Modal from '../Common/Modal';
 import { log } from '../../utils/debug';
 import extendedTheoryData from '../../core/extendedTheoryData.json';
 import InfoTooltip from '../Common/InfoTooltip';

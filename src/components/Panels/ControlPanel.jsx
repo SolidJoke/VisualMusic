@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
 import { useAppContext } from '../../context/AppContext';
-import Modal from '../Common/Modal';
 import InfoTooltip from '../Common/InfoTooltip';
 
 const ControlPanel = ({

@@ -14,6 +14,7 @@
  */
 import * as Tone from "tone";
 import { DRUM_PRESETS, BASS_PRESETS, PIANO_PRESET } from "./InstrumentPresets";
+import { log } from "../utils/debug";
 
 // ─── Safety & Analysis: Hard Limiter and FFT ──────────────────────────
 const masterLimiter = new Tone.Compressor({
@@ -101,7 +102,7 @@ export function initGuitarSampler(onReady) {
       volume: -2,
       onload: () => {
         guitarSamplerReady = true;
-        console.log("[AudioEngine] Guitar Sampler loaded ✓");
+        log('audio', 'Guitar Sampler loaded ✓');
         if (onReady) onReady();
       },
       onerror: (err) => {
@@ -169,7 +170,7 @@ export function initPianoSampler(onReady) {
       volume: -3,
       onload: () => {
         pianoSamplerReady = true;
-        console.log("[AudioEngine] Piano Sampler loaded ✓");
+        log('audio', 'Piano Sampler loaded ✓');
         if (onReady) onReady();
       },
       onerror: (err) => {
