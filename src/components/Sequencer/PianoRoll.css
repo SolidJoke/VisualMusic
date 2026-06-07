@@ -20,6 +20,80 @@
     margin-bottom: 8px;
 }
 
+.piano-roll-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--surface-sunken, #0e0e18);
+  border-bottom: 1px solid #262626;
+  flex-wrap: wrap;
+}
+
+.step-density-selector {
+  display: flex;
+  gap: 2px;
+  background: #1a1a2e;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.step-density-btn {
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  min-height: 24px;
+}
+
+.step-density-btn.active {
+  background: #00d4ff;
+  color: #000;
+  font-weight: 700;
+}
+
+.step-density-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.page-selector {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.page-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #333;
+  background: transparent;
+  color: #666;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.page-btn.active {
+  background: #00d4ff22;
+  border-color: #00d4ff;
+  color: #00d4ff;
+  font-weight: 700;
+}
+
+.page-indicator {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #444;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
 .track-row {
     display: flex;
     align-items: flex-end;
@@ -47,9 +121,10 @@
 /* ─── Steps ───────────────────────────────────────────────────────── */
 .step-lamp {
     flex: 1;
-    min-width: 12px; 
+    width: clamp(18px, 2.2vw, 32px);
+    height: clamp(18px, 2.2vw, 32px);
+    min-width: clamp(18px, 2.2vw, 32px);
     max-width: 80px;
-    height: 32px;
     box-sizing: border-box;
     background-color: var(--lg-panel-bg-elevated);
     border-radius: 4px;
