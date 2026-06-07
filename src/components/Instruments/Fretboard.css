@@ -502,27 +502,25 @@
   pointer-events: none;
 }
 
-/* === RESPONSIVE SCALING: Desktop < 1440px === */
-/* String rows and note markers scale down on narrower desktops.
-   STRING_HEIGHT=36 constant in Fretboard.jsx is NEVER touched (used for barre positioning).
-   The CSS height here is independent and can safely be reduced. */
-@media (min-width: 768px) and (max-width: 1439px) {
-    .string-row {
-        height: clamp(24px, 2.5vw, 35px) !important;
+/* === RESPONSIVE SCALING: Desktop < 1440px — CSS zoom approach ===
+   zoom s'applique sur le conteneur entier du manche.
+   STRING_HEIGHT=36 dans Fretboard.jsx reste intact (jamais touché).
+   Mobile (orientation:landscape et max-width:767px) : non touché.
+   4K (min-width: 3840px) : non touché. */
+@media (min-width: 1280px) and (max-width: 1439px) {
+    .fretboard-container {
+        zoom: 0.82;
     }
+}
 
-    .note-marker {
-        width: clamp(22px, 2.2vw, 32px) !important;
-        height: clamp(22px, 2.2vw, 32px) !important;
-        font-size: clamp(10px, 1.1vw, 16px) !important;
+@media (min-width: 1100px) and (max-width: 1279px) {
+    .fretboard-container {
+        zoom: 0.68;
     }
+}
 
-    .fretboard-dot {
-        width: clamp(12px, 1.4vw, 20px) !important;
-        height: clamp(12px, 1.4vw, 20px) !important;
-    }
-
-    .fretboard {
-        padding: clamp(4px, 0.6vw, 10px) 0 !important;
+@media (min-width: 768px) and (max-width: 1099px) {
+    .fretboard-container {
+        zoom: 0.55;
     }
 }
