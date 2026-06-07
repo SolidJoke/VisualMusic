@@ -1271,12 +1271,39 @@ input[type="range"]::-webkit-slider-runnable-track {
 }
 
 @media (max-width: 767px) {
+  /* Layout principal */
   .app-container-inner {
     padding-left: 0 !important;
     padding-bottom: 64px !important; /* Space for BottomNav */
+    overflow-x: hidden;
   }
+
   .app-header {
-    margin-top: 10px;
+    margin-top: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  /* Grille principale : colonne unique sur mobile */
+  .main-layout-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-height: 0;
+  }
+
+  /* Zone d'instruments : doit avoir une hauteur explicite */
+  .layout-col,
+  .app-main-content {
+    min-height: 300px;
+    flex: 1;
+    width: 100% !important;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    overflow: visible;
   }
 }
 

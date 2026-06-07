@@ -326,25 +326,28 @@
 
 /* --- Mobile Responsive Rules (UX-12) --- */
 @media (max-width: 767px) {
+    /* Conteneur scroll : supprimer, remplacer par hauteur fixe */
     .fretboard-scroll-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
-        padding-bottom: 10px;
+        overflow-x: hidden !important; /* Plus de scroll — on limite les frettes */
+        min-height: 100px;
+        height: 130px;
+        width: 100%;
     }
 
-    /* Enforce minimum fretboard width to ensure it scrolls rather than squishes */
+    /* Fretboard limité à 7 frettes */
     .fretboard {
-        min-width: 800px;
+        min-width: unset !important; /* Retire le min-width: 800px */
+        width: 100% !important;
+        max-width: 100% !important;
     }
 
-    /* Larger touch targets for markers */
+    /* Marqueurs adaptés pour 7 frettes */
     .note-marker {
-        min-width: 28px !important;
-        min-height: 28px !important;
-        width: 28px !important;
-        height: 28px !important;
-        font-size: 14px !important; /* ensure text fits but remains visible */
+        min-width: 24px !important;
+        min-height: 24px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 10px !important;
     }
 
     .note-marker.open-marker {
