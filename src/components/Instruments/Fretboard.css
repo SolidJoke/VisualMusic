@@ -391,11 +391,11 @@
 
 /* --- Mobile Responsive Rules (UX-12) --- */
 @media (max-width: 767px) {
-    /* Conteneur scroll : supprimer, remplacer par hauteur fixe */
+    /* Conteneur scroll : supprimer, remplacer par hauteur auto */
     .fretboard-scroll-container {
-        overflow-x: hidden !important; /* Plus de scroll — on limite les frettes */
+        overflow-x: hidden !important;
         min-height: 100px;
-        height: 130px;
+        height: auto; /* N'est plus utilisé dans le JSX, mais au cas où */
         width: 100%;
     }
 
@@ -429,6 +429,34 @@
 
 /* Remove hover effects on touch devices */
 @media (hover: none) {
-    /* (If there were hovers, they'd be disabled here. 
+    /* (If there were hovers, they'd be disabled here.
        Fretboard markers are cursor: default mostly, but this ensures safety) */
+}
+
+/* === LANDSCAPE MOBILE: compress string height to fit the 170px instrument zone === */
+@media (orientation: landscape) and (max-height: 500px) {
+    .string-row {
+        height: 24px !important;
+    }
+
+    /* Scale down note markers proportionally */
+    .note-marker {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 9px !important;
+        min-width: 20px !important;
+        min-height: 20px !important;
+    }
+
+    .note-marker.open-marker {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 9px !important;
+    }
+
+    /* Smaller fretboard dots */
+    .fretboard-dot {
+        width: 12px !important;
+        height: 12px !important;
+    }
 }

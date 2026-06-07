@@ -5,7 +5,9 @@ import { computeFretMetadata } from "../../core/fretboardUtils";
 import { useFretboard } from "../../hooks/useFretboard";
 import { useMediaQuery, useLandscapeMode } from "../../hooks/useMediaQuery";
 
-const STRING_HEIGHT = typeof window !== 'undefined' ? Math.max(20, Math.min(35, window.innerHeight * 0.04)) : 35;
+// Fixed string height — used for barre indicator and status row positioning.
+// Do NOT compute from window dimensions (no SSR safety, breaks on resize).
+const STRING_HEIGHT = 36;
 
 function Fretboard({
   instrument = "guitar"
@@ -37,8 +39,12 @@ function Fretboard({
 
   const isMobile = useMediaQuery('(max-width: 767px)');
   const isLandscape = useLandscapeMode();
+  const is4K = useMediaQuery('(min-width: 3840px)');
 
-  const visibleFretCount = isMobile || isLandscape ? 7 : 12;
+  // On 4K show the full neck (original behaviour).
+  // On all other screens: 5 frets = one standard hand position,
+  // always proportional regardless of container width.
+  const visibleFretCount = is4K ? numFrets : 5;
 
   const [fretOffset, setFretOffset] = React.useState(0);
 
@@ -58,15 +64,19 @@ function Fretboard({
     const minActiveFret = Math.min(...activeFrets);
     const maxActiveFret = Math.max(...activeFrets);
 
+    // Snap to the nearest hand-position page (multiples of visibleFretCount).
+    // This keeps the fret numbers aligned to natural guitar positions.
     const centerFret = Math.floor((minActiveFret + maxActiveFret) / 2);
-    const idealOffset = Math.max(0, centerFret - Math.floor(visibleFretCount / 2));
+    const positionPage = Math.max(0, Math.floor((centerFret - 1) / visibleFretCount));
+    const idealOffset = positionPage * visibleFretCount;
     const maxOffset = Math.max(0, numFrets - visibleFretCount);
 
     setFretOffset(Math.min(idealOffset, maxOffset));
   }, [activeNotes, visibleFretCount, numFrets]);
 
-  const handlePrev = () => setFretOffset(o => Math.max(0, o - 3));
-  const handleNext = () => setFretOffset(o => Math.min(numFrets - visibleFretCount, o + 3));
+  // Jump a full hand position (visibleFretCount = 5) at a time.
+  const handlePrev = () => setFretOffset(o => Math.max(0, o - visibleFretCount));
+  const handleNext = () => setFretOffset(o => Math.min(numFrets - visibleFretCount, o + visibleFretCount));
 
   const firstVisibleFret = fretOffset + 1; // fret 0 is handled separately
   const lastVisibleFret = fretOffset + visibleFretCount;
@@ -74,9 +84,12 @@ function Fretboard({
   const canGoPrev = fretOffset > 0;
   const canGoNext = fretOffset < maxOffset;
 
-  // Calculate a truncated grid template
-  const gridTemplateCols = fretboardGridTemplate.split(" ");
-  const activeGridTemplate = gridTemplateCols.slice(0, visibleFretCount + 1).join(" ");
+  // On 4K: use the full computed grid template (original proportional fr values).
+  // On all other screens: generate a uniform grid with equal 1fr columns for each
+  // visible fret. This guarantees proportional fret widths regardless of container size.
+  const activeGridTemplate = is4K
+    ? fretboardGridTemplate
+    : `minmax(40px, 0.5fr) ${Array(visibleFretCount).fill('1fr').join(' ')}`;
 
   const renderDots = () => {
     const fretsWithDots = [3, 5, 7, 9, 12, 15, 17, 19, 21];
