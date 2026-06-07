@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { EuclideanCircle } from "./EuclideanCircle";
 import { PhasingVisualizer } from "./PhasingVisualizer";
-import { useCompositionPlayback } from "../../hooks/useCompositionPlayback";
+
 import {
   generateEuclideanRhythm,
   EUCLIDEAN_PRESETS,

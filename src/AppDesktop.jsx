@@ -31,6 +31,7 @@ import {
   masterAnalyser,
   setBpm,
 } from "./audio/AudioEngine";
+import { useMediaQuery } from "./hooks/useMediaQuery";
 
 
 function AppDesktop() {
@@ -221,6 +222,8 @@ function AppDesktop() {
     dictOctave,
     useShellVoicings
   });
+
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   const { exportDebugSnapshot } = useDebugExport({
     appContextState: state,
@@ -486,35 +489,34 @@ function AppDesktop() {
               </>
             );
 
-            return (
-              <>
-                <Sidebar 
-                  isOpen={sidebarOpen} 
-                  toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-                  uiTheme={uiTheme}
-                  appMode={appMode}
-                  setAppMode={setAppMode}
-                  isPlaying={isPlaying}
-                  togglePlayback={togglePlayback}
-                  playDictionaryAudio={playDictionaryAudio}
-                  currentBpm={currentBpm}
-                  handleBpmChange={handleBpmChange}
-                  txt={txt}
-                >
-                  {ctaButtons}
-                </Sidebar>
-                <BottomNav
-                  appMode={appMode}
-                  setAppMode={setAppMode}
-                  isPlaying={isPlaying}
-                  togglePlayback={togglePlayback}
-                  playDictionaryAudio={playDictionaryAudio}
-                  uiTheme={uiTheme}
-                  txt={txt}
-                >
-                  {ctaButtons}
-                </BottomNav>
-              </>
+            return isMobile ? (
+              <BottomNav
+                appMode={appMode}
+                setAppMode={setAppMode}
+                isPlaying={isPlaying}
+                togglePlayback={togglePlayback}
+                playDictionaryAudio={playDictionaryAudio}
+                uiTheme={uiTheme}
+                txt={txt}
+              >
+                {ctaButtons}
+              </BottomNav>
+            ) : (
+              <Sidebar
+                isOpen={sidebarOpen}
+                toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                uiTheme={uiTheme}
+                appMode={appMode}
+                setAppMode={setAppMode}
+                isPlaying={isPlaying}
+                togglePlayback={togglePlayback}
+                playDictionaryAudio={playDictionaryAudio}
+                currentBpm={currentBpm}
+                handleBpmChange={handleBpmChange}
+                txt={txt}
+              >
+                {ctaButtons}
+              </Sidebar>
             );
           })()}
 
