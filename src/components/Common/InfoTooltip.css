@@ -35,9 +35,6 @@
 
 .info-tooltip-popin {
   position: absolute;
-  bottom: 150%; /* Position above the icon */
-  left: 50%;
-  transform: translateX(-50%);
   width: max-content;
   max-width: 280px;
   padding: 12px 16px;
@@ -54,7 +51,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   pointer-events: none; /* Let mouse leave work easily */
   animation: tooltipFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  z-index: 1000;
+  z-index: 10000; /* Extremely high to sit above modals */
 }
 
 /* Little triangle pointing down */
@@ -72,10 +69,10 @@
 @keyframes tooltipFadeIn {
   from {
     opacity: 0;
-    transform: translate(-50%, 8px);
+    transform: translate(-50%, calc(-100% + 8px));
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translate(-50%, -100%);
   }
 }
