@@ -1,27 +1,33 @@
 /* src/styles/modern-theme.css */
 
-/* ─── VIBE DESIGN PALETTE (Ableton/Linear) ─── */
+/* ─── NEON MONOLITH STUDIO (Variant 1) ─── */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
+
 .theme-modern {
-  --lg-bg: #131313;
-  --lg-panel-bg: #161616; /* bg-subtle */
-  --lg-panel-bg-elevated: #1c1b1b; /* surface-container-low */
-  --lg-accent: #2e90fa; /* Primary Action Blue */
-  --lg-accent-glow: rgba(46, 144, 250, 0.2);
+  --font-body: 'Orbitron', 'Inter', sans-serif;
+  --lg-bg: #050505; /* Ink black */
+  --color-bg-app: var(--lg-bg);
+  --lg-panel-bg: rgba(15, 15, 20, 0.75); /* Translucent dark */
+  --lg-panel-bg-elevated: rgba(25, 25, 30, 0.85); /* Brighter elevated */
+  --lg-accent: #00f3ff; /* Neon Cyan */
+  --lg-accent-glow: rgba(0, 243, 255, 0.5);
   
-  --lg-border: 1px solid #262626; /* border-low-contrast */
-  --lg-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); /* softer shadow */
+  --lg-border: 1px solid rgba(255, 255, 255, 0.15); /* Sharper border */
+  --border-default: rgba(255, 255, 255, 0.15);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --lg-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 
-  --text-primary: #e5e2e1;
-  --text-secondary: #c0c7d5;
-  --text-tertiary: #8a919e;
+  --text-primary: #f0f0f0; /* Crisp white */
+  --text-secondary: #00f3ff; /* Cyan text */
+  --text-tertiary: #39ff14; /* Lime */
 
-  /* Role Colors - More subdued for Pro DAW */
-  --role-root: #ffb4ab;
-  --role-third: #32D583;
-  --role-fifth: #a6c8ff;
-  --role-scale: #8a919e;
-  --role-target: #F79009;
-  --role-extension: #ffb782;
+  /* Role Colors - Neon Monolith */
+  --role-root: #00f3ff; /* Neon cyan */
+  --role-third: #39ff14; /* Lime */
+  --role-fifth: #0044ff; /* Electric blue */
+  --role-scale: #ff007f; /* Hot pink (optional accent) */
+  --role-target: #fdfd96; /* Pale yellow */
+  --role-extension: #b829ea; /* Purple */
   
   --active-glow: var(--lg-accent);
   --active-color: var(--lg-accent);

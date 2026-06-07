@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './StudioInfoBlock.css';
 
 const StudioInfoBlock = ({ txt }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className={`glass-panel studio-info-block ${isOpen ? 'is-open' : 'is-closed'}`}>

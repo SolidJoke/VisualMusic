@@ -67,6 +67,10 @@ describe("QA Testing Sessions - Integration Journeys", () => {
         </AppProvider>
       );
 
+      // 1.5 Open Studio modal
+      const studioBtn = screen.getByText(/Studio & Harmonie/i);
+      fireEvent.click(studioBtn);
+
       // Verify default state is studio
       expect(screen.getByTestId("studio-panel")).toBeDefined();
 
@@ -88,17 +92,16 @@ describe("QA Testing Sessions - Integration Journeys", () => {
       const instrumentView = screen.getByTestId("instrument-view");
       expect(instrumentView).toBeDefined();
 
-      // 5. Cliquer sur le bouton Play/Stop pour le Playback
-      const playbackBtn = screen.getByRole("button", { name: /écouter|listen/i });
+      // 5. Cliquer sur le bouton Play/Stop pour le Playback (Sidebar)
+      const playbackBtn = document.querySelector(".btn-playback-premium");
       expect(playbackBtn).toBeDefined();
       fireEvent.click(playbackBtn);
 
-      // 6. Ouvrir le MixerPanel et modifier le volume
-      const mixerSummary = screen.getByText(/mixer volumes/i);
-      expect(mixerSummary).toBeDefined();
-      fireEvent.click(mixerSummary);
+      // 6. Ouvrir la modale Instrument & Audio puis le PlaybackPanel (Mixer)
+      const audioBtn = screen.getByText(/Instruments & Audio/i);
+      fireEvent.click(audioBtn);
 
-      const sliders = container.querySelectorAll(".premium-slider");
+      const sliders = document.querySelectorAll(".premium-slider");
       expect(sliders.length).toBeGreaterThan(0);
       
       // On teste qu'on peut changer la valeur d'un slider (ex: kick ou bass)
@@ -118,13 +121,19 @@ describe("QA Testing Sessions - Integration Journeys", () => {
         </AppProvider>
       );
 
-      // 1. StudioPanel présent
+      // 1. Ouvrir la modale et vérifier StudioPanel
+      const studioBtn = screen.getByText(/Studio & Harmonie/i);
+      fireEvent.click(studioBtn);
       expect(screen.getByTestId("studio-panel")).toBeDefined();
 
-      // 2. Lancer la lecture générale via la classe .btn-playback-premium
-      const playBtn = container.querySelector(".btn-playback-premium");
+      // Lancer la lecture générale via la classe .btn-playback-premium
+      const playBtn = document.querySelector(".btn-playback-premium");
       expect(playBtn).toBeDefined();
       fireEvent.click(playBtn);
+
+      // Ouvrir le panneau de réglages instruments (nouvelle modale)
+      const settingsBtn = screen.getByText(/Instruments & Audio/i);
+      fireEvent.click(settingsBtn);
 
       // 3. Changer le preset d'instrument
       const pianoBtn = screen.getByRole("button", { name: /piano/i });
@@ -167,6 +176,8 @@ describe("QA Testing Sessions - Integration Journeys", () => {
       );
 
       // Desktop s'affiche
+      const studioBtn = await screen.findByText(/Studio & Harmonie/i);
+      fireEvent.click(studioBtn);
       expect(await screen.findByTestId("studio-panel")).toBeDefined();
     });
 
@@ -180,6 +191,8 @@ describe("QA Testing Sessions - Integration Journeys", () => {
       );
 
       // Tablet s'affiche (AppTablet délègue actuellement à AppDesktop)
+      const studioBtn = await screen.findByText(/Studio & Harmonie/i);
+      fireEvent.click(studioBtn);
       expect(await screen.findByTestId("studio-panel")).toBeDefined();
     });
 

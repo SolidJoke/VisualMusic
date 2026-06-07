@@ -10,11 +10,11 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   position: relative;
   z-index: 600; /* Behind sidebar (1000) but above content */
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 12px;
+  border-bottom: 1px solid transparent;
 }
 
 .app-header-actions {
@@ -28,8 +28,8 @@
 .btn-header-action {
   min-width: var(--header-btn-width);
   height: 42px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: rgba(20, 20, 20, 0.7);
+  border: 1px solid var(--border-default);
   color: var(--text-secondary);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -225,18 +225,19 @@ body {
 ═══════════════════════════════════════════════════════ */
 
 .glass-panel {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--lg-panel-bg, rgba(20, 20, 20, 0.7));
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow);
+  padding: 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   transition: border-color var(--transition-normal),
               box-shadow var(--transition-normal);
 }
 .glass-panel:hover {
-  border-color: var(--glass-border-hover);
-  box-shadow: var(--glass-shadow), 0 0 0 1px var(--accent-glow);
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px var(--accent-glow);
 }
 
 /* Boutons premium */
@@ -1035,10 +1036,10 @@ input[type="range"]::-webkit-slider-runnable-track {
 
 @media (min-width: 1024px) {
   body.sidebar-open .app-container-inner {
-    padding-left: 420px;
+    padding-left: 180px;
   }
   body.sidebar-closed .app-container-inner {
-    padding-left: 40px; /* Reduced from 60px to minimize unused space */
+    padding-left: 60px; /* Reduced to minimize unused space */
   }
 }
 

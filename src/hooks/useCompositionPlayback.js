@@ -97,6 +97,10 @@ export function useCompositionPlayback(
         Tone.Transport.clear(loopIdRef.current);
         loopIdRef.current = null;
       }
+      try {
+        const piano = getPianoSynth();
+        if (piano.releaseAll) piano.releaseAll();
+      } catch (e) {}
     }
 
     return () => {

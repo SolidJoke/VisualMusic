@@ -303,6 +303,11 @@ export function useSequencer({
     if (isPlaying) {
       Tone.Transport.stop();
       setIsPlaying(false);
+      try {
+        bassSynth.triggerRelease();
+        const piano = getPianoSynth();
+        if (piano.releaseAll) piano.releaseAll();
+      } catch(e){}
     } else {
       Tone.Transport.stop();
       Tone.Transport.start();

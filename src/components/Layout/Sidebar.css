@@ -9,9 +9,13 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
+  /* Stitch Design System */
+  background: var(--color-bg-app, #131313);
+  border-right: 1px solid var(--border-default, #262626);
+  font-family: var(--font-body, "Hanken Grotesk", sans-serif);
 }
 
-.app-sidebar.is-open  { width: 420px; }
+.app-sidebar.is-open  { width: 340px; } /* Slimmer for Pro DAW feel */
 .app-sidebar.is-closed { width: 60px; }
 
 /* ─── Fixed Header (mode selector + play + BPM) ─────────────────────────── */
@@ -20,10 +24,10 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px 8px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  background: inherit;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-default, #262626);
+  background: var(--color-bg-app, #131313);
   z-index: 10;
   transition: opacity 0.2s ease, visibility 0.2s ease;
 }
@@ -34,52 +38,80 @@
   pointer-events: none;
 }
 
-/* Mode selector row */
-.sidebar-mode-row {
-  display: flex;
-  gap: 5px;
-}
-
-.sidebar-mode-row .btn-premium {
-  flex: 1;
-  padding: 9px 6px;
-  font-size: 0.82rem;
-}
-
-/* Play + BPM row */
-.sidebar-play-row {
-  display: flex;
-  align-items: center;
+/* Header Grid */
+.sidebar-header-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
-.sidebar-play-row .btn-playback-premium {
-  flex: 1;
-  min-height: 36px;
-}
-
-/* BPM badge — clickable, toggles inline input */
-.bpm-badge {
-  flex-shrink: 0;
+.sidebar-header-grid button, .sidebar-header-grid .bpm-badge {
+  min-height: 40px;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: "Hanken Grotesk", sans-serif;
+  background: #1c1b1b;
+  border: 1px solid #262626;
+  border-radius: 4px;
+  color: #c0c7d5;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 8px;
-  padding: 5px 9px;
-  cursor: pointer;
-  font-size: 0.78rem;
-  color: var(--accent);
-  font-weight: bold;
-  transition: background 0.15s, border-color 0.15s;
-  white-space: nowrap;
-  user-select: none;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  transition: all 0.2s;
 }
 
-.bpm-badge:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: var(--accent);
+.sidebar-header-grid button:hover, .sidebar-header-grid .bpm-badge:hover {
+  background: #2a2a2a;
+}
+
+.sidebar-header-grid button.active {
+  background: #a6c8ff;
+  color: #00315f;
+  border-color: #a6c8ff;
+  font-weight: 600;
+}
+
+/* Play button specific states */
+.sidebar-header-grid .btn-playback-premium {
+  font-weight: 600;
+  color: #e5e2e1;
+  height: auto;
+  margin-bottom: 0;
+  font-size: 14px;
+}
+
+.sidebar-header-grid .btn-playback-premium.play:hover {
+  border-color: #32D583;
+  color: #32D583;
+}
+
+.sidebar-header-grid .btn-playback-premium.stop {
+  background: #3f495d;
+  color: #aeb8d0;
+  border-color: #3f495d;
+}
+
+.sidebar-header-grid .btn-playback-premium.stop:hover {
+  background: #ffb4ab;
+  color: #690005;
+  border-color: #ffb4ab;
+}
+
+/* BPM badge */
+.sidebar-header-grid .bpm-badge {
+  font-family: "JetBrains Mono", monospace;
+  color: #a6c8ff;
+  font-weight: 500;
+  user-select: none;
+  gap: 4px;
+}
+
+.sidebar-header-grid .bpm-badge:hover {
+  border-color: #a6c8ff;
 }
 
 .bpm-badge input {
@@ -87,9 +119,10 @@
   background: transparent;
   border: none;
   outline: none;
-  color: var(--accent);
-  font-size: 0.78rem;
-  font-weight: bold;
+  color: #a6c8ff;
+  font-size: 14px;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 500;
   text-align: center;
   padding: 0;
   cursor: text;
@@ -100,11 +133,11 @@
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
-  overflow-x: visible; /* CRITICAL: Allow CustomSelect popups to overflow */
-  padding: 15px 15px 30px 15px;
+  overflow-x: visible; 
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
@@ -114,31 +147,62 @@
   pointer-events: none;
 }
 
+/* ─── CTA Buttons for Popups ─────────────────────────────────────────────── */
+
+.sidebar-cta-btn {
+  width: 100%;
+  padding: 16px;
+  background: #1c1b1b;
+  border: 1px solid #262626;
+  border-radius: 8px;
+  color: #e5e2e1;
+  font-family: "Hanken Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-cta-btn:hover {
+  background: #2a2a2a;
+  border-color: #8a919e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.sidebar-cta-btn.active {
+  border-color: #a6c8ff;
+  background: #201f1f;
+}
+
 /* ─── Toggle Button ──────────────────────────────────────────────────────── */
 
 .sidebar-toggle {
   position: absolute;
   top: 20px;
-  right: -20px;
-  width: 40px;
-  height: 40px;
+  right: -16px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  border: 1px solid var(--glass-border);
-  background: var(--bg-surface);
-  color: var(--accent);
+  border: 1px solid #262626;
+  background: #1c1b1b;
+  color: #8a919e;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   z-index: 1001;
   transition: all 0.2s ease;
 }
 
 .sidebar-toggle:hover {
-  background: var(--accent);
-  color: #000;
-  transform: scale(1.1);
+  background: #353534;
+  color: #e5e2e1;
 }
 
 /* ─── Rail Icons (visible when sidebar is closed) ────────────────────────── */
@@ -151,8 +215,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding-top: 10px;
+  gap: 16px;
+  padding-top: 16px;
   transition: opacity 0.2s ease;
 }
 
@@ -162,72 +226,30 @@
 }
 
 .rail-icon {
-  font-size: 1.3rem;
-  opacity: 0.55;
-  transition: opacity 0.2s;
+  font-size: 20px;
+  color: #8a919e;
+  opacity: 0.7;
+  transition: all 0.2s;
 }
 
 .rail-icon.is-playing {
+  color: #32D583;
   opacity: 1;
   animation: rail-pulse 1s ease-in-out infinite alternate;
 }
 
 @keyframes rail-pulse {
-  from { transform: scale(1);   opacity: 0.7; }
-  to   { transform: scale(1.2); opacity: 1;   }
-}
-
-/* ─── Theme styles ───────────────────────────────────────────────────────── */
-
-.app-sidebar.theme-modern {
-  background: var(--lg-panel-bg);
-  backdrop-filter: blur(40px) saturate(180%);
-  border-right: 1px solid rgba(0, 229, 255, 0.2);
-  box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
-}
-
-.app-sidebar.theme-vintage {
-  background: var(--vintage-steel);
-  border-right: 2px solid var(--vintage-steel-dark);
-}
-
-.app-sidebar.theme-vintage::after {
-  content: "";
-  position: absolute;
-  top: 0; right: 0; bottom: 0;
-  width: 8px;
-  background: linear-gradient(90deg, var(--vintage-wood-dark), var(--vintage-wood-light));
+  from { transform: scale(1);   opacity: 0.8; }
+  to   { transform: scale(1.15); opacity: 1;   }
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 
-.sidebar-content::-webkit-scrollbar { width: 6px; }
+.sidebar-content::-webkit-scrollbar { width: 8px; }
 
 .sidebar-content::-webkit-scrollbar-thumb {
-  background: var(--accent-dim);
-  border-radius: 10px;
+  background: #262626;
+  border-radius: 4px;
 }
 
-.sidebar-content::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
-/* ─── Internal component fixes ───────────────────────────────────────────── */
-
-/* Hide wood panels when chassis is inside sidebar */
-.app-sidebar .vintage-chassis::before,
-.app-sidebar .vintage-chassis::after {
-  display: none !important;
-}
-
-.app-sidebar .vintage-chassis {
-  padding: 10px;
-  margin: 0;
-  border-radius: 8px;
-  min-height: auto;
-  position: relative;
-  z-index: 60;
-}
-
-/* z-index stacking for CustomSelect dropdowns */
-.dict-panel             { position: relative; z-index: 100; }
-.control-panel-container { position: relative; z-index: 50; }
-.playback-panel-container { position: relative; z-index: 10; }
+.sidebar-content::-webkit-scrollbar-thumb:hover { background: #404753; }

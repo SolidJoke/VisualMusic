@@ -68,6 +68,10 @@ describe("App Integration Tests", () => {
     );
     
     // Default mode is Studio. Check for Studio specific element.
+    // Open Studio modal first
+    const studioBtn = screen.getByText(/Studio & Harmonie/i);
+    fireEvent.click(studioBtn);
+
     // Assuming StudioPanel has a test id 'studio-panel'
     expect(screen.getByTestId("studio-panel")).toBeDefined();
 
@@ -89,6 +93,10 @@ describe("App Integration Tests", () => {
     
     // Switch to Dictionary
     fireEvent.click(screen.getByTestId("btn-mode-dictionary"));
+
+    // Open Studio modal
+    const studioBtn = screen.getByText(/Studio & Harmonie/i);
+    fireEvent.click(studioBtn);
 
     // Select a note (e.g., C which is value 0)
     const selectRoot = screen.getByTestId("select-root-note");

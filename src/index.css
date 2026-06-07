@@ -2,7 +2,7 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #131313; /* Fond sombre Pro DAW */
+  background-color: hsl(232, 23%, 8%); /* Fond sombre Pro DAW */
   color: #e5e2e1;
   font-family: 'Hanken Grotesk', 'Inter', 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;

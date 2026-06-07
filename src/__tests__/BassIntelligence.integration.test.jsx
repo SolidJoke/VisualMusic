@@ -45,6 +45,7 @@ vi.mock('../audio/AudioEngine', () => ({
     setMasterVolume: vi.fn(),
 }));
 
+
 vi.mock("../components/Visualizer/AudioVisualizer", () => ({
   default: () => <div data-testid="mock-visualizer">Visualizer Mock</div>,
 }));
@@ -61,6 +62,10 @@ describe('Bass Intelligence Integration', () => {
         const studioBtn = screen.getByTestId('btn-mode-studio');
         fireEvent.click(studioBtn);
 
+        // Open Studio & Harmonie Modal
+        const assistantBtn = screen.getByText(/Studio & Harmonie/i);
+        fireEvent.click(assistantBtn);
+
         // Check for Suggest Bass button
         const suggestBtn = screen.getByText(/Suggest Bass|Suggérer Basse/i);
         expect(suggestBtn).toBeInTheDocument();
@@ -75,6 +80,10 @@ describe('Bass Intelligence Integration', () => {
 
         const studioBtn = screen.getByTestId('btn-mode-studio');
         fireEvent.click(studioBtn);
+
+        // Open Studio & Harmonie Modal
+        const assistantBtn = screen.getByText(/Studio & Harmonie/i);
+        fireEvent.click(assistantBtn);
 
         const suggestBtn = screen.getByText(/Suggest Bass|Suggérer Basse/i);
         fireEvent.click(suggestBtn);

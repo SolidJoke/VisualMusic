@@ -593,16 +593,6 @@ export default function DictionaryPanel({
           </div>
         )}
       </div>
-
-      <button
-        onClick={playDictionaryAudio}
-        className={`btn-playback-premium ${isPlaying ? 'stop' : 'play'}`}
-        onMouseDown={(e) => e.currentTarget.classList.add("is-pressed")}
-        onMouseUp={(e) => e.currentTarget.classList.remove("is-pressed")}
-      >
-        <div className="btn-playback-icon"></div>
-        <span>{isPlaying ? txt.stopAudio : txt.listen}</span>
-      </button>
     </div>
   );
 }

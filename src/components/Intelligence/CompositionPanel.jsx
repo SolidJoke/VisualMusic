@@ -99,20 +99,8 @@ export default function CompositionPanel({
     return isBalanced(polyrhythmResult.pattern);
   }, [showPolyrhythm, polyrhythmResult]);
 
-  // Local Playback State
-  const { isPlaying, togglePlayback, bpm, setBpm, currentStep: internalStep } = useCompositionPlayback(
-    pattern,
-    complement,
-    showComplement,
-    showPhasing,
-    phasingOffset,
-    showIsorhythm,
-    isorhythmResult,
-    showRealignment,
-    realignedPattern
-  );
-
-  const activeStep = isPlaying ? internalStep : currentStep;
+  // Local Playback State removed. We now rely on the Global Sequencer.
+  const activeStep = currentStep;
 
   const isSelfComp = useMemo(() => {
     return isSelfComplementary(pattern);
@@ -124,7 +112,7 @@ export default function CompositionPanel({
     setter(value);
   };
 
-  // Export to Sequencer Action
+  // Export to Sequencer Action (now called automatically)
   const handleExport = () => {
     let activeStepsToExport = [];
     let pitchStepsToExport = {};
@@ -145,6 +133,13 @@ export default function CompositionPanel({
             activeStepsToExport.push(idx);
             pitchStepsToExport[idx] = "R";
           }
+        }
+      });
+    } else if (showPolyrhythm && polyrhythmResult) {
+      polyrhythmResult.pattern.forEach((val, idx) => {
+        if (idx < 16 && val === 1) {
+           activeStepsToExport.push(idx);
+           pitchStepsToExport[idx] = "R";
         }
       });
     } else {
@@ -176,6 +171,18 @@ export default function CompositionPanel({
     setShowExportSuccess(true);
     setTimeout(() => setShowExportSuccess(false), 2000);
   };
+
+  // VIBE CODING: Auto-wire Math Rhythm directly to the target sequence!
+  useEffect(() => {
+    handleExport();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    pattern, 
+    showIsorhythm, isorhythmResult, 
+    showRealignment, realignedPattern, 
+    showPolyrhythm, polyrhythmResult, 
+    exportTarget
+  ]);
 
   // Clear all overrides
   const handleClearOverrides = () => {
@@ -263,16 +270,7 @@ export default function CompositionPanel({
           </div>
         </div>
 
-        {/* Playback Controls */}
-        <div className="panel-section playback-section">
-            <button onClick={togglePlayback} className={`retro-btn ${isPlaying ? "active" : ""}`}>
-                {isPlaying ? (txt.stop || "STOP") : (txt.play || "PLAY")}
-            </button>
-            <div className="slider-group">
-                <span>BPM: {bpm}</span>
-                <input type="range" min="60" max="200" value={bpm} onChange={(e) => setBpm(parseInt(e.target.value))} />
-            </div>
-        </div>
+
 
         {/* Row 3: Visualization Circle */}
         <div className="panel-section viz-section">

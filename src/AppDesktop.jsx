@@ -12,6 +12,7 @@ import Sidebar from "./components/Layout/Sidebar";
 import CustomSelect from "./components/Common/CustomSelect";
 import InstrumentView from "./components/Panels/InstrumentView";
 import CompositionPanel from "./components/Intelligence/CompositionPanel";
+import Modal from "./components/Common/Modal";
 import { useSequencer } from "./audio/useSequencer";
 import { useStudioMode } from "./hooks/useStudioMode";
 import { useDictionaryMode } from "./hooks/useDictionaryMode";
@@ -96,6 +97,9 @@ function AppDesktop() {
   } = useStudioMode();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showStudioModal, setShowStudioModal] = useState(false);
+  const [showMathModal, setShowMathModal] = useState(false);
+  const [showAudioModal, setShowAudioModal] = useState(false);
 
   const {
     drums: activeDrums,
@@ -260,7 +264,9 @@ function AppDesktop() {
     setCurrentAbsoluteNotes([]);
     setSuggestedBassTrack(null);
     setCustomProgression(null);
-  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression, setClickedChord, setCurrentAbsoluteNotes]);
+    setCustomRhythm(null);
+    setCustomDrums(null);
+  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression, setClickedChord, setCurrentAbsoluteNotes, setCustomRhythm, setCustomDrums]);
 
   // Handlers implemented via usePlaybackHandlers
 
@@ -396,16 +402,7 @@ function AppDesktop() {
   ]);
 
   return (
-    <div className={`app-container app-container-inner theme-${uiTheme} ${uiTheme === 'vintage' ? 'vintage-chassis' : ''}`}>
-      {uiTheme === 'vintage' && (
-        <>
-          <div className="screw screw-tl"></div>
-          <div className="screw screw-tr"></div>
-          <div className="screw screw-bl"></div>
-          <div className="screw screw-br"></div>
-        </>
-      )}
-      
+    <div className={`app-container app-container-inner theme-${uiTheme}`}>
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
 
       <TheoryModal isOpen={showTheory} onClose={() => setShowTheory(false)} txt={txt} />
@@ -423,7 +420,7 @@ function AppDesktop() {
               }}
               className="btn-header-action"
             >
-              {uiTheme === 'vintage' ? '✨ Modern' : '📻 Vintage'}
+              {uiTheme === 'vintage' ? '✨ Neon Monolith' : '🌿 Zen Studio'}
             </button>
 
             <button
@@ -472,45 +469,57 @@ function AppDesktop() {
             setAppMode={setAppMode}
             isPlaying={isPlaying}
             togglePlayback={togglePlayback}
+            playDictionaryAudio={playDictionaryAudio}
             currentBpm={currentBpm}
             handleBpmChange={handleBpmChange}
             txt={txt}
           >
-            {appMode === "studio" && (
-              <>
-                <StudioPanel
-                  currentBrickIndex={currentBrickIndex}
-                  setCurrentBrickIndex={setCurrentBrickIndex}
-                  activeBrick={activeBrick}
-                  currentTheme={currentTheme}
-                  setCurrentTheme={setCurrentTheme}
-                  chordOctaveOffset={chordOctaveOffset}
-                  setChordOctaveOffset={setChordOctaveOffset}
-                  setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
-                  activeProgression={activeProgression}
-                  chordDisplayMode={chordDisplayMode}
-                  clickedChord={clickedChord}
-                  setClickedChord={setClickedChord}
-                  handleChordClick={handleChordClick}
-                  inversionText={inversionText}
-                  suggestedBassTrack={suggestedBassTrack}
-                  setSuggestedBassTrack={setSuggestedBassTrack}
-                  setCustomProgression={setCustomProgression}
-                  customRhythm={customRhythm}
-                  setCustomRhythm={setCustomRhythm}
-                />
-                <CompositionPanel
-                  activeTracks={activeTracks}
-                  setSuggestedBassTrack={setSuggestedBassTrack}
-                  setCustomRhythm={setCustomRhythm}
-                  setCustomDrums={setCustomDrums}
-                  currentStep={currentStep}
-                  txt={txt.comp}
-                />
-              </>
-            )}
+            {/* CTA Buttons in Sidebar */}
+            <button 
+              className={`sidebar-cta-btn ${showStudioModal ? 'active' : ''}`}
+              onClick={() => setShowStudioModal(true)}
+            >
+              {txt.studioHarmony || "Studio & Harmonie"}
+            </button>
+            <button 
+              className={`sidebar-cta-btn ${showMathModal ? 'active' : ''}`}
+              onClick={() => setShowMathModal(true)}
+            >
+              {txt.mathRhythms || "Math & Rythmes"}
+            </button>
+            <button 
+              className={`sidebar-cta-btn ${showAudioModal ? 'active' : ''}`}
+              onClick={() => setShowAudioModal(true)}
+            >
+              {txt.instrumentsAudio || "Instruments & Audio"}
+            </button>
+          </Sidebar>
 
-            {appMode === "dictionary" && (
+          {/* --- MODALS --- */}
+          <Modal uiTheme={uiTheme} isOpen={showStudioModal} onClose={() => setShowStudioModal(false)} title="🎭 Studio & Harmonie">
+            {appMode === "studio" ? (
+              <StudioPanel
+                currentBrickIndex={currentBrickIndex}
+                setCurrentBrickIndex={setCurrentBrickIndex}
+                activeBrick={activeBrick}
+                currentTheme={currentTheme}
+                setCurrentTheme={setCurrentTheme}
+                chordOctaveOffset={chordOctaveOffset}
+                setChordOctaveOffset={setChordOctaveOffset}
+                setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
+                activeProgression={activeProgression}
+                chordDisplayMode={chordDisplayMode}
+                clickedChord={clickedChord}
+                setClickedChord={setClickedChord}
+                handleChordClick={handleChordClick}
+                inversionText={inversionText}
+                suggestedBassTrack={suggestedBassTrack}
+                setSuggestedBassTrack={setSuggestedBassTrack}
+                setCustomProgression={setCustomProgression}
+                customRhythm={customRhythm}
+                setCustomRhythm={setCustomRhythm}
+              />
+            ) : (
               <DictionaryPanel
                 dictRoot={dictRoot}
                 setDictRoot={setDictRoot}
@@ -532,7 +541,26 @@ function AppDesktop() {
                 dictActiveNotes={dictActiveNotes}
               />
             )}
+          </Modal>
 
+          <Modal uiTheme={uiTheme} isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`}>
+            {appMode !== "dictionary" ? (
+              <CompositionPanel
+                activeTracks={activeTracks}
+                setSuggestedBassTrack={setSuggestedBassTrack}
+                setCustomRhythm={setCustomRhythm}
+                setCustomDrums={setCustomDrums}
+                currentStep={currentStep}
+                txt={txt.comp}
+              />
+            ) : (
+              <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem", padding: "20px", textAlign: "center" }}>
+                {txt.dictNoRhythmWarning || "⚠️ Le mode Dictionnaire n'utilise pas le séquenceur rythmique."}
+              </div>
+            )}
+          </Modal>
+
+          <Modal uiTheme={uiTheme} isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio">
             <ControlPanel
               setNotation={setNotation}
               chordDisplayMode={chordDisplayMode}
@@ -548,7 +576,6 @@ function AppDesktop() {
               useShellVoicings={useShellVoicings}
               setUseShellVoicings={setUseShellVoicings}
             />
-
             <PlaybackPanel
               appMode={appMode}
               isPlaying={isPlaying}
@@ -568,7 +595,7 @@ function AppDesktop() {
               setVisualFocus={setVisualFocus}
               txt={txt}
             />
-          </Sidebar>
+          </Modal>
 
           {/* --- MAIN CONTENT AREA --- */}
           <div className="layout-col layout-center">

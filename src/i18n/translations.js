@@ -1,10 +1,20 @@
 export const translations = {
   fr: {
     langLabel: "🇫🇷 FR",
-    title: "🎛️ Vmu : VisualMusic Coach",
+    title: "Vmu: VisualMusic Coach",
     about: "ℹ️ À propos",
-    studioMode: "🎛️ Mode Studio (Genres)",
+    studioMode: "🎹 Mode Studio (Genres)",
     dictMode: "📖 Mode Dictionnaire",
+    mathRhythms: "📐 Math & Rythmes",
+    instrumentsAudio: "🎛️ Instruments & Audio",
+    dictNoRhythmWarning: "⚠️ Le mode Dictionnaire n'utilise pas le séquenceur rythmique.",
+    tooltip: {
+      shellVoicings: "Simplifie les accords de piano en ne jouant que la Fondamentale, la Tierce et la Septième. Supprime la Quinte pour un son plus clair, typique du Jazz.",
+      magicBass: "Génère automatiquement une ligne de basse adaptée au style musical et à la progression d'accords actuelle.",
+      playabilityScore: "Évalue la difficulté de jouer cette progression à la guitare. Un score élevé signifie peu de sauts de doigts et des positions naturelles.",
+      quickProgressions: "Charge instantanément des suites d'accords classiques (I-IV-V, ii-V-I...) pour démarrer rapidement une composition.",
+      inversions: "Renversements d'accords : change la note de basse (la note la plus grave) d'un accord sans changer sa nature fondamentale."
+    },
     enableAudio: "▶ PLAY",
     stopAudio: "⏹ STOP",
     masterVol: "🔊 Volume",
@@ -299,11 +309,21 @@ export const translations = {
     dismissAlert: "Ignorer cette alerte",
   },
   en: {
-    langLabel: "🇬🇧 EN",
-    title: "🎛️ Vmu: VisualMusic Coach",
+    langLabel: "🇺🇸 EN",
+    title: "Vmu: VisualMusic Coach",
     about: "ℹ️ About",
-    studioMode: "🎛️ Studio Mode (Genres)",
+    studioMode: "🎹 Studio Mode (Genres)",
     dictMode: "📖 Dictionary Mode",
+    mathRhythms: "📐 Math & Rhythms",
+    instrumentsAudio: "🎛️ Instruments & Audio",
+    dictNoRhythmWarning: "⚠️ Dictionary mode does not use the rhythmic sequencer.",
+    tooltip: {
+      shellVoicings: "Simplifies piano chords by playing only the Root, 3rd, and 7th. Drops the 5th for a clearer, jazz-typical sound.",
+      magicBass: "Automatically generates a bassline tailored to the musical style and current chord progression.",
+      playabilityScore: "Evaluates how easy this progression is to play on a guitar. A high score means minimal finger jumps and natural positions.",
+      quickProgressions: "Instantly loads classic chord sequences (I-IV-V, ii-V-I...) to quickly kickstart a composition.",
+      inversions: "Chord Inversions: changes the bass note (the lowest note) of a chord without changing its fundamental nature."
+    },
     enableAudio: "▶ PLAY",
     stopAudio: "⏹ STOP",
     masterVol: "🔊 Volume",
@@ -599,7 +619,7 @@ export const translations = {
   },
   pt: {
     langLabel: "🇵🇹 PT",
-    title: "🎛️ Vmu: VisualMusic Coach",
+    title: "Vmu: VisualMusic Coach",
     about: "ℹ️ Sobre",
     studioMode: "🎛️ Modo Estúdio (Gêneros)",
     dictMode: "📖 Modo Dicionário",
@@ -882,7 +902,7 @@ export const translations = {
   },
   zh: {
     langLabel: "🇨🇳 ZH",
-    title: "🎛️ Vmu: 视觉音乐教练",
+    title: "Vmu: 视觉音乐教练",
     about: "ℹ️ 关于",
     studioMode: "🎛️ 工作室模式 (流派)",
     dictMode: "📖 字典模式",

@@ -34,6 +34,7 @@ const Sidebar = ({
   setAppMode,
   isPlaying,
   togglePlayback,
+  playDictionaryAudio,
   currentBpm,
   handleBpmChange,
   txt = {},
@@ -72,17 +73,16 @@ const Sidebar = ({
     }
   };
 
+  const handlePlayClick = () => {
+    if (appMode === 'dictionary' && playDictionaryAudio) {
+      playDictionaryAudio();
+    } else if (togglePlayback) {
+      togglePlayback();
+    }
+  };
+
   return (
     <div className={`app-sidebar ${isOpen ? 'is-open' : 'is-closed'} theme-${uiTheme}`}>
-      {/* ── Collapse toggle ── */}
-      <button
-        className="sidebar-toggle"
-        onClick={toggleSidebar}
-        title={isOpen ? (txt.sidebar?.closePanel || 'Fermer le panneau') : (txt.sidebar?.openPanel || 'Ouvrir le panneau')}
-      >
-        {isOpen ? '◀' : '▶'}
-      </button>
-
       {/* ── Rail icons (visible only when closed) ── */}
       <div className="sidebar-rail-icons" aria-hidden="true">
         <span className="rail-icon" title={appMode === 'studio' ? (txt.sidebar?.studio || 'Studio') : (txt.sidebar?.dictionary || 'Dictionary')}>
@@ -95,63 +95,57 @@ const Sidebar = ({
 
       {/* ── Fixed header (always visible when open) ── */}
       <div className="sidebar-fixed-header">
-        {/* Mode selector */}
-        <div className="sidebar-mode-row">
+        <div className="sidebar-header-grid">
+          {/* Mode selectors */}
           <button
             onClick={() => setAppMode('studio')}
             className={`btn-premium${appMode === 'studio' ? ' active' : ''}`}
             data-testid="btn-mode-studio"
           >
-            {txt.studioMode || '🎹 Studio'}
+            Studio
           </button>
           <button
             onClick={() => setAppMode('dictionary')}
             className={`btn-premium${appMode === 'dictionary' ? ' active' : ''}`}
             data-testid="btn-mode-dictionary"
           >
-            {txt.dictMode || '📖 Dictionnaire'}
+            Dictionnaire
           </button>
-        </div>
 
-        {/* Play + BPM (Studio only) */}
-        {appMode !== 'dictionary' && (
-          <div className="sidebar-play-row">
-            <button
-              onClick={togglePlayback}
-              className={`btn-playback-premium ${isPlaying ? 'stop' : 'play'}`}
-            >
-              <div className="btn-playback-icon" />
-              <span>{isPlaying ? (txt.stopAudio || '■ Stop') : (txt.enableAudio || '▶ Play')}</span>
-            </button>
+          {/* Play + BPM */}
+          <button
+            onClick={handlePlayClick}
+            className={`btn-playback-premium ${isPlaying ? 'stop' : 'play'}`}
+          >
+            {isPlaying ? '■ Stop' : '▶ Play'}
+          </button>
 
-            {/* BPM inline badge */}
-            <div
-              className="bpm-badge"
-              onClick={() => !bpmEditing && setBpmEditing(true)}
-              title={txt.sidebar?.clickToEditBpm || "Cliquer pour modifier le BPM"}
-            >
-              ♩{' '}
-              {bpmEditing ? (
-                <input
-                  ref={bpmInputRef}
-                  type="number"
-                  min="60"
-                  max="200"
-                  value={bpmInputVal}
-                  onChange={(e) => setBpmInputVal(e.target.value)}
-                  onBlur={commitBpm}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitBpm();
-                    if (e.key === 'Escape') { setBpmEditing(false); setBpmInputVal(currentBpm); }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <span>{currentBpm}</span>
-              )}
-            </div>
+          <div
+            className="bpm-badge"
+            onClick={() => !bpmEditing && setBpmEditing(true)}
+            title={txt.sidebar?.clickToEditBpm || "Cliquer pour modifier le BPM"}
+          >
+            ♩{' '}
+            {bpmEditing ? (
+              <input
+                ref={bpmInputRef}
+                type="number"
+                min="60"
+                max="200"
+                value={bpmInputVal}
+                onChange={(e) => setBpmInputVal(e.target.value)}
+                onBlur={commitBpm}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitBpm();
+                  if (e.key === 'Escape') { setBpmEditing(false); setBpmInputVal(currentBpm); }
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span>{currentBpm}</span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Scrollable content ── */}

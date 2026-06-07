@@ -1,404 +1,270 @@
-/* src/styles/vintage-theme.css */
+/* src/styles/vintage-theme.css (Renamed to Zen Studio) */
 
-:root {
-  /* Hardware Tokens - Global */
-  --led-cyan: #00e5ff;
-  --led-cyan-glow: rgba(0, 229, 255, 0.4);
-  --lcd-amber: #ffb300;
-  --lcd-amber-glow: rgba(255, 179, 0, 0.5);
+/* ─── ZEN STUDIO (Variant 2) ─── */
+
+.theme-vintage {
+  --font-body: 'Hanken Grotesk', 'Inter', sans-serif;
+  --lg-bg: #151515; /* Soft off-black */
+  --color-bg-app: var(--lg-bg);
+  --lg-panel-bg: rgba(30, 30, 30, 0.6); /* Soft translucent gray */
+  --lg-panel-bg-elevated: rgba(45, 45, 45, 0.8); /* Brighter elevated gray */
+  --lg-accent: #a0c4ff; /* Pastel blue */
+  --lg-accent-glow: rgba(160, 196, 255, 0.4);
+  
+  --lg-border: 1px solid rgba(255, 255, 255, 0.1); /* Better contrast border */
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --lg-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+  --text-primary: #f5f5f5; /* Crisper white */
+  --text-secondary: #bbbbbb; /* Brighter gray text */
+  --text-tertiary: #caffbf; /* Pastel green */
+
+  /* Role Colors - Zen Pastel */
+  --role-root: #a0c4ff; /* Pastel blue */
+  --role-third: #caffbf; /* Pastel green */
+  --role-fifth: #fdffb6; /* Pastel yellow */
+  --role-scale: #ffc6ff; /* Pastel pink */
+  --role-target: #ffd6a5; /* Pastel orange */
+  --role-extension: #bdb2ff; /* Pastel purple */
+  
+  --active-glow: var(--lg-accent);
+  --active-color: var(--lg-accent);
 }
 
 .theme-vintage {
-  /* ─── VINTAGE PALETTE ─── */
-  --vintage-steel: #1a1c1e;
-  --vintage-steel-light: #2c2f33;
-  --vintage-steel-dark: #0d0e10;
-  --vintage-wood-dark: #3e2723;
-  --vintage-wood-light: #5d4037;
-  
-  /* Amber LCD Style */
-  --lcd-amber: #ffb300;
-  --lcd-amber-glow: rgba(255, 179, 0, 0.5);
-  --lcd-bg: #121200;
-  
-  /* Role Colors - Vintage Palette */
-  --role-root: #e74c3c;      /* Red */
-  --role-third: #2ecc71;     /* Green */
-  --role-fifth: #3498db;     /* Blue */
-  --role-scale: rgba(189, 189, 189, 0.6); /* Greyish */
-  --role-target: #f1c40f;    /* Gold */
-  --role-extension: #9b59b6; /* Purple */
-
-  /* Aliases for compatibility */
-  --role-tonic: var(--role-root);
-  --role-mediant: var(--role-third);
-  --role-dominant: var(--role-fifth);
-  
-  /* Generic Theme Tokens */
-  --accent: var(--lcd-amber);
-  --theme-primary: var(--lcd-amber);
-  --accent-glow: var(--lcd-amber-glow);
-  --accent-dim: rgba(255, 179, 0, 0.1);
-  
-  /* ─── TEXTURES & EFFECTS ─── */
-  --metal-texture: linear-gradient(
-    180deg, 
-    rgba(255,255,255,0.05) 0%, 
-    rgba(255,255,255,0.02) 50%, 
-    rgba(0,0,0,0.05) 50%, 
-    rgba(0,0,0,0.1) 100%
-  );
-  
-  --brushed-metal: repeating-linear-gradient(
-    90deg,
-    rgba(0,0,0,0) 0px,
-    rgba(0,0,0,0.03) 1px,
-    rgba(0,0,0,0) 2px
-  );
-
-  --inner-bevel: inset 1px 1px 1px rgba(255,255,255,0.1), inset -1px -1px 1px rgba(0,0,0,0.5);
-  --outer-bevel: 1px 1px 0px rgba(255,255,255,0.1), -1px -1px 0px rgba(0,0,0,0.5);
-  --knob-shadow: 2px 4px 6px rgba(0,0,0,0.6);
+  background-color: var(--lg-bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-body.theme-vintage {
-  background-color: var(--vintage-steel-dark);
-  overflow-x: hidden;
-}
-
-body.theme-vintage::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-image: url('../assets/vintage-texture.png');
-  background-repeat: repeat;
-  background-size: 512px; /* Scale of the texture */
-  filter: blur(2px) brightness(0.6) contrast(1.1);
-  z-index: -2;
-  pointer-events: none;
-}
-
-.vintage-chassis {
-  background-color: rgba(26, 28, 30, 0.85); /* Semi-transparent steel */
-  background-image: var(--metal-texture), var(--brushed-metal);
-  border: 1px solid var(--vintage-steel-dark);
-  box-shadow: 4px 8px 32px rgba(0,0,0,0.9), var(--inner-bevel);
-  border-radius: 0; /* Remove radius for full-screen feel */
+/* Base resets for zen theme */
+.theme-vintage .vintage-chassis {
+  background: var(--lg-panel-bg);
+  border: var(--lg-border);
+  border-radius: 8px; /* Strict 8px grid */
   position: relative;
-  padding: 0; /* Let inner content handle padding */
-  backdrop-filter: blur(4px); /* Glass effect on the chassis too */
-  width: 100%;
-  min-height: 100vh;
-}
-
-/* Override glass panels for vintage mode to look like modules */
-.theme-vintage .glass-panel,
-.app-sidebar.theme-vintage .glass-panel,
-.theme-vintage .dashboard-panel {
-  background: var(--vintage-steel-light);
-  border: 1px solid var(--vintage-steel-dark);
-  box-shadow: 4px 4px 15px rgba(0,0,0,0.8), inset 1px 1px 2px rgba(255,255,255,0.05);
-  backdrop-filter: none;
-  border-radius: 4px;
-  color: #ddd;
-}
-
-.theme-vintage .field-label {
-  color: var(--lcd-amber);
-  opacity: 0.8;
-  font-family: 'Courier New', Courier, monospace;
-  font-weight: bold;
-}
-
-.theme-vintage .accent-text {
-  color: var(--lcd-amber) !important;
-  text-shadow: 0 0 10px var(--lcd-amber-glow);
-  font-family: 'Courier New', Courier, monospace;
-}
-
-/* Vintage tactile buttons */
-.theme-vintage .btn-segment {
-  border-radius: 2px;
-  color: #888;
-}
-
-.theme-vintage .btn-segment--active {
-  background: var(--lcd-amber) !important;
-  color: #000 !important;
-  box-shadow: 0 0 12px var(--lcd-amber-glow) !important;
-  border-radius: 2px;
-}
-
-.theme-vintage .btn-segment--active::after {
-  display: none; /* Hide the modern glass ring */
-}
-
-/* Wooden Side Panels */
-.vintage-chassis::before, .vintage-chassis::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 14px;
-  background: linear-gradient(90deg, var(--vintage-wood-dark), var(--vintage-wood-light), var(--vintage-wood-dark));
-  box-shadow: 2px 0 5px rgba(0,0,0,0.5);
-  z-index: 1;
-}
-
-.vintage-chassis::before { left: -14px; border-radius: 6px 0 0 6px; }
-.vintage-chassis::after { right: -14px; border-radius: 0 6px 6px 0; }
-
-/* Screws */
-.screw {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background: radial-gradient(circle at 30% 30%, #888, #444);
-  border-radius: 50%;
-  box-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  overflow: visible; 
   z-index: 2;
-}
-.screw::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: #222;
-  transform: rotate(45deg);
+  box-shadow: none; /* Flat design */
 }
 
-.screw-tl { top: 8px; left: 8px; }
-.screw-tr { top: 8px; right: 8px; }
-.screw-bl { bottom: 8px; left: 8px; }
-.screw-br { bottom: 8px; right: 8px; }
-
-/* ─── LCD SCREENS ─── */
-
-.lcd-display {
-  background-color: var(--lcd-bg);
-  color: var(--lcd-amber);
-  font-family: 'Courier New', Courier, monospace;
-  padding: 12px;
-  border-radius: 2px;
-  box-shadow: inset 0 0 10px #000, 0 1px 0 rgba(255,255,255,0.1);
-  border: 2px solid #222;
-  text-shadow: 0 0 8px var(--lcd-amber-glow);
-  position: relative;
-  overflow: visible; /* CRITICAL: allow CustomSelect dropdowns to be visible outside the LCD */
+.theme-vintage .vintage-chassis::before,
+.theme-vintage .vintage-chassis::after {
+  display: none !important;
 }
 
-/* LCD Scanlines effect */
-.lcd-display::after {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-linear-gradient(
-    rgba(0,0,0,0) 0px,
-    rgba(0,0,0,0.05) 1px,
-    rgba(0,0,0,0) 2px
-  );
-  pointer-events: none;
+/* Module containers (formerly vintage modules) */
+.theme-vintage .vintage-module {
+  background: var(--lg-panel-bg-elevated);
+  border: var(--lg-border);
+  border-radius: 8px;
+  padding: 24px; /* Spacious 8px grid */
+  margin-bottom: 24px;
+  box-shadow: none;
 }
 
-/* ─── STEP BUTTONS (Lamp Style) ─── */
-
-.step-lamp {
-  width: 18px; /* Shrink to fit 64 steps */
-  height: 20px;
-  background: #333;
-  border-radius: 2px;
-  border: 1px solid #111;
-  position: relative;
-  transition: all 0.1s ease;
-  cursor: pointer;
-  flex-shrink: 1; /* Allow shrinking */
-  min-width: 8px;
-}
-
-.step-lamp::before {
-  content: "";
-  position: absolute;
-  top: 2px; left: 2px; right: 2px; bottom: 2px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 1px;
-}
-
-.step-lamp.active {
-  background: var(--active-color, var(--led-cyan));
-  box-shadow: 0 0 15px var(--active-glow, var(--led-cyan-glow));
-}
-
-.step-lamp.active::before {
-  background: rgba(255,255,255,0.4);
-}
-
-.step-lamp--ghost {
-  height: 12px !important;
-  opacity: 0.6;
-}
-
-.step-lamp--current {
-  border: 1px solid #fff !important;
-  box-shadow: 0 0 10px #fff, var(--outer-bevel);
-  transform: translateY(-2px);
-  z-index: 5;
-}
-
-.step-lamp--beat {
-  border-left: 2px solid rgba(255, 255, 255, 0.4);
-}
-
-.step-lamp--measure {
-  border-left: 3px solid var(--lcd-amber);
-}
-
-.step-lamp.zoomed {
-  width: 35px;
-  height: 28px;
-}
-
-/* Ensure instrument colors work with step-lamp */
-.step-lamp.active.bg-kick { --active-color: var(--seq-kick); --active-glow: hsla(0, 80%, 62%, 0.5); }
-.step-lamp.active.bg-snare { --active-color: var(--seq-snare); --active-glow: hsla(220, 80%, 62%, 0.5); }
-.step-lamp.active.bg-hat { --active-color: var(--seq-hat); --active-glow: hsla(47, 90%, 58%, 0.5); }
-.step-lamp.active.bg-bass { --active-color: var(--seq-bass); --active-glow: hsla(155, 70%, 55%, 0.5); }
-.step-lamp.active.bg-chords { --active-color: #e1bee7; --active-glow: rgba(225, 190, 231, 0.5); }
-
-/* ─── MODULES ─── */
-
-.vintage-module {
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(255,255,255,0.05);
-  box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5);
-  border-radius: 4px;
-  padding: 15px;
-  margin-bottom: 20px;
-}
-
-.vintage-header {
-  font-family: 'Courier New', Courier, monospace;
-  color: var(--lcd-amber);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  font-size: 0.9rem;
-  margin-bottom: 15px;
-  border-bottom: 1px solid rgba(255, 179, 0, 0.2);
-  padding-bottom: 5px;
+/* Headers */
+.theme-vintage .vintage-header {
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 500;
+  text-transform: none;
+  font-size: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 8px;
+  margin-bottom: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* ─── VINTAGE CONTROLS ─── */
-
-.vintage-control-btn {
-  background: linear-gradient(180deg, #444, #222);
-  border: 1px solid #111;
-  color: #ccc;
-  padding: 8px 15px;
-  border-radius: 3px;
-  cursor: pointer;
-  box-shadow: 2px 2px 4px rgba(0,0,0,0.5), inset 1px 1px 0 rgba(255,255,255,0.1);
-  font-weight: bold;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  transition: all 0.1s;
+/* ─── SEQUENCER (PianoRoll) ─── */
+.theme-vintage .step-lamp {
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03); 
+  border: var(--lg-border);
+  transition: all 0.2s ease;
 }
 
-.vintage-control-btn:active {
-  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
-  transform: translateY(1px);
+/* High Velocity / Active Note */
+.theme-vintage .step-lamp.active {
+  background: var(--lg-accent);
+  border-color: var(--lg-accent);
+  box-shadow: 0 0 12px var(--lg-accent-glow);
 }
 
-.vintage-control-btn.active, .btn-premium.active {
-  background: var(--lcd-amber) !important;
-  color: #000 !important;
-  box-shadow: 0 0 20px var(--lcd-amber-glow), inset 0 0 10px rgba(255,255,255,0.4) !important;
-  font-weight: 900 !important;
-  border-color: #fff !important;
-  text-shadow: none !important;
+/* Low Velocity / Ghost Note */
+.theme-vintage .step-lamp.active.step--ghost {
+  background: transparent;
+  border: 1px solid var(--lg-accent);
+  opacity: 0.5;
+  box-shadow: none;
 }
 
-/* Playback button vintage style - Yellow border by default */
+/* Beat markers */
+.theme-vintage .step-lamp--beat {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.theme-vintage .step-lamp--measure {
+  border-left: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.theme-vintage .step-lamp--current {
+  outline: 1px solid rgba(255,255,255,0.5);
+}
+
+/* Zoomed state */
+.theme-vintage .step-lamp.zoomed {
+  width: 32px; 
+  height: 24px;
+}
+
+/* ─── INSTRUMENTS ─── */
+.theme-vintage .piano-wrapper {
+  background: var(--lg-panel-bg-elevated);
+  padding: 16px;
+  border-radius: 8px;
+  border: var(--lg-border);
+}
+
+.theme-vintage .fretboard {
+  background: transparent;
+  border: var(--lg-border);
+  border-radius: 4px;
+}
+
+/* Flat dots */
+.theme-vintage .fretboard-dot {
+  background: rgba(255,255,255,0.1);
+  box-shadow: none;
+}
+
+.theme-vintage .note-marker {
+  box-shadow: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+}
+
+/* Active note markers on instruments */
+.theme-vintage .note-marker.active {
+  background: var(--lg-accent);
+  color: #111;
+  border-color: var(--lg-accent);
+}
+
+/* Ensure instruments stack cleanly */
+.theme-vintage .scrollable-instrument {
+  display: block !important;
+  width: 100%;
+}
+
+.theme-vintage .instrument-card {
+  background: var(--lg-panel-bg-elevated);
+  padding: 24px;
+  border-radius: 8px;
+  border: var(--lg-border);
+  margin-bottom: 24px;
+}
+
+/* ─── UI CONTROLS (Buttons, Sliders, Tabs) ─── */
+.theme-vintage .btn-toggle,
+.theme-vintage .btn-premium,
+.theme-vintage .vintage-control-btn,
 .theme-vintage .btn-playback-premium {
-  background: transparent !important;
-  border: 1.5px solid var(--lcd-amber) !important;
-  color: var(--lcd-amber) !important;
-  box-shadow: 0 0 10px var(--lcd-amber-glow) !important;
-  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.05);
+  border: var(--lg-border);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-family: var(--font-body);
+  font-weight: 400;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.theme-vintage .btn-playback-premium:hover {
-  background: rgba(255, 179, 0, 0.1) !important;
-}
-
-.theme-vintage .btn-playback-premium.stop,
+.theme-vintage .btn-toggle--active,
+.theme-vintage .btn-premium.active,
+.theme-vintage .vintage-control-btn.active,
 .theme-vintage .btn-playback-premium.active,
-.theme-vintage .btn-playback-premium.is-pressed {
-  background: var(--lcd-amber) !important;
-  color: #1a1c1e !important; /* Steel dark for contrast */
-  box-shadow: 0 0 20px var(--lcd-amber-glow) !important;
+.theme-vintage .btn-playback-premium.stop {
+  background: var(--lg-panel-bg-elevated);
+  color: var(--lg-accent);
+  border-color: var(--lg-accent);
 }
 
-.theme-vintage .btn-playback-icon {
-  background: currentColor !important;
+.theme-vintage .btn-toggle:hover:not(.active),
+.theme-vintage .btn-premium:hover:not(.active),
+.theme-vintage .vintage-control-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-/* ─── APP TITLE ─── */
-.app-title {
-  font-family: 'Courier New', Courier, monospace;
-  color: var(--lcd-amber);
-  text-shadow: 0 0 10px var(--lcd-amber-glow);
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  margin: 0;
+/* Tabs */
+.theme-vintage .tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-/* ─── SELECT & OPTGROUP ─── */
-
-select option {
-  background-color: #1a1a1a;
-  color: #ccc;
-  padding: 10px;
+.theme-vintage .tab-btn.active {
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--lg-accent);
 }
 
-optgroup {
-  background-color: #000c1d !important; /* Very dark blue */
-  color: #d4af37 !important; /* Metallic Gold */
-  font-weight: bold !important;
-  font-style: normal;
-}
-
-/* Fallback for some browsers */
-select optgroup[label] {
-  background-color: #000c1d;
-  color: #d4af37;
-}
-/* ─── SLIDER PROGRESS ─── */
-
-input[type="range"].premium-slider {
-  background: linear-gradient(to right, var(--lcd-amber) 0%, var(--lcd-amber) var(--value, 50%), #333 var(--value, 50%), #333 100%);
-}
-
-input[type="range"].premium-slider.accent {
-  background: linear-gradient(to right, var(--led-cyan) 0%, var(--led-cyan) var(--value, 50%), #333 var(--value, 50%), #333 100%);
-}
-
-.scrollable-instrument {
+/* Premium Sliders -> Minimalist Flat Sliders */
+.theme-vintage .premium-slider {
+  -webkit-appearance: none;
   width: 100%;
-  overflow-x: auto;
-  padding-bottom: 20px;
-  display: block; /* Stack instruments */
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1) !important; 
+  border-radius: 2px;
+  outline: none;
+  margin: 12px 0;
 }
 
-/* Ensure piano roll container is fluid */
-.piano-roll {
-  display: flex;
+.theme-vintage .premium-slider::-webkit-slider-runnable-track {
   width: 100%;
-  justify-content: space-between;
+  height: 4px;
+  background: linear-gradient(to right, var(--lg-accent) 0%, var(--lg-accent) var(--value, 0%), transparent var(--value, 0%), transparent 100%);
+  border-radius: 2px;
+}
+
+.theme-vintage .premium-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: var(--lg-accent);
+  cursor: pointer;
+  margin-top: -4px;
+  border: none;
+}
+
+/* ─── BREAKPOINTS ─── */
+@media (max-width: 1080px) {
+  .theme-vintage .sidebar {
+    width: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .theme-vintage .sidebar {
+    display: none;
+  }
+  
+  .theme-vintage .main-content {
+    padding-bottom: 80px; 
+  }
+  
+  .theme-vintage .vintage-module {
+    padding: 16px;
+  }
 }
