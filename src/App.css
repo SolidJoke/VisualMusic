@@ -1279,3 +1279,58 @@ input[type="range"]::-webkit-slider-runnable-track {
     margin-top: 10px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   UX-14 — Disable hover states on touch devices
+   (phones/tablets have no mouse, hover gets stuck after tap)
+═══════════════════════════════════════════════════════ */
+@media (hover: none) {
+  /* Buttons — reset hover to default state */
+  .btn-header-action:hover,
+  .btn-premium:hover,
+  .btn-toggle:hover,
+  .btn-tab:hover,
+  .btn-segment:hover,
+  .btn-playback-premium:hover:not(.stop),
+  .sidebar-cta-btn:hover,
+  .bottom-nav-btn:hover {
+    background: initial;
+    border-color: initial;
+    box-shadow: none;
+    color: initial;
+  }
+
+  /* Glass panels — no hover glow */
+  .glass-panel:hover {
+    border-color: var(--border-default);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
+  /* Panel headers — no hover background */
+  .panel__header:hover {
+    background: transparent;
+  }
+
+  /* Sidebar toggle — no hover */
+  .sidebar-toggle:hover {
+    background: transparent;
+    color: var(--text-secondary);
+  }
+
+  /* Note markers and piano keys — no hover transform */
+  .note-marker:hover,
+  .piano-key:hover {
+    transform: none;
+    filter: none;
+  }
+
+  /* Active state replaces hover for touch feedback */
+  .btn-premium:active,
+  .btn-toggle:active,
+  .btn-header-action:active,
+  .sidebar-cta-btn:active,
+  .bottom-nav-btn:active {
+    opacity: 0.75;
+    transform: scale(0.97);
+  }
+}

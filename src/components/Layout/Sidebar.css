@@ -265,3 +265,32 @@
     display: none !important;
   }
 }
+
+@media (hover: none) {
+  .sidebar-header-grid button:hover, .sidebar-header-grid .bpm-badge:hover {
+    background: #1c1b1b;
+  }
+  .sidebar-header-grid .btn-playback-premium.play:hover {
+    border-color: transparent;
+    color: #e5e2e1;
+  }
+  .sidebar-header-grid .btn-playback-premium.stop:hover {
+    background: #3f495d;
+    color: #aeb8d0;
+    border-color: #3f495d;
+  }
+  .sidebar-header-grid .bpm-badge:hover {
+    border-color: #262626;
+  }
+  .sidebar-cta-btn:hover {
+    background: #1c1b1b;
+    border-color: #262626;
+    transform: none;
+    box-shadow: none;
+  }
+  .sidebar-toggle:hover {
+    background: #1c1b1b;
+    color: #8a919e;
+  }
+  .sidebar-content::-webkit-scrollbar-thumb:hover { background: #262626; }
+}

@@ -56,6 +56,8 @@ export default function BottomNav({
         <button 
           className={`bottom-nav-btn ${isDrawerOpen ? 'active' : ''}`}
           onClick={toggleDrawer}
+          aria-label="Open menu"
+          aria-expanded={isDrawerOpen}
         >
           <span className="icon">☰</span>
           <span className="label">Menu</span>
@@ -69,9 +71,9 @@ export default function BottomNav({
       <div className={`mobile-drawer theme-${uiTheme} ${isDrawerOpen ? 'is-open' : ''}`}>
         <div className="drawer-header">
           <h3>Menu</h3>
-          <button className="drawer-close-btn" onClick={toggleDrawer}>×</button>
+          <button className="drawer-close-btn" aria-label="Close menu" onClick={toggleDrawer}>×</button>
         </div>
-        <div className="drawer-content" onClick={toggleDrawer}>
+        <div className="drawer-content">
           {children}
         </div>
       </div>
