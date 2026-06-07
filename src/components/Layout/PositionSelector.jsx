@@ -20,7 +20,7 @@ const PositionSelector = ({
   scaleAnchor,
   setScaleAnchor
 }) => {
-  const { lang, txt, notation } = useAppContext();
+  const { txt, notation } = useAppContext();
 
   const getNoteLabel = (midiVal) => {
     const note = NOTES[midiVal % 12];

@@ -339,9 +339,9 @@ export default function CompositionPanel({
             </div>
 
             <div className="retro-switch-container">
-              <label className="retro-switch" htmlFor="meshuggah-mode-switch">
+              <label className="retro-switch" htmlFor="mode-m-mode-switch">
                 <input
-                  id="meshuggah-mode-switch"
+                  id="mode-m-mode-switch"
                   type="checkbox"
                   checked={showRealignment}
                   onChange={(e) => {
@@ -355,7 +355,7 @@ export default function CompositionPanel({
                 />
                 <span className="switch-slider"></span>
               </label>
-              <label htmlFor="meshuggah-mode-switch" className="switch-label">{txt.meshMode || "MESHUGGAH MODE"}</label>
+              <label htmlFor="mode-m-mode-switch" className="switch-label">{txt.meshMode || "Mode M"}</label>
             </div>
 
             <div className="retro-switch-container">
@@ -487,7 +487,7 @@ export default function CompositionPanel({
 
         {showRealignment && (
           <div className="panel-section realignment-section">
-            <label className="section-label">{txt.realignment || "FORCED REALIGNMENT (MESHUGGAH CALCULATOR)"}</label>
+            <label className="section-label">{txt.realignment || "FORCED REALIGNMENT (CALCULATRICE M)"}</label>
             
             <div className="slider-group">
               <div className="slider-header">

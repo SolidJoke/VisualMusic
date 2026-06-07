@@ -5,7 +5,6 @@ import Modal from '../Common/Modal';
 import InfoTooltip from '../Common/InfoTooltip';
 
 const ControlPanel = ({
-  setNotation,
   chordDisplayMode,
   setChordDisplayMode,
   showFingering,
@@ -15,11 +14,10 @@ const ControlPanel = ({
   playbackInstrument,
   setPlaybackInstrument,
   appMode,
-  dictType,
   useShellVoicings,
   setUseShellVoicings
 }) => {
-  const { txt, notation } = useAppContext();
+  const { txt } = useAppContext();
   return (
     <div className="glass-panel control-panel-container">
       {appMode !== "dictionary" && (
