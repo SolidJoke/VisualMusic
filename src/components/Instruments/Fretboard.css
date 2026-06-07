@@ -320,7 +320,47 @@
 
 .fretboard-container.is-out-of-range h3::after {
   content: " (Hors tessiture)";
-  color: #ff4444;
   font-size: 0.8em;
   margin-left: 10px;
+}
+
+/* --- Mobile Responsive Rules (UX-12) --- */
+@media (max-width: 767px) {
+    .fretboard-scroll-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding-bottom: 10px;
+    }
+
+    /* Enforce minimum fretboard width to ensure it scrolls rather than squishes */
+    .fretboard {
+        min-width: 800px;
+    }
+
+    /* Larger touch targets for markers */
+    .note-marker {
+        min-width: 28px !important;
+        min-height: 28px !important;
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 14px !important; /* ensure text fits but remains visible */
+    }
+
+    .note-marker.open-marker {
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 12px !important;
+    }
+
+    /* Ensure muting X and open O are visible and adequately sized */
+    .string-status-symbol {
+        font-size: 16px;
+    }
+}
+
+/* Remove hover effects on touch devices */
+@media (hover: none) {
+    /* (If there were hovers, they'd be disabled here. 
+       Fretboard markers are cursor: default mostly, but this ensures safety) */
 }

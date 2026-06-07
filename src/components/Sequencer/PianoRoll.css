@@ -158,3 +158,60 @@
     border-color: #ffb782 !important; 
     background-color: rgba(255, 183, 130, 0.1) !important;
 }
+
+/* --- Mobile Responsive Rules (UX-13) --- */
+@media (max-width: 767px) {
+    .piano-roll {
+        padding: 12px 8px; /* Compact padding */
+    }
+
+    .track-row {
+        flex-direction: row; /* keep row */
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .track-name {
+        width: 60px; /* More compact track names */
+        min-width: 60px;
+        font-size: 10px;
+        word-break: break-word;
+        padding-bottom: 0;
+        margin-right: 8px;
+        line-height: 1.1;
+    }
+
+    .steps-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+        justify-content: flex-start;
+        scrollbar-width: none; /* Hide scrollbar for a cleaner look */
+    }
+    
+    .steps-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    .step-lamp {
+        min-width: 24px;
+        width: 24px;
+        height: 24px;
+        flex: 0 0 24px; /* prevent shrinking */
+    }
+
+    .step--ghost {
+        height: 18px !important; /* adjust ghost height */
+    }
+
+    .step__pitch-label {
+        font-size: 8px;
+    }
+}
+
+/* Hide mobile controls on desktop */
+@media (min-width: 768px) {
+    .sequencer-mobile-controls {
+        display: none !important;
+    }
+}
