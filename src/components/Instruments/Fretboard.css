@@ -460,3 +460,44 @@
         height: 12px !important;
     }
 }
+
+/* === MINIMAP SCRUBBER (Ableton-style) === */
+.fretboard-scrubber {
+  position: relative;
+  height: 16px;
+  margin-top: 6px;
+  background: #0e0e18;
+  border-radius: 4px;
+  border: 1px solid #262626;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.scrubber-thumb {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(0, 212, 255, 0.2);
+  border: 1px solid #00d4ff;
+  border-radius: 3px;
+  cursor: grab;
+  transition: background 0.1s;
+  min-width: 8px;
+}
+
+.scrubber-thumb:active {
+  cursor: grabbing;
+  background: rgba(0, 212, 255, 0.35);
+}
+
+.scrubber-note {
+  position: absolute;
+  width: 3px;
+  height: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #00d4ff;
+  border-radius: 1px;
+  opacity: 0.7;
+  pointer-events: none;
+}

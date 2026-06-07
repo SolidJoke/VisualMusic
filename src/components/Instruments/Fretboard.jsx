@@ -47,6 +47,41 @@ function Fretboard({
   const visibleFretCount = is4K ? numFrets : 5;
 
   const [fretOffset, setFretOffset] = React.useState(0);
+  const scrubberRef = React.useRef(null);
+
+  const activeNotePositions = React.useMemo(() => {
+    if (!activeNotes) return [];
+    return activeNotes
+      .filter(n => n.fret > 0)
+      .map(n => n.fret);
+  }, [activeNotes]);
+
+  const handleScrubberDrag = React.useCallback((e) => {
+    e.preventDefault();
+    const scrubber = scrubberRef.current;
+    if (!scrubber) return;
+    const rect = scrubber.getBoundingClientRect();
+
+    const onMove = (moveEvent) => {
+      const clientX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
+      const relX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const targetFret = Math.round(relX * numFrets - visibleFretCount / 2);
+      const clamped = Math.max(0, Math.min(numFrets - visibleFretCount, targetFret));
+      setFretOffset(clamped);
+    };
+
+    const onEnd = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchend', onEnd);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchend', onEnd);
+  }, [numFrets, visibleFretCount]);
 
   // Auto-positionnement
   React.useEffect(() => {
@@ -332,6 +367,38 @@ function Fretboard({
         </div>
       </div>
       </div>
+      {!is4K && (
+        <div
+          className="fretboard-scrubber"
+          ref={scrubberRef}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const relX = (e.clientX - rect.left) / rect.width;
+            const targetFret = Math.round(relX * numFrets - visibleFretCount / 2);
+            setFretOffset(Math.max(0, Math.min(numFrets - visibleFretCount, targetFret)));
+          }}
+        >
+          {/* Cyan dots = positions of active notes */}
+          {activeNotePositions.map((fret, i) => (
+            <div
+              key={i}
+              className="scrubber-note"
+              style={{ left: `${(fret / numFrets) * 100}%` }}
+            />
+          ))}
+          {/* Thumb rectangle = visible viewport */}
+          <div
+            className="scrubber-thumb"
+            style={{
+              left: `${(fretOffset / numFrets) * 100}%`,
+              width: `${(visibleFretCount / numFrets) * 100}%`,
+            }}
+            onMouseDown={handleScrubberDrag}
+            onTouchStart={handleScrubberDrag}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
