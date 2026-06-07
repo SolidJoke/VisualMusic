@@ -242,23 +242,37 @@
 
 /* --- Mobile Responsive Rules (UX-11) --- */
 @media (max-width: 767px) {
+    /* Conteneur principal : hauteur explicite obligatoire */
     .piano-container-wrapper {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
-        padding-bottom: 8px; /* Room for scrollbar */
+        overflow-x: hidden !important; /* Plus de scroll — on limite les octaves */
+        min-height: 120px;
+        height: 160px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
     }
-    
+
+    .piano-keyboard-inner,
+    .piano-keys-row,
+    [class*='keys'],
+    .piano-container {
+        /* Largeur calculée : 14 touches blanches × 28px = 392px */
+        width: 392px !important;
+        min-width: 392px !important;
+        max-width: 392px !important;
+        flex-shrink: 0;
+    }
+
     .white-key {
-        min-width: 24px;
-        width: 24px;
-        height: 140px; /* shorter on mobile */
+        width: 28px !important;  /* Ajusté de 24 à 28 pour 14 touches = 392px */
+        min-width: 28px !important;
+        height: 120px !important;
     }
-    
+
     .black-key {
-        width: 14px;
-        height: 80px; /* shorter on mobile */
-        left: -7px;
+        width: 16px !important;
+        height: 70px !important;
+        left: -8px !important;
     }
 
     .piano-key:active {

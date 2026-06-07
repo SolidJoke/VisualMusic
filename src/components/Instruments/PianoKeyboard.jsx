@@ -4,6 +4,7 @@ import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
 import { getHarmonicSeries } from "../../core/acousticEngine";
 import { useAppContext } from "../../context/AppContext";
 import { useMusicEngineContext } from "../../context/MusicEngineContext";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 
 const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 const BLACK_KEYS = [1, 3, 6, 8, 10];
@@ -31,6 +32,7 @@ function PianoKeyboard() {
 
   const dictType = appMode === "dictionary" ? rawDictType : null;
   const numOctaves = 7;
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   const { notation, state } = useAppContext();
   const { harmonicMode } = state;
@@ -132,7 +134,10 @@ function PianoKeyboard() {
     return isActive ? "role-scale" : "role-extension";
   };
 
-  for (let octave = 0; octave < numOctaves; octave++) {
+  const startOctave = isMobile ? 1 : 0;
+  const endOctave = isMobile ? 2 : numOctaves - 1;
+
+  for (let octave = startOctave; octave <= endOctave; octave++) {
     for (let i = 0; i < 12; i++) {
       const noteInfo = NOTES.at(i);
       const isBlack = BLACK_KEYS.includes(i);

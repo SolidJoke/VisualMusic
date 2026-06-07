@@ -3,6 +3,7 @@ import "./Fretboard.css";
 import { getAbsoluteNoteValue } from "../../core/theory";
 import { computeFretMetadata } from "../../core/fretboardUtils";
 import { useFretboard } from "../../hooks/useFretboard";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 
 const STRING_HEIGHT = 35;
 
@@ -34,11 +35,20 @@ function Fretboard({
     appMode,
   } = useFretboard(instrument);
 
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const maxFret = isMobile ? 7 : numFrets;
+
+  // Calculate a truncated grid template if mobile
+  const gridTemplateCols = fretboardGridTemplate.split(" ");
+  const activeGridTemplate = isMobile
+    ? gridTemplateCols.slice(0, maxFret + 2).join(" ")
+    : fretboardGridTemplate;
+
   const renderDots = () => {
     const fretsWithDots = [3, 5, 7, 9, 12, 15, 17, 19, 21];
     return (
       <div className="fret-dots-layer">
-        {Array.from({ length: numFrets + 1 }).map((_, fret) => (
+        {Array.from({ length: maxFret + 1 }).map((_, fret) => (
           <div
             key={`dot-fret-${fret}`}
             className={`dot-fret-cell ${fret === 0 ? "open-string" : ""}`}
@@ -134,7 +144,7 @@ function Fretboard({
   return (
     <div
       className={`fretboard-container instrument-${instrument} ${(fingering?.isOutOfRange || isOutOfRange) ? "is-out-of-range" : ""}`}
-      style={{ "--fretboard-grid": fretboardGridTemplate }}
+      style={{ "--fretboard-grid": activeGridTemplate }}
       title={fingering?.isOutOfRange ? "⚠️ Accord hors tessiture instrument" : ""}
     >
       <h3 style={{ color: "#ccc", marginBottom: "10px" }}>
@@ -152,9 +162,9 @@ function Fretboard({
               <div
                 key={`string-${stringIndex}`}
                 className="string-row"
-                style={{ display: "grid", gridTemplateColumns: fretboardGridTemplate }}
+                style={{ display: "grid", gridTemplateColumns: activeGridTemplate }}
               >
-                {Array.from({ length: numFrets + 1 }).map((_, fret) => {
+                {Array.from({ length: maxFret + 1 }).map((_, fret) => {
                   const meta = computeFretMetadata({
                     stringIndex, fret, openStringAbsValue, activeNotes,
                     currentlyPlayingNotes, contextualScaleAbsoluteValues,

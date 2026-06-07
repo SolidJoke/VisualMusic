@@ -163,41 +163,44 @@
 @media (max-width: 767px) {
     .piano-roll {
         padding: 12px 8px; /* Compact padding */
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        max-width: 100vw;
     }
 
     .track-row {
         flex-direction: row; /* keep row */
         align-items: center;
         margin-bottom: 8px;
+        min-width: 496px; /* 16 steps x 28px + 48px label */
+        width: 496px;
     }
 
     .track-name {
-        width: 60px; /* More compact track names */
-        min-width: 60px;
+        width: 48px; /* More compact track names */
+        min-width: 48px;
         font-size: 10px;
         word-break: break-word;
         padding-bottom: 0;
         margin-right: 8px;
         line-height: 1.1;
+        flex-shrink: 0;
     }
 
     .steps-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
         padding-bottom: 4px;
         justify-content: flex-start;
-        scrollbar-width: none; /* Hide scrollbar for a cleaner look */
-    }
-    
-    .steps-container::-webkit-scrollbar {
-        display: none;
+        /* No internal scroll, piano-roll handles it */
     }
 
     .step-lamp {
-        min-width: 24px;
-        width: 24px;
-        height: 24px;
-        flex: 0 0 24px; /* prevent shrinking */
+        min-width: 28px !important;
+        width: 28px !important;
+        height: 28px !important;
+        min-height: 28px !important;
+        flex: 0 0 28px; /* prevent shrinking */
+        flex-shrink: 0;
     }
 
     .step--ghost {
