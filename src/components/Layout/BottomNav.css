@@ -68,6 +68,7 @@
 
 /* Drawer styles */
 .mobile-drawer-overlay {
+  display: none;
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
@@ -80,6 +81,7 @@
 }
 
 .mobile-drawer-overlay.is-open {
+  display: block;
   opacity: 1;
   pointer-events: auto;
 }
@@ -158,5 +160,11 @@
 @media (max-width: 767px) {
   .bottom-nav-container {
     display: flex;
+  }
+}
+
+@media (hover: none) {
+  .bottom-nav-btn:hover {
+    color: #8a919e;
   }
 }
