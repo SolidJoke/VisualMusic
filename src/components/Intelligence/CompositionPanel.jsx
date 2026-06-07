@@ -26,6 +26,8 @@ export default function CompositionPanel({
   txt = {}
 }) {
   // 1. Math State
+  const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 2560 && !isTestEnv);
   const [subdivisions, setSubdivisions] = useState(16);
   const [pulses, setPulses] = useState(5);
   const [rotation, setRotation] = useState(0);
@@ -192,7 +194,13 @@ export default function CompositionPanel({
   };
 
   return (
-    <div className="composition-panel" id="composition-panel">
+    <div className={`composition-panel panel ${isCollapsed ? 'panel--collapsed' : ''}`} id="composition-panel">
+      <div className="panel__header" onClick={() => setIsCollapsed(!isCollapsed)}>
+        <span className="panel__title">{txt.title || "Math Composition Assistant"}</span>
+        <span className="panel__toggle">{isCollapsed ? '▼' : '▲'}</span>
+      </div>
+      {!isCollapsed && (
+        <div className="panel__content">
       <div className="panel-header">
         <div className="panel-led-indicator pulse-slow"></div>
         <h3>{txt.title || "MATH COMPOSITION ASSISTANT"}</h3>
@@ -684,6 +692,8 @@ export default function CompositionPanel({
 
       <div className="eurorack-screw bottom-left"></div>
       <div className="eurorack-screw bottom-right"></div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,24 +5,21 @@ const TheoryLegend = () => {
   const { txt, state, dispatch } = useAppContext();
   
   if (!state.showLegend) return (
-    <button
-      className="btn-header-action"
-      onClick={() => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showLegend', value: true } })}
-      style={{ minWidth: "200px", marginBottom: "20px" }}
-    >
-      {txt.legend || "📖 Légende"}
-    </button>
+    <div className="legend-container panel panel--collapsed" style={{ width: "100%", marginBottom: "20px" }}>
+      <div className="panel__header" onClick={() => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showLegend', value: true } })}>
+        <span className="panel__title">{txt.legend || "📖 Légende"}</span>
+        <span className="panel__toggle">▼</span>
+      </div>
+    </div>
   );
 
   return (
-    <div className="legend-container" style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-      <button
-        className="btn-header-action"
-        onClick={() => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showLegend', value: false } })}
-        style={{ minWidth: "200px" }}
-      >
-        {txt.hideExplanations}
-      </button>
+    <div className="legend-container panel" style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "20px" }}>
+      <div className="panel__header" onClick={() => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showLegend', value: false } })} style={{ width: "100%" }}>
+        <span className="panel__title">{txt.legend || "📖 Légende"}</span>
+        <span className="panel__toggle">▲</span>
+      </div>
+      <div className="panel__content" style={{ width: "100%" }}>
 
       <div 
         className="theory-legend-panel vintage-module" 
@@ -70,6 +67,7 @@ const TheoryLegend = () => {
         <div style={{ gridColumn: "1 / -1", paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.1)", fontSize: "12px", color: "var(--text-dim)", fontStyle: "italic", opacity: 0.8 }}>
           {txt.numbersExplanation1} {txt.numbersExplanation2}
         </div>
+      </div>
       </div>
     </div>
   );

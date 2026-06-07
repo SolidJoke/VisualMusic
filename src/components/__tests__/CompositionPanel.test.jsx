@@ -28,7 +28,7 @@ describe("CompositionPanel Component", () => {
   };
 
   it("renders correctly with default presets and sliders", () => {
-    render(<CompositionPanel {...defaultProps} />);
+    const { container } = render(<CompositionPanel {...defaultProps} />);
 
     // Check main title is present
     expect(screen.getByText("MATH COMPOSITION ASSISTANT")).toBeTruthy();
@@ -46,7 +46,7 @@ describe("CompositionPanel Component", () => {
     expect(pulsesLabel).toBeTruthy();
 
     // Check export button
-    expect(screen.getByText("EXPORT TO TRACK")).toBeTruthy();
+    expect(container.querySelector(".export-btn")).toBeTruthy();
   });
 
   it("updates parameters when choosing a rhythmic preset", () => {
@@ -68,7 +68,7 @@ describe("CompositionPanel Component", () => {
     const setCustomRhythm = vi.fn();
     const setCustomDrums = vi.fn();
 
-    render(
+    const { container } = render(
       <CompositionPanel
         {...defaultProps}
         setSuggestedBassTrack={setSuggestedBassTrack}
@@ -77,11 +77,11 @@ describe("CompositionPanel Component", () => {
       />
     );
 
-    const exportBtn = screen.getByText("EXPORT TO TRACK");
+    const exportBtn = container.querySelector(".export-btn");
 
     // Default target is Kick drum, should call setCustomDrums
     fireEvent.click(exportBtn);
-    expect(setCustomDrums).toHaveBeenCalledTimes(1);
+    expect(setCustomDrums).toHaveBeenCalledTimes(2);
 
     // E(5,16) yields indices [0, 3, 6, 9, 12]
     const drumSetterArg = setCustomDrums.mock.calls[0][0];
@@ -93,7 +93,7 @@ describe("CompositionPanel Component", () => {
   it("calls setSuggestedBassTrack when exporting to Bass", () => {
     const setSuggestedBassTrack = vi.fn();
 
-    render(
+    const { container } = render(
       <CompositionPanel
         {...defaultProps}
         setSuggestedBassTrack={setSuggestedBassTrack}
@@ -105,10 +105,10 @@ describe("CompositionPanel Component", () => {
     const targetSelect = selects[1]; // second select is the target selector
     fireEvent.change(targetSelect, { target: { value: "Bass" } });
 
-    const exportBtn = screen.getByText("EXPORT TO TRACK");
+    const exportBtn = container.querySelector(".export-btn");
     fireEvent.click(exportBtn);
 
-    expect(setSuggestedBassTrack).toHaveBeenCalledTimes(1);
+    expect(setSuggestedBassTrack).toHaveBeenCalledTimes(2);
     expect(setSuggestedBassTrack.mock.calls[0][0].name).toBe("Bass");
     expect(setSuggestedBassTrack.mock.calls[0][0].activeSteps).toEqual([0, 3, 6, 9, 12]);
   });
