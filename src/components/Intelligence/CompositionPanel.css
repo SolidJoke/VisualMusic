@@ -207,8 +207,9 @@
 /* Retro Toggle Switch */
 .retro-switch-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .retro-switch {
   position: relative;

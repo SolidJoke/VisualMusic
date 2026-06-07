@@ -287,7 +287,7 @@ export function generateIsorhythm(talea, color) {
 
 /**
  * Renders a forced metric realignment of a rhythmic motif on a rigid boundary (e.g. 16 or 32 steps).
- * Inspired by Meshuggah's metric structures (e.g. Rational Gaze, Bleed).
+ * Inspired by Mode M's metric structures (e.g. Rational Gaze, Bleed).
  * Uses the formula B = M * Q + R.
  * 
  * @param {number[]} motif Binary rhythm motif (e.g. [1, 0, 1, 0, 0])

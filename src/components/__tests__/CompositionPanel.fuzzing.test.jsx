@@ -65,7 +65,7 @@ describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
   it("should not crash when toggling Meshuggah Mode and changing metric boundary during playback", () => {
     expect(() => {
       const { container } = render(<CompositionPanel {...defaultProps} />);
-      const meshuggahSwitch = screen.getByLabelText("MESHUGGAH MODE");
+      const meshuggahSwitch = screen.getByLabelText("Mode M");
       fireEvent.click(meshuggahSwitch);
 
       const sliders = container.querySelectorAll("input[type='range']");
@@ -104,7 +104,7 @@ describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
       const isorhythmSwitch = screen.getByLabelText("ISORHYTHM MODE");
       const phasingLabel = screen.getByText("PHASING MODE");
       const phasingSwitch = phasingLabel.parentElement.querySelector("input[type='checkbox']");
-      const meshuggahSwitch = screen.getByLabelText("MESHUGGAH MODE");
+      const meshuggahSwitch = screen.getByLabelText("Mode M");
       const polySwitch = screen.getByLabelText("POLYRHYTHM ALGEBRA");
 
       // Fuzzing: active/désactive rapidement les modes qui s'excluent mutuellement

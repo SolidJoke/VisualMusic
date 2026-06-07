@@ -149,12 +149,12 @@ describe("CompositionPanel Component", () => {
     expect(screen.getByText("ISORHYTHM ENGINE (TALEA & COLOR)")).toBeTruthy();
     expect(screen.getByText("PITCH COLOR SEQUENCE:")).toBeTruthy();
 
-    // Toggle Forced Realignment switch (Meshuggah Mode)
-    const realignmentSwitch = screen.getByLabelText("MESHUGGAH MODE");
+    // Toggle Forced Realignment switch (Mode M)
+    const realignmentSwitch = screen.getByLabelText("Mode M");
     fireEvent.click(realignmentSwitch);
 
     // Forced Realignment section should now be visible
-    expect(screen.getByText("FORCED REALIGNMENT (MESHUGGAH CALCULATOR)")).toBeTruthy();
+    expect(screen.getByText("FORCED REALIGNMENT (CALCULATRICE M)")).toBeTruthy();
     
     // Isorhythm section should be closed due to mutual exclusion
     expect(screen.queryByText("ISORHYTHM ENGINE (TALEA & COLOR)")).toBeNull();
