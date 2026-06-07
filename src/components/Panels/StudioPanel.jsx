@@ -43,6 +43,8 @@ const StudioPanel = ({
 
   const { lang, txt, notation, state } = useAppContext();
   const { uiTheme } = state;
+  const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 2560 && !isTestEnv);
   
   if (!activeBrick) return null;
 
@@ -74,10 +76,15 @@ const StudioPanel = ({
 
   return (
     <div
-      className="glass-panel"
+      className={`glass-panel panel ${isCollapsed ? 'panel--collapsed' : ''}`}
       data-testid="studio-panel"
     >
-
+      <div className="panel__header" onClick={() => setIsCollapsed(!isCollapsed)}>
+        <span className="panel__title">Studio</span>
+        <span className="panel__toggle">{isCollapsed ? '▼' : '▲'}</span>
+      </div>
+      {!isCollapsed && (
+        <div className="panel__content">
       <div style={{ marginTop: "15px" }}>
         <StudioInfoBlock txt={txt} lang={lang} />
 
@@ -462,6 +469,8 @@ const StudioPanel = ({
           </div>
         )}
       </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -83,6 +83,14 @@ const Sidebar = ({
 
   return (
     <div className={`app-sidebar ${isOpen ? 'is-open' : 'is-closed'} theme-${uiTheme}`}>
+      <button 
+        className="sidebar-toggle" 
+        onClick={toggleSidebar} 
+        title={isOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+      >
+        {isOpen ? '‹' : '›'}
+      </button>
+
       {/* ── Rail icons (visible only when closed) ── */}
       <div className="sidebar-rail-icons" aria-hidden="true">
         <span className="rail-icon" title={appMode === 'studio' ? (txt.sidebar?.studio || 'Studio') : (txt.sidebar?.dictionary || 'Dictionary')}>
