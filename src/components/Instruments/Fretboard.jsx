@@ -3,9 +3,9 @@ import "./Fretboard.css";
 import { getAbsoluteNoteValue } from "../../core/theory";
 import { computeFretMetadata } from "../../core/fretboardUtils";
 import { useFretboard } from "../../hooks/useFretboard";
-import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { useMediaQuery, useLandscapeMode } from "../../hooks/useMediaQuery";
 
-const STRING_HEIGHT = 35;
+const STRING_HEIGHT = typeof window !== 'undefined' ? Math.max(20, Math.min(35, window.innerHeight * 0.04)) : 35;
 
 function Fretboard({
   instrument = "guitar"
@@ -36,22 +36,60 @@ function Fretboard({
   } = useFretboard(instrument);
 
   const isMobile = useMediaQuery('(max-width: 767px)');
-  const maxFret = isMobile ? 7 : numFrets;
+  const isLandscape = useLandscapeMode();
 
-  // Calculate a truncated grid template if mobile
+  const visibleFretCount = isMobile || isLandscape ? 7 : 12;
+
+  const [fretOffset, setFretOffset] = React.useState(0);
+
+  // Auto-positionnement
+  React.useEffect(() => {
+    if (!activeNotes || activeNotes.length === 0) return;
+
+    const activeFrets = activeNotes
+      .filter(n => n.fret > 0)
+      .map(n => n.fret);
+
+    if (activeFrets.length === 0) {
+      setFretOffset(0);
+      return;
+    }
+
+    const minActiveFret = Math.min(...activeFrets);
+    const maxActiveFret = Math.max(...activeFrets);
+
+    const centerFret = Math.floor((minActiveFret + maxActiveFret) / 2);
+    const idealOffset = Math.max(0, centerFret - Math.floor(visibleFretCount / 2));
+    const maxOffset = Math.max(0, numFrets - visibleFretCount);
+
+    setFretOffset(Math.min(idealOffset, maxOffset));
+  }, [activeNotes, visibleFretCount, numFrets]);
+
+  const handlePrev = () => setFretOffset(o => Math.max(0, o - 3));
+  const handleNext = () => setFretOffset(o => Math.min(numFrets - visibleFretCount, o + 3));
+
+  const firstVisibleFret = fretOffset + 1; // fret 0 is handled separately
+  const lastVisibleFret = fretOffset + visibleFretCount;
+  const maxOffset = Math.max(0, numFrets - visibleFretCount);
+  const canGoPrev = fretOffset > 0;
+  const canGoNext = fretOffset < maxOffset;
+
+  // Calculate a truncated grid template
   const gridTemplateCols = fretboardGridTemplate.split(" ");
-  const activeGridTemplate = isMobile
-    ? gridTemplateCols.slice(0, maxFret + 2).join(" ")
-    : fretboardGridTemplate;
+  const activeGridTemplate = gridTemplateCols.slice(0, visibleFretCount + 1).join(" ");
 
   const renderDots = () => {
     const fretsWithDots = [3, 5, 7, 9, 12, 15, 17, 19, 21];
     return (
       <div className="fret-dots-layer">
-        {Array.from({ length: maxFret + 1 }).map((_, fret) => (
+        {/* Open string dot placeholder */}
+        <div className="dot-fret-cell open-string"></div>
+        {Array.from({ length: visibleFretCount }).map((_, i) => {
+          const fret = firstVisibleFret + i;
+          return (
           <div
             key={`dot-fret-${fret}`}
-            className={`dot-fret-cell ${fret === 0 ? "open-string" : ""}`}
+            className={`dot-fret-cell`}
           >
             {fretsWithDots.includes(fret) && (
               fret === 12 ? (
@@ -62,7 +100,7 @@ function Fretboard({
               ) : <div className="fretboard-dot"></div>
             )}
           </div>
-        ))}
+        )})}
       </div>
     );
   };
@@ -118,11 +156,17 @@ function Fretboard({
     // Enforce single-fret barre: take only the first one found
     const b = barreData[0];
 
+    // Only render barre if it's within the visible viewport
+    if (b.fret < firstVisibleFret || b.fret > lastVisibleFret) return null;
+
+    // Calculate relative grid column (0.5fr is col 1, fret firstVisibleFret is col 2, etc.)
+    const relativeGridCol = b.fret - firstVisibleFret + 2;
+
     return (
       <div
         key={`barre-wrapper-${b.fret}`}
         style={{
-          gridColumn: b.fret + 1,
+          gridColumn: relativeGridCol,
           gridRow: "1 / -1",
           position: "relative",
           pointerEvents: "none",
@@ -150,6 +194,37 @@ function Fretboard({
       <h3 style={{ color: "#ccc", marginBottom: "10px" }}>
         {instrument === "bass" ? "🎸 Basse (4 cordes)" : "🎸 Guitare (6 cordes)"}
       </h3>
+      <div className="fretboard-wrapper">
+        {numFrets > visibleFretCount && (
+          <div className="fretboard-navigator">
+            <button
+              className="fret-nav-btn"
+              onClick={handlePrev}
+              disabled={!canGoPrev}
+              aria-label="Frettes précédentes"
+            >
+              ‹
+            </button>
+            <span className="fret-range-label">Frettes {firstVisibleFret}–{lastVisibleFret}</span>
+            <button
+              className="fret-nav-btn"
+              onClick={handleNext}
+              disabled={!canGoNext}
+              aria-label="Frettes suivantes"
+            >
+              ›
+            </button>
+            {/* Dots position indicator */}
+            <div className="fret-position-dots">
+              {Array.from({ length: Math.ceil(numFrets / visibleFretCount) }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`fret-dot ${i === Math.floor(fretOffset / visibleFretCount) ? 'active' : ''}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       <div className={`fretboard ${(fingering?.isOutOfRange || isOutOfRange) ? "fretboard--out-of-range" : ""}`}>
         { (fingering?.isOutOfRange || isOutOfRange) && <div className="range-warning">🚫 Out of Range</div> }
         {renderStatusRow()}
@@ -164,7 +239,42 @@ function Fretboard({
                 className="string-row"
                 style={{ display: "grid", gridTemplateColumns: activeGridTemplate }}
               >
-                {Array.from({ length: maxFret + 1 }).map((_, fret) => {
+                {/* Always render fret 0 (open string) */}
+                {(() => {
+                  const fret = 0;
+                  const meta = computeFretMetadata({
+                    stringIndex, fret, openStringAbsValue, activeNotes,
+                    currentlyPlayingNotes, contextualScaleAbsoluteValues,
+                    activePath, dictType, fingering, instrument,
+                    rootValue, targetValue, showFingering, fingeringMode,
+                    singlePlayContext, notation, scaleAnchor, appMode
+                  });
+                  return (
+                    <div
+                      key={`fret-${fret}`}
+                      className={`fret open-string`}
+                      onClick={() => onNoteClick && onNoteClick(`${meta.noteInfo.us}${Math.floor(meta.absoluteValue / 12) - 1}`, {
+                        instrument, stringIndex, fret
+                      })}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <div className="string-line"></div>
+                      <div className="open-string-label-container">
+                           <span className="open-string-name">{meta.noteName}</span>
+
+                           {/* Note Marker for Open Strings */}
+                           {((meta.isActive && fret === 0) || meta.isPlaying) && (
+                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${highlightTargetNotes && meta.isTargetNote ? "is-target-note" : ""} open-marker`}>
+                               {meta.label}
+                             </span>
+                           )}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {/* Render visible frets */}
+                {Array.from({ length: visibleFretCount }).map((_, i) => {
+                  const fret = firstVisibleFret + i;
                   const meta = computeFretMetadata({
                     stringIndex, fret, openStringAbsValue, activeNotes,
                     currentlyPlayingNotes, contextualScaleAbsoluteValues,
@@ -181,28 +291,14 @@ function Fretboard({
                   return (
                     <div
                       key={`fret-${fret}`}
-                      className={`fret ${fret === 0 ? "open-string" : ""}`}
+                      className={`fret`}
                       onClick={() => onNoteClick && onNoteClick(`${meta.noteInfo.us}${Math.floor(meta.absoluteValue / 12) - 1}`, {
                         instrument, stringIndex, fret
                       })}
                       style={{ cursor: "pointer" }}
                     >
                       <div className="string-line"></div>
-                      {fret === 0 && (
-                        <div className="open-string-label-container">
-                           <span className="open-string-name">{meta.noteName}</span>
-
-                           {/* Status symbols moved to top row */}
-
-                           {/* Note Marker for Open Strings */}
-                           {((meta.isActive && fret === 0) || meta.isPlaying) && (
-                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${highlightTargetNotes && meta.isTargetNote ? "is-target-note" : ""} open-marker`}>
-                               {meta.label}
-                             </span>
-                           )}
-                        </div>
-                      )}
-                      {(meta.isActive || meta.isPlaying) && fret !== 0 && (
+                      {(meta.isActive || meta.isPlaying) && (
                         <div
                           className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${highlightTargetNotes && meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""}`}
                           title={`${meta.noteInfo.us} / ${meta.noteInfo.eu}`}
@@ -221,6 +317,7 @@ function Fretboard({
             );
           })}
         </div>
+      </div>
       </div>
     </div>
   );

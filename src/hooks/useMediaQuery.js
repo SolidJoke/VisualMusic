@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 
+export function useLandscapeMode() {
+  return useMediaQuery('(orientation: landscape)');
+}
+
 export function useMediaQuery(query) {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
   useEffect(() => {

@@ -11,16 +11,69 @@ import './PianoRoll.css';
  */
 export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1 }) {
     const [isZoomed, setIsZoomed] = React.useState(false);
+    const [pageSize, setPageSize] = React.useState(16); // 16, 32, or 64 steps visible
+    const [currentPage, setCurrentPage] = React.useState(0); // 0-indexed page
+
+    // Auto-advance page during playback
+    React.useEffect(() => {
+        if (currentStep >= 0 && pageSize < totalSteps) {
+            const expectedPage = Math.floor(currentStep / pageSize);
+            if (expectedPage !== currentPage) {
+                setCurrentPage(expectedPage % Math.ceil(totalSteps / pageSize));
+            }
+        }
+    }, [currentStep, pageSize, totalSteps, currentPage]);
+
+    // Reset page to 0 when pageSize changes
+    React.useEffect(() => {
+        setCurrentPage(0);
+    }, [pageSize]);
+
+    // Compute visible step range
+    const visibleStart = currentPage * pageSize;
+    const visibleEnd = Math.min(visibleStart + pageSize, totalSteps);
+    const totalPages = Math.ceil(totalSteps / pageSize);
 
     return (
         <div className={`piano-roll ${isZoomed ? 'is-zoomed' : ''}`}>
-            <div className="piano-roll-header">
+            <div className="piano-roll-controls">
+                {/* Step density selector */}
+                <div className="step-density-selector">
+                    {[16, 32, 64].map(size => (
+                        <button
+                            key={size}
+                            className={`step-density-btn ${pageSize === size ? 'active' : ''}`}
+                            onClick={() => setPageSize(size)}
+                            disabled={size > totalSteps}
+                        >
+                            {size}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Page selector — only show if not viewing all steps */}
+                {pageSize < totalSteps && (
+                    <div className="page-selector">
+                        {Array.from({ length: totalPages }).map((_, p) => (
+                            <button
+                                key={p}
+                                className={`page-btn ${currentPage === p ? 'active' : ''}`}
+                                onClick={() => setCurrentPage(p)}
+                            >
+                                {p + 1}
+                            </button>
+                        ))}
+                        <span className="page-indicator">PAGE {currentPage + 1}/{totalPages}</span>
+                    </div>
+                )}
+
+                {/* Keep the zoom button */}
                 <button 
                     className="btn-header-action" 
                     onClick={() => setIsZoomed(!isZoomed)}
-                    style={{ fontSize: '10px', height: '24px', minWidth: '80px' }}
+                    style={{ fontSize: '10px', height: '24px', minWidth: '60px' }}
                 >
-                    {isZoomed ? '🔍 Normal' : '🔍 Zoom'}
+                    {isZoomed ? 'Normal' : 'Zoom'}
                 </button>
             </div>
             {tracks.filter(Boolean).map((track, trackIndex) => {
@@ -30,7 +83,8 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                     <div key={trackIndex} className="track-row">
                         <div className="track-name">{track.name}</div>
                         <div className="steps-container">
-                            {Array.from({ length: totalSteps }).map((_, stepIndex) => {
+                            {Array.from({ length: visibleEnd - visibleStart }).map((_, i) => {
+                                const stepIndex = visibleStart + i;
                                 // Support looping if track data is shorter than totalSteps
                                 const relativeStep = stepIndex % 16;
                                 const isActive = track.activeSteps.includes(relativeStep);
