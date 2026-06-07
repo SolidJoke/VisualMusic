@@ -3,6 +3,7 @@ import PianoRoll from "../Sequencer/PianoRoll";
 import DAWHelper from "../Sequencer/DAWHelper";
 import { exportDrums, exportChords, exportBass, triggerMidiDownload } from "../../audio/MidiExporter";
 import { useAppContext } from '../../context/AppContext';
+import { useMusicEngineContext } from '../../context/MusicEngineContext';
 
 const SequencerPanel = ({
   activeDrums,
@@ -15,6 +16,7 @@ const SequencerPanel = ({
   chordOctaveOffset,
 }) => {
   const { lang, txt } = useAppContext();
+  const { isPlaying, togglePlayback, handleBpmChange } = useMusicEngineContext();
 
   return (
     <div
@@ -26,6 +28,30 @@ const SequencerPanel = ({
         boxSizing: "border-box",
       }}
     >
+      <div className="sequencer-mobile-controls" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "15px", background: "var(--surface-sunken)", padding: "10px", borderRadius: "8px" }}>
+        <button 
+          className={`btn-premium ${isPlaying ? 'active' : ''}`}
+          onClick={togglePlayback}
+          style={{ flex: 1, minWidth: "120px" }}
+        >
+          {isPlaying ? "⏸ Pause" : "▶ Play"}
+        </button>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: "120px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>BPM</span>
+            <span style={{ fontSize: "12px", color: "var(--text-primary)", fontWeight: "bold" }}>{currentBpm}</span>
+          </div>
+          <input 
+            type="range" 
+            min="60" 
+            max="200" 
+            value={currentBpm} 
+            onChange={(e) => handleBpmChange(Number(e.target.value))}
+            style={{ width: "100%" }}
+          />
+        </div>
+      </div>
+
       <div className="vintage-header">
         <span>{txt.drumMachine}</span>
         <button className="vintage-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {

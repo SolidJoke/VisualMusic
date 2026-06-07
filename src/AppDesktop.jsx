@@ -356,7 +356,10 @@ function AppDesktop() {
     setScaleAnchor,
     isGuitarOutOfRange,
     isBassOutOfRange,
-    highlightTargetNotes
+    highlightTargetNotes,
+    isPlaying,
+    togglePlayback,
+    handleBpmChange
   }), [
     layoutMode,
     activeTab,
@@ -402,7 +405,10 @@ function AppDesktop() {
     setScaleAnchor,
     isGuitarOutOfRange,
     isBassOutOfRange,
-    highlightTargetNotes
+    highlightTargetNotes,
+    isPlaying,
+    togglePlayback,
+    handleBpmChange
   ]);
 
   return (

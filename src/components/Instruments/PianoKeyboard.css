@@ -238,5 +238,53 @@
 .marker.root { background-color: var(--role-root); color: #fff; border: 2px solid #fff; }
 .marker.third { background-color: var(--role-third); color: #000; border: 2px solid rgba(0,0,0,0.2); }
 .marker.fifth { background-color: var(--role-fifth); color: #fff; border: 2px solid rgba(255,255,255,0.4); }
-.marker.scale { background-color: var(--role-scale); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
 .marker.target { background-color: var(--role-target); color: #000; border: 2px solid #fff; box-shadow: 0 0 10px var(--role-target); }
+
+/* --- Mobile Responsive Rules (UX-11) --- */
+@media (max-width: 767px) {
+    .piano-container-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding-bottom: 8px; /* Room for scrollbar */
+    }
+    
+    .white-key {
+        min-width: 24px;
+        width: 24px;
+        height: 140px; /* shorter on mobile */
+    }
+    
+    .black-key {
+        width: 14px;
+        height: 80px; /* shorter on mobile */
+        left: -7px;
+    }
+
+    .piano-key:active {
+        transform: scale(0.95);
+        transition: transform 0.1s;
+        z-index: 60; /* pop out slightly on touch */
+    }
+
+    /* Cyan highlight for active/playing notes */
+    .piano-key.is-playing,
+    .piano-key.role-target.is-playing {
+        background: #00d4ff !important;
+        box-shadow: 0 0 15px #00d4ff inset !important;
+    }
+    
+    .piano-key.is-playing .note-label {
+        color: #000 !important;
+    }
+}
+
+/* Remove hover effects on touch devices */
+@media (hover: none) {
+    .white-key:hover {
+        background-color: #fff;
+    }
+    .black-key:hover {
+        background-color: #222;
+    }
+}

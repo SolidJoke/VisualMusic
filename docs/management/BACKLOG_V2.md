@@ -10,11 +10,11 @@
 
 | Indicateur | Valeur |
 |------------|--------|
-| Tests | ✅ **797/797** passants (Vitest, happy-dom) |
+| Tests | ✅ **797/797** passants (Vitest) |
 | Branche principale | `main` (propre) |
-| Dernier commit | `80d73ac` — feat(ux): UX-06 + UX-07 responsive 1440p (PR #55) |
+| Dernier commit | `6405c82` — fix(mobile): UX-14 hover:none + BUG-12 BottomNav (Jules J-05, PR #58) |
 | Architecture | Hook `useFretboard` + fonctions pures `fretboardUtils` |
-| Design | Phase C Pro DAW Reskin validée 4K — responsive 1440p implémenté (PR #55) |
+| Design | Phase D Mobile en cours — maquettes Stitch validées par Gabriel |
 
 ---
 
@@ -108,10 +108,15 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 
 ## 🐛 BUGS ACTIFS
 
-| ID | Description | Fichier | Criticité | Conv |
-|----|-------------|---------|-----------|------|
-| **BUG-02** | Surbrillance octaves Studio — probablement corrigé, à confirmer manuellement (clic accord → toutes les octaves s'allument sur manche ?) | `useFretboard.js`, `fretboardUtils.js` | 🟡 P1 | Conv 1 si confirmé |
-| **BUG-10** | Notation EU/US non respectée dans HarmonicSeriesPanel | `HarmonicSeriesPanel.jsx` | 🟢 P2 | Conv 1 — Quick win |
+| ID | Description | Fichier | Criticité | Qui |
+|----|-------------|---------|-----------|-----|
+| **BUG-02** | Surbrillance octaves Studio — à confirmer manuellement | `useFretboard.js` | 🟡 P1 | Vérif manuelle Gabriel |
+| **BUG-10** | Notation EU/US non respectée dans HarmonicSeriesPanel | `HarmonicSeriesPanel.jsx` | 🟢 P2 | Jules quick win |
+
+### Bugs résolus (session 2026-06-07)
+- [x] **BUG-11** — Double DOM Sidebar+BottomNav → `useMediaQuery` (Jules J-04, PR #57)
+- [x] **BUG-12** — BottomNav drawer toggle fix → `transform: translateY` (Jules J-05, PR #58)
+- [x] **BUG-13** — Vite MIME error BottomNav.css → résolu par correction CSS (Jules J-05, PR #58)
 
 ---
 
@@ -162,22 +167,22 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 | P3 | Stats, Score jouabilité, Substitutions, Harmoniques | Panneau repliable |
 | P4 | Outils debug, métadonnées avancées | Masqué par défaut |
 
-**Règle anti-surcharge (test 90%) :** *"Si je retire ce composant, 90% des users le remarquent ?"* → Non = masquer derrière une interaction.
-
 #### Phase C — Responsive Implementation
 
 | ID | Tâche | Fichiers | Statut |
 |----|-------|----------|--------|
-| **UX-06** | Breakpoints CSS 1440p — collapse panels P2/P3 | `App.css`, `StudioPanel`, `CompositionPanel`, `HarmonicSeriesPanel`, `TheoryLegend` | `[x]` FAIT ✅ PR #55 |
+| **UX-06** | Breakpoints CSS 1440p — collapse panels P2/P3 | `App.css`, panels | `[x]` FAIT ✅ PR #55 |
 | **UX-07** | Sidebar toggle button `‹`/`›` | `Sidebar.jsx` | `[x]` FAIT ✅ PR #55 |
-| **UX-06b** | Breakpoints CSS 1080p (colonne unique, sidebar compressible) | `App.css`, composants | `[ ]` TODO · GEMINI-03 |
-| **UX-07b** | Bottom Nav mobile + drawer | `src/components/Layout/` | `[ ]` TODO · GEMINI-03 |
-| **UX-08** | Audit anti-surcharge : test 90% sur chaque composant | Section `DESIGN_BIBLE.md` | `[ ]` TODO |
+| **UX-06b** | Breakpoints CSS 1080p (colonne unique, sidebar compressible) | `App.css`, `Sidebar.css` | `[x]` FAIT ✅ PR #56 |
+| **UX-07b** | BottomNav mobile + drawer | `BottomNav.jsx/.css`, `AppMobile.jsx` | `[x]` FAIT ✅ PR #56 |
+| **UX-08** | Audit anti-surcharge : test 90% sur chaque composant | `DESIGN_BIBLE.md` | `[ ]` TODO |
 | **UX-09** | Checklist design nouvelles features (6 critères) | `docs/design/DESIGN_CHECKLIST.md` | `[ ]` TODO |
+| **UX-11** | Piano scrollable + tactile mobile | `PianoKeyboard` | `[x]` FAIT |
+| **UX-12** | Fretboard scrollable + tactile mobile | `Fretboard` | `[x]` FAIT |
+| **UX-13** | Séquenceur compact mobile | `PianoRoll` | `[x]` FAIT |
+| **UX-16** | Modales fullscreen + sticky back header | `Modal` | `[x]` FAIT |
 | **12.6** | Animation sync gamme/accord en Dictionary | `DictionaryPanel.jsx` | `[ ]` TODO |
 
-**Breakpoints CSS cibles :**
-```
 ≥ 2560px — 4K       : interface complète, scaling possible
 1440–2559px — QHD   : panneaux P3 repliables par défaut
 1080–1439px — FHD   : colonne unique, sidebar compressible
@@ -355,4 +360,4 @@ npx eslint "src/**/*.{js,jsx}" --ignore-pattern "**/__tests__/**"
 ---
 
 *Créé : 2026-06-06T11:47 par ARIA*  
-*Mis à jour : 2026-06-07T13:18 — FIX-01 (PR #54 Jules), UX-06 + UX-07 (PR #55 GEMINI-02), 797/797 tests, GEMINI-03 (1080p) à lancer*
+*Mis à jour : 2026-06-07T17:45 - PR #xx (UX-11, UX-12, UX-13, UX-16), Responsive Mobile Instruments. Jules J-04 à lancer : fix double DOM + dead code audit commit.*

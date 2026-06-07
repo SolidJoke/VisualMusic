@@ -31,6 +31,19 @@ const Modal = ({ isOpen, onClose, title, children, uiTheme }) => {
         className={`modal-container theme-${uiTheme || 'vintage'}`} 
         onClick={(e) => e.stopPropagation()} /* Prevent click through to overlay */
       >
+        {/* Mobile Header (Fullscreen Modal) */}
+        <div className="modal-mobile-header">
+          <button 
+            className="modal-back-btn"
+            onClick={onClose}
+            aria-label="Retour"
+          >
+            ← Retour
+          </button>
+          <h2 className="modal-mobile-title">{title}</h2>
+        </div>
+
+        {/* Desktop Header */}
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
           <button className="modal-close-btn" onClick={onClose} aria-label="Close modal">
