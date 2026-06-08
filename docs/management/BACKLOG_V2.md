@@ -424,7 +424,7 @@ helpModal: {
 |----|-------|----------|--------|
 | **UX-01** | Captures multi-résolution (4K / 1440p / 1080p / 768px / 375px) × 2 modes × 3 états | `docs/design/screenshots/` | `[x] DONE` |
 | **UX-02** | Analyse Stitch : audit UX complet → problèmes hiérarchie, surcharge, responsive | `docs/design/STITCH_AUDIT_REPORT.md` | `[x] DONE` |
-| **UX-03** | Génération 3 variantes design Stitch → validation Gabriel | Maquettes Stitch | `[ ]` TODO · Pré-req : UX-02 |
+| **UX-03** | Génération 3 variantes design Stitch → validation Gabriel | Maquettes Stitch | `[ ] En attente validation Gabriel` |
 
 **Prompt Stitch pour UX-02 :**
 > *"Analyse cette interface comme un Lead Product Designer ayant travaillé sur Duolingo, Ableton Live et Notion. Identifie tous les problèmes de hiérarchie visuelle, surcharge cognitive, espacement, alignement, accessibilité WCAG AA et responsive. Classe par priorité P0→P3. Ne propose que des améliorations conservant toutes les fonctionnalités existantes."*
