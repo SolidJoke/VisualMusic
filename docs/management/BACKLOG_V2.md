@@ -157,7 +157,7 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 > **Screenshots** : dans `docs/management/HANDOVER_V3.md` (section Screenshots).
 > **Règle absolue** : NE JAMAIS toucher `fingeringLogic.js`, `Fretboard.jsx`, `useMusicEngine.js`, `AppContext.jsx`. Tests Vitest 797/797 requis.
 
-##### PR-A : MOB-LAND-1/2/3/5 — Sidebar + BottomNav (Jules, ~2h)
+##### ✅ PR-A : MOB-LAND-1/2/3/5 — Sidebar + BottomNav (FAIT)
 
 **Branche :** `fix/mobile-landscape-ux`
 
@@ -342,7 +342,7 @@ padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
 
 ---
 
-##### PR-B : MOB-LAND-4 — Modale onboarding/aide (Stitch design → Jules code, ~4h)
+##### [/] PR-B : MOB-LAND-4 — Modale onboarding/aide (Stitch design → Jules code, EN COURS)
 
 **⚠️ NE PAS lancer avant que Stitch ait produit la maquette.**
 **Branche :** `feat/onboarding-modal`

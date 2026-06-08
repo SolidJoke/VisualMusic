@@ -1,0 +1,142 @@
+.help-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 16px;
+}
+
+.help-modal-content {
+  background: rgba(19, 19, 19, 0.85);
+  border: 1px solid #262626;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow: hidden;
+  font-family: 'Hanken Grotesk', sans-serif;
+}
+
+.help-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #262626;
+}
+
+.help-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #a6c8ff;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  color: #8a919e;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-close-modal:hover {
+  color: #e5e2e1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.help-modal-tabs {
+  display: flex;
+  padding: 0 24px;
+  border-bottom: 1px solid #262626;
+  background: rgba(22, 22, 22, 0.5);
+}
+
+.help-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 16px 0;
+  color: #8a919e;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.help-tab:hover {
+  color: #c0c7d5;
+}
+
+.help-tab.active {
+  color: #a6c8ff;
+  border-bottom-color: #a6c8ff;
+}
+
+.help-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.help-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.help-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.help-step-icon {
+  font-size: 24px;
+  background: rgba(166, 200, 255, 0.1);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.help-step-text h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e5e2e1;
+}
+
+.help-step-text p {
+  margin: 0;
+  font-size: 14px;
+  color: #c0c7d5;
+  line-height: 1.5;
+}
+
+.help-about-section {
+  text-align: center;
+  padding: 24px 0;
+  color: #c0c7d5;
+}
+
+.help-about-section h3 {
+  color: #a6c8ff;
+  margin-bottom: 8px;
+}

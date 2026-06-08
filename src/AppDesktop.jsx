@@ -23,6 +23,7 @@ import useDebugExport from "./hooks/useDebugExport";
 import { translations } from "./i18n/translations";
 import AboutModal from "./components/Modals/AboutModal";
 import TheoryModal from "./components/Modals/TheoryModal";
+import HelpModal from "./components/Modals/HelpModal";
 import { log } from "./utils/debug";
 import { useAppContext } from "./context/AppContext";
 import { MusicEngineProvider } from "./context/MusicEngineContext";
@@ -102,6 +103,7 @@ function AppDesktop() {
   const [showStudioModal, setShowStudioModal] = useState(false);
   const [showMathModal, setShowMathModal] = useState(false);
   const [showAudioModal, setShowAudioModal] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const {
     drums: activeDrums,
@@ -413,6 +415,7 @@ function AppDesktop() {
 
   return (
     <div className={`app-container app-container-inner theme-${uiTheme}`}>
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
 
       <TheoryModal isOpen={showTheory} onClose={() => setShowTheory(false)} txt={txt} />
@@ -431,6 +434,14 @@ function AppDesktop() {
               className="btn-header-action"
             >
               {uiTheme === 'vintage' ? '✨ Neon Monolith' : '🌿 Zen Studio'}
+            </button>
+
+            <button
+              className="btn-header-action"
+              onClick={() => setShowHelp(true)}
+              aria-label={txt.helpModal?.title || 'Aide'}
+            >
+              ❓ {txt.helpModal?.title || "Guide"}
             </button>
 
             <button
