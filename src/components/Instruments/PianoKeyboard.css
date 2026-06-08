@@ -303,26 +303,40 @@
     }
 }
 
-/* === RESPONSIVE SCALING: Desktop < 1440px — CSS zoom approach ===
-   zoom réduit réellement l'espace dans le layout (contrairement à transform:scale).
-   Les valeurs px internes (white-key: 50px, black-key: 32px) restent inchangées —
-   le zoom s'applique sur le wrapper entier, clé par clé.
-   Mobile (max-width: 767px) a déjà ses propres règles à 28px/392px — non touché.
-   4K (min-width: 3840px) non touché. */
-@media (min-width: 1280px) and (max-width: 1439px) {
-    .piano-wrapper {
-        zoom: 0.82;
-    }
+/* === PIANO SCRUBBER (octave navigator) === */
+.piano-scrubber {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 6px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-@media (min-width: 1100px) and (max-width: 1279px) {
-    .piano-wrapper {
-        zoom: 0.68;
-    }
+.piano-scrubber-thumb {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(0, 212, 255, 0.25);
+  border: 1px solid rgba(0, 212, 255, 0.6);
+  border-radius: 3px;
+  pointer-events: none;
+  transition: left 0.08s ease, width 0.08s ease;
 }
 
-@media (min-width: 768px) and (max-width: 1099px) {
-    .piano-wrapper {
-        zoom: 0.55;
-    }
+.piano-scrubber-note {
+  position: absolute;
+  width: 2px;
+  height: 8px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #00d4ff;
+  border-radius: 1px;
+  opacity: 0.7;
+  pointer-events: none;
 }

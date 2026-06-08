@@ -501,26 +501,3 @@
   opacity: 0.7;
   pointer-events: none;
 }
-
-/* === RESPONSIVE SCALING: Desktop < 1440px — CSS zoom approach ===
-   zoom s'applique sur le conteneur entier du manche.
-   STRING_HEIGHT=36 dans Fretboard.jsx reste intact (jamais touché).
-   Mobile (orientation:landscape et max-width:767px) : non touché.
-   4K (min-width: 3840px) : non touché. */
-@media (min-width: 1280px) and (max-width: 1439px) {
-    .fretboard-container {
-        zoom: 0.82;
-    }
-}
-
-@media (min-width: 1100px) and (max-width: 1279px) {
-    .fretboard-container {
-        zoom: 0.68;
-    }
-}
-
-@media (min-width: 768px) and (max-width: 1099px) {
-    .fretboard-container {
-        zoom: 0.55;
-    }
-}

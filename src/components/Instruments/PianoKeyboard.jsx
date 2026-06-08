@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useCallback } from "react";
 import "./PianoKeyboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
 import { getHarmonicSeries } from "../../core/acousticEngine";
@@ -33,10 +33,47 @@ function PianoKeyboard() {
   const dictType = appMode === "dictionary" ? rawDictType : null;
   const numOctaves = 7;
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const is4K = useMediaQuery('(min-width: 3840px)');
+  const isSmallDesktop = useMediaQuery('(max-width: 1439px)');
+  const visibleOctaveCount = isMobile ? 2 : is4K ? 7 : isSmallDesktop ? 3 : 4;
+  const [octaveOffset, setOctaveOffset] = useState(0);
 
   const { notation, state } = useAppContext();
   const { harmonicMode } = state;
   const keys = [];
+
+  const scrubberRef = useRef(null);
+
+  const handleScrubberInteraction = useCallback((e) => {
+    if (!scrubberRef.current) return;
+    const rect = scrubberRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    const newOffset = Math.round(ratio * (numOctaves - visibleOctaveCount));
+    setOctaveOffset(newOffset);
+  }, [numOctaves, visibleOctaveCount]);
+
+  const handleScrubberMouseDown = useCallback((e) => {
+    handleScrubberInteraction(e);
+    const onMove = (moveEvent) => handleScrubberInteraction(moveEvent);
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [handleScrubberInteraction]);
+
+  const handleScrubberTouchStart = useCallback((e) => {
+    handleScrubberInteraction(e);
+    const onMove = (moveEvent) => handleScrubberInteraction(moveEvent);
+    const onEnd = () => {
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', onEnd);
+  }, [handleScrubberInteraction]);
 
   const harmonicSeries = React.useMemo(() => {
     if (!harmonicMode) return [];
@@ -134,8 +171,10 @@ function PianoKeyboard() {
     return isActive ? "role-scale" : "role-extension";
   };
 
-  const startOctave = isMobile ? 1 : 0;
-  const endOctave = isMobile ? 2 : numOctaves - 1;
+  const maxOffset = numOctaves - visibleOctaveCount;
+  const clampedOffset = Math.min(Math.max(octaveOffset, 0), maxOffset);
+  const startOctave = isMobile ? 1 : clampedOffset;
+  const endOctave = isMobile ? 2 : clampedOffset + visibleOctaveCount - 1;
 
   for (let octave = startOctave; octave <= endOctave; octave++) {
     for (let i = 0; i < 12; i++) {
@@ -248,6 +287,28 @@ function PianoKeyboard() {
     }
   }
 
+  const scrubberActivePoints = [];
+  if (!isMobile) {
+    for (let oct = 0; oct < numOctaves; oct++) {
+      for (let i = 0; i < 12; i++) {
+        const noteInfo = NOTES.at(i);
+        const noteName = `${noteInfo.us}${oct + 2}`;
+        const absoluteValue = getAbsoluteNoteValue(noteName);
+        const isActive = activeNotes.some((n) => {
+          if (n.absoluteValue !== undefined) return n.absoluteValue === absoluteValue;
+          return (n.value % 12 === i % 12) && (oct === 2);
+        });
+        if (isActive) {
+          const posRatio = (oct * 12 + i) / (numOctaves * 12);
+          scrubberActivePoints.push(posRatio);
+        }
+      }
+    }
+  }
+
+  const thumbLeft = (clampedOffset / numOctaves) * 100;
+  const thumbWidth = (visibleOctaveCount / numOctaves) * 100;
+
   return (
     <div className="piano-wrapper">
       <div
@@ -258,6 +319,29 @@ function PianoKeyboard() {
           {keys}
         </div>
       </div>
+
+      {!isMobile && !is4K && visibleOctaveCount < numOctaves && (
+        <div
+          className="piano-scrubber"
+          ref={scrubberRef}
+          onMouseDown={handleScrubberMouseDown}
+          onTouchStart={handleScrubberTouchStart}
+          title="Drag to navigate the keyboard"
+          aria-label="Piano octave navigator"
+        >
+          <div
+            className="piano-scrubber-thumb"
+            style={{ left: `${thumbLeft}%`, width: `${thumbWidth}%` }}
+          />
+          {scrubberActivePoints.map((ratio, idx) => (
+            <div
+              key={idx}
+              className="piano-scrubber-note"
+              style={{ left: `${ratio * 100}%` }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
