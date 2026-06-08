@@ -111,7 +111,7 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 | ID | Description | Fichier | Criticité | Qui |
 |----|-------------|---------|-----------|-----|
 | **BUG-02** | Surbrillance octaves Studio — à confirmer manuellement | `useFretboard.js` | 🟡 P1 | Vérif manuelle Gabriel |
-| **BUG-10** | Notation EU/US non respectée dans HarmonicSeriesPanel | `HarmonicSeriesPanel.jsx` | 🟢 P2 | Jules quick win |
+| **BUG-10** | Notation EU/US HarmonicSeriesPanel — **à vérifier manuellement** : la chaîne `notation?.toLowerCase()` → `getHarmonicSeries` → `midiToNoteName` semble correcte dans le code. Passer en mode EU et vérifier le panel Harmoniques. | `HarmonicSeriesPanel.jsx` | 🟢 P2 | Vérif manuelle Gabriel |
 
 ### Bugs résolus (session 2026-06-07)
 - [x] **BUG-11** — Double DOM Sidebar+BottomNav → `useMediaQuery` (Jules J-04, PR #57)
@@ -121,7 +121,10 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 - [x] **PR #64** — Fretboard proportions : STRING_HEIGHT=36, 5 frettes, grid uniforme (ARIA)
 - [x] **PR #65** — Minimap scrubber fretboard style Ableton (ARIA)
 - [x] **PR #66** — Responsive scaling clamp() CSS (Jules J-11) — ⚠️ résultat insuffisant, voir UX-SCALE
-- [x] **PR #67** — Zoom CSS paliers 0.55/0.68/0.82 (ARIA) — ⚠️ insuffisant à <900px viewport, voir UX-SCALE
+- [x] **PR #67** — Zoom CSS paliers 0.55/0.68/0.82 (ARIA) — ⚠️ insuffisant à <900px viewport, supercédé par PR #68
+- [x] **PR #68** — Piano `visibleOctaveCount` windowing (3 octaves <1440px) + minimap scrubber (Jules) — UX-SCALE-01 ✅
+- [x] **D.1.2** — `numFrets` bass=20/guitar=22 — déjà implémenté dans `useFretboard.js` (vérifié 2026-06-08)
+- [x] **HEADER-MOB** — Annulé : pas un vrai bug de header. "Vmu: VisualMusic Coach" = titre de l'AboutModal (comportement correct)
 
 ---
 
@@ -135,13 +138,17 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 > **Règle** : Aucune nouvelle feature musicale — focus UX uniquement  
 > **Branche** : `refonte/ux-design` ou par phase
 
-#### ⚡ Quick Wins pré-MEP (~2h total Jules — à traiter en PRIORITÉ avant build Netlify)
+#### ⚡ Quick Wins pré-MEP — STATUT À JOUR (2026-06-08)
 
-| ID | Tâche | Fichier | Statut |
-|----|-------|---------|--------|
-| **BUG-10** | Notation EU/US dans HarmonicSeriesPanel — appliquer `notation` à `getHarmonicSeries` | `HarmonicSeriesPanel.jsx` | `[ ]` TODO |
-| **HEADER-MOB** | Header mobile cassé : "Vmu: VisualMusic Coach" overflow/rose sur mobile | `App.css` ou `AppDesktop.jsx` | `[ ]` TODO Jules |
-| **D.1.2** | `numFrets` par instrument : `bass → 20`, `guitar → 22` (actuellement les deux à 22) | `useFretboard.js` | `[ ]` TODO Jules |
+| ID | Tâche | Statut | Note |
+|----|-------|--------|------|
+| **BUG-10** | Notation EU/US HarmonicSeriesPanel | ❓ **Vérif manuelle Gabriel** | La chaîne de code semble correcte. Tester : passer en notation EU → ouvrir Harmoniques → vérifier noms des notes |
+| **HEADER-MOB** | Header mobile overflow | ❌ **Annulé** | Pas un vrai bug — "Vmu: VisualMusic Coach" est le titre de l'AboutModal, comportement correct |
+| **D.1.2** | numFrets bass=20/guitar=22 | ✅ **Déjà fait** | Implémenté dans `useFretboard.js` lignes 12-13 |
+| **UX-SCALE-01** | Piano visibleOctaveCount + scrubber | ✅ **FAIT** | PR #68 mergée |
+
+**→ Pour la MEP : seul BUG-10 nécessite une vérification visuelle rapide par Gabriel.**
+
 
 #### 🔴 UX-SCALE — Scaling responsive instruments (PROBLÈME OUVERT — à résoudre prochaine session)
 
@@ -153,22 +160,12 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 - Pour tenir dans 814px : zoom requis ≈ **0.33** → lisibilité des notes très compromise
 - Conclusion : le zoom CSS pur **ne peut pas** résoudre ce cas sans rendre les instruments illisibles
 
-**Vraie solution requise — 3 options à évaluer (prochaine session ARIA) :**
+**✅ UX-SCALE-01 IMPLÉMENTÉ (PR #68) :**
+- Piano affiche 3 octaves (<1440px), 4 octaves (1440-3839px), 7 octaves (4K)
+- Scrubber de navigation drag/touch ajouté
+- Zoom CSS (PR #67) supprimé (supercédé par le fenêtrage)
 
-| ID | Option | Complexité | Approche |
-|----|--------|------------|----------|
-| **UX-SCALE-01** | 🥇 Piano : `visibleOctaveCount` + scrubber (miroir du fretboard) | Moyenne — JSX PianoKeyboard.jsx | Afficher 2 octaves (<1440px) avec scrubber pour naviguer. Identique à ce qu'on a fait pour le fretboard avec `visibleFretCount=5`. **Vraie solution long terme.** |
-| **UX-SCALE-02** | Zoom plus agressif + lisibilité minimale garantie | Faible — CSS only | Descendre à `zoom: 0.35` à <900px. Risque : notes illisibles. Acceptable comme fix temporaire. |
-| **UX-SCALE-03** | Layout en onglets à <1200px (Piano / Guitare séparés) | Faible — CSS + InstrumentView.jsx | Activer `layoutMode: tabs` automatiquement quand viewport < 1200px. Évite le problème de place en n'affichant qu'un instrument à la fois. |
-
-**Recommandation ARIA :** Implémenter **UX-SCALE-01** (visibleOctaveCount piano + scrubber) comme solution pérenne. C'est la même logique que le fretboard — déjà validée et appréciée. En attendant, **UX-SCALE-03** (layout tabs auto) est le fix le plus rapide et le plus propre.
-
-**Périmètre d'impact UX-SCALE-01 :**
-- `PianoKeyboard.jsx` : ajouter `is4K`, `visibleOctaveCount = is4K ? 7 : 2`, `octaveOffset` state, `scrubberRef`, drag handler
-- `PianoKeyboard.css` : ajouter `.piano-scrubber`, `.piano-scrubber-thumb`, `.piano-scrubber-note`
-- Protections : `fingeringLogic.js` = interdit · `Fretboard.jsx` = interdit
-
-**⚠️ ARIA prendra la main directement sur UX-SCALE-01** (fichier sensible, logique musicale).
+**Options UX-SCALE-02 et UX-SCALE-03 : annulées — UX-SCALE-01 est la solution retenue.**
 
 #### Phase A — Audit Stitch (captures → maquettes, zéro code)
 
