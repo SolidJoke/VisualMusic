@@ -147,18 +147,269 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 | **D.1.2** | numFrets bass=20/guitar=22 | ✅ **Déjà fait** | Implémenté dans `useFretboard.js` lignes 12-13 |
 | **UX-SCALE-01** | Piano visibleOctaveCount + scrubber | ✅ **FAIT** | PR #68 mergée |
 
-**→ Pour la MEP : seul BUG-10 nécessite une vérification visuelle rapide par Gabriel.**
+**→ MEP validée 2026-06-08. BUG-10 vérifié OK. main propre.**
 
+---
 
-#### 🔴 UX-SCALE — Scaling responsive instruments (PROBLÈME OUVERT — à résoudre prochaine session)
+#### 📱 MOB-LAND — Fixes UX Mobile Paysage (identifiés prod 2026-06-08)
 
-> **Contexte** : PRs #66 et #67 ont tenté deux approches (clamp sur éléments individuels, puis zoom CSS par paliers). Les deux sont insuffisantes à des viewports étroits (~1024px ou moins). Le problème racine : le piano (7 octaves × 2450px) et les fretboards restent trop grands même avec zoom 0.55.
+> **Contexte** : 5 problèmes identifiés sur mobile en orientation paysage (Android, Brave).
+> **Screenshots** : dans `docs/management/HANDOVER_V3.md` (section Screenshots).
+> **Règle absolue** : NE JAMAIS toucher `fingeringLogic.js`, `Fretboard.jsx`, `useMusicEngine.js`, `AppContext.jsx`. Tests Vitest 797/797 requis.
 
-**Analyse du problème :**
-- À 1024px fenêtre, sidebar 210px → zone contenu 814px
-- Piano à zoom 0.55 = 2450 × 0.55 = **1347px** → déborde encore de ~530px
-- Pour tenir dans 814px : zoom requis ≈ **0.33** → lisibilité des notes très compromise
-- Conclusion : le zoom CSS pur **ne peut pas** résoudre ce cas sans rendre les instruments illisibles
+##### PR-A : MOB-LAND-1/2/3/5 — Sidebar + BottomNav (Jules, ~2h)
+
+**Branche :** `fix/mobile-landscape-ux`
+
+---
+
+**MOB-LAND-1 — Rail icons cliquables (sidebar repliée)**
+
+*Problème :* Quand la sidebar est repliée (`.is-closed`), seules des icônes emoji passives s'affichent. Impossible d'agir (changer mode, lancer Play) sans déplier.
+
+*Solution :* Rendre le rail interactif avec 3 boutons icônes cliquables.
+
+*Fichiers :* `src/components/Layout/Sidebar.jsx` + `src/components/Layout/Sidebar.css`
+
+*Dans Sidebar.jsx — remplacer le bloc `.sidebar-rail-icons` (lignes 94-102) par :*
+```jsx
+{/* ── Rail icons (visible only when closed) — clickable ── */}
+<div className="sidebar-rail-icons">
+  <button
+    className={`rail-icon-btn${appMode === 'studio' ? ' active' : ''}`}
+    onClick={() => setAppMode('studio')}
+    title={txt.sidebar?.studio || 'Studio'}
+    aria-label="Mode Studio"
+  >🎹</button>
+  <button
+    className={`rail-icon-btn${appMode === 'dictionary' ? ' active' : ''}`}
+    onClick={() => setAppMode('dictionary')}
+    title={txt.sidebar?.dictionary || 'Dictionnaire'}
+    aria-label="Mode Dictionnaire"
+  >📖</button>
+  <button
+    className={`rail-icon-btn btn-play-rail${isPlaying ? ' is-playing' : ''}`}
+    onClick={handlePlayClick}
+    title={isPlaying ? (txt.sidebar?.stop || 'Stop') : (txt.sidebar?.play || 'Play')}
+    aria-label={isPlaying ? 'Stop' : 'Play'}
+  >{isPlaying ? '⏹' : '▶'}</button>
+</div>
+```
+
+*Dans Sidebar.css — remplacer la section `.sidebar-rail-icons` et `.rail-icon` par :*
+```css
+.sidebar-rail-icons {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  transition: opacity 0.2s ease;
+}
+.app-sidebar.is-open .sidebar-rail-icons {
+  opacity: 0;
+  pointer-events: none;
+}
+.rail-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #8a919e;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.rail-icon-btn:hover, .rail-icon-btn.active {
+  background: rgba(166, 200, 255, 0.1);
+  border-color: #a6c8ff;
+  color: #a6c8ff;
+}
+.rail-icon-btn.btn-play-rail.is-playing {
+  color: #32D583;
+  border-color: #32D583;
+  animation: rail-pulse 1s ease-in-out infinite alternate;
+}
+@keyframes rail-pulse {
+  from { transform: scale(1); opacity: 0.8; }
+  to   { transform: scale(1.15); opacity: 1; }
+}
+```
+
+---
+
+**MOB-LAND-2 — Sidebar overlay → backdrop cliquable**
+
+*Problème :* En paysage mobile (largeur > 767px mais contenu étroit), la sidebar `position:fixed z-index:2000` overlay les instruments sans décalage du contenu (le `padding-left` sur `.app-container-inner` ne s'applique qu'à `min-width: 1024px` dans App.css).
+
+*Solution :* Ajouter un backdrop semi-transparent derrière la sidebar ouverte. Clic sur le backdrop = ferme la sidebar. NE PAS changer la sidebar en layout push (réduirait trop l'espace contenu).
+
+*Fichiers :* `src/AppDesktop.jsx` + `src/App.css`
+
+*Dans AppDesktop.jsx — ajouter juste avant la balise `<Sidebar` :*
+```jsx
+{/* Backdrop mobile landscape — ferme la sidebar au clic */}
+{isSidebarOpen && (
+  <div
+    className="sidebar-backdrop"
+    onClick={toggleSidebar}
+    aria-hidden="true"
+  />
+)}
+```
+> Note : `isSidebarOpen` est l'état existant qui contrôle la sidebar. Utiliser le même nom de variable que dans le fichier. Ne pas créer de nouvel état.
+
+*Dans App.css — ajouter à la fin :*
+```css
+/* Sidebar backdrop — mobile landscape */
+.sidebar-backdrop {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1999; /* juste sous la sidebar (2000) */
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+}
+```
+
+---
+
+**MOB-LAND-3 — Toggle sidebar : sticky au scroll**
+
+*Problème :* `.sidebar-toggle` est `position: absolute; top: 20px` — il reste en haut de la sidebar quand l'utilisateur scrolle vers le bas. Inaccessible pour replier quand on est bas dans le contenu.
+
+*Solution :* Rendre le toggle `position: sticky` pour qu'il suive le scroll de la sidebar.
+
+*Fichier :* `src/components/Layout/Sidebar.css`
+
+*Remplacer dans `.sidebar-toggle` :*
+```css
+/* AVANT */
+position: absolute;
+top: 20px;
+right: -16px;
+
+/* APRÈS */
+position: sticky;
+top: 20px;
+align-self: flex-end;
+margin-right: -16px;
+margin-top: -52px; /* compense la hauteur du toggle pour qu'il reste visible */
+flex-shrink: 0;
+```
+> ⚠️ Tester visuellement que le toggle ne disparaît pas derrière le header fixe. Si problème, `z-index: 1002` sur `.sidebar-toggle`.
+
+---
+
+**MOB-LAND-5 — BottomNav centrage + safe-area Android**
+
+*Problème :* Boutons BottomNav légèrement décalés à droite. Sur Android, la barre navigateur masque la BottomNav au scroll bas.
+
+*Solution :*
+1. Centrage : vérifier `justify-content: space-around` → passer à `space-evenly` si décalage visible
+2. Android scroll : ajouter `padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px)` + `min-height` pour que la nav ne soit pas rognée
+
+*Fichier :* `src/components/Layout/BottomNav.css`
+
+*Dans `.bottom-nav-container` :*
+```css
+justify-content: space-evenly; /* était space-around */
+padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+```
+> Note : le masquage par l'UI navigateur Android au scroll est un comportement navigateur non-controlable en CSS. Ce fix améliore le cas static mais n'élimine pas le cas scroll dynamique.
+
+---
+
+**Checklist Jules PR-A (toutes les vérifications AVANT d'ouvrir la PR) :**
+1. `npx vitest run` → 797/797 ✅
+2. `git diff src/core/fingeringLogic.js` → vide ✅
+3. `git diff src/components/Instruments/Fretboard.jsx` → vide ✅
+4. Exactement 4 fichiers modifiés : `Sidebar.jsx`, `Sidebar.css`, `App.css`, `BottomNav.css` (+ optionnellement `AppDesktop.jsx` pour le backdrop)
+
+---
+
+##### PR-B : MOB-LAND-4 — Modale onboarding/aide (Stitch design → Jules code, ~4h)
+
+**⚠️ NE PAS lancer avant que Stitch ait produit la maquette.**
+**Branche :** `feat/onboarding-modal`
+
+*Problème :* Aucune aide contextuelle pour comprendre comment naviguer l'app (desktop ou mobile).
+
+*Solution :* Bouton CTA dans le header global → ouvre une modale d'aide avec tabs (Desktop / Mobile).
+
+**Brief Stitch (à exécuter d'abord) :**
+> *"Conçois une modale d'aide/onboarding pour VisualMusic Coach (app web d'apprentissage musical). Style : dark, glassmorphism, cohérent avec l'interface existante (fond #131313, accent #a6c8ff, police Hanken Grotesk). La modale doit contenir : 1) Un titre 'Guide d'utilisation' 2) Tabs : Desktop | Mobile | À propos 3) Chaque tab : 3-4 étapes illustrées par icône + texte court. 4) Un bouton Fermer. Contraintes : max 90vh de hauteur, scrollable, accessible (aria), 4 langues (FR/EN/PT/ZH). Fournis la maquette HTML/CSS."*
+
+**Specs techniques pour Jules (après maquette Stitch validée) :**
+
+*Fichiers à créer :*
+- `src/components/Modals/HelpModal.jsx` — nouvelle modale
+- `src/components/Modals/HelpModal.css` — styles
+
+*Fichiers à modifier :*
+- `src/AppDesktop.jsx` — ajouter bouton CTA dans `app-header` + état `showHelp`
+- `src/i18n/translations.js` — ajouter clés `helpModal.*` dans les **4 langues** (fr, en, pt, zh)
+
+*Clés i18n requises (à ajouter dans les 4 blocs de langue) :*
+```js
+helpModal: {
+  title: "Guide d'utilisation", // fr
+  tabDesktop: "Desktop",
+  tabMobile: "Mobile",
+  tabAbout: "À propos",
+  closeBtn: "Fermer",
+  // Steps Desktop (fr)
+  step1Title: "Choisir un mode",
+  step1Desc: "Studio pour composer, Dictionnaire pour explorer gammes et accords",
+  step2Title: "Naviguer le clavier",
+  step2Desc: "Faites glisser le scrubber sous le piano pour changer d'octave",
+  step3Title: "Naviguer le manche",
+  step3Desc: "Utilisez les flèches Position ou faites glisser le scrubber",
+  step4Title: "Menu latéral",
+  step4Desc: "Repliez-le avec ‹ pour plus d'espace",
+  // Steps Mobile (fr)
+  mob1Title: "Navigation bas de page",
+  mob1Desc: "Utilisez Studio / Dict / Play / Menu en bas de l'écran",
+  mob2Title: "Mode paysage",
+  mob2Desc: "Tournez l'appareil pour voir les instruments en mode étendu",
+}
+```
+> Traduire ces clés en EN, PT, ZH dans les sections correspondantes de translations.js
+
+*Bouton CTA dans AppDesktop.jsx header :*
+```jsx
+<button
+  className="btn-header-action"
+  onClick={() => setShowHelp(true)}
+  aria-label={txt.helpModal?.title || 'Aide'}
+>
+  ❓ {txt.helpModal?.title || 'Guide'}
+</button>
+```
+
+**Checklist Jules PR-B :**
+1. `npx vitest run` → 797/797 ✅
+2. Les 4 langues (fr/en/pt/zh) ont toutes les clés `helpModal.*`
+3. `fingeringLogic.js`, `Fretboard.jsx` non touchés ✅
+4. La modale est fermable via bouton ET clic backdrop ET touche Escape
+
+---
+
+#### 🔴 UX-SCALE — Scaling responsive instruments
 
 **✅ UX-SCALE-01 IMPLÉMENTÉ (PR #68) :**
 - Piano affiche 3 octaves (<1440px), 4 octaves (1440-3839px), 7 octaves (4K)
