@@ -422,7 +422,7 @@ helpModal: {
 
 | ID | Tâche | Livrable | Statut |
 |----|-------|----------|--------|
-| **UX-01** | Captures multi-résolution (4K / 1440p / 1080p / 768px / 375px) × 2 modes × 3 états | `docs/design/screenshots/` | `[ ]` TODO (Gabriel) |
+| **UX-01** | Captures multi-résolution (4K / 1440p / 1080p / 768px / 375px) × 2 modes × 3 états | `docs/design/screenshots/` | `[x] DONE` |
 | **UX-02** | Analyse Stitch : audit UX complet → problèmes hiérarchie, surcharge, responsive | `docs/design/STITCH_AUDIT_REPORT.md` | `[ ]` TODO · Pré-req : UX-01 |
 | **UX-03** | Génération 3 variantes design Stitch → validation Gabriel | Maquettes Stitch | `[ ]` TODO · Pré-req : UX-02 |
 
