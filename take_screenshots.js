@@ -12,7 +12,9 @@ const resolutions = [
   { name: 'QHD', width: 2560, height: 1440 },
   { name: 'FHD', width: 1920, height: 1080 },
   { name: 'Tablet', width: 1024, height: 768 },
-  { name: 'Mobile', width: 375, height: 812 }
+  { name: 'Mobile', width: 375, height: 812 },
+  { name: 'Mobile_Landscape', width: 812, height: 375 },
+  { name: 'Tablet_Landscape', width: 1024, height: 600 }
 ];
 
 async function capture() {
