@@ -91,14 +91,26 @@ const Sidebar = ({
         {isOpen ? '‹' : '›'}
       </button>
 
-      {/* ── Rail icons (visible only when closed) ── */}
-      <div className="sidebar-rail-icons" aria-hidden="true">
-        <span className="rail-icon" title={appMode === 'studio' ? (txt.sidebar?.studio || 'Studio') : (txt.sidebar?.dictionary || 'Dictionary')}>
-          {appMode === 'studio' ? '🎹' : '📖'}
-        </span>
-        {isPlaying && (
-          <span className={`rail-icon is-playing`} title={txt.sidebar?.nowPlaying || "En lecture"}>⏵</span>
-        )}
+      {/* ── Rail icons (visible only when closed) — clickable ── */}
+      <div className="sidebar-rail-icons">
+        <button
+          className={`rail-icon-btn${appMode === 'studio' ? ' active' : ''}`}
+          onClick={() => setAppMode('studio')}
+          title={txt.sidebar?.studio || 'Studio'}
+          aria-label="Mode Studio"
+        >🎹</button>
+        <button
+          className={`rail-icon-btn${appMode === 'dictionary' ? ' active' : ''}`}
+          onClick={() => setAppMode('dictionary')}
+          title={txt.sidebar?.dictionary || 'Dictionnaire'}
+          aria-label="Mode Dictionnaire"
+        >📖</button>
+        <button
+          className={`rail-icon-btn btn-play-rail${isPlaying ? ' is-playing' : ''}`}
+          onClick={handlePlayClick}
+          title={isPlaying ? (txt.sidebar?.stop || 'Stop') : (txt.sidebar?.play || 'Play')}
+          aria-label={isPlaying ? 'Stop' : 'Play'}
+        >{isPlaying ? '⏹' : '▶'}</button>
       </div>
 
       {/* ── Fixed header (always visible when open) ── */}

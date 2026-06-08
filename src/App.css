@@ -1361,3 +1361,19 @@ input[type="range"]::-webkit-slider-runnable-track {
     transform: scale(0.97);
   }
 }
+
+/* Sidebar backdrop — mobile landscape */
+.sidebar-backdrop {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1999; /* juste sous la sidebar (2000) */
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+}

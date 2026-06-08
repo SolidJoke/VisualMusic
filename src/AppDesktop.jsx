@@ -495,6 +495,9 @@ function AppDesktop() {
               </>
             );
 
+            const isSidebarOpen = sidebarOpen;
+            const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
             return isMobile ? (
               <BottomNav
                 appMode={appMode}
@@ -508,21 +511,30 @@ function AppDesktop() {
                 {ctaButtons}
               </BottomNav>
             ) : (
-              <Sidebar
-                isOpen={sidebarOpen}
-                toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-                uiTheme={uiTheme}
-                appMode={appMode}
-                setAppMode={setAppMode}
-                isPlaying={isPlaying}
-                togglePlayback={togglePlayback}
-                playDictionaryAudio={playDictionaryAudio}
-                currentBpm={currentBpm}
-                handleBpmChange={handleBpmChange}
-                txt={txt}
-              >
-                {ctaButtons}
-              </Sidebar>
+              <>
+                {isSidebarOpen && (
+                  <div
+                    className="sidebar-backdrop"
+                    onClick={toggleSidebar}
+                    aria-hidden="true"
+                  />
+                )}
+                <Sidebar
+                  isOpen={sidebarOpen}
+                  toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                  uiTheme={uiTheme}
+                  appMode={appMode}
+                  setAppMode={setAppMode}
+                  isPlaying={isPlaying}
+                  togglePlayback={togglePlayback}
+                  playDictionaryAudio={playDictionaryAudio}
+                  currentBpm={currentBpm}
+                  handleBpmChange={handleBpmChange}
+                  txt={txt}
+                >
+                  {ctaButtons}
+                </Sidebar>
+              </>
             );
           })()}
 

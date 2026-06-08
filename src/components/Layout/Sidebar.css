@@ -182,9 +182,12 @@
 /* ─── Toggle Button ──────────────────────────────────────────────────────── */
 
 .sidebar-toggle {
-  position: absolute;
+  position: sticky;
   top: 20px;
-  right: -16px;
+  align-self: flex-end;
+  margin-right: -16px;
+  margin-top: -52px; /* compense la hauteur du toggle pour qu'il reste visible */
+  flex-shrink: 0;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -209,38 +212,47 @@
 
 .sidebar-rail-icons {
   position: absolute;
-  top: 70px;
+  top: 60px;
   left: 0;
   width: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding-top: 16px;
+  gap: 8px;
+  padding-top: 12px;
   transition: opacity 0.2s ease;
 }
-
 .app-sidebar.is-open .sidebar-rail-icons {
   opacity: 0;
   pointer-events: none;
 }
-
-.rail-icon {
-  font-size: 20px;
+.rail-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
   color: #8a919e;
-  opacity: 0.7;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s;
 }
-
-.rail-icon.is-playing {
+.rail-icon-btn:hover, .rail-icon-btn.active {
+  background: rgba(166, 200, 255, 0.1);
+  border-color: #a6c8ff;
+  color: #a6c8ff;
+}
+.rail-icon-btn.btn-play-rail.is-playing {
   color: #32D583;
-  opacity: 1;
+  border-color: #32D583;
   animation: rail-pulse 1s ease-in-out infinite alternate;
 }
-
 @keyframes rail-pulse {
-  from { transform: scale(1);   opacity: 0.8; }
-  to   { transform: scale(1.15); opacity: 1;   }
+  from { transform: scale(1); opacity: 0.8; }
+  to   { transform: scale(1.15); opacity: 1; }
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
