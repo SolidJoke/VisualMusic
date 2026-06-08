@@ -111,7 +111,6 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 | ID | Description | Fichier | Criticité | Qui |
 |----|-------------|---------|-----------|-----|
 | **BUG-02** | Surbrillance octaves Studio — à confirmer manuellement | `useFretboard.js` | 🟡 P1 | Vérif manuelle Gabriel |
-| **BUG-10** | Notation EU/US HarmonicSeriesPanel — **à vérifier manuellement** : la chaîne `notation?.toLowerCase()` → `getHarmonicSeries` → `midiToNoteName` semble correcte dans le code. Passer en mode EU et vérifier le panel Harmoniques. | `HarmonicSeriesPanel.jsx` | 🟢 P2 | Vérif manuelle Gabriel |
 
 ### Bugs résolus (session 2026-06-07)
 - [x] **BUG-11** — Double DOM Sidebar+BottomNav → `useMediaQuery` (Jules J-04, PR #57)
@@ -120,11 +119,12 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 - [x] **PR #63** — Séquenceur paginé [16][32][64] + Viewport navigator fretboard (Jules J-09)
 - [x] **PR #64** — Fretboard proportions : STRING_HEIGHT=36, 5 frettes, grid uniforme (ARIA)
 - [x] **PR #65** — Minimap scrubber fretboard style Ableton (ARIA)
-- [x] **PR #66** — Responsive scaling clamp() CSS (Jules J-11) — ⚠️ résultat insuffisant, voir UX-SCALE
-- [x] **PR #67** — Zoom CSS paliers 0.55/0.68/0.82 (ARIA) — ⚠️ insuffisant à <900px viewport, supercédé par PR #68
-- [x] **PR #68** — Piano `visibleOctaveCount` windowing (3 octaves <1440px) + minimap scrubber (Jules) — UX-SCALE-01 ✅
-- [x] **D.1.2** — `numFrets` bass=20/guitar=22 — déjà implémenté dans `useFretboard.js` (vérifié 2026-06-08)
-- [x] **HEADER-MOB** — Annulé : pas un vrai bug de header. "Vmu: VisualMusic Coach" = titre de l'AboutModal (comportement correct)
+- [x] **PR #66** — Responsive scaling clamp() CSS (Jules J-11) — ⚠️ résultat insuffisant, supercédé par PR #68
+- [x] **PR #67** — Zoom CSS paliers (ARIA) — ⚠️ insuffisant, supercédé par PR #68
+- [x] **PR #68** — Piano `visibleOctaveCount` windowing + minimap scrubber (Jules) — UX-SCALE-01 ✅
+- [x] **D.1.2** — `numFrets` bass=20/guitar=22 — déjà implémenté dans `useFretboard.js`
+- [x] **HEADER-MOB** — Annulé : pas un vrai bug
+- [x] **BUG-10** — Notation EU/US HarmonicSeriesPanel — validé manuellement par Gabriel ✅ (2026-06-08)
 
 ---
 
