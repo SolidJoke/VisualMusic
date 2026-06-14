@@ -602,11 +602,14 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
     // Build exact list of frets in this position window that belong to the scale.
     // stringIndex = sIdx (0=high string), consistent with Fretboard convention.
     const scaleFrets = [];
+    const seenPitchClasses = new Set(); // deduplicate by pitch class, not by octave
+
     stringOpenValues.forEach((openVal, stringIndex) => {
       for (let fret = start; fret <= endFret; fret++) {
         const noteValue = (openVal + fret) % 12;
-        if (semitoneSet.has(noteValue)) {
+        if (semitoneSet.has(noteValue) && !seenPitchClasses.has(noteValue)) {
           scaleFrets.push({ stringIndex, fret, noteValue });
+          seenPitchClasses.add(noteValue);
         }
       }
     });

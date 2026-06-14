@@ -100,7 +100,7 @@ function resolveVoicingMask({ fingering, currentlyPlayingNotes, showFingering, a
   if (fingering?.scaleFrets) {
     const inPosition = fingering.scaleFrets.some(sf => sf.stringIndex === stringIndex && sf.fret === fret);
     if (isActive && !inPosition) {
-      isOutOfBox = true;
+      isActive = false;  // masquage total, pas juste grisé
     }
     if (isPlaying && !inPosition) {
       const isSpecificallyTargeted = currentlyPlayingNotes.some(n =>
@@ -153,7 +153,10 @@ function resolveScaleAnchorMask({ scaleAnchor }, fret, instrument, isActiveIn, i
   let isOutOfBoxFromAnchor = false;
   if (isScaleMode && scaleAnchor && (instrument === "guitar" || instrument === "bass")) {
     const isWithinBox = fret >= scaleAnchor.fret - 1 && fret <= scaleAnchor.fret + 4;
-    if (!isWithinBox) isOutOfBoxFromAnchor = true;
+    if (!isWithinBox) {
+      isActive = false;          // masquage total hors box
+      isOutOfBoxFromAnchor = true;
+    }
   }
   return { isActive, isOutOfBoxFromAnchor };
 }
