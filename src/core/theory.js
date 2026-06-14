@@ -205,7 +205,7 @@ export function getClosestInversionN(prevNotes, root, semitones, octaveOffset = 
     const allInversions = [];
 
     for (let octave = 1; octave <= 7; octave++) {
-        const base = octave * 12;
+        const base = (octave + 1) * 12;
         // Generate all rotations (inversions) of the chord
         for (let inv = 0; inv < noteCount; inv++) {
             const voicing = [];

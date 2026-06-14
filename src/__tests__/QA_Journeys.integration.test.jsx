@@ -9,6 +9,8 @@ import { BREAKPOINTS } from "../hooks/useBreakpoint";
 // Mocking Tone.js with full context structure to prevent errors
 vi.mock("tone", () => ({
   start: vi.fn(),
+  now: vi.fn(() => 0),
+  getDraw: vi.fn(() => ({ schedule: vi.fn() })),
   context: { lookAhead: 0.1 },
   Transport: {
     bpm: { value: 120 },

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import * as Tone from 'tone';
 import { NOTES, SCALES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { logScalePosition, logPlaybackSequence, logNotePlay } from "../core/debugScale";
@@ -127,9 +128,9 @@ export function useDictionaryPlayback({
     if (dictType?.includes("chord")) {
       playDictionaryNote(playbackInstrument, notesToPlay, "2n");
       setCurrentlyPlayingNotes(absolutePitches);
-      setTimeout(() => {
+      Tone.getDraw().schedule(() => {
         if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
-      }, 500);
+      }, Tone.now() + 0.5);
     } else if (dictType?.includes("scale")) {
       const noteDuration = 60 / currentBpm;
       const stepTime = noteDuration / 2;
@@ -178,29 +179,26 @@ export function useDictionaryPlayback({
         }
       }
       
+      const sequenceBaseTime = Tone.now();
       absolutePitches.forEach((pitchOrObj, index) => {
         const pitch = typeof pitchOrObj === 'object' ? pitchOrObj.absoluteValue : pitchOrObj;
-        setTimeout(() => {
+        const scheduleTime = sequenceBaseTime + index * stepTime;
+        const noteNameParts = NOTES[pitch % 12];
+        const noteNameStr = `${noteNameParts.us}${Math.floor(pitch / 12)}`;
+        playDictionaryNote(playbackInstrument, noteNameStr, "8n", scheduleTime);
+        const pathItem = (playbackInstrument === "guitar" || playbackInstrument === "bass")
+          && typeof pitchOrObj === 'object'
+          ? pitchOrObj
+          : null;
+        logNotePlay(pathItem ?? pitchOrObj, index);
+        Tone.getDraw().schedule(() => {
           if (!scheduler.isCurrentSession(currentToken)) return;
-          
-          const noteNameParts = NOTES[pitch % 12];
-          const noteName = `${noteNameParts.us}${Math.floor(pitch / 12)}`;
-          playDictionaryNote(playbackInstrument, noteName, "8n");
-          
-          const pathItem = (playbackInstrument === "guitar" || playbackInstrument === "bass")
-            && typeof pitchOrObj === 'object'
-            ? pitchOrObj
-            : null;
-
-          logNotePlay(pathItem ?? pitchOrObj, index);
-
           setCurrentlyPlayingNotes(pathItem ? [pathItem] : [pitch]);
-          
-          setTimeout(() => {
-            if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
-          }, Math.max(stepTime * 1000 - 50, 50));
-          
-        }, index * stepTime * 1000);
+        }, scheduleTime);
+        const clearDelay = Math.max(stepTime - 0.05, 0.05);
+        Tone.getDraw().schedule(() => {
+          if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
+        }, scheduleTime + clearDelay);
       });
     } else {
       const currentRootValue = Number(dictRoot);
@@ -209,9 +207,9 @@ export function useDictionaryPlayback({
       const absNote = getAbsoluteNoteValue(noteName);
       playDictionaryNote(playbackInstrument, noteName, "2n");
       setCurrentlyPlayingNotes([absNote]);
-      setTimeout(() => {
+      Tone.getDraw().schedule(() => {
         if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
-      }, 500);
+      }, Tone.now() + 0.5);
     }
   }, [
     dictRoot,

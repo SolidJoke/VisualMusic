@@ -35,16 +35,38 @@ async function capture() {
     console.log(`Taking Studio screenshot for ${res.name}...`);
     await page.screenshot({ path: path.join(SCREENS_DIR, `Studio_${res.name}.png`) });
 
-    // Switch to Dictionary mode
     const dictBtn = await page.$('[data-testid="btn-mode-dictionary"]');
     if (dictBtn) {
-      await dictBtn.click();
+      await page.evaluate(el => el.click(), dictBtn);
       await page.waitForSelector('[data-testid="dictionary-panel"]', { timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(1000); // Wait for transition
       console.log(`Taking Dictionary screenshot for ${res.name}...`);
       await page.screenshot({ path: path.join(SCREENS_DIR, `Dictionary_${res.name}.png`) });
     } else {
       console.log('Could not find Dictionary button');
+    }
+
+    const studioBtn = await page.$('[data-testid="btn-mode-studio"]');
+    if (studioBtn) {
+      await page.evaluate(el => el.click(), studioBtn);
+      await page.waitForTimeout(500);
+    }
+
+    const helpBtn = await page.$('button[aria-label^="Guide"], button[aria-label="Aide"]');
+    if (helpBtn) {
+      await page.evaluate(el => el.click(), helpBtn);
+      await page.waitForSelector('.help-modal-content', { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(1000); // Wait for transition
+      console.log(`Taking HelpModal screenshot for ${res.name}...`);
+      await page.screenshot({ path: path.join(SCREENS_DIR, `HelpModal_${res.name}.png`) });
+      
+      const closeBtn = await page.$('.btn-close-modal');
+      if (closeBtn) {
+        await page.evaluate(el => el.click(), closeBtn);
+      }
+      await page.waitForTimeout(500);
+    } else {
+      console.log('Could not find Help button');
     }
 
     await context.close();

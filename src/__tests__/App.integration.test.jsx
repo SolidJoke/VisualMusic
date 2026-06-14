@@ -7,6 +7,8 @@ import { AppProvider } from "../context/AppContext";
 // Mocking Tone.js
 vi.mock("tone", () => ({
   start: vi.fn(),
+  now: vi.fn(() => 0),
+  getDraw: vi.fn(() => ({ schedule: vi.fn() })),
   Transport: {
     bpm: { value: 120 },
     scheduleRepeat: vi.fn(),

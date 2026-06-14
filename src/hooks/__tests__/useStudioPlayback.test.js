@@ -3,6 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useStudioPlayback } from '../useStudioPlayback';
 import * as AudioEngine from '../../audio/AudioEngine';
 
+// Mock Tone.js pour éviter l'accès à AudioContext en JSDOM
+vi.mock('tone', () => ({
+  now: vi.fn(() => 1.0),
+  getDraw: vi.fn(() => ({ schedule: vi.fn() })),
+  Transport: { scheduleOnce: vi.fn(), start: vi.fn() },
+}));
+
 vi.mock('../../audio/AudioEngine', () => ({
   playDictionaryNote: vi.fn(),
 }));
@@ -20,6 +27,8 @@ describe('useStudioPlayback', () => {
     setClickedChord = vi.fn();
     mockScheduler = {
       ensureAudioReady: vi.fn(() => Promise.resolve()),
+      startPlaybackSession: vi.fn(() => 'token-studio'),
+      isCurrentSession: vi.fn(() => true),
     };
   });
 

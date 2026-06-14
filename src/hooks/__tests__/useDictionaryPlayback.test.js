@@ -3,6 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useDictionaryPlayback } from '../useDictionaryPlayback';
 import * as AudioEngine from '../../audio/AudioEngine';
 
+// Mock Tone.js pour éviter l'accès à AudioContext en JSDOM
+vi.mock('tone', () => ({
+  now: vi.fn(() => 1.0),
+  getDraw: vi.fn(() => ({ schedule: vi.fn() })),
+  Transport: { scheduleOnce: vi.fn() },
+}));
+
 vi.mock('../../audio/AudioEngine', () => ({
   playDictionaryNote: vi.fn(),
 }));

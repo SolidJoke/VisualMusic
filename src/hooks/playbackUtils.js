@@ -47,7 +47,7 @@ export function fingeringMapToAbsolutePitches(fingeringMap, reversedTuning, inst
       }
     });
   });
-  return pitches;
+  return pitches.sort((a, b) => a.absoluteValue - b.absoluteValue);
 }
 
 /**
