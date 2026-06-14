@@ -1,4 +1,5 @@
 import { useCallback, useRef } from "react";
+import * as Tone from 'tone';
 import { NOTES, SCALES, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches } from "./playbackUtils";
@@ -95,9 +96,9 @@ export function useFretboardPlayback({
           });
           playDictionaryNote(playbackInstrument, notesToPlay, "2n");
           setCurrentlyPlayingNotes(absolutePitches);
-          setTimeout(() => {
+          Tone.getDraw().schedule(() => {
             if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
-          }, 500);
+          }, Tone.now() + 0.5);
           return;
         }
 
@@ -108,22 +109,21 @@ export function useFretboardPlayback({
         setLastClickedContext(context);
         setSinglePlayContext(null);
 
+        const sequenceBaseTime = Tone.now();
         absolutePitches.forEach((p, index) => {
-          setTimeout(() => {
+          const scheduleTime = sequenceBaseTime + index * stepTime;
+          const pitch = typeof p === 'object' ? p.absoluteValue : p;
+          const noteNameParts = NOTES[pitch % 12];
+          const noteNameStr = `${noteNameParts.us}${Math.floor(pitch / 12)}`;
+          playDictionaryNote(playbackInstrument, noteNameStr, "8n", scheduleTime);
+          Tone.getDraw().schedule(() => {
             if (!scheduler.isCurrentSession(currentToken)) return;
-
-            const pitch = typeof p === 'object' ? p.absoluteValue : p;
-            const noteNameParts = NOTES[pitch % 12];
-            const noteName = `${noteNameParts.us}${Math.floor(pitch / 12)}`;
-            playDictionaryNote(playbackInstrument, noteName, "8n");
-            
             setCurrentlyPlayingNotes([p]);
-            
-            setTimeout(() => {
-              if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
-            }, Math.max(stepTime * 1000 - 50, 50));
-
-          }, index * stepTime * 1000);
+          }, scheduleTime);
+          const clearDelay = Math.max(stepTime - 0.05, 0.05);
+          Tone.getDraw().schedule(() => {
+            if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
+          }, scheduleTime + clearDelay);
         });
         return;
       } else if (dictType?.includes("scale") && context?.instrument && setScaleAnchor) {
@@ -148,12 +148,12 @@ export function useFretboardPlayback({
     setLastClickedContext(null);
     setSinglePlayContext(context ?? null);
     setCurrentlyPlayingNotes([absNote]);
-    setTimeout(() => {
+    Tone.getDraw().schedule(() => {
       if (scheduler.isCurrentSession(currentToken)) {
         setCurrentlyPlayingNotes([]);
         setSinglePlayContext(null);
       }
-    }, 500);
+    }, Tone.now() + 0.5);
   }, [
     playbackInstrument,
     appMode,

@@ -3,6 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useFretboardPlayback } from '../useFretboardPlayback';
 import * as AudioEngine from '../../audio/AudioEngine';
 
+// Mock Tone.js pour éviter l'accès à AudioContext en JSDOM
+vi.mock('tone', () => ({
+  now: vi.fn(() => 1.0),
+  getDraw: vi.fn(() => ({ schedule: vi.fn() })),
+  Transport: { scheduleOnce: vi.fn() },
+}));
+
 vi.mock('../../audio/AudioEngine', () => ({
   playDictionaryNote: vi.fn(),
 }));
@@ -59,9 +66,9 @@ describe('useFretboardPlayback', () => {
     expect(setCurrentlyPlayingNotes).toHaveBeenCalledWith([62]);
   });
 
-  it('plays scale arpeggio asynchronously when root note is clicked', async () => {
-    vi.useFakeTimers();
-
+  it('plays scale arpeggio — first note played immediately with Tone scheduling', async () => {
+    // Avec la migration Tone.getDraw, playDictionaryNote est appelé directement
+    // dans le forEach (pas de setTimeout) et les callbacks UI passent par Tone.getDraw.schedule.
     const { result } = renderHook(() => useFretboardPlayback({
       playbackInstrument: 'piano',
       setPlaybackInstrument: vi.fn(),
@@ -89,13 +96,8 @@ describe('useFretboardPlayback', () => {
     expect(mockScheduler.ensureAudioReady).toHaveBeenCalled();
     expect(setContextualScaleAbsoluteValues).toHaveBeenCalled();
 
-    // Advance timers to trigger the first note playback
-    act(() => {
-      vi.advanceTimersByTime(10);
-    });
-
-    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledWith('piano', 'C5', '8n');
-
-    vi.useRealTimers();
+    // Après migration Tone, playDictionaryNote est appelé directement (plus de setTimeout)
+    // La première note (C5) est la première de la gamme montante
+    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledWith('piano', 'C5', '8n', expect.any(Number));
   });
 });
