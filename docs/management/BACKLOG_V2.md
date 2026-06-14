@@ -501,8 +501,8 @@ helpModal: {
 
 | ID | Tâche | Criticité | Statut |
 |----|-------|-----------|--------|
-| **SCALE-01** | Audit affichage gammes guitare — compter les pitch classes allumés (attendu : 7). Localiser dans `resolveScaleAnchorMask` / `resolveActiveState` | 🟠 P1 | `[ ]` TODO |
-| **SCALE-02** | Fix si SCALE-01 confirme le bug — correction `fretboardUtils.js` uniquement, NE PAS toucher `fingeringLogic.js` | 🟠 P1 | `[ ]` TODO · Conditionnel |
+| **SCALE-01** | Audit affichage gammes guitare — compter les pitch classes allumés (attendu : 7). Localiser dans `resolveScaleAnchorMask` / `resolveActiveState` | 🟠 P1 | `[x]` FAIT ✅ |
+| **SCALE-02** | Fix si SCALE-01 confirme le bug — correction `fretboardUtils.js` uniquement, NE PAS toucher `fingeringLogic.js` | 🟠 P1 | `[x]` FAIT ✅ |
 | **SCALE-03** | Feature : sélecteur positions CAGED pour gammes (équivalent PositionSelector pour accords). ⚠️ Sonnet requis | 🔵 P3 | `[ ]` TODO · Pré-req : SCALE-01 |
 | **SCALE-04** | Feature : piano multi-octave pour gammes (1 / 2 / 3 octaves dans DictionaryPanel) | 🔵 P3 | `[ ]` TODO |
 
