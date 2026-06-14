@@ -112,6 +112,12 @@ Conv 3 (après Conv 2) : Stream COMP (gelé)
 |----|-------------|---------|-----------|-----|
 | **BUG-02** | Surbrillance octaves Studio — à confirmer manuellement | `useFretboard.js` | 🟡 P1 | Vérif manuelle Gabriel |
 
+### Audio Refactor & Bugs (session 2026-06-14)
+- [x] **BUG-B1** — Ordre des notes affiché inversé (fix dans `fingeringMapToAbsolutePitches`)
+- [x] **BUG-B2** — Craquements audio et gigue séquenceur (fix `releaseAll` et cleanup buffer)
+- [x] **BUG-B3** — Octave MIDI décalée (fix `getClosestInversionN` et offset)
+- [x] **REFACTOR-AUDIO-1** — Remplacement de tous les `setTimeout` UI/Audio par `Tone.getDraw().schedule` dans les hooks de playback (Phase 1 & 2 mergées, PR #71, #72). 821 tests verts.
+
 ### Bugs résolus (session 2026-06-07)
 - [x] **BUG-11** — Double DOM Sidebar+BottomNav → `useMediaQuery` (Jules J-04, PR #57)
 - [x] **BUG-12** — BottomNav drawer toggle fix → `transform: translateY` (Jules J-05, PR #58)
@@ -342,7 +348,7 @@ padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
 
 ---
 
-##### [/] PR-B : MOB-LAND-4 — Modale onboarding/aide (Stitch design → Jules code, EN COURS)
+##### [x] PR-B : MOB-LAND-4 — Modale onboarding/aide (Stitch design → Jules code, FAIT)
 
 **⚠️ NE PAS lancer avant que Stitch ait produit la maquette.**
 **Branche :** `feat/onboarding-modal`
@@ -643,4 +649,4 @@ npx eslint "src/**/*.{js,jsx}" --ignore-pattern "**/__tests__/**"
 
 *Créé : 2026-06-06T11:47 par ARIA*  
 *Créé : 2026-06-06T11:47 par ARIA*  
-*Mis à jour : 2026-06-07T17:49 — PR #59 (UX-11/12/13/16 GEMINI-04), Phase D Mobile complète. Jules J-06 en cours : BUG-10 + unused imports + console.log cleanup.*
+*Mis à jour : 2026-06-14 — Refonte Audio Tone.js (Phase 1 & 2) mergée (Gemini 3.5 Flash → 3.1 Pro).*
