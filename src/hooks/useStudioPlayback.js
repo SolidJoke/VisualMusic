@@ -53,7 +53,7 @@ export function useStudioPlayback({
       const chordData = resolveChordSemitones(chordType);
       const semitones = chordData ? chordData.semitones : [0, thirdInterval, fifthInterval];
       
-      absolutePitches = getClosestInversionN(prevNotes, rootVal, semitones, baseOctave);
+      absolutePitches = getClosestInversionN(prevNotes, rootVal, semitones, chordOctaveOffset || 0);
     }
     
     if (useShellVoicings && playbackInstrument === "piano") {

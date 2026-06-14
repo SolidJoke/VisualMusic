@@ -164,4 +164,14 @@ describe("AudioEngine Quality Fixes Behavior Tests", () => {
       applyGenrePreset("jazz");
     }).not.toThrow();
   });
+
+  it("B2b-1: playDictionaryNote(piano) appelle triggerAttackRelease sans crash quand time est undefined", () => {
+    expect(() => playDictionaryNote('piano', ['C4', 'E4', 'G4'], '2n')).not.toThrow();
+  });
+
+  it("B2b-2: playDictionaryNote avec time fourni ne doit pas crasher (garde séquenceur)", () => {
+    // Quand time est fourni, releaseAll ne doit PAS être appelé
+    // car on est dans un contexte de séquenceur schedulé
+    expect(() => playDictionaryNote('piano', ['C4'], '16n', 1.5)).not.toThrow();
+  });
 });

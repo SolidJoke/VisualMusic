@@ -287,9 +287,13 @@ export function playDictionaryNote(instrument, notes, duration, time) {
     const lowestNote = filteredNotes.sort((a,b) => Tone.Frequency(a).toMidi() - Tone.Frequency(b).toMidi())[0];
     bassSynth.triggerAttackRelease(lowestNote, duration, time);
   } else if (instrument === "guitar") {
-    getGuitarSynth().triggerAttackRelease(filteredNotes, duration, time);
+    const gSynth = getGuitarSynth();
+    if (!time && gSynth.releaseAll) gSynth.releaseAll();
+    gSynth.triggerAttackRelease(filteredNotes, duration, time);
   } else {
-    getPianoSynth().triggerAttackRelease(filteredNotes, duration, time);
+    const pSynth = getPianoSynth();
+    if (!time && pSynth.releaseAll) pSynth.releaseAll();
+    pSynth.triggerAttackRelease(filteredNotes, duration, time);
   }
 }
 

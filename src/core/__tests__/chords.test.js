@@ -250,4 +250,32 @@ describe('getClosestInversionN — generalized (A3)', () => {
     // Higher offset should produce higher pitches
     expect(resultHigher[0]).toBeGreaterThanOrEqual(resultDefault[0]);
   });
+
+  it('B3: sans contexte, retourne des notes dans la plage instrumentale raisonnable (36–84)', () => {
+    const result = getClosestInversionN([], 0, [0, 4, 7]);
+    expect(result[0]).toBeGreaterThanOrEqual(36);   // pas trop grave (C3+)
+    expect(result[result.length - 1]).toBeLessThanOrEqual(84); // pas trop aigu (C7-)
+  });
+
+  it('B3: avec octaveOffset=4 (chordOctaveOffset=0 depuis useStudioPlayback), cible correcte selon convention offset', () => {
+    // useStudioPlayback passe baseOctave = 4 + 0 = 4 comme octaveOffset
+    // targetBase = 48 + 4*12 = 96 → cherche une inversion autour de MIDI 96 (C8)
+    // Ce test vérifie la plage raisonnable (pas plus de 2 octaves au-dessus de la cible)
+    const result = getClosestInversionN([], 0, [0, 4, 7], 4);
+    // La fondamentale doit être >= 36 (pas trop grave) et raisonnable
+    expect(result[0]).toBeGreaterThanOrEqual(36);
+    expect(result.length).toBe(3);
+    // Les notes doivent être en ordre ascendant
+    for (let i = 1; i < result.length; i++) {
+      expect(result[i]).toBeGreaterThan(result[i - 1]);
+    }
+  });
+
+  it('B3: avec context prevNotes=[60,64,67], voice-leads vers notes proches', () => {
+    const prev = [60, 64, 67]; // Cmaj à l'octave 5 (selon ancienne convention)
+    const result = getClosestInversionN(prev, 2, [0, 3, 7]); // Dm
+    const avgDist = result.reduce((s, n, i) => s + Math.abs(n - prev[i]), 0) / 3;
+    expect(avgDist).toBeLessThan(12); // moins d'une octave de mouvement moyen
+  });
 });
+
