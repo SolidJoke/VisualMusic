@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import * as Tone from 'tone';
 import { NOTES, resolveNnsToChordType, getClosestInversionN, resolveChordSemitones } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
@@ -67,12 +68,14 @@ export function useStudioPlayback({
       return `${noteName}${Math.floor(n / 12)}`;
     });
 
+    const currentToken = scheduler.startPlaybackSession();
+    const scheduleTime = Tone.now() + 0.5;
     playDictionaryNote(playbackInstrument, notesToPlay, "2n");
     setCurrentAbsoluteNotes(absolutePitches);
     setCurrentlyPlayingNotes(absolutePitches);
-    setTimeout(() => {
-      setCurrentlyPlayingNotes([]);
-    }, 500);
+    Tone.getDraw().schedule(() => {
+      if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
+    }, scheduleTime);
   }, [
     playbackInstrument,
     selectedRootStringGuitar,
