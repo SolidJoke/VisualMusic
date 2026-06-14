@@ -64,8 +64,16 @@ export function useFretboardPlayback({
             const startIdx = allNotes.findIndex(n => n.absoluteValue % 12 === rootPitchClass);
             const rootIdx = startIdx >= 0 ? startIdx : 0;
 
-            // Ascending: from root to top of box
-            const ascending = allNotes.slice(rootIdx);
+            // Find the NEXT root note (one octave higher)
+            let endIdx = allNotes.findIndex((n, idx) => idx > rootIdx && n.absoluteValue % 12 === rootPitchClass);
+            
+            // If no higher octave is found in the box, just play to the top of the box
+            if (endIdx === -1) {
+              endIdx = allNotes.length - 1;
+            }
+
+            // Ascending: from root to next root (inclusive)
+            const ascending = allNotes.slice(rootIdx, endIdx + 1);
             // Descending: back to root (reverse, excluding top note)
             const descending = ascending.slice(0, ascending.length - 1).reverse();
 
