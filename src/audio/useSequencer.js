@@ -9,7 +9,9 @@ import {
   initGuitarSampler,
   applyGenrePreset,
   setInstrumentVolume,
-  playDictionaryNote
+  playDictionaryNote,
+  getPianoSynth,
+  getGuitarSynth
 } from "./AudioEngine";
 import { 
   getAbsoluteNoteValue, 
@@ -306,8 +308,12 @@ export function useSequencer({
       try {
         bassSynth.triggerRelease();
         const piano = getPianoSynth();
-        if (piano.releaseAll) piano.releaseAll();
-      } catch(e){}
+        if (piano?.releaseAll) piano.releaseAll();
+        const guitar = getGuitarSynth();
+        if (guitar?.releaseAll) guitar.releaseAll();
+      } catch (e) {
+        // synth may not be initialized yet
+      }
     } else {
       Tone.Transport.stop();
       Tone.Transport.start();

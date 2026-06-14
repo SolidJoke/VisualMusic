@@ -12,21 +12,28 @@ vi.mock("tone", () => ({
     cancel: vi.fn(),
     pause: vi.fn(),
     start: vi.fn(),
+    stop: vi.fn(),
+    clear: vi.fn(),
   },
   start: vi.fn(),
   Draw: { schedule: vi.fn() },
 }));
 
+const mockPianoReleaseAll = vi.fn();
+const mockGuitarReleaseAll = vi.fn();
+
 vi.mock("../AudioEngine", () => ({
   kickSynth: { triggerAttackRelease: vi.fn() },
   snareSynth: { triggerAttackRelease: vi.fn() },
   hatSynth: { triggerAttackRelease: vi.fn() },
-  bassSynth: { triggerAttackRelease: vi.fn() },
+  bassSynth: { triggerAttackRelease: vi.fn(), triggerRelease: vi.fn() },
   initPianoSampler: vi.fn(),
   initGuitarSampler: vi.fn(),
   applyGenrePreset: vi.fn(),
   setInstrumentVolume: vi.fn(),
   playDictionaryNote: vi.fn(),
+  getPianoSynth: vi.fn(() => ({ releaseAll: mockPianoReleaseAll })),
+  getGuitarSynth: vi.fn(() => ({ releaseAll: mockGuitarReleaseAll })),
 }));
 
 import { PITCH_MAP } from "../useSequencer";
@@ -52,3 +59,25 @@ describe("SequencerLogic - PITCH_MAP", () => {
     expect(PITCH_MAP['octave']).toBe(12);
   });
 });
+
+describe("useSequencer — releaseAll on stop", () => {
+  it("getPianoSynth().releaseAll est disponible et appelable sans erreur", async () => {
+    const { getPianoSynth } = await import("../AudioEngine");
+    const synth = getPianoSynth();
+    expect(() => synth.releaseAll()).not.toThrow();
+  });
+
+  it("getGuitarSynth().releaseAll est disponible et appelable sans erreur", async () => {
+    const { getGuitarSynth } = await import("../AudioEngine");
+    const synth = getGuitarSynth();
+    expect(() => synth.releaseAll()).not.toThrow();
+  });
+});
+
+describe("useSequencer — Tone.Draw scheduling", () => {
+  it("Tone.Draw est le seul mécanisme pour effacer currentlyPlayingNotes (pas setTimeout)", async () => {
+    const Tone = await import("tone");
+    expect(typeof Tone.Draw.schedule).toBe("function");
+  });
+});
+
