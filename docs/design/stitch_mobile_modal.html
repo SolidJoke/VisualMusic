@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Guide d'utilisation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+                    "on-tertiary": "#4f2500",
+                    "background": "#131313",
+                    "primary-fixed": "#d5e3ff",
+                    "surface-container-lowest": "#0e0e0e",
+                    "on-secondary": "#273143",
+                    "on-background": "#e5e2e1",
+                    "surface-container-low": "#1c1b1b",
+                    "surface-dim": "#131313",
+                    "secondary-fixed-dim": "#bdc7de",
+                    "error": "#ffb4ab",
+                    "inverse-primary": "#005fb0",
+                    "tertiary-fixed-dim": "#ffb782",
+                    "tertiary-container": "#de7403",
+                    "border-low-contrast": "#262626",
+                    "outline-variant": "#404753",
+                    "on-secondary-fixed-variant": "#3d475a",
+                    "secondary": "#bdc7de",
+                    "inverse-on-surface": "#313030",
+                    "on-tertiary-fixed": "#301400",
+                    "error-container": "#93000a",
+                    "on-secondary-container": "#aeb8d0",
+                    "on-primary-fixed-variant": "#004786",
+                    "tertiary": "#ffb782",
+                    "surface-bright": "#3a3939",
+                    "primary-fixed-dim": "#a6c8ff",
+                    "on-primary": "#00315f",
+                    "primary-container": "#3192fc",
+                    "success-green": "#32D583",
+                    "surface-container-highest": "#353534",
+                    "inverse-surface": "#e5e2e1",
+                    "on-surface-variant": "#c0c7d5",
+                    "on-error-container": "#ffdad6",
+                    "on-error": "#690005",
+                    "on-surface": "#e5e2e1",
+                    "warning-amber": "#F79009",
+                    "on-tertiary-fixed-variant": "#703800",
+                    "surface-tint": "#a6c8ff",
+                    "on-secondary-fixed": "#111c2d",
+                    "surface-container-high": "#2a2a2a",
+                    "surface-container": "#201f1f",
+                    "primary": "#a6c8ff",
+                    "on-primary-container": "#002a53",
+                    "surface-variant": "#353534",
+                    "secondary-fixed": "#d9e3fb",
+                    "surface": "#131313",
+                    "bg-subtle": "#161616",
+                    "outline": "#8a919e",
+                    "tertiary-fixed": "#ffdcc5",
+                    "secondary-container": "#3f495d",
+                    "on-primary-fixed": "#001c3b",
+                    "on-tertiary-container": "#452000"
+            },
+            borderRadius: {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            spacing: {
+                    "max-width": "1440px",
+                    "base": "8px",
+                    "margin-desktop": "32px",
+                    "gutter": "16px",
+                    "margin-mobile": "16px"
+            },
+            fontFamily: {
+                    "body-md": ["Hanken Grotesk"],
+                    "headline-lg": ["Hanken Grotesk"],
+                    "label-sm": ["JetBrains Mono"],
+                    "headline-lg-mobile": ["Hanken Grotesk"]
+            },
+            fontSize: {
+                    "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                    "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "600" }],
+                    "label-sm": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
+                    "headline-lg-mobile": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(32, 31, 31, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        /* Custom scrollbar for dark mode */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #353534; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #404753; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface h-screen w-screen overflow-hidden font-body-md text-body-md flex items-center justify-center relative">
+<!-- Simulated App Background (Blurred) -->
+<div class="absolute inset-0 z-0 bg-[url('https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=2000&amp;q=80')] bg-cover bg-center opacity-30 blur-sm pointer-events-none" data-alt="A dark, moody music studio background with blurred glowing blue and orange lights, highlighting a synthesizer or midi keyboard out of focus, establishing a high-tech modern music production atmosphere."></div>
+<!-- Modal Container (Bottom Sheet on Mobile, Centered Modal on Desktop) -->
+<div class="relative z-10 w-full h-full md:h-auto md:max-h-[751px] md:max-w-md flex flex-col glass-panel rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden mt-auto md:mt-0 animate-[slideUp_0.3s_ease-out]">
+<!-- Drag Handle (Mobile only) -->
+<div class="w-full flex justify-center pt-3 pb-1 md:hidden">
+<div class="w-12 h-1.5 bg-surface-variant rounded-full"></div>
+</div>
+<!-- Header -->
+<header class="px-margin-mobile pt-4 pb-2 flex justify-between items-center shrink-0">
+<h1 class="text-headline-lg-mobile font-headline-lg-mobile text-primary">Guide d'utilisation</h1>
+<!-- Language Selector -->
+<div class="flex bg-surface-container-high rounded-full p-1 border border-border-low-contrast">
+<button class="text-label-sm font-label-sm px-2 py-1 rounded-full text-on-surface-variant hover:text-on-surface transition-colors">FR</button>
+<div class="w-px h-4 bg-border-low-contrast self-center mx-1"></div>
+<button class="text-label-sm font-label-sm px-2 py-1 rounded-full text-primary bg-primary/10 transition-colors">EN</button>
+</div>
+</header>
+<!-- Navigation Tabs -->
+<nav class="flex px-margin-mobile border-b border-border-low-contrast shrink-0 mt-2">
+<button class="flex-1 pb-3 text-label-sm font-label-sm text-on-surface-variant hover:text-primary transition-colors">Desktop</button>
+<button class="flex-1 pb-3 text-label-sm font-label-sm text-primary border-b-2 border-primary">Mobile</button>
+<button class="flex-1 pb-3 text-label-sm font-label-sm text-on-surface-variant hover:text-primary transition-colors">À propos</button>
+</nav>
+<!-- Scrollable Content -->
+<main class="flex-1 overflow-y-auto px-margin-mobile py-6 space-y-6">
+<!-- Item 1 -->
+<div class="flex gap-4 p-4 rounded-xl bg-surface-container-low border border-border-low-contrast hover:bg-surface-container transition-colors group cursor-default">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">swipe_up</span>
+</div>
+<div>
+<h3 class="text-body-md font-bold text-on-surface mb-1">Interface Tactile</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant leading-relaxed">
+                        La barre de navigation inférieure permet un accès rapide aux sections principales (Studio, Dictionnaire, Lecture). Balayez vers le haut pour ouvrir les paramètres avancés de chaque module.
+                    </p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex gap-4 p-4 rounded-xl bg-surface-container-low border border-border-low-contrast hover:bg-surface-container transition-colors group cursor-default">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">view_agenda</span>
+</div>
+<div>
+<h3 class="text-body-md font-bold text-on-surface mb-1">Mode Studio</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant leading-relaxed">
+                        Sur mobile, les instruments sont empilés verticalement. Tapez sur l'en-tête d'un instrument pour le développer et accéder aux contrôles de fretboard ou de clavier en plein écran.
+                    </p>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex gap-4 p-4 rounded-xl bg-surface-container-low border border-border-low-contrast hover:bg-surface-container transition-colors group cursor-default">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">bluetooth_connected</span>
+</div>
+<div>
+<h3 class="text-body-md font-bold text-on-surface mb-1">Connectivité</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant leading-relaxed">
+                        Connectez des contrôleurs MIDI via Bluetooth LE ou USB. Le statut de connexion est indiqué par le point vert dans la barre supérieure de l'espace de travail.
+                    </p>
+</div>
+</div>
+</main>
+<!-- Footer / Close Button -->
+<footer class="p-margin-mobile border-t border-border-low-contrast bg-surface-container/50 backdrop-blur-md shrink-0 pb-safe">
+<button class="w-full py-4 rounded-xl bg-primary text-on-primary font-bold text-body-md hover:bg-primary-fixed transition-colors active:scale-[0.98] flex items-center justify-center gap-2">
+<span>Fermer</span>
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</footer>
+</div>
+<style>
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .pb-safe { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+    </style>
+</body></html>
