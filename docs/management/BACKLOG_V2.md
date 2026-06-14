@@ -495,16 +495,17 @@ helpModal: {
 > Démarrage : *"Continue le backlog VisualMusic — Stream SCALE et THEORY"*  
 > Respecter la Design Bible créée en Conv 1 pour toute UI ajoutée.
 
-#### Stream SCALE — Gammes / Système CAGED
+#### Stream FRETBOARD MULTI-VIEW (Refonte UX Manche)
 
-**Règle fondamentale :** Une gamme = toujours 7 pitch classes distincts. Le système CAGED ne crée pas de nouvelles notes, il propose différentes positions de jeu.
+**Règle fondamentale :** Préserver la stabilité du séquenceur et de la basse. Les modifications de rendu du manche doivent être rétrocompatibles.
 
-| ID | Tâche | Criticité | Statut |
-|----|-------|-----------|--------|
-| **SCALE-01** | Audit affichage gammes guitare — compter les pitch classes allumés (attendu : 7). Localiser dans `resolveScaleAnchorMask` / `resolveActiveState` | 🟠 P1 | `[x]` FAIT ✅ |
-| **SCALE-02** | Fix si SCALE-01 confirme le bug — correction `fretboardUtils.js` uniquement, NE PAS toucher `fingeringLogic.js` | 🟠 P1 | `[x]` FAIT ✅ |
-| **SCALE-03** | Feature : sélecteur positions CAGED pour gammes (équivalent PositionSelector pour accords). ⚠️ Sonnet requis | 🔵 P3 | `[ ]` TODO · Pré-req : SCALE-01 |
-| **SCALE-04** | Feature : piano multi-octave pour gammes (1 / 2 / 3 octaves dans DictionaryPanel) | 🔵 P3 | `[ ]` TODO |
+| ID | Tâche | Fichiers cibles | Statut |
+|----|-------|-----------------|--------|
+| **FV-01** | **Sélecteur "Mode de Vue"** : Ajouter un toggle/select (Pédagogique / Global / Fantôme) dans l'UI du manche. Connecter à l'état global ou local. | `DictPositionSelectors.jsx` | `[ ]` TODO |
+| **FV-02** | **Moteur de Rendu (fretboardUtils)** : Modifier `computeFretMetadata` pour lire le mode de vue. Global = aucun masquage. Pédagogique = masquage actuel. Fantôme = opacité réduite pour les notes hors-box. | `fretboardUtils.js`, `Fretboard.jsx` | `[ ]` TODO |
+| **FV-03** | **Fantômes Interactifs** : Permettre le `onClick` sur les notes "fantômes" du manche pour que l'action téléporte la `selectedVoicingIndexGuitar` vers la nouvelle box correspondante. | `Fretboard.jsx`, `useMusicEngine.js` | `[ ]` TODO |
+| **FV-04** | **Nomenclature CAGED** : Remplacer les labels "Position 1, 2..." par "Forme de Do, La..." dans le sélecteur, en se basant sur le calcul de la fondamentale de la forme. | `fingeringLogic.js` | `[ ]` TODO |
+| **FV-05** | **Mini-Map Slider (Stitch)** : Maquetter et implémenter une barre de défilement visuelle au-dessus du manche pour remplacer le menu déroulant textuel des positions. | Maquette Stitch → `PositionSlider.jsx` | `[ ]` TODO |
 
 #### Stream THEORY — Base de Connaissances
 
