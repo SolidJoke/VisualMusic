@@ -41,6 +41,12 @@ export function useDictionaryMode() {
         ...n,
         absoluteValue: n.value + (baseOctave + 1) * 12
       }));
+      // Add the final octave note to visually close the scale on the piano
+      notes.push({
+        value: currentRootValue,
+        order: '1',
+        absoluteValue: currentRootValue + (baseOctave + 2) * 12
+      });
     } else if (dictType && dictType.includes("chord")) {
       const chordData = resolveChordSemitones(dictType);
       if (chordData) {
