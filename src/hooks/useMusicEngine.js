@@ -178,9 +178,8 @@ export function useMusicEngine({
       if (dictType?.includes("scale")) {
         if (selectedVoicingIndexGuitar !== null) {
           const tuning = activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD;
-          const avail = getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning, notation, dictOctave);
-          // Use selected position if found, otherwise fall back to best position for current octave (avail[0]).
-          const found = avail.find(p => p.id === selectedVoicingIndexGuitar) ?? avail[0];
+          const avail = getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning);
+          const found = avail.find(p => p.id === selectedVoicingIndexGuitar);
           // Option-B: return scaleFrets directly, no toV2() conversion needed for scales
           if (found?.scaleFrets) return { scaleFrets: found.scaleFrets, isScaleMode: true, startFret: found.startFret, endFret: found.endFret };
         }
@@ -220,7 +219,7 @@ export function useMusicEngine({
       chordType = dictType;
       if (dictType?.includes("scale")) {
         const tuning = activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD;
-        return getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning, notation, dictOctave);
+        return getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning, notation);
       }
     } else {
       if (!clickedChord) return [];
@@ -244,8 +243,8 @@ export function useMusicEngine({
       if (dictType?.includes("scale")) {
         if (selectedVoicingIndexBass !== null) {
           const tuning = activeBrick?.bassStrings || TUNINGS.BASS_STANDARD;
-          const avail = getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning, notation, dictOctave);
-          const found = avail.find(p => String(p.id) === String(selectedVoicingIndexBass)) ?? avail[0];
+          const avail = getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning, notation);
+          const found = avail.find(p => String(p.id) === String(selectedVoicingIndexBass));
           // Option-B: return scaleFrets directly, no toV2() conversion needed for scales
           if (found?.scaleFrets) return { scaleFrets: found.scaleFrets, isScaleMode: true, startFret: found.startFret, endFret: found.endFret };
         }
@@ -285,7 +284,7 @@ export function useMusicEngine({
       chordType = dictType;
       if (dictType?.includes("scale")) {
         const tuning = activeBrick?.bassStrings || TUNINGS.BASS_STANDARD;
-        return getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning, notation, dictOctave);
+        return getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning, notation);
       }
     } else {
       if (!clickedChord) return [];

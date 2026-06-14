@@ -548,7 +548,7 @@ export function getAvailableBassFingerings(rootValue, chordType = 'chord_major',
  * @param {string} sep - Separator word for label (e.g. 'of', 'de')
  * @returns {Array<{id, label, scaleFrets: Array<{stringIndex, fret, noteValue}>}>}
  */
-export function getAvailableScaleFingerings(rootValue, scaleType, instrument = 'guitar', strings = [], sep = 'of', dictOctave = 0) {
+export function getAvailableScaleFingerings(rootValue, scaleType, instrument = 'guitar', strings = [], sep = 'of') {
   // Use theory.js as the single source of truth for scale semitones.
   // resolveScaleSemitones() returns cumulative semitones from root (e.g. [0,2,4,5,7,9,11]).
   // Fallback to major scale if scaleType is unknown (defensive — should not happen in practice).
@@ -584,25 +584,17 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
     });
   });
 
-  const sortedStartsAsc = Array.from(startFrets).sort((a, b) => a - b);
+  const sortedStarts = Array.from(startFrets).sort((a, b) => a - b);
   const filteredStarts = [];
   let last = -99;
-  sortedStartsAsc.forEach(s => {
+  sortedStarts.forEach(s => {
     if (s >= last + 2) {
       filteredStarts.push(s);
       last = s;
     }
   });
 
-  // Sort candidate start frets by proximity to the target fret for the chosen octave.
-  // targetMidi = root MIDI at selected octave; lowestString = corde la plus grave (dernière dans stringOpenValues).
-  const lowestStringOpen = stringOpenValues[stringOpenValues.length - 1];
-  const targetMidi = Number(rootValue) + (5 + Number(dictOctave)) * 12;
-  const targetFret = Math.max(0, targetMidi - lowestStringOpen);
-  const sortedStarts = [...filteredStarts].sort((a, b) => Math.abs(a - targetFret) - Math.abs(b - targetFret));
-  const positionStarts = sortedStarts.slice(0, 5);
-
-  const positions = positionStarts.map((start, idx) => {
+  const positions = filteredStarts.slice(0, 5).map((start, idx) => {
     // Méthode Simandl : span de 3 frettes pour la basse uniquement dans les graves (frettes <= 7)
     const span = (isBass && start <= 7) ? 3 : 4;
     const endFret = start + span;
@@ -624,7 +616,7 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
 
     return {
       id: `pos_${start}`,
-      label: `${idx + 1} ${sep} ${positionStarts.length}`,
+      label: `${idx + 1} ${sep} ${filteredStarts.slice(0, 5).length}`,
       positionIndex: idx,
       // scaleFrets is the Option-B model: a flat list of exact fret positions.
       // fingeringMap is intentionally absent — chord rendering is unaffected.
