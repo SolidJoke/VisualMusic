@@ -52,16 +52,24 @@ export function useFretboardPlayback({
               return (reversedTuning[a.stringIndex] + a.fret) - (reversedTuning[b.stringIndex] + b.fret);
             });
 
-            // Ascending then descending
-            absolutePitches = sorted.map(sf => ({
+            const allNotes = sorted.map(sf => ({
               absoluteValue: reversedTuning[sf.stringIndex] + sf.fret,
               stringIndex: sf.stringIndex,
               fret: sf.fret,
               instrument: inst,
             }));
-            for (let i = sorted.length - 2; i >= 0; i--) {
-              absolutePitches.push(absolutePitches[i]);
-            }
+
+            // Find the root note in the box (same pitch class as clicked note)
+            const rootPitchClass = absNote % 12;
+            const startIdx = allNotes.findIndex(n => n.absoluteValue % 12 === rootPitchClass);
+            const rootIdx = startIdx >= 0 ? startIdx : 0;
+
+            // Ascending: from root to top of box
+            const ascending = allNotes.slice(rootIdx);
+            // Descending: back to root (reverse, excluding top note)
+            const descending = ascending.slice(0, ascending.length - 1).reverse();
+
+            absolutePitches = [...ascending, ...descending];
           } else {
             // Fallback: compute from theory (no scaleFrets available, e.g. piano mode)
             const scaleData = resolveScaleIntervals(dictType);
