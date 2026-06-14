@@ -602,14 +602,35 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
     // Build exact list of frets in this position window that belong to the scale.
     // stringIndex = sIdx (0=high string), consistent with Fretboard convention.
     const scaleFrets = [];
+    const seenAbsolutePitches = new Set(); // deduplicate exact same pitch (e.g. B3 on G string vs B string)
+
     stringOpenValues.forEach((openVal, stringIndex) => {
       for (let fret = start; fret <= endFret; fret++) {
-        const noteValue = (openVal + fret) % 12;
-        if (semitoneSet.has(noteValue)) {
+        const absolutePitch = openVal + fret;
+        const noteValue = absolutePitch % 12;
+        if (semitoneSet.has(noteValue) && !seenAbsolutePitches.has(absolutePitch)) {
           scaleFrets.push({ stringIndex, fret, noteValue });
+          seenAbsolutePitches.add(absolutePitch);
         }
       }
     });
+
+    // Sort scaleFrets by absolute pitch ascending
+    scaleFrets.sort((a, b) => {
+      const absA = stringOpenValues[a.stringIndex] + a.fret;
+      const absB = stringOpenValues[b.stringIndex] + b.fret;
+      return absA - absB;
+    });
+
+    const rootPitchClass = rootValue % 12;
+    const startIdx = scaleFrets.findIndex(sf => sf.noteValue === rootPitchClass);
+    let finalScaleFrets = scaleFrets;
+
+    if (startIdx >= 0) {
+      let endIdx = scaleFrets.findIndex((sf, idx) => idx > startIdx && sf.noteValue === rootPitchClass);
+      if (endIdx === -1) endIdx = scaleFrets.length - 1;
+      finalScaleFrets = scaleFrets.slice(startIdx, endIdx + 1);
+    }
 
     return {
       id: `pos_${start}`,
@@ -617,7 +638,7 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
       positionIndex: idx,
       // scaleFrets is the Option-B model: a flat list of exact fret positions.
       // fingeringMap is intentionally absent — chord rendering is unaffected.
-      scaleFrets,
+      scaleFrets: finalScaleFrets,
       // Keep startFret/endFret for playback handler compatibility during transition
       startFret: start,
       endFret,

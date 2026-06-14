@@ -46,16 +46,20 @@ export function getFretX(fret, widths) {
  */
 function resolveActiveState({ activeNotes, dictType, fingering }, noteValue, absoluteValue, isDictionaryMode) {
   const activeNote = activeNotes.find((n) => {
-    // Exclude scaleFrets mode from modulo-12 matching
-    if (isDictionaryMode && dictType && (dictType.includes('scale') || dictType.includes('chord')) && !fingering?.fingeringMap && !fingering?.isScaleBox && !fingering?.scaleFrets) {
-      return (n.value % 12) === (noteValue % 12);
+    const isScale = dictType && dictType.includes('scale');
+    const isChord = dictType && dictType.includes('chord');
+
+    if (isDictionaryMode) {
+      if (isScale) {
+        return (n.value % 12) === (noteValue % 12);
+      }
+      if (isChord && !fingering?.fingeringMap) {
+        return (n.value % 12) === (noteValue % 12);
+      }
     }
+    
     // Strict absolute matching
     if (n.absoluteValue !== undefined && n.absoluteValue === absoluteValue) return true;
-    // Fallback for Dictionary Mode
-    if (isDictionaryMode && !fingering?.fingeringMap && !fingering?.isScaleBox && !fingering?.scaleFrets) {
-      return (n.value % 12) === (noteValue % 12);
-    }
     return false;
   });
   return { isActive: !!activeNote, activeNote };
@@ -96,7 +100,7 @@ function resolveVoicingMask({ fingering, currentlyPlayingNotes, showFingering, a
   if (fingering?.scaleFrets) {
     const inPosition = fingering.scaleFrets.some(sf => sf.stringIndex === stringIndex && sf.fret === fret);
     if (isActive && !inPosition) {
-      isOutOfBox = true;
+      isActive = false;  // masquage total, pas juste grisé
     }
     if (isPlaying && !inPosition) {
       const isSpecificallyTargeted = currentlyPlayingNotes.some(n =>
@@ -114,7 +118,7 @@ function resolveVoicingMask({ fingering, currentlyPlayingNotes, showFingering, a
     const isVoicingMaskActive = (instrument === "guitar" || instrument === "bass") && 
       (showFingering || appMode === "dictionary") && 
       fingering && 
-      (fingering.isScaleBox || (fingeringMap && Object.keys(fingeringMap).length > 0));
+      (fingeringMap && Object.keys(fingeringMap).length > 0);
 
     if (isVoicingMaskActive) {
       let isPartOfVoicing = false;
@@ -149,7 +153,10 @@ function resolveScaleAnchorMask({ scaleAnchor }, fret, instrument, isActiveIn, i
   let isOutOfBoxFromAnchor = false;
   if (isScaleMode && scaleAnchor && (instrument === "guitar" || instrument === "bass")) {
     const isWithinBox = fret >= scaleAnchor.fret - 1 && fret <= scaleAnchor.fret + 4;
-    if (!isWithinBox) isOutOfBoxFromAnchor = true;
+    if (!isWithinBox) {
+      isActive = false;          // masquage total hors box
+      isOutOfBoxFromAnchor = true;
+    }
   }
   return { isActive, isOutOfBoxFromAnchor };
 }
