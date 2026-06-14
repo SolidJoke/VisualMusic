@@ -258,10 +258,8 @@ export function useSequencer({
         }
 
         if (frameNotes.length > 0) {
-          Tone.Draw.schedule(() => {
-            setCurrentlyPlayingNotes(frameNotes);
-            setTimeout(() => setCurrentlyPlayingNotes([]), 150);
-          }, time);
+          Tone.Draw.schedule(() => setCurrentlyPlayingNotes(frameNotes), time);
+          Tone.Draw.schedule(() => setCurrentlyPlayingNotes([]), time + 0.15);
         }
       } catch (err) {
         console.error("Error in useSequencer repeat loop:", err);
