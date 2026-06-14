@@ -2,7 +2,6 @@ import { useCallback, useRef } from "react";
 import { NOTES, SCALES, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches } from "./playbackUtils";
-import { calcActivePath } from "../core/fretboardLogic";
 
 export function useFretboardPlayback({
   playbackInstrument,
@@ -36,20 +35,49 @@ export function useFretboardPlayback({
 
     if (appMode === "dictionary" && (dictType?.includes("scale") || dictType?.includes("chord"))) {
       if (absNote % 12 === Number(dictRoot)) {
+        // === ROOT NOTE CLICKED: play full scale from scaleFrets ===
         let absolutePitches = [];
+
         if (dictType?.includes("scale")) {
-          const scaleData = resolveScaleIntervals(dictType);
-          const intervals = scaleData ? scaleData.intervals : SCALES.scale_major.intervals;
-          let currentPitch = absNote;
-          absolutePitches.push(currentPitch);
-          intervals.forEach((interval) => {
-            currentPitch += interval;
+          const inst = context?.instrument || playbackInstrument;
+          const currentFingering = inst === "guitar" ? guitarFingering : (inst === "bass" ? bassFingering : null);
+
+          if (currentFingering?.scaleFrets && currentFingering.scaleFrets.length > 0) {
+            // Use the displayed scaleFrets as the source of truth (static = played)
+            const tuning = getInstrumentTuning(inst, activeBrick);
+            const reversedTuning = [...tuning].reverse();
+
+            // Sort scaleFrets by absolute pitch ascending
+            const sorted = [...currentFingering.scaleFrets].sort((a, b) => {
+              return (reversedTuning[a.stringIndex] + a.fret) - (reversedTuning[b.stringIndex] + b.fret);
+            });
+
+            // Ascending then descending
+            absolutePitches = sorted.map(sf => ({
+              absoluteValue: reversedTuning[sf.stringIndex] + sf.fret,
+              stringIndex: sf.stringIndex,
+              fret: sf.fret,
+              instrument: inst,
+            }));
+            for (let i = sorted.length - 2; i >= 0; i--) {
+              absolutePitches.push(absolutePitches[i]);
+            }
+          } else {
+            // Fallback: compute from theory (no scaleFrets available, e.g. piano mode)
+            const scaleData = resolveScaleIntervals(dictType);
+            const intervals = scaleData ? scaleData.intervals : SCALES.scale_major.intervals;
+            let currentPitch = absNote;
             absolutePitches.push(currentPitch);
-          });
-          for (let i = absolutePitches.length - 2; i >= 0; i--) {
-            absolutePitches.push(absolutePitches[i]);
+            intervals.forEach((interval) => {
+              currentPitch += interval;
+              absolutePitches.push(currentPitch);
+            });
+            for (let i = absolutePitches.length - 2; i >= 0; i--) {
+              absolutePitches.push(absolutePitches[i]);
+            }
           }
         } else {
+          // Chord: existing logic
           const inst = context?.instrument || playbackInstrument;
           const currentFingering = inst === "guitar" ? guitarFingering : (inst === "bass" ? bassFingering : null);
 
@@ -63,24 +91,6 @@ export function useFretboardPlayback({
             const chordData = resolveChordSemitones(dictType);
             const semitones = chordData ? chordData.semitones : [0, 4, 7];
             absolutePitches = semitones.map(s => absNote + s);
-          }
-          
-          if (playbackInstrument === "guitar" || playbackInstrument === "bass") {
-            const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
-            
-            const path = calcActivePath({
-              contextualScaleAbsoluteValues: absolutePitches.map(p => ({ absoluteValue: p })),
-              dictType,
-              lastClickedContext: lastClickedContext || context || { instrument: playbackInstrument, stringIndex: 0, fret: 0 },
-              instrument: playbackInstrument,
-              strings: [...tuning].reverse(),
-              numFrets: 22
-            });
-
-            absolutePitches = absolutePitches.map((pitch, idx) => {
-               const match = path[idx];
-               return match || pitch;
-            });
           }
         }
 
@@ -101,9 +111,10 @@ export function useFretboardPlayback({
           return;
         }
 
+        // Scale: animate note by note
         const scaleObjs = absolutePitches
           .slice(0, Math.floor(absolutePitches.length / 2) + 1)
-          .map((p, i) => ({ absoluteValue: p, order: i + 1 }));
+          .map((p, i) => ({ absoluteValue: typeof p === 'object' ? p.absoluteValue : p, order: i + 1 }));
         setContextualScaleAbsoluteValues(scaleObjs);
         setLastClickedContext(context);
         setSinglePlayContext(null);
@@ -116,9 +127,8 @@ export function useFretboardPlayback({
             const noteNameParts = NOTES[pitch % 12];
             const noteName = `${noteNameParts.us}${Math.floor(pitch / 12)}`;
             playDictionaryNote(playbackInstrument, noteName, "8n");
-            
             setCurrentlyPlayingNotes([p]);
-            
+
             setTimeout(() => {
               if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
             }, Math.max(stepTime * 1000 - 50, 50));
@@ -126,21 +136,10 @@ export function useFretboardPlayback({
           }, index * stepTime * 1000);
         });
         return;
-      } else if (dictType?.includes("scale") && context?.instrument && setScaleAnchor) {
-        const isNoteInScale = activeNotes.some(n => n.value === absNote % 12);
-        if (isNoteInScale) {
-          setScaleAnchor(prev => {
-            if (prev && prev.stringIndex === context.stringIndex && prev.fret === context.fret) {
-              return null;
-            }
-            return {
-              stringIndex: context.stringIndex,
-              fret: context.fret,
-              absoluteValue: absNote
-            };
-          });
-        }
+
       }
+      // === NON-ROOT NOTE CLICKED: play single note only, do NOT change box ===
+      // (scaleAnchor is intentionally NOT set here — clicking non-root must not change the displayed box)
     }
 
     playDictionaryNote(playbackInstrument, noteName, "8n");

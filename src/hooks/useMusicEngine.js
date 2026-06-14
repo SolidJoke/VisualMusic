@@ -176,14 +176,24 @@ export function useMusicEngine({
     let rootVal, chordType;
     if (appMode === "dictionary" && dictType) {
       if (dictType?.includes("scale")) {
+        const tuning = activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD;
+        const avail = getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning);
+        if (avail.length === 0) return null;
+
+        let pos;
         if (selectedVoicingIndexGuitar !== null) {
-          const tuning = activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD;
-          const avail = getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning);
-          const found = avail.find(p => p.id === selectedVoicingIndexGuitar);
-          // Option-B: return scaleFrets directly, no toV2() conversion needed for scales
-          if (found?.scaleFrets) return { scaleFrets: found.scaleFrets, isScaleMode: true, startFret: found.startFret, endFret: found.endFret };
+          // Manual selection: use explicitly chosen position
+          pos = avail.find(p => p.id === selectedVoicingIndexGuitar);
         }
-        return null; 
+        if (!pos) {
+          // Auto-select: map dictOctave (-3..+3) linearly to position index (0..N-1)
+          // avail is sorted low fret → high fret; lower octave = lower position
+          const octaveNorm = Math.max(-3, Math.min(3, Number(dictOctave ?? 0)));
+          const posIdx = Math.round((octaveNorm + 3) / 6 * (avail.length - 1));
+          pos = avail[Math.max(0, Math.min(avail.length - 1, posIdx))];
+        }
+        if (pos?.scaleFrets) return { scaleFrets: pos.scaleFrets, isScaleMode: true, startFret: pos.startFret, endFret: pos.endFret };
+        return null;
       }
       if (dictType === "single_note") {
         if (selectedVoicingIndexGuitar !== null && dictActiveNotes?.length > 0) {
@@ -241,13 +251,20 @@ export function useMusicEngine({
     let rootVal, chordType;
     if (appMode === "dictionary" && dictType) {
       if (dictType?.includes("scale")) {
+        const tuning = activeBrick?.bassStrings || TUNINGS.BASS_STANDARD;
+        const avail = getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning);
+        if (avail.length === 0) return null;
+
+        let pos;
         if (selectedVoicingIndexBass !== null) {
-          const tuning = activeBrick?.bassStrings || TUNINGS.BASS_STANDARD;
-          const avail = getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning, notation);
-          const found = avail.find(p => String(p.id) === String(selectedVoicingIndexBass));
-          // Option-B: return scaleFrets directly, no toV2() conversion needed for scales
-          if (found?.scaleFrets) return { scaleFrets: found.scaleFrets, isScaleMode: true, startFret: found.startFret, endFret: found.endFret };
+          pos = avail.find(p => String(p.id) === String(selectedVoicingIndexBass));
         }
+        if (!pos) {
+          const octaveNorm = Math.max(-3, Math.min(3, Number(dictOctave ?? 0)));
+          const posIdx = Math.round((octaveNorm + 3) / 6 * (avail.length - 1));
+          pos = avail[Math.max(0, Math.min(avail.length - 1, posIdx))];
+        }
+        if (pos?.scaleFrets) return { scaleFrets: pos.scaleFrets, isScaleMode: true, startFret: pos.startFret, endFret: pos.endFret };
         return null;
       }
       if (dictType === "single_note") {

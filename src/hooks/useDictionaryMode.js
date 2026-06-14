@@ -20,16 +20,14 @@ export function useDictionaryMode() {
   const [scaleAnchor, setScaleAnchor] = useState(null); // { stringIndex, fret, absoluteValue }
   const [dictOctave, setDictOctave] = useState(0); // -3..+3 (offset relative to octave 4)
 
-  // Reset voicing indices when root or type changes.
-  // For scales: default to open position ('pos_0') so the fretboard shows a focused view immediately.
+  // Reset voicing indices when root, type, OR octave changes.
+  // For scales: auto-select best position for the chosen octave (null = auto).
   // For chords/notes: reset to null (auto-computed best fingering).
   useEffect(() => {
-    const isScale = dictType?.includes('scale');
-    const defaultIdx = isScale ? 'pos_0' : null;
-    setSelectedVoicingIndexGuitar(defaultIdx);
-    setSelectedVoicingIndexBass(defaultIdx);
+    setSelectedVoicingIndexGuitar(null);
+    setSelectedVoicingIndexBass(null);
     setScaleAnchor(null);
-  }, [dictRoot, dictType]);
+  }, [dictRoot, dictType, dictOctave]);
 
 
   const activeNotes = useMemo(() => {
