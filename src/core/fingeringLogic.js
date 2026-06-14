@@ -602,14 +602,15 @@ export function getAvailableScaleFingerings(rootValue, scaleType, instrument = '
     // Build exact list of frets in this position window that belong to the scale.
     // stringIndex = sIdx (0=high string), consistent with Fretboard convention.
     const scaleFrets = [];
-    const seenPitchClasses = new Set(); // deduplicate by pitch class, not by octave
+    const seenAbsolutePitches = new Set(); // deduplicate exact same pitch (e.g. B3 on G string vs B string)
 
     stringOpenValues.forEach((openVal, stringIndex) => {
       for (let fret = start; fret <= endFret; fret++) {
-        const noteValue = (openVal + fret) % 12;
-        if (semitoneSet.has(noteValue) && !seenPitchClasses.has(noteValue)) {
+        const absolutePitch = openVal + fret;
+        const noteValue = absolutePitch % 12;
+        if (semitoneSet.has(noteValue) && !seenAbsolutePitches.has(absolutePitch)) {
           scaleFrets.push({ stringIndex, fret, noteValue });
-          seenPitchClasses.add(noteValue);
+          seenAbsolutePitches.add(absolutePitch);
         }
       }
     });
