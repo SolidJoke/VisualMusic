@@ -30,12 +30,14 @@ Le **DAW Helper** intégré fournit un glossaire complet et des instructions pou
 
 ## 🛠️ Stack Technique
 
-*   **Core :** React 18 (Vite)
+*   **Core :** React 19 (Vite)
 *   **Audio :** Tone.js (Moteur d'échantillonnage + Synthèse soustractive)
 *   **Qualité :** Vitest (Tests unitaires), Puppeteer (Stress tests E2E)
 *   **Stabilité :** Script d'intégrité custom contre la corruption de code.
 
 ## 👨‍💻 Pour les Développeurs
+
+# Prérequis : Node.js 20+ | Navigateur avec Web Audio API (Chrome, Firefox, Safari récents)
 
 ```bash
 # Installation
@@ -44,11 +46,11 @@ npm install
 # Lancer en mode dev
 npm run dev
 
-# Vérifier l'intégrité du code (détection de caractères corrompus)
-npm run check
-
 # Lancer les tests unitaires
 npm test
+
+# Rapport de couverture HTML dans coverage/
+npm run test:coverage
 
 # Build de production
 npm run build
@@ -58,7 +60,7 @@ npm run build
 
 ## 🤝 Crédits & Contribution
 
-Créé et développé par **Gabriel Resende**.  
+Créé et développé par **Gabriel Resende**.
 Ce projet est open-source. N'hésitez pas à forker, ouvrir une PR ou soumettre une *issue* !
 
-☕ **[Soutenir le projet sur Ko-fi](https://ko-fi.com/gabrielgsdresende)**
+☕ **[Soutenir le projet sur Ko-fi](https://ko-fi.com/gabrielgsdresende)**
