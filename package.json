@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "screenshots": "node scripts/take_screenshots.js"
   },
   "dependencies": {
     "@tonaljs/tonal": "^4.10.0",
