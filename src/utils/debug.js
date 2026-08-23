@@ -3,7 +3,7 @@
  * Utility to track application state and diagnose crashes during development.
  */
 
-const DEBUG_ENABLED = true; // Set to false to silence all logs
+const DEBUG_ENABLED = import.meta.env.DEV; // Set to false to silence all logs
 
 export const log = (category, message, data = null) => {
   if (!DEBUG_ENABLED) return;
