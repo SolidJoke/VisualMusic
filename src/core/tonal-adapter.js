@@ -1,5 +1,5 @@
 import { Scale, Chord, Note } from '@tonaljs/tonal';
-import { NOTES } from './theory';
+import { NOTES } from './constants';
 
 const ROOT_MAP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 

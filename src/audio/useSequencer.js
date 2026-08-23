@@ -18,62 +18,15 @@ import {
   NOTES, 
   generateChordsFromNNS,
   resolveNnsToChordType,
-  resolveChordSemitones
+  resolveChordSemitones,
+  PITCH_MAP,
+  getBassNote,
+  getLeadingTone
 } from "../core/theory";
 
 const noteNamesArray = [
   "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
 ];
-
-export const PITCH_MAP = {
-  'R': 0,
-  '2': 2,
-  'b3': 3,
-  '3': 4,
-  '4': 5,
-  '#4': 6,
-  '5': 7,
-  'b6': 8,
-  '6': 9,
-  'b7': 10,
-  '7': 11,
-  '8va': 12,
-  'octave': 12
-};
-
-/**
- * Resolves a bass note based on the current chord root and a relative interval label.
- * @param {number} chordRootValue - MIDI value of the chord's root note (0-11)
- * @param {string} intervalLabel - Interval label from PITCH_MAP (e.g., 'R', '5', 'b3')
- * @param {number} baseOctave - Target octave for the bass (default 2)
- * @returns {{ name: string, midi: number }}
- */
-export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2, notation = 'us') {
-  const semitones = PITCH_MAP[intervalLabel] || 0;
-  const midiNote = (chordRootValue % 12) + semitones + (baseOctave + 1) * 12;
-  const noteName = notation === 'eu' ? NOTES[midiNote % 12].eu : NOTES[midiNote % 12].us;
-  return {
-    name: `${noteName}${Math.floor(midiNote / 12) - 1}`,
-    midi: midiNote
-  };
-}
-
-/**
- * Calculates a leading tone (usually 1 semitone below or above) to the next chord's root.
- * @param {number} nextChordRootValue - MIDI value of the next chord's root (0-11)
- * @param {number} baseOctave - Target octave
- * @returns {{ name: string, midi: number }}
- */
-export function getLeadingTone(nextChordRootValue, baseOctave = 2, notation = 'us') {
-  // Use a chromatic approach from below (most common in jazz/blues)
-  const targetMidi = (nextChordRootValue % 12) + (baseOctave + 1) * 12;
-  const leadingMidi = targetMidi - 1; 
-  const noteName = notation === 'eu' ? NOTES[leadingMidi % 12].eu : NOTES[leadingMidi % 12].us;
-  return {
-    name: `${noteName}${Math.floor(leadingMidi / 12) - 1}`,
-    midi: leadingMidi
-  };
-}
 
 export function useSequencer({
   appMode,
