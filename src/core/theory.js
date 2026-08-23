@@ -1,17 +1,11 @@
 // src/core/theory.js
 import { getScaleNotesAdapter, getChordNotesAbsoluteAdapter } from './tonal-adapter';
 import expertData from './expert_theory_data.json';
+import { NOTES, INSTRUMENT_MIDI_RANGES } from './constants.js';
+
+export { NOTES, INSTRUMENT_MIDI_RANGES } from './constants.js';
 
 export const getChordAbsolute = getChordNotesAbsoluteAdapter;
-
-export const NOTES = [
-    { value: 0, us: 'C', eu: 'Do' }, { value: 1, us: 'C#', eu: 'Do#' },
-    { value: 2, us: 'D', eu: 'Ré' }, { value: 3, us: 'D#', eu: 'Ré#' },
-    { value: 4, us: 'E', eu: 'Mi' }, { value: 5, us: 'F', eu: 'Fa' },
-    { value: 6, us: 'F#', eu: 'Fa#' }, { value: 7, us: 'G', eu: 'Sol' },
-    { value: 8, us: 'G#', eu: 'Sol#' }, { value: 9, us: 'A', eu: 'La' },
-    { value: 10, us: 'A#', eu: 'La#' }, { value: 11, us: 'B', eu: 'Si' }
-];
 
 /**
  * Returns technical metadata for a semitone interval relative to a root.
@@ -739,18 +733,6 @@ export function getLeadingTone(nextChordRootValue, baseOctave = 2, notation = 'u
 // ---------------------------------------------------------
 // OCTAVE RANGE UTILITIES
 // ---------------------------------------------------------
-
-/**
- * Physical MIDI note ranges for each instrument.
- * Guitar standard: E2 (40) → ~D6 (86) with 22 frets
- * Bass standard:   E1 (28) → ~B3 (59) with 22 frets
- * Piano:           A0 (21) → C8 (108)
- */
-export const INSTRUMENT_MIDI_RANGES = {
-  guitar: { min: 40, max: 86 },
-  bass:   { min: 28, max: 59 },
-  piano:  { min: 21, max: 108 },
-};
 
 /**
  * Computes the absolute MIDI note value for a root note at a given dictOctave offset.

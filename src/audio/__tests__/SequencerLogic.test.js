@@ -36,7 +36,7 @@ vi.mock("../AudioEngine", () => ({
   getGuitarSynth: vi.fn(() => ({ releaseAll: mockGuitarReleaseAll })),
 }));
 
-import { PITCH_MAP } from "../useSequencer";
+import { PITCH_MAP } from "../../core/theory";
 
 describe("SequencerLogic - PITCH_MAP", () => {
   it("maps 'R' to 0 semitones", () => {

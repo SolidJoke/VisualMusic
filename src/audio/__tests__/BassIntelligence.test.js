@@ -16,7 +16,7 @@ vi.mock("../AudioEngine", () => ({
   playDictionaryNote: vi.fn(),
 }));
 
-import { getBassNote, getLeadingTone } from "../useSequencer";
+import { getBassNote, getLeadingTone } from "../../core/theory";
 
 describe("Bass Intelligence - getBassNote", () => {
   it("resolves the root note correctly (C2)", () => {
