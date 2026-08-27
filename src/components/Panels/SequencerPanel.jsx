@@ -3,7 +3,7 @@ import PianoRoll from "../Sequencer/PianoRoll";
 import DAWHelper from "../Sequencer/DAWHelper";
 import { exportDrums, exportChords, exportBass, triggerMidiDownload } from "../../audio/MidiExporter";
 import { useAppContext } from '../../context/AppContext';
-import { useMusicEngineContext } from '../../context/MusicEngineContext';
+import { usePlaybackContext } from '../../context/PlaybackContext';
 
 const SequencerPanel = ({
   activeDrums,
@@ -16,7 +16,7 @@ const SequencerPanel = ({
   chordOctaveOffset,
 }) => {
   const { lang, txt } = useAppContext();
-  const { isPlaying, togglePlayback, handleBpmChange } = useMusicEngineContext();
+  const { isPlaying, togglePlayback, handleBpmChange } = usePlaybackContext();
 
   return (
     <div

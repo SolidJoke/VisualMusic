@@ -27,6 +27,7 @@ import HelpModal from "./components/Modals/HelpModal";
 import { log } from "./utils/debug";
 import { useAppContext } from "./context/AppContext";
 import { MusicEngineProvider } from "./context/MusicEngineContext";
+import { PlaybackProvider } from "./context/PlaybackContext";
 import {
   applyGenrePreset,
   masterAnalyser,
@@ -312,6 +313,14 @@ function AppDesktop() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [appMode, togglePlayback, setAppMode]);
 
+  const playbackContextValue = useMemo(() => ({
+    currentStep,
+    isPlaying,
+    currentBpm,
+    togglePlayback,
+    handleBpmChange
+  }), [currentStep, isPlaying, currentBpm, togglePlayback, handleBpmChange]);
+
   const musicEngineContextValue = useMemo(() => ({
     masterAnalyser,
     layoutMode,
@@ -322,8 +331,6 @@ function AppDesktop() {
     activeDrums,
     activeMelody,
     activeChordTrack,
-    currentStep,
-    currentBpm,
     activeBrick,
     activeProgression,
     chordOctaveOffset,
@@ -358,10 +365,7 @@ function AppDesktop() {
     setScaleAnchor,
     isGuitarOutOfRange,
     isBassOutOfRange,
-    highlightTargetNotes,
-    isPlaying,
-    togglePlayback,
-    handleBpmChange
+    highlightTargetNotes
   }), [
     layoutMode,
     activeTab,
@@ -371,8 +375,6 @@ function AppDesktop() {
     activeDrums,
     activeMelody,
     activeChordTrack,
-    currentStep,
-    currentBpm,
     activeBrick,
     activeProgression,
     chordOctaveOffset,
@@ -407,10 +409,7 @@ function AppDesktop() {
     setScaleAnchor,
     isGuitarOutOfRange,
     isBassOutOfRange,
-    highlightTargetNotes,
-    isPlaying,
-    togglePlayback,
-    handleBpmChange
+    highlightTargetNotes
   ]);
 
   return (
@@ -654,7 +653,9 @@ function AppDesktop() {
           {/* --- MAIN CONTENT AREA --- */}
           <div className="layout-col layout-center">
             <MusicEngineProvider value={musicEngineContextValue}>
-              <InstrumentView />
+              <PlaybackProvider value={playbackContextValue}>
+                <InstrumentView />
+              </PlaybackProvider>
             </MusicEngineProvider>
           </div>
         </div>

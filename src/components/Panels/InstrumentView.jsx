@@ -8,6 +8,7 @@ import PositionSelector from "../Layout/PositionSelector";
 
 import { useAppContext } from '../../context/AppContext';
 import { useMusicEngineContext } from "../../context/MusicEngineContext";
+import { usePlaybackContext } from "../../context/PlaybackContext";
 
 /**
  * InstrumentView Component
@@ -24,8 +25,6 @@ const InstrumentView = memo(function InstrumentView() {
     activeDrums,
     activeMelody,
     activeChordTrack,
-    currentStep,
-    currentBpm,
     activeBrick,
     activeProgression,
     chordOctaveOffset,
@@ -49,6 +48,8 @@ const InstrumentView = memo(function InstrumentView() {
     scaleAnchor = null,
     setScaleAnchor,
   } = useMusicEngineContext();
+
+  const { currentStep, currentBpm } = usePlaybackContext();
 
   const { txt } = useAppContext();
   const isScaleMode = (appMode === "dictionary" && dictType?.includes("scale"));
