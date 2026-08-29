@@ -4,7 +4,7 @@ import { useAudioScheduler } from '../useAudioScheduler';
 import * as AudioEngine from '../../audio/AudioEngine';
 
 vi.mock('../../audio/AudioEngine', () => ({
-  startAudioEngine: vi.fn(() => Promise.resolve()),
+  initAudio: vi.fn(() => Promise.resolve()),
   setMasterVolume: vi.fn(),
   playDictionaryNote: vi.fn(),
 }));
@@ -27,7 +27,7 @@ describe('useAudioScheduler', () => {
     expect(result.current.isCurrentSession(token2)).toBe(true);
   });
 
-  it('calls startAudioEngine and sets volume when ensureAudioReady is called and isAudioReady is false', async () => {
+  it('calls initAudio and sets volume when ensureAudioReady is called and isAudioReady is false', async () => {
     const setIsAudioReady = vi.fn();
     const { result } = renderHook(() => useAudioScheduler({
       isAudioReady: false,
@@ -39,12 +39,12 @@ describe('useAudioScheduler', () => {
       await result.current.ensureAudioReady();
     });
 
-    expect(AudioEngine.startAudioEngine).toHaveBeenCalled();
+    expect(AudioEngine.initAudio).toHaveBeenCalled();
     expect(AudioEngine.setMasterVolume).toHaveBeenCalledWith(-10);
     expect(setIsAudioReady).toHaveBeenCalledWith(true);
   });
 
-  it('does not call startAudioEngine if isAudioReady is true', async () => {
+  it('does not call initAudio if isAudioReady is true', async () => {
     vi.clearAllMocks();
     const setIsAudioReady = vi.fn();
     const { result } = renderHook(() => useAudioScheduler({
@@ -57,7 +57,7 @@ describe('useAudioScheduler', () => {
       await result.current.ensureAudioReady();
     });
 
-    expect(AudioEngine.startAudioEngine).not.toHaveBeenCalled();
+    expect(AudioEngine.initAudio).not.toHaveBeenCalled();
     expect(setIsAudioReady).not.toHaveBeenCalled();
   });
 });

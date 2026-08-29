@@ -54,9 +54,21 @@ export function setBpm(bpm) {
   Tone.Transport.bpm.value = bpm;
 }
 
-export async function startAudioEngine() {
+/**
+ * Note on Tone.js Lazy Loading:
+ * Full lazy loading of the Tone.js module is not easily applicable here
+ * because Tone objects (like Tone.Compressor, Tone.Analyser, Synths, etc.)
+ * are instantiated at the module level immediately on load.
+ * Refactoring this to be entirely lazy-loaded would require non-trivial
+ * structural changes across more than 5 files to resolve interdependencies.
+ *
+ * Instead, we use `initAudio()` below to asynchronously unlock the
+ * Web Audio Context via `Tone.start()` at the first interaction.
+ */
+export async function initAudio() {
   await Tone.start();
   Tone.context.lookAhead = 0.1; // 100ms buffer — réduit les glitches sous charge CPU
+  return Tone;
 }
 
 export function setMasterVolume(vol) {
