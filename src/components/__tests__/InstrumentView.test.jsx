@@ -4,6 +4,7 @@ import { renderToString } from "react-dom/server";
 import InstrumentView from "../Panels/InstrumentView";
 import { AppProvider } from "../../context/AppContext";
 import { MusicEngineProvider } from "../../context/MusicEngineContext";
+import { PlaybackProvider } from "../../context/PlaybackContext";
 
 // Mock des composants enfants
 vi.mock("../Visualizer/AudioVisualizer", () => ({
@@ -40,10 +41,17 @@ describe("InstrumentView Smoke Test", () => {
       availableBassFingerings: []
     };
 
+    const playbackValue = {
+      currentStep: 0,
+      currentBpm: 120
+    };
+
     const html = renderToString(
       <AppProvider>
         <MusicEngineProvider value={value}>
-          <InstrumentView />
+          <PlaybackProvider value={playbackValue}>
+            <InstrumentView />
+          </PlaybackProvider>
         </MusicEngineProvider>
       </AppProvider>
     );
@@ -70,10 +78,17 @@ describe("InstrumentView Smoke Test", () => {
       availableBassFingerings: []
     };
 
+    const playbackValue = {
+      currentStep: 0,
+      currentBpm: 120
+    };
+
     const html = renderToString(
       <AppProvider>
         <MusicEngineProvider value={value}>
-          <InstrumentView />
+          <PlaybackProvider value={playbackValue}>
+            <InstrumentView />
+          </PlaybackProvider>
         </MusicEngineProvider>
       </AppProvider>
     );
