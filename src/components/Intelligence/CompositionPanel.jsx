@@ -4,6 +4,7 @@ import { PhasingVisualizer } from "./PhasingVisualizer";
 import PolyrhythmAlgebraPanel from "./PolyrhythmAlgebraPanel";
 import ExportTargetPanel from "./ExportTargetPanel";
 
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import {
   generateEuclideanRhythm,
   EUCLIDEAN_PRESETS,
@@ -28,8 +29,8 @@ export default function CompositionPanel({
   txt = {}
 }) {
   // 1. Math State
-  const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
-  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 2560 && !isTestEnv);
+  const isWideScreen = useMediaQuery('(min-width: 2560px)');
+  const [isCollapsed, setIsCollapsed] = useState(!isWideScreen);
   const [subdivisions, setSubdivisions] = useState(16);
   const [pulses, setPulses] = useState(5);
   const [rotation, setRotation] = useState(0);
