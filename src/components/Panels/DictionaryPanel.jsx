@@ -1,14 +1,13 @@
 import React from "react";
 import { useAppContext } from "../../context/AppContext";
-import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord, resolveChordSemitones, resolveScaleSemitones, getChordShortName, resolveChordFromShortName, getRelatedScales, getAbsoluteChordSuggestions } from "../../core/theory";
-import VoicingAlert from "../Intelligence/VoicingAlert";
+import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord, resolveChordFromShortName, getRelatedScales } from "../../core/theory";
 import CustomSelect from "../Common/CustomSelect";
 import DualToggle from "../Common/DualToggle";
 import { log } from "../../utils/debug";
-import { getAvailableGuitarFingerings, getAvailableBassFingerings, getAvailableScaleFingerings, getAvailableSingleNoteFingerings } from "../../core/fingeringLogic";
 import HarmonicSeriesPanel from "./HarmonicSeriesPanel";
-import expertData from "../../core/expert_theory_data.json";
 import extendedData from "../../core/extendedTheoryData.json";
+import DictPositionPanel from './DictPositionPanel';
+import DictChordPanel from './DictChordPanel';
 
 // Map dictType keys to translation keys for scale names
 const SCALE_LABEL_MAP = {
@@ -294,124 +293,19 @@ export default function DictionaryPanel({
 
         {/* Sub-selector: Chord type */}
         {family === "chord" && (
-          <div className="select-group">
-            <CustomSelect
-              value={dictType}
-              onChange={(val) => setDictType(val)}
-              options={groupedChords.map((group) => ({
-                label: txt[group.labelKey] || group.category,
-                items: group.items.map((chordKey) => ({
-                  value: chordKey,
-                  label: txt[CHORD_LABEL_MAP[chordKey]] || CHORDS[chordKey]?.key || chordKey
-                }))
-              }))}
-              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
-            />
-
-            {/* Emotion/description card for chords */}
-            {emotionText && (
-              <div className="dict-panel__emotion-card">
-                <div className="dict-panel__emotion-title">
-                  🎭 {emotionText}
-                </div>
-                {descriptionText && (
-                  <div className="dict-panel__emotion-desc">
-                    {descriptionText}
-                  </div>
-                )}
-                {renderMoodProfile()}
-              </div>
-            )}
-
-            {/* Recommended Scales */}
-            {recommendedScales.length > 0 && (
-              <div className="dict-panel__recommended">
-                <div className="dict-panel__recommended-label">
-                  {txt.recommendedScales || "Recommended scales:"}
-                </div>
-                <div className="dict-panel__recommended-tags">
-                  {recommendedScales.map(scaleKey => (
-                    <button
-                      key={scaleKey}
-                      onClick={() => setDictType(scaleKey)}
-                      className="tag-btn"
-                    >
-                      {txt[SCALE_LABEL_MAP[scaleKey]] || scaleKey}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Substitutions */}
-            <div className="dict-panel__substitutions" style={{ marginTop: '1.2rem' }}>
-              <div className="field-label" style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
-                🔄 {txt.substitutions || "Substitutions"}
-              </div>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {(() => {
-                  const currentName = getChordShortName(dictRoot, dictType);
-                  if (!currentName) return <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>{txt.noSubAvailable || "No substitutions for this type"}</div>;
-                  
-                  const subs = [];
-                  const tritone = expertData.harmonicSubstitutions.tritone[currentName];
-                  if (tritone) subs.push({ type: 'Tritone', name: tritone });
-                  
-                  const relMinor = expertData.harmonicSubstitutions.relativeMinor[currentName];
-                  if (relMinor) subs.push({ type: 'Rel. Minor', name: relMinor });
-                  
-                  if (subs.length === 0) return <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>{txt.noSubAvailable || "None available"}</div>;
-                  
-                  return subs.map(sub => (
-                    <button
-                      key={sub.type}
-                      onClick={() => applySubstitution(sub.name)}
-                      className="tag-btn"
-                      style={{ fontSize: '0.75rem', padding: '6px 10px', borderRadius: '8px', background: 'rgba(212, 196, 168, 0.08)', border: '1px solid rgba(212, 196, 168, 0.15)' }}
-                    >
-                      <span style={{ opacity: 0.6, marginRight: '4px', textTransform: 'uppercase', fontSize: '0.65rem' }}>{sub.type}:</span>
-                      <span style={{ fontWeight: 'bold', color: 'var(--theme-primary)' }}>{sub.name}</span>
-                    </button>
-                  ));
-                })()}
-              </div>
-            </div>
-            
-            {/* Chord Suggestions (G.3.4) */}
-            {(() => {
-              const suggestions = getAbsoluteChordSuggestions(dictRoot, dictType);
-              if (suggestions.length === 0) return null;
-              
-              return (
-                <div className="dict-panel__substitutions" style={{ marginTop: '1.2rem' }}>
-                  <div className="field-label" style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
-                    💡 {txt.suggestedNextChords || "Accords Suivants Suggérés"}
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {suggestions.map((s, idx) => {
-                      const noteStr = notation === "us" ? NOTES[s.targetRoot].us : NOTES[s.targetRoot].eu;
-                      const chordStr = txt[CHORD_LABEL_MAP[s.targetType]] || CHORDS[s.targetType]?.key;
-                      
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => {
-                            setDictRoot(s.targetRoot);
-                            setDictType(s.targetType);
-                          }}
-                          className="tag-btn"
-                          title={s.reason}
-                          style={{ fontSize: '0.75rem', padding: '6px 10px', borderRadius: '8px', background: 'rgba(250, 204, 21, 0.1)', border: '1px solid rgba(250, 204, 21, 0.3)' }}
-                        >
-                          <span style={{ fontWeight: 'bold', color: '#facc15' }}>{noteStr} {chordStr}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
+          <DictChordPanel
+            dictType={dictType}
+            setDictType={setDictType}
+            dictRoot={dictRoot}
+            setDictRoot={setDictRoot}
+            uiTheme={uiTheme}
+            groupedChords={groupedChords}
+            emotionText={emotionText}
+            descriptionText={descriptionText}
+            moodProfile={moodProfile}
+            recommendedScales={recommendedScales}
+            applySubstitution={applySubstitution}
+          />
         )}
 
         {/* Sub-selector: Scale type with optgroups */}
@@ -470,128 +364,20 @@ export default function DictionaryPanel({
         )}
 
         {/* Shared Position Selectors (Guitar/Bass) for Chords and Scales */}
-        {(family === "chord" || family === "scale" || family === "note") && (
-          <div className="dict-panel__positions">
-            
-            {/* Voicing Alerts — non-blocking analysis banners */}
-            {(guitarFingering || bassFingering) && (
-              <div className="dict-panel__alerts" style={{ marginBottom: '1rem' }}>
-                {guitarFingering && (
-                  <VoicingAlert
-                    fingeringMap={guitarFingering?.fingeringMap}
-                    instrument="guitar"
-                    rootValue={Number(dictRoot)}
-                    intervals={(() => {
-                      if (family === "note") return [0];
-                      if (family === 'scale') return resolveScaleSemitones(dictType);
-                      const chordData = resolveChordSemitones(dictType);
-                      return chordData ? chordData.semitones : null;
-                    })()}
-                  />
-                )}
-                {bassFingering && (
-                  <VoicingAlert
-                    fingeringMap={bassFingering?.fingeringMap}
-                    instrument="bass"
-                    rootValue={Number(dictRoot)}
-                    intervals={(() => {
-                      if (family === "note") return [0];
-                      if (family === 'scale') return resolveScaleSemitones(dictType);
-                      const chordData = resolveChordSemitones(dictType);
-                      return chordData ? chordData.semitones : null;
-                    })()}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Guitar Position Selector */}
-            {dictType && (
-              <div className="dictionary-fretboard-options">
-                <div className="option-group">
-                  <label className="field-label">🎸 {txt.guitarPosition || "Guitar Position"}</label>
-                  <CustomSelect
-                    value={selectedVoicingIndexGuitar}
-                    onChange={setSelectedVoicingIndexGuitar}
-                    options={(() => {
-                      if (!dictType) return [];
-                      if (family === "note") {
-                        const midi = dictActiveNotes[0]?.absoluteValue;
-                        if (midi === undefined || midi === null) return [];
-                        const avail = getAvailableSingleNoteFingerings(midi, 'guitar', notation);
-                        return [
-                          { value: null, label: txt.voicingAllNotes || "All positions" },
-                          ...avail.map(p => ({ value: p.id, label: `${txt.posNoteString || "String"} ${p.stringName} - ${txt.posNoteFret || "Fret"} ${p.fret}` }))
-                        ];
-                      }
-                      if (family === "scale") {
-                        const avail = getAvailableScaleFingerings(dictRoot, dictType, 'guitar', ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], txt.voicingOf || 'of');
-                        return [
-                          { value: null, label: txt.voicingAllNotes || "All positions" },
-                          ...avail.map(p => ({ value: p.id, label: p.label }))
-                        ];
-                      }
-                      const avail = getAvailableGuitarFingerings(dictRoot, dictType, dictOctave, notation);
-                      return [
-                        { value: null, label: txt.voicingAllNotes || "All positions" },
-                        ...avail.map(p => ({ value: p.id, label: p.label }))
-                      ];
-                    })()}
-                    theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
-                  />
-                  {guitarFingering?.isOutOfRange && (
-                    <div className="range-warning" style={{ color: "#ff4d4d", fontSize: "0.8em", marginTop: "4px" }}>
-                      ⚠️ {txt.outOfRangeGuitar || "Guitar range exceeded"}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Bass Position Selector */}
-            {dictType && (
-              <div className="dictionary-fretboard-options" style={{ marginTop: "0.5rem" }}>
-                <div className="option-group">
-                  <label className="field-label">🎸 {txt.bassPosition || "Bass Position"}</label>
-                  <CustomSelect
-                    value={selectedVoicingIndexBass}
-                    onChange={setSelectedVoicingIndexBass}
-                    options={(() => {
-                      if (!dictType) return [];
-                      if (family === "note") {
-                        const midi = dictActiveNotes[0]?.absoluteValue;
-                        if (midi === undefined || midi === null) return [];
-                        const avail = getAvailableSingleNoteFingerings(midi, 'bass', notation);
-                        return [
-                          { value: null, label: txt.voicingAllNotes || "All positions" },
-                          ...avail.map(p => ({ value: p.id, label: `${txt.posNoteString || "String"} ${p.stringName} - ${txt.posNoteFret || "Fret"} ${p.fret}` }))
-                        ];
-                      }
-                      if (family === "scale") {
-                        const avail = getAvailableScaleFingerings(dictRoot, dictType, 'bass', ['E1', 'A1', 'D2', 'G2'], txt.voicingOf || 'of');
-                        return [
-                          { value: null, label: txt.voicingAllNotes || "All positions" },
-                          ...avail.map(p => ({ value: p.id, label: p.label }))
-                        ];
-                      }
-                      const avail = getAvailableBassFingerings(dictRoot, dictType, dictOctave, notation);
-                      return [
-                        { value: null, label: txt.voicingAllNotes || "All positions" },
-                        ...avail.map(p => ({ value: p.id, label: p.label }))
-                      ];
-                    })()}
-                    theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
-                  />
-                  {bassFingering?.isOutOfRange && (
-                    <div className="range-warning" style={{ color: "#ff4d4d", fontSize: "0.8em", marginTop: "4px" }}>
-                      ⚠️ {txt.outOfRangeBass || "Bass range exceeded"}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <DictPositionPanel
+          family={family}
+          dictType={dictType}
+          dictRoot={dictRoot}
+          dictOctave={dictOctave}
+          dictActiveNotes={dictActiveNotes}
+          guitarFingering={guitarFingering}
+          bassFingering={bassFingering}
+          uiTheme={uiTheme}
+          selectedVoicingIndexGuitar={selectedVoicingIndexGuitar}
+          setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
+          selectedVoicingIndexBass={selectedVoicingIndexBass}
+          setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
+        />
       </div>
     </div>
   );
