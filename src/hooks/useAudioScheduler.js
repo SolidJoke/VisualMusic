@@ -1,5 +1,5 @@
 import { useRef, useCallback } from "react";
-import { startAudioEngine, setMasterVolume } from "../audio/AudioEngine";
+import { initAudio, setMasterVolume } from "../audio/AudioEngine";
 
 export function useAudioScheduler({
   isAudioReady,
@@ -19,7 +19,7 @@ export function useAudioScheduler({
 
   const ensureAudioReady = useCallback(async () => {
     if (!isAudioReady) {
-      await startAudioEngine();
+      await initAudio();
       setMasterVolume(masterVolume);
       setIsAudioReady(true);
     }

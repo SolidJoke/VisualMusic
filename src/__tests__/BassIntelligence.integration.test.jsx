@@ -43,7 +43,7 @@ vi.mock('../audio/AudioEngine', () => ({
     playDictionaryNote: vi.fn(),
     masterAnalyser: {},
     setBpm: vi.fn(),
-    startAudioEngine: vi.fn(),
+    initAudio: vi.fn(),
     setMasterVolume: vi.fn(),
 }));
 
