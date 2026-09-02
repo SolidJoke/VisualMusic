@@ -1,0 +1,250 @@
+.btn-header-action {
+  min-width: var(--header-btn-width);
+  height: 42px;
+  background: rgba(20, 20, 20, 0.7);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+  backdrop-filter: var(--glass-blur);
+  padding: 0 15px;
+  box-sizing: border-box;
+}
+
+.btn-header-action:hover, .btn-header-action.active {
+  background: var(--glass-bg-hover);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px var(--accent-glow);
+}
+
+.btn-header-action, .btn-toggle, .btn-tab, .btn-segment {
+  border: 1px solid hsla(0, 0%, 100%, 0.2);
+  position: relative;
+}
+
+.btn-header-action::after, .btn-toggle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease;
+  pointer-events: none;
+}
+
+.btn-header-action:hover::after, .btn-toggle:hover::after {
+  border-color: var(--accent);
+}
+
+.btn-header-action, .btn-toggle, .btn-premium {
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-header-action.active, .btn-toggle--active, .btn-premium.active {
+  border-color: var(--accent);
+}
+
+.btn-header-action {
+  min-width: 160px; /* Uniform width for better alignment */
+  padding: 8px 16px;
+  background: var(--bg-surface-lighter, #2a2a2a);
+  border: 1px solid var(--border-default, #444);
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  /* Removed contain: paint to allow dropdowns to escape the sidebar stacking context */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.btn-header-action:hover {
+  background: var(--theme-primary);
+  color: #000;
+  border-color: #fff;
+}
+
+.btn-premium {
+  padding: 7px 16px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  backdrop-filter: var(--glass-blur);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-premium:hover {
+  background: var(--glass-bg-hover);
+  color: var(--text-primary);
+  border-color: var(--accent);
+  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px var(--accent-glow);
+}
+
+.btn-premium.active,
+.btn-premium[aria-pressed="true"] {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow), inset 0 0 10px var(--accent-glow);
+  border-width: 1.5px;
+}
+
+.app-mode-selector .btn-premium.active {
+  background: var(--color-mode-active) !important;
+  color: #ffffff !important;
+  border-color: var(--color-mode-active-border) !important;
+  box-shadow: 0 0 15px var(--color-mode-active-glow);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.btn-premium--full {
+  width: 100%;
+  margin-top: 1.75rem;
+}
+
+.btn-premium--listen {
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+}
+
+.btn-premium--listen.is-pressed {
+  transform: scale(0.96);
+}
+
+/* --- BOUTONS UTILITAIRES (Design System) --- */
+
+/* Bouton de sélection (notation, layout…) */
+.btn-toggle {
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: var(--radius-xl);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  font-weight: bold;
+  font-size: 13px;
+  background: var(--glass-bg);
+  color: var(--text-secondary);
+  transition: all var(--transition-normal);
+  backdrop-filter: var(--glass-blur);
+}
+.btn-toggle--active {
+  background-color: var(--theme-primary);
+  color: #000;
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+.btn-toggle:hover:not(.btn-toggle--active) {
+  border-color: var(--accent);
+  color: var(--text-bright);
+}
+
+/* Bouton d'onglet (tabs séquenceur) */
+.btn-tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: var(--radius-xl);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  font-weight: bold;
+  font-size: 13px;
+  background: var(--glass-bg);
+  color: var(--text-secondary);
+  transition: all var(--transition-normal);
+}
+.btn-tab--active {
+  background-color: var(--theme-primary);
+  color: #000;
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+/* Bouton segment (choix parmi N options côte à côte) */
+.btn-segment {
+  flex: 1;
+  padding: 10px 6px;
+  font-size: 14px;
+  font-weight: normal;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-md);
+  margin: 0 2px;
+}
+.btn-segment--active {
+  font-weight: bold;
+  background-color: var(--theme-primary);
+  color: #000;
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+
+/* Segment toggle (Note / Chord / Scale) */
+.btn-segment-group {
+  display: flex;
+  gap: 2px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+
+
+.btn-segment {
+  flex: 1;
+  padding: 0.6rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+
+.btn-segment:hover {
+  background: var(--glass-bg);
+  color: var(--text-primary);
+}
+
+
+.btn-segment--active {
+  background: var(--accent);
+  color: var(--bg-base);
+  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  position: relative;
+  z-index: 1;
+}
+
+
+.btn-segment--active::after {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  border: 1px solid var(--accent);
+  border-radius: calc(var(--radius-md) + 2px);
+  opacity: 0.5;
+  pointer-events: none;
+}

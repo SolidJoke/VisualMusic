@@ -1,4 +1,8 @@
 @import './styles/tokens.css';
+@import "./styles/animations.css";
+@import "./styles/buttons.css";
+@import "./styles/layout.css";
+@import "./styles/panels.css";
 
 :root {
   /* ─── HEADER ACTIONS ─── */
@@ -25,60 +29,14 @@
   z-index: 610;
 }
 
-.btn-header-action {
-  min-width: var(--header-btn-width);
-  height: 42px;
-  background: rgba(20, 20, 20, 0.7);
-  border: 1px solid var(--border-default);
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: all var(--transition-fast);
-  backdrop-filter: var(--glass-blur);
-  padding: 0 15px;
-  box-sizing: border-box;
-}
 
-.btn-header-action:hover, .btn-header-action.active {
-  background: var(--glass-bg-hover);
-  border-color: var(--accent);
-  color: var(--text-primary);
-  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px var(--accent-glow);
-}
 
 /* Distinct border for toggle buttons to show interactivity */
-.btn-header-action, .btn-toggle, .btn-tab, .btn-segment {
-  border: 1px solid hsla(0, 0%, 100%, 0.2);
-  position: relative;
-}
 
-.btn-header-action::after, .btn-toggle::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  border: 1px solid transparent;
-  transition: border-color 0.2s ease;
-  pointer-events: none;
-}
 
-.btn-header-action:hover::after, .btn-toggle:hover::after {
-  border-color: var(--accent);
-}
 
 /* Explicit border for better affordance on dark backgrounds */
-.btn-header-action, .btn-toggle, .btn-premium {
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-}
 
-.btn-header-action.active, .btn-toggle--active, .btn-premium.active {
-  border-color: var(--accent);
-}
 
 
 .btn-header-action--select {
@@ -206,82 +164,16 @@ body {
   transition: background-color var(--transition-slow);
 }
 
-.app-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0; /* Remove restrictive padding */
-  width: 100%;
-}
 
-/* --- ANIMATIONS --- */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 /* ═══════════════════════════════════════════════════════
    GLASSMORPHISM UTILITIES — Phase 9
 ═══════════════════════════════════════════════════════ */
 
-.glass-panel {
-  background: var(--lg-panel-bg, rgba(20, 20, 20, 0.7));
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  transition: border-color var(--transition-normal),
-              box-shadow var(--transition-normal);
-}
-.glass-panel:hover {
-  border-color: var(--accent);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px var(--accent-glow);
-}
 
 /* Boutons premium */
-.btn-premium {
-  padding: 7px 16px;
-  border-radius: var(--radius-md);
-  border: 1.5px solid var(--glass-border);
-  background: var(--glass-bg);
-  color: var(--text-secondary);
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  backdrop-filter: var(--glass-blur);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-.btn-premium:hover {
-  background: var(--glass-bg-hover);
-  color: var(--text-primary);
-  border-color: var(--accent);
-  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px var(--accent-glow);
-}
-.btn-premium.active,
-.btn-premium[aria-pressed="true"] {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 20px var(--accent-glow), inset 0 0 10px var(--accent-glow);
-  border-width: 1.5px;
-}
 
 /* Specific Style for App Mode Toggle (as requested) */
-.app-mode-selector .btn-premium.active {
-  background: var(--color-mode-active) !important;
-  color: #ffffff !important;
-  border-color: var(--color-mode-active-border) !important;
-  box-shadow: 0 0 15px var(--color-mode-active-glow);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
 
 
 /* Select / dropdown premium */
@@ -333,23 +225,9 @@ body {
   margin-bottom: 6px;
 }
 
-/* --- GRID LAYOUT --- */
-.main-layout-grid {
-  display: block; 
-  width: 100%;
-  max-width: 100%;
-  margin-top: 20px;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
 /* Padding is now handled by .app-container-inner */
 
 
-.layout-col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 0; /* Important pour overflow flex/grid */
-}
 
 h1 {
   color: var(--theme-primary);
@@ -358,29 +236,6 @@ h1 {
   text-align: center;
 }
 
-/* --- PANNEAUX ET BADGES --- */
-.dashboard-panel {
-  background-color: var(--bg-surface);
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  width: 100%;
-  max-width: 100%;
-  border: 1px solid var(--border-default);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-  transition: background-color 0.5s ease, border-color 0.5s ease;
-}
-
-.info-badge {
-  display: inline-block;
-  background-color: var(--bg-raised);
-  padding: 5px 12px;
-  border-radius: 4px;
-  margin: 5px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-muted);
-}
 
 .effects-text {
   font-style: italic;
@@ -398,7 +253,7 @@ h1 {
 
 /* Role Z-Index handling is now moved to component-specific CSS */
 
-.role-target, .piano-key.role-target, .note-marker.role-target { 
+.role-target, .piano-key.role-target, .note-marker.role-target {
   background: radial-gradient(circle at center, #fff, var(--role-target)) !important;
   box-shadow: 0 0 25px var(--role-target), 0 0 40px rgba(255,255,255,0.4) !important;
   color: #000 !important;
@@ -520,72 +375,6 @@ input[type="range"]::-webkit-slider-runnable-track {
     scrollbar-color: var(--theme-primary) var(--border-subtle);
 }
 
-/* --- BOUTONS UTILITAIRES (Design System) --- */
-
-/* Bouton de sélection (notation, layout…) */
-.btn-toggle {
-  padding: 8px 16px;
-  cursor: pointer;
-  border-radius: var(--radius-xl);
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-  font-weight: bold;
-  font-size: 13px;
-  background: var(--glass-bg);
-  color: var(--text-secondary);
-  transition: all var(--transition-normal);
-  backdrop-filter: var(--glass-blur);
-}
-.btn-toggle--active {
-  background-color: var(--theme-primary);
-  color: #000;
-  border-color: var(--theme-primary);
-  box-shadow: 0 0 15px var(--accent-glow);
-}
-.btn-toggle:hover:not(.btn-toggle--active) {
-  border-color: var(--accent);
-  color: var(--text-bright);
-}
-
-/* Bouton d'onglet (tabs séquenceur) */
-.btn-tab {
-  padding: 10px 20px;
-  cursor: pointer;
-  border-radius: var(--radius-xl);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  font-weight: bold;
-  font-size: 13px;
-  background: var(--glass-bg);
-  color: var(--text-secondary);
-  transition: all var(--transition-normal);
-}
-.btn-tab--active {
-  background-color: var(--theme-primary);
-  color: #000;
-  border-color: var(--theme-primary);
-  box-shadow: 0 0 15px var(--accent-glow);
-}
-
-/* Bouton segment (choix parmi N options côte à côte) */
-.btn-segment {
-  flex: 1;
-  padding: 10px 6px;
-  font-size: 14px;
-  font-weight: normal;
-  cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: var(--glass-bg);
-  color: var(--text-secondary);
-  transition: all var(--transition-fast);
-  border-radius: var(--radius-md);
-  margin: 0 2px;
-}
-.btn-segment--active {
-  font-weight: bold;
-  background-color: var(--theme-primary);
-  color: #000;
-  border-color: var(--theme-primary);
-  box-shadow: 0 0 15px var(--accent-glow);
-}
 
 /* Les hacks "transform: scale()" ont été supprimés ici ! */
 
@@ -648,11 +437,6 @@ input[type="range"]::-webkit-slider-runnable-track {
   gap: 0.5rem;
 }
 
-.select-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
 
 /* ═══════════════════════════════════════════════════════
    MODAL STYLES (Glassmorphism)
@@ -864,123 +648,18 @@ input[type="range"]::-webkit-slider-runnable-track {
    DICTIONARY PANEL
 ═══════════════════════════════════════════════════════ */
 
-.dict-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  text-align: center;
-  padding: 1.5rem; /* Harmonized padding with other dashboard panels */
-}
 
-.dict-panel__title {
-  margin: 0 0 1.5rem 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
 
-.dict-panel__controls {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  padding: 0 0.25rem; /* Subtle lateral padding for nested controls */
-}
 
 /* Field label */
-.field-label {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
-}
-
-/* Segment toggle (Note / Chord / Scale) */
-.btn-segment-group {
-  display: flex;
-  gap: 2px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: 1px solid var(--glass-border);
-}
-
-.btn-segment {
-  flex: 1;
-  padding: 0.6rem 0.5rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: transparent;
-  color: var(--text-secondary);
-  border: none;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-segment:hover {
-  background: var(--glass-bg);
-  color: var(--text-primary);
-}
-
-.btn-segment--active {
-  background: var(--accent);
-  color: var(--bg-base);
-  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-md);
-  position: relative;
-  z-index: 1;
-}
-
-.btn-segment--active::after {
-  content: '';
-  position: absolute;
-  top: -2px; left: -2px; right: -2px; bottom: -2px;
-  border: 1px solid var(--accent);
-  border-radius: calc(var(--radius-md) + 2px);
-  opacity: 0.5;
-  pointer-events: none;
-}
 
 /* Emotion card */
-.dict-panel__emotion-card {
-  margin-top: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--accent-dim);
-  border-radius: var(--radius-md);
-  border-left: 3px solid var(--accent);
-  text-align: left;
-}
 
-.dict-panel__emotion-title {
-  font-size: 0.85rem;
-  color: var(--accent);
-  font-weight: 600;
-  margin-bottom: 0.3rem;
-}
 
-.dict-panel__emotion-desc {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
 
 /* Recommended scales */
-.dict-panel__recommended {
-  margin-top: 1rem;
-  text-align: left;
-}
 
-.dict-panel__recommended-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-}
 
-.dict-panel__recommended-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
 
 /* Tag pills for recommended scales */
 .tag-btn {
@@ -1000,19 +679,8 @@ input[type="range"]::-webkit-slider-runnable-track {
 }
 
 /* Listen button variants */
-.btn-premium--full {
-  width: 100%;
-  margin-top: 1.75rem;
-}
 
-.btn-premium--listen {
-  font-size: 1rem;
-  letter-spacing: 0.05em;
-}
 
-.btn-premium--listen.is-pressed {
-  transform: scale(0.96);
-}
 
 /* Accent text utility */
 .accent-text {
@@ -1023,25 +691,7 @@ input[type="range"]::-webkit-slider-runnable-track {
    APP ROOT & LAYOUT CLASSES (EPIC-01-B)
 ═══════════════════════════════════════════════════════ */
 
-.app-container-inner {
-  max-width: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  position: relative;
-  transition: padding-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
-@media (min-width: 1024px) {
-  body.sidebar-open .app-container-inner {
-    padding-left: 180px;
-  }
-  body.sidebar-closed .app-container-inner {
-    padding-left: 60px; /* Reduced to minimize unused space */
-  }
-}
 
 .app-main-content {
   flex: 1;
@@ -1055,29 +705,7 @@ input[type="range"]::-webkit-slider-runnable-track {
   align-items: center;
 }
 
-.btn-header-action {
-  min-width: 160px; /* Uniform width for better alignment */
-  padding: 8px 16px;
-  background: var(--bg-surface-lighter, #2a2a2a);
-  border: 1px solid var(--border-default, #444);
-  border-radius: 4px;
-  color: #ccc;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-  /* Removed contain: paint to allow dropdowns to escape the sidebar stacking context */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
 
-.btn-header-action:hover {
-  background: var(--theme-primary);
-  color: #000;
-  border-color: #fff;
-}
 
 .btn-header-action--select {
   padding: 0;
@@ -1207,11 +835,11 @@ input[type="range"]::-webkit-slider-runnable-track {
 
 /* Tactile Touch Targets: guarantee 44px min-height on small screens */
 @media (max-width: 768px) {
-  button, 
-  select, 
-  .btn-premium, 
-  .btn-segment, 
-  .btn-header-action, 
+  button,
+  select,
+  .btn-premium,
+  .btn-segment,
+  .btn-header-action,
   .select-lang,
   .custom-select__trigger,
   .btn-toggle,
@@ -1223,14 +851,15 @@ input[type="range"]::-webkit-slider-runnable-track {
     padding-top: 10px !important;
     padding-bottom: 10px !important;
   }
-  
+
   /* Select inputs internal padding adjustments */
   select {
     padding-top: 8px !important;
     padding-bottom: 8px !important;
   }
 }
-/* Collapse UI for 1440px */
+
+/* Collapse UI for 1440px */
 @media (max-width: 2559px) {
   .panel__header {
     cursor: pointer;
