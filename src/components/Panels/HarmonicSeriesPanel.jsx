@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { useAppContext } from "../../context/AppContext";
 import { getHarmonicSeries, midiToFreq } from "../../core/acousticEngine";
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 /**
  * Displays the harmonic series for a given root note and octave.
@@ -14,8 +15,8 @@ import { getHarmonicSeries, midiToFreq } from "../../core/acousticEngine";
  */
 export default function HarmonicSeriesPanel({ dictRoot, dictOctave }) {
   const { txt, notation } = useAppContext();
-  const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
-  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 2560 && !isTestEnv);
+  const isWideScreen = useMediaQuery('(min-width: 2560px)');
+  const [isCollapsed, setIsCollapsed] = useState(!isWideScreen);
 
   const harmonics = getHarmonicSeries(
     midiToFreq(48 + Number(dictRoot) + dictOctave * 12),

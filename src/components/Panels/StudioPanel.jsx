@@ -9,6 +9,7 @@ import CustomSelect from '../Common/CustomSelect';
 import { log } from '../../utils/debug';
 import extendedTheoryData from '../../core/extendedTheoryData.json';
 import InfoTooltip from '../Common/InfoTooltip';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 const StudioPanel = ({
   currentBrickIndex,
@@ -42,8 +43,8 @@ const StudioPanel = ({
 
   const { lang, txt, notation, state } = useAppContext();
   const { uiTheme } = state;
-  const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
-  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth < 2560 && !isTestEnv);
+  const isWideScreen = useMediaQuery('(min-width: 2560px)');
+  const [isCollapsed, setIsCollapsed] = useState(!isWideScreen);
   
   if (!activeBrick) return null;
 
