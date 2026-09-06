@@ -6,6 +6,7 @@
 /**
  * Chromatic note definitions with enharmonic equivalents.
  * Used by theory.js, tonal-adapter.js, and audio modules.
+ * @constant
  */
 export const NOTES = [
     { value: 0, us: 'C', eu: 'Do' }, { value: 1, us: 'C#', eu: 'Do#' },
@@ -21,6 +22,7 @@ export const NOTES = [
  * Guitar standard: E2 (40) → ~D6 (86) with 22 frets
  * Bass standard:   E1 (28) → ~B3 (59) with 22 frets
  * Piano:           A0 (21) → C8 (108)
+ * @constant
  */
 export const INSTRUMENT_MIDI_RANGES = {
   guitar: { min: 40, max: 86 },

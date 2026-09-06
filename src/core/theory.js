@@ -5,6 +5,13 @@ import { NOTES, INSTRUMENT_MIDI_RANGES } from './constants.js';
 
 export { NOTES, INSTRUMENT_MIDI_RANGES } from './constants.js';
 
+/**
+ * Converts a chord definition to absolute MIDI pitches via tonal-adapter.
+ * @param {number} rootValue - Chromatic root value
+ * @param {string} dictType - Chord type dictionary key
+ * @param {number} [octave=4] - Base octave
+ * @returns {number[]} Array of absolute MIDI pitches
+ */
 export const getChordAbsolute = getChordNotesAbsoluteAdapter;
 
 /**
@@ -44,7 +51,11 @@ export const getIntervalMetadata = (semitones) => {
     return meta;
 };
 
-// NEW: Converts a note name (e.g., "C4") to an absolute numeric value (MIDI note number).
+/**
+ * Converts a note name (e.g., "C4") to an absolute numeric value (MIDI note number).
+ * @param {string|number} noteName - Note name to convert
+ * @returns {number|null} Absolute MIDI note number or null if not found
+ */
 export const getAbsoluteNoteValue = (noteName) => {
     const noteStr = String(noteName);
     const letter = noteStr.replace(/[0-9#b]/g, '');
@@ -70,6 +81,11 @@ export const getAbsoluteNoteValue = (noteName) => {
 
 // MODES object has been merged into SCALES
 
+/**
+ * Resolves an NNS string to a chord type dictionary key.
+ * @param {string} nns - Nashville Number System string
+ * @returns {string} Chord type dictionary key
+ */
 export const resolveNnsToChordType = (nns) => {
     if (!nns) return 'chord_major';
     if (nns.includes('maj7')) return 'chord_maj7';
@@ -116,10 +132,23 @@ export const FINGERING_SHAPES = {
     }
 };
 
+/**
+ * Retrieves the notes of a scale.
+ * @param {number} rootValue - Chromatic root value
+ * @param {string} scaleKey - Scale dictionary key
+ * @returns {Object[]} Array of scale note objects
+ */
 export function getScaleNotes(rootValue, scaleKey) {
     return getScaleNotesAdapter(rootValue, scaleKey);
 }
 
+/**
+ * Generates chords based on NNS degrees.
+ * @param {number} rootValue - Chromatic root value
+ * @param {string} scaleKey - Scale dictionary key
+ * @param {string[]} nnsArray - Array of NNS strings
+ * @returns {Object[]} Array of chord objects containing nns, names, root note and role
+ */
 export function generateChordsFromNNS(rootValue, scaleKey, nnsArray) {
     const scaleNotes = getScaleNotes(rootValue, scaleKey);
     return nnsArray.map(nnsStr => {
@@ -179,6 +208,15 @@ export function generateChordsFromNNS(rootValue, scaleKey, nnsArray) {
     });
 }
 
+/**
+ * Legacy 3-note wrapper for getClosestInversionN.
+ * @param {number[]|null} prevNotes - Previous chord's absolute MIDI pitches
+ * @param {number} root - Chromatic root value (0-11)
+ * @param {number} thirdInterval - Third interval semitones
+ * @param {number} fifthInterval - Fifth interval semitones
+ * @param {number} [octaveOffset=0] - Offset from default octave
+ * @returns {number[]} Array of absolute MIDI pitches
+ */
 export function getClosestInversion(prevNotes, root, thirdInterval, fifthInterval, octaveOffset = 0) {
     // Legacy 3-note wrapper — delegates to the generalized version
     const semitones = [0, thirdInterval, fifthInterval];
@@ -288,6 +326,11 @@ export const SCALES = {
   scale_chromatic: makeScale('scale_chromatic', "symmetric", [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
 };
 
+/**
+ * Resolves a scale key to its scale data object.
+ * @param {string} dictType - Scale dictionary key
+ * @returns {Object|null} Scale data object or null if not found
+ */
 export const resolveScaleIntervals = (dictType) => {
     if (!dictType || typeof dictType !== 'string' || !dictType.startsWith('scale_')) return null;
     return SCALES[dictType] || null;
@@ -311,6 +354,12 @@ export const resolveScaleSemitones = (dictType) => {
     return semitones;
 };
 
+/**
+ * Gets related scales (relative and parallel) for a given scale.
+ * @param {number} rootValue - Chromatic root value
+ * @param {string} scaleKey - Scale dictionary key
+ * @returns {Object[]} Array of related scale objects
+ */
 export const getRelatedScales = (rootValue, scaleKey) => {
     const root = Number(rootValue);
     const related = [];
@@ -441,7 +490,7 @@ export const getChordShortName = (rootValue, chordType) => {
 /**
  * Resolves a short name (e.g. "C7", "Am") back to rootValue and dictType.
  * @param {string} shortName 
- * @returns {object|null} { rootValue, dictType }
+ * @returns {Object|null} { rootValue, dictType }
  */
 export const resolveChordFromShortName = (shortName) => {
     if (!shortName) return null;
@@ -503,6 +552,12 @@ export const getChordNotesAbsolute = (rootValue, semitones, octave = 4) => {
     return semitones.map(s => base + rootValue + s);
 };
 
+/**
+ * Generates an array of generic scale notes based on intervals.
+ * @param {number} rootValue - Chromatic root value
+ * @param {number[]} intervals - Array of interval semitones
+ * @returns {Object[]} Array of note objects
+ */
 export const getScaleNotesGeneric = (rootValue, intervals) => {
     if (!intervals) return [];
     let currentNotes = [];
@@ -516,6 +571,11 @@ export const getScaleNotesGeneric = (rootValue, intervals) => {
     return currentNotes;
 };
 
+/**
+ * Converts a Nashville Number System string to Roman numeral notation.
+ * @param {string} nnsStr - Nashville Number System string
+ * @returns {string} Roman numeral notation string
+ */
 export const toRoman = (nnsStr) => {
   if (!nnsStr || typeof nnsStr !== 'string') return "";
   const map = { 1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI", 7: "VII" };
@@ -710,6 +770,14 @@ export const PITCH_MAP = {
   'octave': 12
 };
 
+/**
+ * Calculates a bass note based on a chord's root value and interval label.
+ * @param {number} chordRootValue - Chromatic root value of the chord
+ * @param {string} [intervalLabel='R'] - Interval label from PITCH_MAP
+ * @param {number} [baseOctave=2] - Base octave for the bass note
+ * @param {string} [notation='us'] - Note naming notation ('us' or 'eu')
+ * @returns {Object} Object containing the note name and absolute MIDI value
+ */
 export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2, notation = 'us') {
   const semitones = PITCH_MAP[intervalLabel] || 0;
   const midiNote = (chordRootValue % 12) + semitones + (baseOctave + 1) * 12;
@@ -720,6 +788,13 @@ export function getBassNote(chordRootValue, intervalLabel = 'R', baseOctave = 2,
   };
 }
 
+/**
+ * Calculates a leading tone note for a target chord.
+ * @param {number} nextChordRootValue - Chromatic root value of the target chord
+ * @param {number} [baseOctave=2] - Base octave for the leading tone
+ * @param {string} [notation='us'] - Note naming notation ('us' or 'eu')
+ * @returns {Object} Object containing the note name and absolute MIDI value
+ */
 export function getLeadingTone(nextChordRootValue, baseOctave = 2, notation = 'us') {
   const targetMidi = (nextChordRootValue % 12) + (baseOctave + 1) * 12;
   const leadingMidi = targetMidi - 1; 

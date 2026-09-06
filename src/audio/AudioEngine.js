@@ -50,6 +50,11 @@ export function setInstrumentVolume(instrument, dbValue) {
   }
 }
 
+/**
+ * Sets the master BPM of the audio engine transport.
+ * @param {number} bpm - The BPM to set
+ * @returns {void}
+ */
 export function setBpm(bpm) {
   Tone.Transport.bpm.value = bpm;
 }
@@ -71,6 +76,11 @@ export async function initAudio() {
   return Tone;
 }
 
+/**
+ * Sets the master output volume in decibels.
+ * @param {number} vol - Volume in dB
+ * @returns {void}
+ */
 export function setMasterVolume(vol) {
   Tone.Destination.volume.rampTo(vol, 0.05);
 }
@@ -98,6 +108,11 @@ const guitarFallback = new Tone.PolySynth(Tone.FMSynth, {
 let guitarSampler = null;
 let guitarSamplerReady = false;
 
+/**
+ * Initializes the guitar sampler.
+ * @param {Function} [onReady] - Callback function executed when sampler is ready or fails
+ * @returns {void}
+ */
 export function initGuitarSampler(onReady) {
   if (guitarSampler) return;
 
@@ -128,6 +143,10 @@ export function initGuitarSampler(onReady) {
   }
 }
 
+/**
+ * Returns the currently active guitar synth (sampler if ready, otherwise fallback).
+ * @returns {Object} A Tone.js synth or sampler instance
+ */
 export function getGuitarSynth() {
   return guitarSamplerReady && guitarSampler ? guitarSampler : guitarFallback;
 }
