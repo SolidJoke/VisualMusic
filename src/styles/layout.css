@@ -1,0 +1,43 @@
+/* --- GRID LAYOUT --- */
+.main-layout-grid {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 20px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.layout-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0; /* Important pour overflow flex/grid */
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0; /* Remove restrictive padding */
+  width: 100%;
+}
+
+.app-container-inner {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  transition: padding-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 1024px) {
+  body.sidebar-open .app-container-inner {
+    padding-left: 180px;
+  }
+  body.sidebar-closed .app-container-inner {
+    padding-left: 60px; /* Reduced to minimize unused space */
+  }
+}
