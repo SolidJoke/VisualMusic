@@ -20,7 +20,6 @@ import { useDictionaryMode } from "./hooks/useDictionaryMode";
 import { usePlaybackHandlers } from "./hooks/usePlaybackHandlers";
 import { useMusicEngine } from "./hooks/useMusicEngine";
 import useDebugExport from "./hooks/useDebugExport";
-import { translations } from "./i18n/translations";
 import AboutModal from "./components/Modals/AboutModal";
 import TheoryModal from "./components/Modals/TheoryModal";
 import HelpModal from "./components/Modals/HelpModal";
@@ -34,7 +33,8 @@ import {
   setBpm,
 } from "./audio/AudioEngine";
 import { useMediaQuery } from "./hooks/useMediaQuery";
-
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import AppHeader from './components/Layout/AppHeader';
 
 function AppDesktop() {
   const { lang, txt, notation, state, dispatch } = useAppContext();
@@ -53,31 +53,31 @@ function AppDesktop() {
     useShellVoicings
   } = state;
 
-  const setAppMode = (newMode) => {
+  const setAppMode = useCallback((newMode) => {
     log("app", `Switching appMode to ${newMode}`);
     dispatch({ type: 'SET_APP_MODE', payload: newMode });
-  };
+  }, [dispatch]);
   
   useEffect(() => {
     document.body.className = `theme-${uiTheme}`;
   }, [uiTheme]);
 
-  const setLang = (newLang) => dispatch({ type: 'SET_LANG', payload: newLang });
-  const setNotation = (newNotation) => dispatch({ type: 'SET_NOTATION', payload: newNotation });
-  const setShowAbout = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showAbout', value: val } });
-  const setShowTheory = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showTheory', value: val } });
-  const setShowFingering = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingering', value: val } });
-  const setFingeringMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'fingeringMode', value: val } });
-  const setPlaybackInstrument = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'playbackInstrument', value: val } });
-  const setLayoutMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'layoutMode', value: val } });
+  const setLang = useCallback((newLang) => dispatch({ type: 'SET_LANG', payload: newLang }), [dispatch]);
+  const setNotation = useCallback((newNotation) => dispatch({ type: 'SET_NOTATION', payload: newNotation }), [dispatch]);
+  const setShowAbout = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showAbout', value: val } }), [dispatch]);
+  const setShowTheory = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showTheory', value: val } }), [dispatch]);
+  const setShowFingering = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingering', value: val } }), [dispatch]);
+  const setFingeringMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'fingeringMode', value: val } }), [dispatch]);
+  const setPlaybackInstrument = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'playbackInstrument', value: val } }), [dispatch]);
+  const setLayoutMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'layoutMode', value: val } }), [dispatch]);
   // Memoized: passed to InstrumentView (memoized), stable ref avoids unnecessary re-renders
   const setActiveTab = useCallback(
     (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'activeTab', value: val } }),
     [dispatch]
   );
-  const setChordDisplayMode = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'chordDisplayMode', value: val } });
-  const setUiTheme = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } });
-  const setUseShellVoicings = (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'useShellVoicings', value: val } });
+  const setChordDisplayMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'chordDisplayMode', value: val } }), [dispatch]);
+  const setUiTheme = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } }), [dispatch]);
+  const setUseShellVoicings = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'useShellVoicings', value: val } }), [dispatch]);
 
 
   const {
@@ -294,24 +294,7 @@ function AppDesktop() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Keyboard shortcuts: Space = Play/Stop, S = Studio, D = Dictionary
-  // Guard: disabled when focus is inside an input/select/textarea
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const tag = document.activeElement?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.key === ' ' || e.code === 'Space') {
-        e.preventDefault();
-        if (appMode !== 'dictionary') togglePlayback();
-      } else if (e.key === 's' || e.key === 'S') {
-        setAppMode('studio');
-      } else if (e.key === 'd' || e.key === 'D') {
-        setAppMode('dictionary');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [appMode, togglePlayback, setAppMode]);
+  useKeyboardShortcuts({ appMode, togglePlayback, setAppMode });
 
   const playbackContextValue = useMemo(() => ({
     currentStep,
@@ -420,65 +403,17 @@ function AppDesktop() {
       <TheoryModal isOpen={showTheory} onClose={() => setShowTheory(false)} txt={txt} />
 
       <div className="app-main-content">
-        <div className="app-header">
-          <h1 className="app-title">{txt.title}</h1>
-
-          <div className="app-header-actions">
-            <button 
-              onClick={() => {
-                const next = uiTheme === 'vintage' ? 'modern' : 'vintage';
-                log("app", `Switching theme to ${next}`);
-                setUiTheme(next);
-              }}
-              className="btn-header-action"
-            >
-              {uiTheme === 'vintage' ? '✨ Neon Monolith' : '🌿 Zen Studio'}
-            </button>
-
-            <button
-              className="btn-header-action"
-              onClick={() => setShowHelp(true)}
-              aria-label={txt.helpModal?.title || 'Aide'}
-            >
-              ❓ {txt.helpModal?.title || "Guide"}
-            </button>
-
-            <button
-              onClick={() => setShowTheory(true)}
-              className="btn-header-action"
-            >
-              {txt.guideTheoryBtn}
-            </button>
-
-            <CustomSelect
-              options={Object.keys(translations).map(l => ({
-                value: l,
-                label: translations[l].langLabel || l.toUpperCase()
-              }))}
-              value={lang}
-              onChange={setLang}
-              theme={uiTheme}
-              className="header-lang-select"
-            />
-
-            <button
-              onClick={() => setShowAbout(true)}
-              className="btn-header-action"
-            >
-              {txt.about}
-            </button>
-
-            {import.meta.env.DEV && (
-              <button
-                onClick={exportDebugSnapshot}
-                className="btn-header-action"
-                title="Export debug state as JSON"
-              >
-                🐛 Debug
-              </button>
-            )}
-          </div>
-        </div>
+        <AppHeader
+          txt={txt}
+          uiTheme={uiTheme}
+          setUiTheme={setUiTheme}
+          lang={lang}
+          setLang={setLang}
+          setShowHelp={setShowHelp}
+          setShowAbout={setShowAbout}
+          setShowTheory={setShowTheory}
+          exportDebugSnapshot={exportDebugSnapshot}
+        />
 
         <div className={`main-layout-grid ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
           {(() => {
