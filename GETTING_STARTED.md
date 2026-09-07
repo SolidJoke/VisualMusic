@@ -59,7 +59,7 @@ npm run test:watch  # Watch mode
 npm run test:coverage  # Coverage report in coverage/
 ```
 
-The test suite contains 828 tests. All tests must pass before submitting a PR.
+The test suite contains 823 tests. All tests must pass before submitting a PR.
 
 ## Building for Production
 

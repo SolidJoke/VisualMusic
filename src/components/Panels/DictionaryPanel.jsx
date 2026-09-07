@@ -8,46 +8,7 @@ import HarmonicSeriesPanel from "./HarmonicSeriesPanel";
 import extendedData from "../../core/extendedTheoryData.json";
 import DictPositionPanel from './DictPositionPanel';
 import DictChordPanel from './DictChordPanel';
-
-// Map dictType keys to translation keys for scale names
-const SCALE_LABEL_MAP = {
-  scale_major: "scaleMaj",
-  scale_minor: "scaleMin",
-  scale_harmonic_minor: "scaleHarmonicMinor",
-  scale_melodic_minor: "scaleMelodicMinor",
-  scale_dorian: "scaleDorian",
-  scale_phrygian: "scalePhrygian",
-  scale_lydian: "scaleLydian",
-  scale_mixolydian: "scaleMixolydian",
-  scale_locrian: "scaleLocrian",
-  scale_phrygian_dominant: "scalePhrygianDom",
-  scale_pentatonic_major: "scalePentaMaj",
-  scale_pentatonic_minor: "scalePentaMin",
-  scale_blues_minor: "scaleBluesMin",
-  scale_blues_major: "scaleBluesMaj",
-  scale_hirajoshi: "scaleHirajoshi",
-  scale_hungarian_minor: "scaleHungarianMin",
-  scale_whole_tone: "scaleWholeTone",
-  scale_chromatic: "scaleChromatic",
-};
-
-// Map chord dictType keys to translation keys
-const CHORD_LABEL_MAP = {
-  chord_major: "chordMaj",
-  chord_minor: "chordMin",
-  chord_dim: "chordDim",
-  chord_aug: "chordAug",
-  chord_sus2: "chordSus2",
-  chord_sus4: "chordSus4",
-  chord_maj7: "chordMaj7",
-  chord_m7: "chordM7",
-  chord_7: "chord7",
-  chord_dim7: "chordDim7",
-  chord_m7b5: "chordM7b5",
-  chord_add9: "chordAdd9",
-  chord_9: "chord9",
-  chord_m9: "chordM9",
-};
+import { SCALE_LABEL_MAP } from '../../core/constants';
 
 // Group scales by category, sorted by category order
 function getGroupedScales() {
