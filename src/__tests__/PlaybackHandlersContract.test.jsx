@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import React from "react";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import { AppProvider } from "../context/AppContext";
 import AppDesktop from "../AppDesktop";
 
@@ -98,42 +95,10 @@ describe("usePlaybackHandlers ← AppDesktop contract", () => {
     expect(uncaught).toEqual([]);
   });
 
-  it("AppDesktop fournit toutes les options que le hook déclare sans valeur par défaut", () => {
-    // The project is ESM ("type": "module"), so __dirname does not exist —
-    // vitest happens to shim it, but eslint is right to reject it.
-    const here = path.dirname(fileURLToPath(import.meta.url));
-    const root = path.resolve(here, "..");
-    const hookSrc = fs.readFileSync(
-      path.join(root, "hooks", "usePlaybackHandlers.js"),
-      "utf-8"
-    );
-    const callerSrc = fs.readFileSync(path.join(root, "AppDesktop.jsx"), "utf-8");
-
-    const signature = hookSrc
-      .slice(hookSrc.indexOf("export function usePlaybackHandlers({"))
-      .split("}) {")[0];
-
-    const required = signature
-      .split("\n")
-      .slice(1)
-      .map((l) => l.trim().replace(/,$/, ""))
-      .filter(Boolean)
-      // options carrying a default are allowed to be omitted
-      .filter((l) => !l.includes("="));
-
-    const call = callerSrc
-      .slice(callerSrc.indexOf("} = usePlaybackHandlers({"))
-      .split("});")[0];
-
-    const supplied = new Set(
-      call
-        .split("\n")
-        .slice(1)
-        .map((l) => l.trim().replace(/,$/, "").split(":")[0].trim())
-        .filter(Boolean)
-    );
-
-    const missing = required.filter((name) => !supplied.has(name));
-    expect(missing).toEqual([]);
-  });
+  // The structural half of this file — "AppDesktop supplies every option
+  // usePlaybackHandlers declares" — has moved to HookOptionContracts.test.js,
+  // which applies the same check to every hook rather than to this one. It
+  // parsed the source by splitting on newlines, which would have been fooled by
+  // a nested object literal at the call site; the general version matches
+  // braces. Keeping two copies of that parser was the worse trade.
 });
