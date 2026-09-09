@@ -914,6 +914,18 @@ input[type="range"]::-webkit-slider-runnable-track {
     z-index: 100;
   }
 
+  /* The header actions are a non-wrapping flex row and .app-container-inner
+     hides horizontal overflow, so below 768px these controls laid out past the
+     right edge with no way to scroll to them — the language selector included.
+     They are rendered in the bottom-nav drawer instead (see .drawer-header-actions). */
+  .app-header-actions {
+    display: none;
+  }
+
+  .app-header {
+    justify-content: center;
+  }
+
   /* Grille principale : colonne unique sur mobile */
   .main-layout-grid {
     display: flex !important;
@@ -1005,4 +1017,22 @@ input[type="range"]::-webkit-slider-runnable-track {
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
   }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Header actions relocated into the mobile drawer
+   ═══════════════════════════════════════════════════════ */
+.drawer-header-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--lg-border, rgba(255, 255, 255, 0.12));
+}
+
+.drawer-header-actions .btn-header-action,
+.drawer-header-actions .header-lang-select {
+  width: 100%;
+  text-align: left;
 }

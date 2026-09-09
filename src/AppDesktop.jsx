@@ -35,7 +35,7 @@ import {
 } from "./audio/AudioEngine";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import AppHeader from './components/Layout/AppHeader';
+import AppHeader, { HeaderActions } from './components/Layout/AppHeader';
 
 function AppDesktop() {
   const { lang, txt, notation, state, dispatch } = useAppContext();
@@ -312,6 +312,12 @@ function AppDesktop() {
     handleBpmChange
   }), [currentStep, isPlaying, currentBpm, togglePlayback, handleBpmChange]);
 
+  // Shared by the header row and, on a phone, by the drawer that replaces it.
+  const headerProps = {
+    txt, uiTheme, setUiTheme, lang, setLang,
+    setShowHelp, setShowAbout, setShowTheory, exportDebugSnapshot
+  };
+
   const musicEngineContextValue = useMemo(() => ({
     masterAnalyser,
     layoutMode,
@@ -411,17 +417,7 @@ function AppDesktop() {
       <TheoryModal isOpen={showTheory} onClose={() => setShowTheory(false)} txt={txt} />
 
       <div className="app-main-content">
-        <AppHeader
-          txt={txt}
-          uiTheme={uiTheme}
-          setUiTheme={setUiTheme}
-          lang={lang}
-          setLang={setLang}
-          setShowHelp={setShowHelp}
-          setShowAbout={setShowAbout}
-          setShowTheory={setShowTheory}
-          exportDebugSnapshot={exportDebugSnapshot}
-        />
+        <AppHeader {...headerProps} />
 
         <div className={`main-layout-grid ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
           {(() => {
@@ -462,6 +458,9 @@ function AppDesktop() {
                 txt={txt}
               >
                 {ctaButtons}
+                <div className="drawer-header-actions">
+                  <HeaderActions {...headerProps} />
+                </div>
               </BottomNav>
             ) : (
               <>
