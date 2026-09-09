@@ -65,3 +65,45 @@ export function buildAscDescSequence(notes) {
   }
   return result;
 }
+
+/**
+ * Builds the playback sequence for a displayed scale box: from the root up to
+ * the next root an octave higher, then back down to the root.
+ *
+ * `reversedTuning` holds open-string NOTE NAMES (`['E4','B3',...]`, high→low
+ * index), so every entry must go through getAbsoluteNoteValue() before any
+ * arithmetic. Adding a fret number to the name directly yields a string —
+ * `'G3' + 3` is `'G33'` — which then makes every `% 12` NaN and every
+ * `NOTES[pitch % 12]` lookup undefined. That was the defect this function
+ * replaces (useFretboardPlayback threw on every scale-root click).
+ *
+ * @param {Array<{stringIndex: number, fret: number}>} scaleFrets
+ * @param {string[]} reversedTuning - open string note names, high→low index
+ * @param {number} rootPitchClass - 0-11, the pitch class to start and end on
+ * @param {string} [instrument]
+ * @returns {Array<{absoluteValue: number, stringIndex: number, fret: number, instrument?: string}>}
+ */
+export function buildScaleBoxSequence(scaleFrets, reversedTuning, rootPitchClass, instrument = null) {
+  if (!scaleFrets?.length) return [];
+
+  const allNotes = scaleFrets
+    .map((sf) => ({
+      absoluteValue: getAbsoluteNoteValue(reversedTuning[sf.stringIndex]) + sf.fret,
+      stringIndex: sf.stringIndex,
+      fret: sf.fret,
+      ...(instrument ? { instrument } : {})
+    }))
+    .sort((a, b) => a.absoluteValue - b.absoluteValue);
+
+  // Anchor on the root. getAvailableScaleFingerings already slices the box from
+  // root to root, but this function must not depend on that staying true.
+  const startIdx = allNotes.findIndex((n) => n.absoluteValue % 12 === rootPitchClass);
+  const rootIdx = startIdx >= 0 ? startIdx : 0;
+
+  let endIdx = allNotes.findIndex((n, idx) => idx > rootIdx && n.absoluteValue % 12 === rootPitchClass);
+  if (endIdx === -1) endIdx = allNotes.length - 1;
+
+  const ascending = allNotes.slice(rootIdx, endIdx + 1);
+  const descending = ascending.slice(0, ascending.length - 1).reverse();
+  return [...ascending, ...descending];
+}

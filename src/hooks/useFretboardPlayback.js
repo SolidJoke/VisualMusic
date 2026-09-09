@@ -2,7 +2,7 @@ import { useCallback, useRef } from "react";
 import * as Tone from 'tone';
 import { NOTES, SCALES, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
-import { getInstrumentTuning, fingeringMapToAbsolutePitches } from "./playbackUtils";
+import { getInstrumentTuning, fingeringMapToAbsolutePitches, buildScaleBoxSequence } from "./playbackUtils";
 
 export function useFretboardPlayback({
   playbackInstrument,
@@ -48,37 +48,16 @@ export function useFretboardPlayback({
             const tuning = getInstrumentTuning(inst, activeBrick);
             const reversedTuning = [...tuning].reverse();
 
-            // Sort scaleFrets by absolute pitch ascending
-            const sorted = [...currentFingering.scaleFrets].sort((a, b) => {
-              return (reversedTuning[a.stringIndex] + a.fret) - (reversedTuning[b.stringIndex] + b.fret);
-            });
-
-            const allNotes = sorted.map(sf => ({
-              absoluteValue: reversedTuning[sf.stringIndex] + sf.fret,
-              stringIndex: sf.stringIndex,
-              fret: sf.fret,
-              instrument: inst,
-            }));
-
-            // Find the root note in the box (same pitch class as clicked note)
-            const rootPitchClass = absNote % 12;
-            const startIdx = allNotes.findIndex(n => n.absoluteValue % 12 === rootPitchClass);
-            const rootIdx = startIdx >= 0 ? startIdx : 0;
-
-            // Find the NEXT root note (one octave higher)
-            let endIdx = allNotes.findIndex((n, idx) => idx > rootIdx && n.absoluteValue % 12 === rootPitchClass);
-            
-            // If no higher octave is found in the box, just play to the top of the box
-            if (endIdx === -1) {
-              endIdx = allNotes.length - 1;
-            }
-
-            // Ascending: from root to next root (inclusive)
-            const ascending = allNotes.slice(rootIdx, endIdx + 1);
-            // Descending: back to root (reverse, excluding top note)
-            const descending = ascending.slice(0, ascending.length - 1).reverse();
-
-            absolutePitches = [...ascending, ...descending];
+            // Root up to the next root an octave higher, then back down.
+            // Extracted to playbackUtils so the pitch arithmetic is unit-tested:
+            // the inline version added a fret number to a note NAME, producing
+            // strings like 'G33' and throwing on every scale-root click.
+            absolutePitches = buildScaleBoxSequence(
+              currentFingering.scaleFrets,
+              reversedTuning,
+              absNote % 12,
+              inst
+            );
           } else {
             // Fallback: compute from theory (no scaleFrets available, e.g. piano mode)
             const scaleData = resolveScaleIntervals(dictType);
