@@ -216,12 +216,17 @@ function AppDesktop() {
     dictRoot,
     dictType,
     playbackInstrument,
+    setPlaybackInstrument,
     guitarFingering,
     bassFingering,
     activeBrick,
+    setClickedChord,
     chordOctaveOffset,
+    selectedRootStringGuitar,
+    selectedRootStringBass,
     setScaleAnchor,
     scaleAnchor,
+    notation,
     dictOctave,
     useShellVoicings
   });
