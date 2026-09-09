@@ -1,3 +1,4 @@
+// @ts-check
 import React, { createContext, useContext } from 'react';
 
 export const PlaybackContext = createContext(null);

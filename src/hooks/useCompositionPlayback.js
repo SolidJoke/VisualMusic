@@ -1,3 +1,4 @@
+// @ts-check
 import { useState, useEffect, useRef } from "react";
 import * as Tone from "tone";
 import { kickSynth, hatSynth, getPianoSynth } from "../audio/AudioEngine";

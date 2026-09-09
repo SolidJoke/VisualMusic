@@ -546,7 +546,9 @@ export function getAvailableBassFingerings(rootValue, chordType = 'chord_major',
  * @param {'guitar'|'bass'} instrument
  * @param {string[]} strings - Tuning array e.g. ['E2','A2','D3','G3','B3','E4']
  * @param {string} sep - Separator word for label (e.g. 'of', 'de')
- * @returns {Array<{id, label, scaleFrets: Array<{stringIndex, fret, noteValue}>}>}
+ * @returns {Array<{id: string, label: string, positionIndex: number,
+ *   scaleFrets: Array<{stringIndex: number, fret: number, noteValue: number}>,
+ *   startFret: number, endFret: number}>}
  */
 export function getAvailableScaleFingerings(rootValue, scaleType, instrument = 'guitar', strings = [], sep = 'of') {
   // Use theory.js as the single source of truth for scale semitones.

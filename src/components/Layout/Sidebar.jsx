@@ -21,6 +21,7 @@ import './Sidebar.css';
  * @param {function} props.setAppMode
  * @param {boolean}  props.isPlaying
  * @param {function} props.togglePlayback
+ * @param {function} [props.playDictionaryAudio] - joue l'entree courante en mode dictionnaire
  * @param {number}   props.currentBpm
  * @param {function} props.handleBpmChange - receives synthetic event { target: { value } }
  * @param {object}   props.txt             - i18n strings

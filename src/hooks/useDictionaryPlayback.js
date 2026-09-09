@@ -1,3 +1,4 @@
+// @ts-check
 import { useCallback } from "react";
 import * as Tone from 'tone';
 import { NOTES, SCALES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute } from "../core/theory";
@@ -6,6 +7,22 @@ import { logScalePosition, logPlaybackSequence, logNotePlay } from "../core/debu
 import { getInstrumentTuning, fingeringMapToAbsolutePitches, buildAscDescSequence } from "./playbackUtils";
 import { calcActivePath } from "../core/fretboardLogic";
 
+/**
+ * @param {Object} options
+ * @param {any} options.dictRoot
+ * @param {string} options.dictType
+ * @param {number} [options.dictOctave]
+ * @param {'piano'|'guitar'|'bass'} options.playbackInstrument
+ * @param {any} options.guitarFingering
+ * @param {any} options.bassFingering
+ * @param {any} options.activeBrick
+ * @param {any[]} options.activeNotes
+ * @param {number} [options.chordOctaveOffset]
+ * @param {number} options.currentBpm
+ * @param {any} options.lastClickedContext
+ * @param {Function} options.setCurrentlyPlayingNotes
+ * @param {any} options.scheduler
+ */
 export function useDictionaryPlayback({
   dictRoot,
   dictType,

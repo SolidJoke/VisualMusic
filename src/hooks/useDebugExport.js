@@ -1,13 +1,14 @@
+// @ts-check
 import { useCallback } from "react";
 
 /**
  * Hook to export a debug snapshot of the application state.
  * 
- * @param {Object} params
- * @param {Object} params.appContextState
- * @param {Object} params.musicEngineState
- * @param {Object} params.sequencerState
- * @param {Array} params.errors
+ * @param {Object} [params]
+ * @param {Object} [params.appContextState]
+ * @param {Object} [params.musicEngineState]
+ * @param {Object} [params.sequencerState]
+ * @param {Array}  [params.errors]
  * @returns {Object} { exportDebugSnapshot }
  */
 export default function useDebugExport({

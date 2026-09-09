@@ -1,0 +1,37 @@
+{
+  "//": [
+    "Type checking only — no emit, no build role. Vite still compiles the app.",
+    "",
+    "checkJs is false on purpose. Turning it on across src/ surfaces 99 errors in",
+    "components and core that have nothing to do with why this exists, and a check",
+    "nobody can get to zero is a check everyone learns to ignore.",
+    "",
+    "Instead each file opts in with `// @ts-check` at the top. The opted-in set is",
+    "the hook and context boundary: hooks/, context/, and AppDesktop.jsx, which is",
+    "where almost every hook is called from. That is the boundary where a dropped",
+    "option silently disables a feature (see PR #94), and typing it is what makes",
+    "`npm run typecheck` fail when a call site forgets one.",
+    "",
+    "Widening the set is a file-by-file decision: add the pragma, fix what it",
+    "reports. strict stays off until that set is much larger."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "types": ["vite/client"],
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "scratch"]
+}

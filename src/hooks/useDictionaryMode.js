@@ -1,3 +1,4 @@
+// @ts-check
 
 import { useState, useMemo, useEffect } from "react";
 import { resolveScaleIntervals, resolveChordSemitones, getScaleNotesGeneric } from "../core/theory";

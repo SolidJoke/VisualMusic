@@ -1,3 +1,4 @@
+// @ts-check
 import { useCallback } from "react";
 import * as Tone from 'tone';
 import { NOTES, resolveNnsToChordType, getClosestInversionN, resolveChordSemitones } from "../core/theory";
@@ -6,6 +7,21 @@ import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches } from "./playbackUtils";
 import { applyShellVoicing } from "../core/voicingEngine";
 
+/**
+ * @param {Object} options
+ * @param {'piano'|'guitar'|'bass'} options.playbackInstrument
+ * @param {any} options.selectedRootStringGuitar
+ * @param {any} options.selectedRootStringBass
+ * @param {any} options.activeBrick
+ * @param {number} [options.chordOctaveOffset]
+ * @param {any[]} options.currentAbsoluteNotes
+ * @param {Function} options.setCurrentAbsoluteNotes
+ * @param {Function} options.setCurrentlyPlayingNotes
+ * @param {Function} options.setClickedChord
+ * @param {string} [options.notation]
+ * @param {any} options.scheduler
+ * @param {boolean} [options.useShellVoicings]
+ */
 export function useStudioPlayback({
   playbackInstrument,
   selectedRootStringGuitar,

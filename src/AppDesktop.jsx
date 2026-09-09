@@ -1,3 +1,4 @@
+// @ts-check
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./App.css";
 import "./styles/vintage-theme.css";
@@ -63,7 +64,9 @@ function AppDesktop() {
   }, [uiTheme]);
 
   const setLang = useCallback((newLang) => dispatch({ type: 'SET_LANG', payload: newLang }), [dispatch]);
-  const setNotation = useCallback((newNotation) => dispatch({ type: 'SET_NOTATION', payload: newNotation }), [dispatch]);
+  // Pas de wrapper setNotation ici : le bascule US/EU vit dans DictionaryPanel,
+  // qui dispatche SET_NOTATION directement. Le wrapper etait passe a ControlPanel,
+  // qui ne l'a jamais destructure.
   const setShowAbout = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showAbout', value: val } }), [dispatch]);
   const setShowTheory = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showTheory', value: val } }), [dispatch]);
   const setShowFingering = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingering', value: val } }), [dispatch]);
@@ -555,7 +558,6 @@ function AppDesktop() {
 
           <Modal uiTheme={uiTheme} isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio">
             <ControlPanel
-              setNotation={setNotation}
               chordDisplayMode={chordDisplayMode}
               setChordDisplayMode={setChordDisplayMode}
               showFingering={showFingering}
@@ -565,7 +567,6 @@ function AppDesktop() {
               playbackInstrument={playbackInstrument}
               setPlaybackInstrument={setPlaybackInstrument}
               appMode={appMode}
-              dictType={dictType}
               useShellVoicings={useShellVoicings}
               setUseShellVoicings={setUseShellVoicings}
             />

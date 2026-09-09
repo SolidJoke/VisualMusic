@@ -1,9 +1,30 @@
+// @ts-check
 import { useCallback, useRef } from "react";
 import * as Tone from 'tone';
 import { NOTES, SCALES, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches, buildScaleBoxSequence } from "./playbackUtils";
 
+/**
+ * @param {Object} options
+ * @param {'piano'|'guitar'|'bass'} options.playbackInstrument
+ * @param {Function} options.setPlaybackInstrument
+ * @param {string} options.appMode
+ * @param {any} options.dictRoot
+ * @param {string} options.dictType
+ * @param {any[]} options.activeNotes
+ * @param {any} options.guitarFingering
+ * @param {any} options.bassFingering
+ * @param {any} options.activeBrick
+ * @param {number} options.currentBpm
+ * @param {any} options.lastClickedContext
+ * @param {Function} options.setCurrentlyPlayingNotes
+ * @param {Function} options.setContextualScaleAbsoluteValues
+ * @param {Function} options.setLastClickedContext
+ * @param {Function} options.setSinglePlayContext
+ * @param {Function} options.setScaleAnchor
+ * @param {any} options.scheduler
+ */
 export function useFretboardPlayback({
   playbackInstrument,
   setPlaybackInstrument,

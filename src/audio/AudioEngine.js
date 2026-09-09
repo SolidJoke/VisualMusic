@@ -355,7 +355,7 @@ export const bassSynth = new Tone.MonoSynth({
 /**
  * Apply genre-specific presets to all drum and bass synths.
  *
- * @param {'electronic'|'jazz'|'rock'|'pop'|'urban'|'world'} group
+ * @param {string} group - une cle de DRUM_PRESETS/BASS_PRESETS ; inconnue -> preset 'pop'
  */
 export function applyGenrePreset(group) {
   const drumP = DRUM_PRESETS[group] || DRUM_PRESETS.pop;
