@@ -37,6 +37,13 @@ jobs:
       - name: Install
         run: npm ci
 
+      # Blocking, unlike lint: the checked set — hooks/, context/, AppDesktop —
+      # is at zero errors, so a failure here is always something this PR broke.
+      # It is what makes a dropped hook option fail the build instead of
+      # surfacing as a TypeError on click.
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Tests
         run: npm test
 

@@ -1,3 +1,4 @@
+// @ts-check
 import { useState, useEffect, useRef } from "react";
 import * as Tone from "tone";
 import {
@@ -28,6 +29,19 @@ const noteNamesArray = [
   "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
 ];
 
+/**
+ * @param {Object} options
+ * @param {string} options.appMode
+ * @param {any} options.activeBrick
+ * @param {any[]} options.activeDrums
+ * @param {any[]} options.activeMelody
+ * @param {any[]} options.activeProgression
+ * @param {any} options.activeRhythm
+ * @param {number} options.currentRootValue
+ * @param {Function} options.setCurrentlyPlayingNotes
+ * @param {number} [options.chordOctaveOffset]
+ * @param {string} [options.notation]
+ */
 export function useSequencer({
   appMode,
   activeBrick,

@@ -1,3 +1,4 @@
+// @ts-check
 // src/hooks/playbackUtils.js
 //
 // Pure utility functions shared by usePlaybackHandlers.

@@ -1,3 +1,4 @@
+// @ts-check
 import { useState, useMemo } from "react";
 import { BRICKS } from "../core/bricks";
 

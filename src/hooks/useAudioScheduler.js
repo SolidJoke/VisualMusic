@@ -1,6 +1,13 @@
+// @ts-check
 import { useRef, useCallback } from "react";
 import { initAudio, setMasterVolume } from "../audio/AudioEngine";
 
+/**
+ * @param {Object} options
+ * @param {boolean} options.isAudioReady
+ * @param {Function} options.setIsAudioReady
+ * @param {number} options.masterVolume
+ */
 export function useAudioScheduler({
   isAudioReady,
   setIsAudioReady,

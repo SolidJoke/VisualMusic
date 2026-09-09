@@ -1,8 +1,9 @@
+// @ts-check
 
 import React, { createContext, useContext, useReducer } from 'react';
 import { translations } from '../i18n/translations';
 
-const AppContext = createContext();
+const AppContext = createContext(null);
 
 const initialState = {
   appMode: 'studio',

@@ -1,3 +1,4 @@
+// @ts-check
 import { useMemo } from "react";
 import { useMusicEngineContext } from "../context/MusicEngineContext";
 import { useAppContext } from "../context/AppContext";
@@ -19,19 +20,11 @@ const getNumFrets = (instrument) => instrument === "bass" ? 20 : 22;
  * et expose une interface stable et mémoïsée au composant Fretboard.jsx.
  *
  * @param {string} instrument - "guitar" | "bass"
- * @returns {{
- *   strings: number[],
- *   fretWidths: number[],
- *   fretboardGridTemplate: string,
- *   activePath: object[],
- *   barreData: Array<{fret: number, minVisual: number, maxVisual: number}>,
- *   activeNotes: object[],
- *   fingering: object|null,
- *   isOutOfRange: boolean,
- *   dictType: string|null,
- *   notation: string,
- *   numFrets: number,
- * }}
+ * @returns Tout ce que Fretboard.jsx consomme : geometrie du manche, notes
+ * actives, doigte, et les entrees transmises telles quelles a
+ * computeFretMetadata. Le type n'est volontairement pas ecrit a la main — il
+ * listait 11 champs sur les 24 reellement renvoyes, et une liste de cette
+ * taille derive. TypeScript l'infere exactement depuis l'objet retourne.
  */
 export function useFretboard(instrument) {
   const numFrets = getNumFrets(instrument);

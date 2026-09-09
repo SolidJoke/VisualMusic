@@ -1,8 +1,41 @@
+// @ts-check
 import { useAudioScheduler } from "./useAudioScheduler";
 import { useDictionaryPlayback } from "./useDictionaryPlayback";
 import { useStudioPlayback } from "./useStudioPlayback";
 import { useFretboardPlayback } from "./useFretboardPlayback";
 
+/**
+ * @param {Object} options
+ * @param {boolean} options.isAudioReady
+ * @param {Function} options.setIsAudioReady
+ * @param {number} options.masterVolume
+ * @param {number} options.currentBpm
+ * @param {any[]} options.activeNotes
+ * @param {string} options.appMode
+ * @param {any[]} options.currentAbsoluteNotes
+ * @param {Function} options.setCurrentAbsoluteNotes
+ * @param {Function} options.setCurrentlyPlayingNotes
+ * @param {Function} options.setContextualScaleAbsoluteValues
+ * @param {any} options.lastClickedContext
+ * @param {Function} options.setLastClickedContext
+ * @param {Function} options.setSinglePlayContext
+ * @param {any} options.dictRoot
+ * @param {string} options.dictType
+ * @param {'piano'|'guitar'|'bass'} options.playbackInstrument
+ * @param {Function} options.setPlaybackInstrument
+ * @param {any} options.guitarFingering
+ * @param {any} options.bassFingering
+ * @param {any} options.activeBrick
+ * @param {Function} options.setClickedChord
+ * @param {number} options.chordOctaveOffset
+ * @param {any} options.selectedRootStringGuitar
+ * @param {any} options.selectedRootStringBass
+ * @param {Function} options.setScaleAnchor
+ * @param {any} options.scaleAnchor
+ * @param {string} [options.notation]
+ * @param {number} [options.dictOctave]
+ * @param {boolean} [options.useShellVoicings]
+ */
 export function usePlaybackHandlers({
   isAudioReady,
   setIsAudioReady,

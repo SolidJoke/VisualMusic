@@ -1,3 +1,4 @@
+// @ts-check
 import { useMemo } from "react";
 import { 
   getGuitarFingering, 
@@ -23,6 +24,24 @@ import { getInversionType, getChordIntervalLabel } from "../core/harmonyEngine";
  * 
  * Centralizes harmonic resolution and fingering calculations.
  * Adheres to MusicState v2 contract.
+ * @param {Object} options
+ * @param {string} options.appMode
+ * @param {any} options.activeBrick
+ * @param {any} options.clickedChord
+ * @param {any[]} options.currentAbsoluteNotes
+ * @param {number} options.chordOctaveOffset
+ * @param {string} options.displayMode
+ * @param {string} options.visualFocus
+ * @param {any} options.selectedRootStringGuitar
+ * @param {any} options.selectedRootStringBass
+ * @param {any} options.selectedVoicingIndexGuitar
+ * @param {any} options.selectedVoicingIndexBass
+ * @param {any} options.dictRoot
+ * @param {string} options.dictType
+ * @param {any[]} options.dictActiveNotes
+ * @param {number} options.dictOctave
+ * @param {string} options.fingeringMode
+ * @param {string} options.notation
  */
 export function useMusicEngine({
   appMode,
@@ -159,7 +178,7 @@ export function useMusicEngine({
       } else if (stringData[0] === 'O' || stringData.O) {
         v2Map[i] = { fret: 0, status: 'open' };
       } else {
-        const fret = Object.keys(stringData).find(k => !isNaN(k));
+        const fret = Object.keys(stringData).find(k => !isNaN(Number(k)));
         v2Map[i] = { 
           fret: parseInt(fret), 
           status: 'played',
