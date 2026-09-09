@@ -9,7 +9,6 @@ import CustomSelect from '../Common/CustomSelect';
 import { log } from '../../utils/debug';
 import extendedTheoryData from '../../core/extendedTheoryData.json';
 import InfoTooltip from '../Common/InfoTooltip';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 const StudioPanel = ({
   currentBrickIndex,
@@ -43,8 +42,10 @@ const StudioPanel = ({
 
   const { lang, txt, notation, state } = useAppContext();
   const { uiTheme } = state;
-  const isWideScreen = useMediaQuery('(min-width: 2560px)');
-  const [isCollapsed, setIsCollapsed] = useState(!isWideScreen);
+  // Expanded by default. This panel is rendered inside a modal the user has
+  // just opened on purpose; opening it collapsed hid ~1180px of content
+  // behind a second click on every screen narrower than 4K.
+  const [isCollapsed, setIsCollapsed] = useState(false);
   
   if (!activeBrick) return null;
 

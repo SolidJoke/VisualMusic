@@ -23,7 +23,7 @@ import './Sidebar.css';
  * @param {function} props.togglePlayback
  * @param {function} [props.playDictionaryAudio] - joue l'entree courante en mode dictionnaire
  * @param {number}   props.currentBpm
- * @param {function} props.handleBpmChange - receives synthetic event { target: { value } }
+ * @param {function} props.handleBpmChange - receives the new tempo as a number
  * @param {object}   props.txt             - i18n strings
  * @param {React.ReactNode} props.children
  */
@@ -68,7 +68,7 @@ const Sidebar = ({
     setBpmEditing(false);
     const num = parseInt(bpmInputVal, 10);
     if (!isNaN(num) && num >= 60 && num <= 200) {
-      handleBpmChange({ target: { value: num } });
+      handleBpmChange(num);
     } else {
       setBpmInputVal(currentBpm); // revert on invalid
     }

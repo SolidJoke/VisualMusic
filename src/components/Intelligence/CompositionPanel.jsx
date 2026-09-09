@@ -4,7 +4,6 @@ import { PhasingVisualizer } from "./PhasingVisualizer";
 import PolyrhythmAlgebraPanel from "./PolyrhythmAlgebraPanel";
 import ExportTargetPanel from "./ExportTargetPanel";
 
-import { useMediaQuery } from '../../hooks/useMediaQuery';
 import {
   generateEuclideanRhythm,
   EUCLIDEAN_PRESETS,
@@ -29,8 +28,9 @@ export default function CompositionPanel({
   txt = {}
 }) {
   // 1. Math State
-  const isWideScreen = useMediaQuery('(min-width: 2560px)');
-  const [isCollapsed, setIsCollapsed] = useState(!isWideScreen);
+  // Expanded by default — same reason as StudioPanel: it lives in a modal the
+  // user just opened, and collapsing it there hides the whole panel.
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [subdivisions, setSubdivisions] = useState(16);
   const [pulses, setPulses] = useState(5);
   const [rotation, setRotation] = useState(0);

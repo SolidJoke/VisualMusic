@@ -286,8 +286,21 @@ export function useSequencer({
     }
   };
 
-  const handleBpmChange = (e) => {
-    const newBpm = Number(e.target.value);
+  /**
+   * Sets the transport tempo.
+   *
+   * Takes a number. It used to take a change event and read `e.target.value`,
+   * and the two call sites disagreed: SequencerPanel passed the number — so
+   * every BPM touch on the phone and tablet layouts threw "Cannot read
+   * properties of undefined (reading 'value')" and the slider snapped back —
+   * while Sidebar wrapped its number in a fake `{target:{value}}` to satisfy a
+   * signature it did not need. A number is what both callers actually had.
+   *
+   * @param {number} bpm
+   */
+  const handleBpmChange = (bpm) => {
+    const newBpm = Number(bpm);
+    if (!Number.isFinite(newBpm)) return;
     setCurrentBpm(newBpm);
     Tone.Transport.bpm.value = newBpm;
   };
