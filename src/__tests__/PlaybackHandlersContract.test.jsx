@@ -3,6 +3,7 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import React from "react";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { AppProvider } from "../context/AppContext";
 import AppDesktop from "../AppDesktop";
 
@@ -98,7 +99,10 @@ describe("usePlaybackHandlers ← AppDesktop contract", () => {
   });
 
   it("AppDesktop fournit toutes les options que le hook déclare sans valeur par défaut", () => {
-    const root = path.resolve(__dirname, "..");
+    // The project is ESM ("type": "module"), so __dirname does not exist —
+    // vitest happens to shim it, but eslint is right to reject it.
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    const root = path.resolve(here, "..");
     const hookSrc = fs.readFileSync(
       path.join(root, "hooks", "usePlaybackHandlers.js"),
       "utf-8"
