@@ -17,7 +17,6 @@ import {
 } from "../core/theory";
 import { TUNINGS } from "../core/tunings";
 import { getInversionType, getChordIntervalLabel } from "../core/harmonyEngine";
-import { suggestReVoicing, getBestVoiceLeading } from "../core/voicingEngine";
 
 /**
  * useMusicEngine Hook
@@ -42,8 +41,7 @@ export function useMusicEngine({
   dictActiveNotes,
   dictOctave,
   fingeringMode,
-  notation,
-  prevAbsoluteNotes
+  notation
 }) {
 
   // --- 1. Harmonization & Active Notes ---
@@ -343,27 +341,19 @@ export function useMusicEngine({
     return false;
   }, [appMode, dictType, bassFingering, dictRoot, dictOctave]);
 
-  const suggestedInversionIndex = useMemo(() => {
-    if (!prevAbsoluteNotes || prevAbsoluteNotes.length === 0 || !clickedChord || appMode !== 'studio') return null;
-    const chordType = resolveNnsToChordType(clickedChord.nns);
-    const chordData = resolveChordSemitones(chordType);
-    if (!chordData) return null;
-    
-    // Defaulting to piano instrument range for voicing logic as it has the widest bounds,
-    // or using the globally selected playbackInstrument if available via context/props (we don't have it directly here without adding it, let's use 'piano' for general voice leading)
-    const suggestions = suggestReVoicing(clickedChord.rootNote.value, chordData.semitones, 'piano');
-    const bestIndex = getBestVoiceLeading(prevAbsoluteNotes, suggestions);
-    
-    if (bestIndex >= 0 && suggestions[bestIndex]) {
-       return suggestions[bestIndex].invIndex;
-    }
-    return null;
-  }, [prevAbsoluteNotes, clickedChord, appMode]);
+  // A `suggestedInversionIndex` memo used to sit here, computing a voice-leading
+  // suggestion from a `prevAbsoluteNotes` option. It was stillborn: AppDesktop
+  // never passed that option, so the memo returned null on every render, and no
+  // component ever read the value it returned. Removed rather than wired up —
+  // wiring it would have produced a computation with no consumer.
+  //
+  // The engine behind it is intact and tested: suggestReVoicing() and
+  // getBestVoiceLeading() in core/voicingEngine.js. Making voice leading visible
+  // is real work with a UI attached, tracked as VMU-062.
 
   return {
     ...musicContext,
     inversionText,
-    suggestedInversionIndex,
     guitarFingering,
     bassFingering,
     availableGuitarFingerings,
