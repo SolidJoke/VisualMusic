@@ -1,0 +1,52 @@
+name: CI
+
+# Until now nothing ran the checks: the suite was green because someone
+# remembered to type `npm test`. That is how a TypeError on every fretboard
+# click survived 837 passing tests (see PR #94).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the previous run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: test · build · lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Vite 7 requires ^20.19 || >=22.12. Pinned to the LTS line rather
+          # than to whatever is on a developer's machine.
+          node-version: '22'
+          cache: npm
+
+      # `npm ci` installs from the lockfile into a clean tree, so it verifies
+      # what the project actually declares — not what happens to be sitting in
+      # someone's node_modules.
+      - name: Install
+        run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Non-blocking on purpose: there are 68 pre-existing eslint errors.
+      # Making it blocking today would mean either a red CI on every PR or a
+      # large unrelated cleanup bundled into this one. The count is visible in
+      # the run; VMU-011 resorbs it and flips this to blocking.
+      - name: Lint (non-blocking — see VMU-011)
+        run: npm run lint
+        continue-on-error: true
