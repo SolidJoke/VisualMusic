@@ -45,8 +45,21 @@ jobs:
 
       # Non-blocking on purpose: there are 68 pre-existing eslint errors.
       # Making it blocking today would mean either a red CI on every PR or a
-      # large unrelated cleanup bundled into this one. The count is visible in
-      # the run; VMU-011 resorbs it and flips this to blocking.
+      # large unrelated cleanup bundled into this one. VMU-011 resorbs them and
+      # flips this to blocking.
+      #
+      # `continue-on-error` was the obvious way to write this and it is a trap:
+      # it reports the step as *success*, so the number is buried in the log and
+      # nobody would ever look. The count goes to the run summary instead, where
+      # a regression is visible without opening anything.
       - name: Lint (non-blocking — see VMU-011)
-        run: npm run lint
-        continue-on-error: true
+        run: |
+          npm run lint > lint.log 2>&1 || true
+          cat lint.log
+          {
+            echo "### Lint — non-blocking (VMU-011)"
+            echo
+            echo '```'
+            grep -E '[0-9]+ problems' lint.log || echo "clean"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
