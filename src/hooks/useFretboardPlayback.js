@@ -1,7 +1,7 @@
 // @ts-check
 import { useCallback, useRef } from "react";
 import * as Tone from 'tone';
-import { NOTES, SCALES, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones } from "../core/theory";
+import { SCALES, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones, midiToNoteName } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches, buildScaleBoxSequence } from "./playbackUtils";
 
@@ -115,11 +115,7 @@ export function useFretboardPlayback({
         const stepTime = noteDuration / 2;
 
         if (dictType?.includes("chord")) {
-          const notesToPlay = absolutePitches.map(p => {
-            const val = typeof p === 'object' ? p.absoluteValue : p;
-            const noteName = NOTES[val % 12].us;
-            return `${noteName}${Math.floor(val / 12)}`;
-          });
+          const notesToPlay = absolutePitches.map(p => midiToNoteName(typeof p === 'object' ? p.absoluteValue : p));
           playDictionaryNote(playbackInstrument, notesToPlay, "2n");
           setCurrentlyPlayingNotes(absolutePitches);
           Tone.getDraw().schedule(() => {
@@ -140,8 +136,7 @@ export function useFretboardPlayback({
         absolutePitches.forEach((p, index) => {
           const scheduleTime = sequenceBaseTime + index * stepTime;
           const pitch = typeof p === 'object' ? p.absoluteValue : p;
-          const noteNameParts = NOTES[pitch % 12];
-          const noteNameStr = `${noteNameParts.us}${Math.floor(pitch / 12)}`;
+          const noteNameStr = midiToNoteName(pitch);
           playDictionaryNote(playbackInstrument, noteNameStr, "8n", scheduleTime);
           Tone.getDraw().schedule(() => {
             if (!scheduler.isCurrentSession(currentToken)) return;

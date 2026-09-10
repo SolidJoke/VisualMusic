@@ -1,7 +1,7 @@
 // @ts-check
 import { useCallback } from "react";
 import * as Tone from 'tone';
-import { NOTES, resolveNnsToChordType, getClosestInversionN, resolveChordSemitones } from "../core/theory";
+import { resolveNnsToChordType, getClosestInversionN, resolveChordSemitones, midiToNoteName } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches } from "./playbackUtils";
@@ -18,7 +18,6 @@ import { applyShellVoicing } from "../core/voicingEngine";
  * @param {Function} options.setCurrentAbsoluteNotes
  * @param {Function} options.setCurrentlyPlayingNotes
  * @param {Function} options.setClickedChord
- * @param {string} [options.notation]
  * @param {any} options.scheduler
  * @param {boolean} [options.useShellVoicings]
  */
@@ -32,7 +31,6 @@ export function useStudioPlayback({
   setCurrentAbsoluteNotes,
   setCurrentlyPlayingNotes,
   setClickedChord,
-  notation = 'us',
   scheduler,
   useShellVoicings = false,
 }) {
@@ -75,14 +73,14 @@ export function useStudioPlayback({
     
     if (useShellVoicings && playbackInstrument === "piano") {
        // Only apply shell voicings for piano to avoid breaking guitar fingering maps
-       const baseMidiRoot = (4 + (chordOctaveOffset || 0)) * 12 + rootVal;
+       // MIDI, like the pitches it filters — only its pitch class matters here.
+       const baseMidiRoot = (4 + 1 + (chordOctaveOffset || 0)) * 12 + rootVal;
        absolutePitches = applyShellVoicing(absolutePitches, baseMidiRoot);
     }
 
-    const notesToPlay = absolutePitches.map((n) => {
-      const noteName = notation === 'eu' ? NOTES[n % 12].eu : NOTES[n % 12].us;
-      return `${noteName}${Math.floor(n / 12)}`;
-    });
+    // Synth names are always scientific pitch in US spelling. Spelling them in
+    // the UI notation sent "Do4" in EU mode, which Tone reads as NaN — silence.
+    const notesToPlay = absolutePitches.map((n) => midiToNoteName(n));
 
     const currentToken = scheduler.startPlaybackSession();
     const scheduleTime = Tone.now() + 0.5;
@@ -102,7 +100,6 @@ export function useStudioPlayback({
     setCurrentAbsoluteNotes,
     setCurrentlyPlayingNotes,
     setClickedChord,
-    notation,
     scheduler,
   ]);
 

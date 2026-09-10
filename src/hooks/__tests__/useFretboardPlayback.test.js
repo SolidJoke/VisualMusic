@@ -97,7 +97,8 @@ describe('useFretboardPlayback', () => {
     expect(setContextualScaleAbsoluteValues).toHaveBeenCalled();
 
     // Après migration Tone, playDictionaryNote est appelé directement (plus de setTimeout)
-    // La première note (C5) est la première de la gamme montante
-    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledWith('piano', 'C5', '8n', expect.any(Number));
+    // La première note est la fondamentale cliquée, C4. Ce test attendait C5 —
+    // une octave au-dessus de la note cliquée — et passait.
+    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledWith('piano', 'C4', '8n', expect.any(Number));
   });
 });

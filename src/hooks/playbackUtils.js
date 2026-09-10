@@ -36,6 +36,25 @@ export function fingeringMapToAbsolutePitches(fingeringMap, reversedTuning, inst
   Object.entries(fingeringMap).forEach(([strIdxStr, fretMap]) => {
     const strIdx = parseInt(strIdxStr, 10);
     const openNote = getAbsoluteNoteValue(reversedTuning[strIdx]);
+
+    // Two shapes reach this function. V1, as fingeringLogic builds it:
+    // { [fret]: finger }. V2, as useMusicEngine re-exposes it to the app:
+    // { fret, status: 'open' | 'played' | 'muted', finger? }. Read as V1, a V2
+    // entry turned the key "fret" into parseInt("fret") — NaN — so every guitar
+    // and bass chord played from the dictionary threw on NOTES[NaN].
+    if (fretMap && typeof fretMap === 'object' && 'status' in fretMap) {
+      const fret = Number(fretMap.fret);
+      if (fretMap.status !== 'muted' && Number.isFinite(fret) && fret >= 0) {
+        pitches.push({
+          absoluteValue: openNote + fret,
+          stringIndex: strIdx,
+          fret,
+          ...(instrument ? { instrument } : {})
+        });
+      }
+      return;
+    }
+
     Object.entries(fretMap).forEach(([fretStr, finger]) => {
       if (finger !== 'X') {
         const fret = parseInt(fretStr, 10);

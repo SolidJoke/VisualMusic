@@ -18,7 +18,7 @@ const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 /** Convertit une valeur absolue MIDI en nom lisible (ex: 59 → "B3") */
 export function absToName(abs) {
   if (abs == null || isNaN(abs)) return '?';
-  return NOTE_NAMES[abs % 12] + Math.floor(abs / 12);
+  return NOTE_NAMES[abs % 12] + (Math.floor(abs / 12) - 1);
 }
 
 /** @returns {boolean} */

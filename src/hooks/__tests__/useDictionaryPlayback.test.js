@@ -47,7 +47,9 @@ describe('useDictionaryPlayback', () => {
     expect(mockScheduler.startPlaybackSession).toHaveBeenCalled();
     expect(AudioEngine.playDictionaryNote).toHaveBeenCalledWith(
       'piano',
-      ['C5', 'E5', 'G5'],
+      // Played where it is displayed: [60, 64, 67] below. This line asserted
+      // ['C5', 'E5', 'G5'] — an octave above the display — and passed.
+      ['C4', 'E4', 'G4'],
       '2n'
     );
     expect(setCurrentlyPlayingNotes).toHaveBeenCalledWith([60, 64, 67]);

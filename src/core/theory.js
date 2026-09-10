@@ -255,9 +255,13 @@ export function getClosestInversionN(prevNotes, root, semitones, octaveOffset = 
     }
 
     if (!prevNotes || prevNotes.length === 0) {
-        const targetBase = 48 + (octaveOffset * 12);
+        // C4 is MIDI 60. This read 48 — C4 in the convention the project used
+        // before moving to MIDI (see getAbsoluteNoteValue) — and was missed when
+        // `base` above was migrated, which displayed Studio chords an octave
+        // below the octave they were named and heard at.
+        const targetBase = 60 + (octaveOffset * 12);
         return allInversions.find(inv => inv[0] >= targetBase) ||
-               allInversions.find(inv => inv[0] >= 48) ||
+               allInversions.find(inv => inv[0] >= 60) ||
                allInversions[Math.floor(allInversions.length / 2)];
     }
 
@@ -820,6 +824,28 @@ export function getLeadingTone(nextChordRootValue, baseOctave = 2, notation = 'u
 export function computeAbsoluteNote(rootValue, dictOctave) {
   const baseOctave = 4 + dictOctave;
   return rootValue + (baseOctave + 1) * 12;
+}
+
+/**
+ * Converts a MIDI value to the note name the synth expects: scientific pitch
+ * notation, US spelling. MIDI 60 is C4 — the same convention as
+ * getAbsoluteNoteValue, of which this is the exact inverse.
+ *
+ * It is the only place this conversion should happen. Nine hand-written copies
+ * of it existed; most computed the octave as Math.floor(midi / 12) and dropped
+ * the `- 1`, so dictionary chords and scales sounded an octave above what the
+ * screen showed. Some also spelled notes in the UI notation — "Do4" — which
+ * Tone.Frequency reads as NaN, so those notes were silently dropped.
+ *
+ * The UI notation (US/EU) is a display concern and deliberately not a
+ * parameter: the synth understands one spelling only.
+ *
+ * @param {number} midi
+ * @returns {string} e.g. "C4", "F#3"
+ */
+export function midiToNoteName(midi) {
+  const pitchClass = ((midi % 12) + 12) % 12;
+  return `${NOTES[pitchClass].us}${Math.floor(midi / 12) - 1}`;
 }
 
 /**
