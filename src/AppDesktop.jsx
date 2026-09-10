@@ -195,7 +195,6 @@ function AppDesktop() {
     currentRootValue,
     setCurrentlyPlayingNotes,
     chordOctaveOffset,
-    notation,
   });
 
   const {
@@ -229,7 +228,6 @@ function AppDesktop() {
     selectedRootStringBass,
     setScaleAnchor,
     scaleAnchor,
-    notation,
     dictOctave,
     useShellVoicings
   });

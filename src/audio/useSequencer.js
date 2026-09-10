@@ -15,14 +15,14 @@ import {
   getGuitarSynth
 } from "./AudioEngine";
 import { 
-  getAbsoluteNoteValue, 
-  NOTES, 
+  getAbsoluteNoteValue,  
   generateChordsFromNNS,
   resolveNnsToChordType,
   resolveChordSemitones,
   PITCH_MAP,
   getBassNote,
-  getLeadingTone
+  getLeadingTone,
+  midiToNoteName
 } from "../core/theory";
 
 const noteNamesArray = [
@@ -40,7 +40,6 @@ const noteNamesArray = [
  * @param {number} options.currentRootValue
  * @param {Function} options.setCurrentlyPlayingNotes
  * @param {number} [options.chordOctaveOffset]
- * @param {string} [options.notation]
  */
 export function useSequencer({
   appMode,
@@ -51,8 +50,7 @@ export function useSequencer({
   activeRhythm,
   currentRootValue,
   setCurrentlyPlayingNotes,
-  chordOctaveOffset = 0,
-  notation = 'us'
+  chordOctaveOffset = 0
 }) {
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -165,9 +163,12 @@ export function useSequencer({
                const chordType = resolveNnsToChordType(c.nns);
                const semitones = resolveChordSemitones(chordType)?.semitones || [0, 4, 7];
                const baseOctave = 4 + (octaveOffset || 0);
-               const absPitches = semitones.map(s => rootValChord + s + baseOctave * 12);
+               // MIDI (C4 = 60), the convention every display uses. `baseOctave * 12`
+               // was the pre-MIDI one: the chord was highlighted an octave below
+               // the octave it was named and heard at.
+               const absPitches = semitones.map(s => rootValChord + s + (baseOctave + 1) * 12);
                
-               const notesToPlay = absPitches.map(p => `${notation === 'eu' ? NOTES[p % 12].eu : NOTES[p % 12].us}${Math.floor(p / 12)}`);
+               const notesToPlay = absPitches.map((p) => midiToNoteName(p));
                const duration = rhythm.length > 1 ? "16n" : "4n";
                playDictionaryNote("piano", notesToPlay, duration, time);
                frameNotes = [...frameNotes, ...absPitches];
@@ -199,14 +200,14 @@ export function useSequencer({
                       const nextChordIndex = (chordIndex + 1) % progression.length;
                       const nextChords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [progression[nextChordIndex]]);
                       if (nextChords.length > 0) {
-                        const resolved = getLeadingTone(nextChords[0].rootNote.value, octave, notation);
+                        const resolved = getLeadingTone(nextChords[0].rootNote.value, octave);
                         finalNoteName = resolved.name;
                         absNote = resolved.midi;
                       }
                    }
 
                    if (!finalNoteName) {
-                     const resolved = getBassNote(currentChordRoot, intervalLabel, octave, notation);
+                     const resolved = getBassNote(currentChordRoot, intervalLabel, octave);
                      finalNoteName = resolved.name;
                      absNote = resolved.midi;
                    }

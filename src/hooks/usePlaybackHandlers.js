@@ -32,7 +32,6 @@ import { useFretboardPlayback } from "./useFretboardPlayback";
  * @param {any} options.selectedRootStringBass
  * @param {Function} options.setScaleAnchor
  * @param {any} options.scaleAnchor
- * @param {string} [options.notation]
  * @param {number} [options.dictOctave]
  * @param {boolean} [options.useShellVoicings]
  */
@@ -63,7 +62,6 @@ export function usePlaybackHandlers({
   selectedRootStringBass,
   setScaleAnchor,
   scaleAnchor,
-  notation = 'us',
   dictOctave = 0,
   useShellVoicings = false
 }) {
@@ -99,7 +97,6 @@ export function usePlaybackHandlers({
     setCurrentAbsoluteNotes,
     setCurrentlyPlayingNotes,
     setClickedChord,
-    notation,
     scheduler,
     useShellVoicings
   });

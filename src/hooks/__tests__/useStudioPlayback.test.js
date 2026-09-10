@@ -60,7 +60,10 @@ describe('useStudioPlayback', () => {
       ['C4', 'E4', 'G4'],
       '2n'
     );
-    expect(setCurrentAbsoluteNotes).toHaveBeenCalledWith([48, 52, 55]);
-    expect(setCurrentlyPlayingNotes).toHaveBeenCalledWith([48, 52, 55]);
+    // Shown where it is heard: C4 is MIDI 60. These asserted [48, 52, 55] —
+    // C3, an octave below the ['C4', 'E4', 'G4'] asserted just above — and
+    // passed.
+    expect(setCurrentAbsoluteNotes).toHaveBeenCalledWith([60, 64, 67]);
+    expect(setCurrentlyPlayingNotes).toHaveBeenCalledWith([60, 64, 67]);
   });
 });

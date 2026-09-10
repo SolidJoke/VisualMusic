@@ -1,7 +1,7 @@
 // @ts-check
 import { useCallback } from "react";
 import * as Tone from 'tone';
-import { NOTES, SCALES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute } from "../core/theory";
+import { SCALES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute, midiToNoteName, computeAbsoluteNote } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { logScalePosition, logPlaybackSequence, logNotePlay } from "../core/debugScale";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches, buildAscDescSequence } from "./playbackUtils";
@@ -78,10 +78,7 @@ export function useDictionaryPlayback({
 
         logPlaybackSequence(absolutePitches);
 
-        notesToPlay = absolutePitches.map(p => {
-          const noteName = NOTES[p.absoluteValue % 12].us;
-          return `${noteName}${Math.floor(p.absoluteValue / 12)}`;
-        });
+        notesToPlay = absolutePitches.map(p => midiToNoteName(p.absoluteValue));
       } else {
         const scaleData = resolveScaleIntervals(dictType);
         const intervals = scaleData ? scaleData.intervals : SCALES.scale_major.intervals;
@@ -96,11 +93,7 @@ export function useDictionaryPlayback({
 
         absolutePitches = buildAscDescSequence(absolutePitches);
 
-        notesToPlay = absolutePitches.map((p) => {
-          const val = typeof p === "object" ? p.absoluteValue : p;
-          const noteName = NOTES[val % 12].us;
-          return `${noteName}${Math.floor(val / 12)}`;
-        });
+        notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
       }
     } else if (dictType?.includes("chord")) {
       const currentFingering = (playbackInstrument === "guitar") ? guitarFingering : (playbackInstrument === "bass" ? bassFingering : null);
@@ -123,19 +116,14 @@ export function useDictionaryPlayback({
         }
       }
 
-      notesToPlay = absolutePitches.map((p) => {
-        const val = typeof p === "object" ? p.absoluteValue : p;
-        const noteName = NOTES[val % 12].us;
-        return `${noteName}${Math.floor(val / 12)}`;
-      });
+      notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
     } else {
-      const baseOctave = 4;
-      absolutePitches = activeNotes.map((n) => n.value + baseOctave * 12);
-      notesToPlay = absolutePitches.map((p) => {
-        const val = typeof p === "object" ? p.absoluteValue : p;
-        const noteName = NOTES[val % 12].us;
-        return `${noteName}${Math.floor(val / 12)}`;
-      });
+      // Play the note at the absolute pitch it is displayed at. This used
+      // `n.value + 4 * 12` — pitch class plus a fixed octave in the pre-MIDI
+      // convention — which sounded right at octave 0 by accident and ignored
+      // the octave selector. useDictionaryMode already provides absoluteValue.
+      absolutePitches = activeNotes.map((n) => n.absoluteValue ?? n.value + 60);
+      notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
     }
 
     const currentToken = scheduler.startPlaybackSession();
@@ -200,8 +188,7 @@ export function useDictionaryPlayback({
       absolutePitches.forEach((pitchOrObj, index) => {
         const pitch = typeof pitchOrObj === 'object' ? pitchOrObj.absoluteValue : pitchOrObj;
         const scheduleTime = sequenceBaseTime + index * stepTime;
-        const noteNameParts = NOTES[pitch % 12];
-        const noteNameStr = `${noteNameParts.us}${Math.floor(pitch / 12)}`;
+        const noteNameStr = midiToNoteName(pitch);
         playDictionaryNote(playbackInstrument, noteNameStr, "8n", scheduleTime);
         const pathItem = (playbackInstrument === "guitar" || playbackInstrument === "bass")
           && typeof pitchOrObj === 'object'
@@ -218,11 +205,16 @@ export function useDictionaryPlayback({
         }, scheduleTime + clearDelay);
       });
     } else {
-      const currentRootValue = Number(dictRoot);
-      const noteNameParts = NOTES[currentRootValue % 12];
-      const noteName = `${noteNameParts.us}4`;
-      const absNote = getAbsoluteNoteValue(noteName);
-      playDictionaryNote(playbackInstrument, noteName, "2n");
+      // Single note: play the pitch computed above from activeNotes — the one
+      // on screen. This rebuilt the name as `${root}4`, octave 4 hard-coded,
+      // and ignored that pitch: the octave selector moved the highlighted key
+      // but never the sound. Without an active note, fall back to the root at
+      // the dictionary octave, not at a fixed one.
+      const first = absolutePitches[0];
+      const absNote = first !== undefined
+        ? (typeof first === "object" ? first.absoluteValue : first)
+        : computeAbsoluteNote(Number(dictRoot), dictOctave || 0);
+      playDictionaryNote(playbackInstrument, midiToNoteName(absNote), "2n");
       setCurrentlyPlayingNotes([absNote]);
       Tone.getDraw().schedule(() => {
         if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
