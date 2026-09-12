@@ -80,7 +80,6 @@ export function usePlaybackHandlers({
     bassFingering,
     activeBrick,
     activeNotes,
-    chordOctaveOffset,
     currentBpm,
     lastClickedContext,
     setCurrentlyPlayingNotes,
