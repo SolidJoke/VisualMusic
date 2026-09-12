@@ -118,6 +118,7 @@ export const translations = {
     aboutDesc:
       "Une application web interactive conçue pour aider les musiciens à comprendre la théorie musicale, à visualiser les gammes et les accords, et à s'entraîner sur des rythmes générés en temps réel.",
     createdBy: "Créé et développé par Gabriel Resende.",
+    samplesCredit: "Piano échantillonné : Salamander Grand Piano, par Alexander Holm — licence CC BY 3.0.",
     kofi: "☕ M'offrir un café sur Ko-fi",
     github: "💻 Voir le code sur GitHub",
     listen: "🎵 Écouter",
@@ -446,6 +447,7 @@ export const translations = {
     aboutDesc:
       "An interactive web app designed to help musicians understand music theory, visualize scales and chords, and practice over real-time generated rhythms.",
     createdBy: "Created and developed by Gabriel Resende.",
+    samplesCredit: "Sampled piano: Salamander Grand Piano, by Alexander Holm — licensed CC BY 3.0.",
     kofi: "☕ Buy me a coffee on Ko-fi",
     github: "💻 View code on GitHub",
     listen: "🎵 Listen",
@@ -764,6 +766,7 @@ export const translations = {
     aboutDesc:
       "Um aplicativo web interativo projetado para ajudar músicos a entender a teoria musical, visualizar escalas e acordes e praticar sobre ritmos gerados em tempo real.",
     createdBy: "Criado e desenvolvido por Gabriel Resende.",
+    samplesCredit: "Piano amostrado: Salamander Grand Piano, de Alexander Holm — licença CC BY 3.0.",
     kofi: "☕ Pague-me um café no Ko-fi",
     github: "💻 Ver código no GitHub",
     listen: "🎵 Ouvir",
@@ -1072,6 +1075,7 @@ export const translations = {
     aboutDesc:
       "一个互动的Web应用程序，旨在帮助音乐家理解音乐理论，可视化音阶和和弦，并跟随实时生成的节奏进行练习。",
     createdBy: "由 Gabriel Resende 创建和开发。",
+    samplesCredit: "采样钢琴：Salamander Grand Piano，作者 Alexander Holm — 采用 CC BY 3.0 许可。",
     kofi: "☕ 在 Ko-fi 上请我喝杯咖啡",
     github: "💻 在 GitHub 上查看代码",
     listen: "🎵 听",

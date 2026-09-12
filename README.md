@@ -64,3 +64,10 @@ Créé et développé par **Gabriel Resende**.
 Ce projet est open-source. N'hésitez pas à forker, ouvrir une PR ou soumettre une *issue* !
 
 ☕ **[Soutenir le projet sur Ko-fi](https://ko-fi.com/gabrielgsdresende)**
+
+### 🎹 Crédits audio
+
+Le piano échantillonné est le **Salamander Grand Piano** d'**Alexander Holm**,
+distribué sous licence [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+Les 19 fichiers sont hébergés par l'application elle-même
+(`public/samples/piano/`, voir `CREDITS.txt` dans ce dossier) et non par un tiers.

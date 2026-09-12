@@ -24,6 +24,17 @@ const AboutModal = ({ isOpen, onClose }) => {
         <p className="elegant-text">
           {txt.createdBy}
         </p>
+        {/* CC BY 3.0 requires visible attribution wherever the samples are
+            redistributed. The samples ship in public/samples/piano/. */}
+        <p className="elegant-text">
+          <a
+            href="https://creativecommons.org/licenses/by/3.0/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {txt.samplesCredit}
+          </a>
+        </p>
 
         <div className="modal-footer">
           <a

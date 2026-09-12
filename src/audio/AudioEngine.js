@@ -5,7 +5,8 @@
  * Tone.Destination. This is a non-negotiable safety guard.
  *
  * Architecture:
- * - Piano: Tone.Sampler (Salamander samples) with PolySynth fallback
+ * - Piano: Tone.Sampler (Salamander samples, served from /samples/piano/)
+ *   with PolySynth fallback
  * - Bass: MonoSynth with sub-oscillator, genre-configurable
  * - Drums: Layered synths (Membrane + Noise for snare, etc.)
  * - All synths → limiter → destination
@@ -73,6 +74,12 @@ export function setBpm(bpm) {
 export async function initAudio() {
   await Tone.start();
   Tone.context.lookAhead = 0.1; // 100ms buffer — réduit les glitches sous charge CPU
+  // Bring the samplers up here rather than in the sequencer only. Every audible
+  // interaction funnels through this call (useAudioScheduler.ensureAudioReady),
+  // so initialising elsewhere left the Dictionary, the fretboard and single
+  // notes permanently on the PolySynth fallback. Both inits are idempotent.
+  initPianoSampler();
+  initGuitarSampler();
   return Tone;
 }
 
@@ -107,6 +114,19 @@ const guitarFallback = new Tone.PolySynth(Tone.FMSynth, {
 
 let guitarSampler = null;
 let guitarSamplerReady = false;
+/** Loading has finished, successfully or not — a late listener fires immediately. */
+let guitarLoadSettled = false;
+/** @type {Function[]} listeners queued while loading is in flight */
+const guitarReadyCallbacks = [];
+
+/** Drains the queued listeners exactly once, whatever the outcome. */
+function settleGuitarLoad() {
+  guitarLoadSettled = true;
+  while (guitarReadyCallbacks.length) {
+    const cb = guitarReadyCallbacks.shift();
+    if (cb) cb();
+  }
+}
 
 /**
  * Initializes the guitar sampler.
@@ -114,7 +134,12 @@ let guitarSamplerReady = false;
  * @returns {void}
  */
 export function initGuitarSampler(onReady) {
-  if (guitarSampler) return;
+  if (guitarLoadSettled) {
+    if (onReady) onReady();
+    return;
+  }
+  if (onReady) guitarReadyCallbacks.push(onReady);
+  if (guitarSampler) return; // construction already in flight; callback queued above
 
   try {
     guitarSampler = new Tone.Sampler({
@@ -130,12 +155,12 @@ export function initGuitarSampler(onReady) {
       onload: () => {
         guitarSamplerReady = true;
         log('audio', 'Guitar Sampler loaded ✓');
-        if (onReady) onReady();
+        settleGuitarLoad();
       },
       onerror: (err) => {
         console.warn("[AudioEngine] Guitar Sampler failed to load, using fallback:", err);
         guitarSamplerReady = false;
-        if (onReady) onReady();
+        settleGuitarLoad();
       },
     }).connect(guitarReverb);
   } catch (err) {
@@ -164,50 +189,73 @@ const pianoFallback = new Tone.PolySynth(Tone.Synth, {
 // Sampler with Salamander Grand Piano samples (lazy-loaded)
 let pianoSampler = null;
 let pianoSamplerReady = false;
+/** Loading has finished, successfully or not — a late listener fires immediately. */
+let pianoLoadSettled = false;
+/** @type {Function[]} listeners queued while loading is in flight */
+const pianoReadyCallbacks = [];
+
+/** Drains the queued listeners exactly once, whatever the outcome. */
+function settlePianoLoad() {
+  pianoLoadSettled = true;
+  while (pianoReadyCallbacks.length) {
+    const cb = pianoReadyCallbacks.shift();
+    if (cb) cb();
+  }
+}
 
 /**
  * Initialize the piano sampler. Call once after user gesture (Tone.start).
  * Falls back to PolySynth if loading fails.
  */
 export function initPianoSampler(onReady) {
-  if (pianoSampler) return; // already initialized
+  if (pianoLoadSettled) {
+    if (onReady) onReady();
+    return;
+  }
+  if (onReady) pianoReadyCallbacks.push(onReady);
+  if (pianoSampler) return; // construction already in flight; callback queued above
 
-  const baseUrl = "https://nbrosowsky.github.io/tonern-piano/Salamander/";
+  // Salamander Grand Piano, by Alexander Holm — CC BY 3.0.
+  // Served from this origin: the previous third-party host
+  // (nbrosowsky.github.io) answers 404, and Tone.js reports that through
+  // `onerror`, which silently switched every user to the PolySynth fallback.
+  // Local files also get the one-year immutable cache of netlify.toml.
+  const baseUrl = "/samples/piano/";
 
   try {
     pianoSampler = new Tone.Sampler({
       urls: {
-        A1: "A1v10.mp3",
-        A2: "A2v10.mp3",
-        A3: "A3v10.mp3",
-        A4: "A4v10.mp3",
-        A5: "A5v10.mp3",
-        A6: "A6v10.mp3",
-        C2: "C2v10.mp3",
-        C3: "C3v10.mp3",
-        C4: "C4v10.mp3",
-        C5: "C5v10.mp3",
-        C6: "C6v10.mp3",
-        "D#2": "Ds2v10.mp3",
-        "D#3": "Ds3v10.mp3",
-        "D#4": "Ds4v10.mp3",
-        "D#5": "Ds5v10.mp3",
-        "F#2": "Fs2v10.mp3",
-        "F#3": "Fs3v10.mp3",
-        "F#4": "Fs4v10.mp3",
-        "F#5": "Fs5v10.mp3",
+        A1: "A1.mp3",
+        A2: "A2.mp3",
+        A3: "A3.mp3",
+        A4: "A4.mp3",
+        A5: "A5.mp3",
+        A6: "A6.mp3",
+        C2: "C2.mp3",
+        C3: "C3.mp3",
+        C4: "C4.mp3",
+        C5: "C5.mp3",
+        C6: "C6.mp3",
+        "D#2": "Ds2.mp3",
+        "D#3": "Ds3.mp3",
+        "D#4": "Ds4.mp3",
+        "D#5": "Ds5.mp3",
+        "F#2": "Fs2.mp3",
+        "F#3": "Fs3.mp3",
+        "F#4": "Fs4.mp3",
+        "F#5": "Fs5.mp3",
       },
       baseUrl,
       volume: -3,
       onload: () => {
         pianoSamplerReady = true;
         log('audio', 'Piano Sampler loaded ✓');
-        if (onReady) onReady();
+        settlePianoLoad();
       },
       onerror: (err) => {
         console.warn("[AudioEngine] Piano Sampler failed to load, using fallback:", err);
         pianoSamplerReady = false;
-        if (onReady) onReady(); // Treat as "ready" via fallback
+        settlePianoLoad(); // Treat as "ready" via fallback
       },
     }).connect(pianoReverb);
   } catch (err) {
