@@ -3,8 +3,9 @@ import { useCallback } from "react";
 import * as Tone from 'tone';
 import { SCALES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute, midiToNoteName, computeAbsoluteNote } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
-import { logScalePosition, logPlaybackSequence, logNotePlay } from "../core/debugScale";
-import { getInstrumentTuning, fingeringMapToAbsolutePitches, buildAscDescSequence } from "./playbackUtils";
+import { logPlaybackSequence, logNotePlay } from "../core/debugScale";
+import { getInstrumentTuning, buildAscDescSequence } from "./playbackUtils";
+import { realizeDictionarySelection } from "../core/realization";
 import { calcActivePath } from "../core/fretboardLogic";
 
 /**
@@ -17,7 +18,6 @@ import { calcActivePath } from "../core/fretboardLogic";
  * @param {any} options.bassFingering
  * @param {any} options.activeBrick
  * @param {any[]} options.activeNotes
- * @param {number} [options.chordOctaveOffset]
  * @param {number} options.currentBpm
  * @param {any} options.lastClickedContext
  * @param {Function} options.setCurrentlyPlayingNotes
@@ -32,7 +32,6 @@ export function useDictionaryPlayback({
   bassFingering,
   activeBrick,
   activeNotes,
-  chordOctaveOffset = 0,
   currentBpm,
   lastClickedContext,
   setCurrentlyPlayingNotes,
@@ -44,71 +43,63 @@ export function useDictionaryPlayback({
     let notesToPlay = [];
     let absolutePitches = [];
 
+    // Block 2 — realization (core/realization.js). Playback and display each
+    // call this with the same inputs, so neither depends on the other's output
+    // and the two cannot drift apart. Reading the display's notes instead would
+    // have made this hook wrong in isolation: given a grip but theoretical
+    // notes, it would play the theory and ignore the neck.
+    const currentFingering =
+      playbackInstrument === "guitar" ? guitarFingering
+      : playbackInstrument === "bass" ? bassFingering
+      : null;
+    const { notes: realizedNotes } = realizeDictionarySelection({
+      instrument: playbackInstrument,
+      fingering: currentFingering,
+      tuning: getInstrumentTuning(playbackInstrument === "bass" ? "bass" : "guitar", activeBrick),
+      rootPitchClass: Number(dictRoot) % 12,
+      theoreticalNotes: activeNotes,
+    });
+
     if (dictType?.includes("scale")) {
-      const currentFingering = (playbackInstrument === "guitar") ? guitarFingering
-        : (playbackInstrument === "bass") ? bassFingering : null;
-
-      if (currentFingering?.scaleFrets && (playbackInstrument === "guitar" || playbackInstrument === "bass")) {
-        const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
-        const reversedTuning = [...tuning].reverse();
-
-        const allBoxNotes = currentFingering.scaleFrets.map(sf => {
-          const openNote = getAbsoluteNoteValue(reversedTuning[sf.stringIndex]);
-          return {
-            absoluteValue: openNote + sf.fret,
-            stringIndex: sf.stringIndex,
-            fret: sf.fret,
-            instrument: playbackInstrument
-          };
-        }).sort((a, b) => {
-          if (b.stringIndex !== a.stringIndex) return b.stringIndex - a.stringIndex;
-          return a.fret - b.fret;
-        });
-
-        const seenPitches = new Set();
-        const boxNotes = allBoxNotes.filter(n => {
-          if (seenPitches.has(n.absoluteValue)) return false;
-          seenPitches.add(n.absoluteValue);
-          return true;
-        });
-
-        logScalePosition(playbackInstrument, currentFingering.positionIndex ?? 0, currentFingering.scaleFrets, reversedTuning);
-
-        absolutePitches = buildAscDescSequence(boxNotes);
-
+      // The scale as it exists on the instrument that owns playback, ascending.
+      // This branch used to rebuild the box here, with its own sort and its own
+      // dedup — a second implementation that drifted from the displayed one and
+      // played a full octave below it.
+      if (realizedNotes.length) {
+        absolutePitches = buildAscDescSequence(realizedNotes);
         logPlaybackSequence(absolutePitches);
-
-        notesToPlay = absolutePitches.map(p => midiToNoteName(p.absoluteValue));
+        notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
       } else {
+        // Nothing selected yet: derive from theory so the hook still plays.
         const scaleData = resolveScaleIntervals(dictType);
         const intervals = scaleData ? scaleData.intervals : SCALES.scale_major.intervals;
         const baseOctave = 4 + (dictOctave || 0);
         let currentPitch = Number(dictRoot) + (baseOctave + 1) * 12;
         absolutePitches.push(currentPitch);
-
         intervals.forEach((interval) => {
           currentPitch += interval;
           absolutePitches.push(currentPitch);
         });
-
         absolutePitches = buildAscDescSequence(absolutePitches);
-
         notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
       }
     } else if (dictType?.includes("chord")) {
-      const currentFingering = (playbackInstrument === "guitar") ? guitarFingering : (playbackInstrument === "bass" ? bassFingering : null);
-      const fingeringMap = currentFingering?.fingeringMap;
-      
-      if (fingeringMap && (playbackInstrument === "guitar" || playbackInstrument === "bass")) {
-        const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
-        const reversedTuning = [...tuning].reverse();
-        absolutePitches = fingeringMapToAbsolutePitches(fingeringMap, reversedTuning, playbackInstrument);
+      // Same rule as scales: the realization decides. A grip on the neck is
+      // played in the register the player would hear it; piano falls through to
+      // the theoretical chord.
+      if (realizedNotes.length) {
+        absolutePitches = realizedNotes.map((n) =>
+          typeof n === "object" && n !== null ? n : { absoluteValue: n }
+        );
       }
 
       if (absolutePitches.length === 0) {
-        const baseOctave = 4 + (chordOctaveOffset || 0);
+        // The Dictionary's own octave selector, not the Studio's. This read
+        // `chordOctaveOffset`, the offset StudioPanel owns, so moving the
+        // Dictionary octave changed the keyboard and left the sound behind
+        // (VMU-085).
+        const baseOctave = 4 + (dictOctave || 0);
         absolutePitches = getChordAbsolute(Number(dictRoot), dictType, baseOctave);
-        
         if (!absolutePitches || absolutePitches.length === 0) {
           const chordData = resolveChordSemitones(dictType);
           const semitones = chordData ? chordData.semitones : CHORDS["chord_major"].semitones;
@@ -229,7 +220,6 @@ export function useDictionaryPlayback({
     bassFingering,
     activeBrick,
     activeNotes,
-    chordOctaveOffset,
     currentBpm,
     lastClickedContext,
     setCurrentlyPlayingNotes,

@@ -18,6 +18,7 @@ import {
 } from "../core/theory";
 import { TUNINGS } from "../core/tunings";
 import { getInversionType, getChordIntervalLabel } from "../core/harmonyEngine";
+import { realizeDictionarySelection } from "../core/realization";
 
 /**
  * useMusicEngine Hook
@@ -42,6 +43,9 @@ import { getInversionType, getChordIntervalLabel } from "../core/harmonyEngine";
  * @param {number} options.dictOctave
  * @param {string} options.fingeringMode
  * @param {string} options.notation
+ * @param {'piano'|'guitar'|'bass'} [options.playbackInstrument] instrument that
+ *   owns the realization: its fingering decides the pitches that are both
+ *   played and highlighted. Defaults to piano, i.e. the theoretical notes.
  */
 export function useMusicEngine({
   appMode,
@@ -60,7 +64,8 @@ export function useMusicEngine({
   dictActiveNotes,
   dictOctave,
   fingeringMode,
-  notation
+  notation,
+  playbackInstrument = 'piano'
 }) {
 
   // --- 1. Harmonization & Active Notes ---
@@ -370,8 +375,37 @@ export function useMusicEngine({
   // getBestVoiceLeading() in core/voicingEngine.js. Making voice leading visible
   // is real work with a UI attached, tracked as VMU-062.
 
+  // --- 4. Realization (VMU-003) ---
+  //
+  // Blocks 3 and 4 — what is played and what is lit up — must read the same
+  // notes. The fingerings above are computed from the selection; the grip they
+  // describe is what a player would actually hear, so in Dictionary mode it is
+  // the grip, not a theoretical fold into one octave, that defines the notes.
+  //
+  // Studio mode is untouched: its notes come from a played progression, which
+  // already carries its own register.
+  const realization = useMemo(() => {
+    if (appMode !== "dictionary") {
+      return { notes: musicContext.activeNotes, source: "theory" };
+    }
+    const fretted = playbackInstrument === "guitar" || playbackInstrument === "bass";
+    return realizeDictionarySelection({
+      instrument: playbackInstrument,
+      fingering: fretted
+        ? (playbackInstrument === "guitar" ? guitarFingering : bassFingering)
+        : null,
+      tuning: playbackInstrument === "bass"
+        ? (activeBrick?.bassStrings || TUNINGS.BASS_STANDARD)
+        : (activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD),
+      rootPitchClass: Number(dictRoot) % 12,
+      theoreticalNotes: musicContext.activeNotes,
+    });
+  }, [appMode, playbackInstrument, guitarFingering, bassFingering, activeBrick, dictRoot, musicContext.activeNotes]);
+
   return {
     ...musicContext,
+    activeNotes: realization.notes,
+    realizationSource: realization.source,
     inversionText,
     guitarFingering,
     bassFingering,

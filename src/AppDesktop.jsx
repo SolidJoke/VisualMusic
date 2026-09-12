@@ -147,7 +147,8 @@ function AppDesktop() {
     dictActiveNotes,
     dictOctave,
     fingeringMode,
-    notation
+    notation,
+    playbackInstrument
   });
 
   const {
