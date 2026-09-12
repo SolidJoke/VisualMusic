@@ -1,0 +1,12 @@
+Salamander Grand Piano
+by Alexander Holm
+
+Licence: Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+         https://creativecommons.org/licenses/by/3.0/
+
+The 19 MP3 files in this directory (A1-A6, C2-C6, Ds2-Ds5, Fs2-Fs5) are a
+subset of the Salamander Grand Piano sample set, retrieved on 2026-09-12 from
+https://tonejs.github.io/audio/salamander/ and redistributed unmodified.
+
+They were previously loaded from a third-party GitHub Pages host that answers
+404, so the sampled piano never played. See VMU-021.
