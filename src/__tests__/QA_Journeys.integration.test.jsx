@@ -35,6 +35,10 @@ vi.mock("../audio/AudioEngine", () => ({
   bassSynth: { triggerAttackRelease: vi.fn() },
   initPianoSampler: vi.fn(),
   initGuitarSampler: vi.fn(),
+  // AppRouter preloads the samplers on mount (VMU-102); the mock has to carry
+  // the export or the dynamic import rejects after the test has finished, which
+  // fails the run without failing any test.
+  preloadSamplers: vi.fn(),
   applyGenrePreset: vi.fn(),
   setInstrumentVolume: vi.fn(),
   playDictionaryNote: vi.fn(),
