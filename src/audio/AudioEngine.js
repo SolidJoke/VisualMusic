@@ -71,6 +71,16 @@ export function setBpm(bpm) {
  * Instead, we use `initAudio()` below to asynchronously unlock the
  * Web Audio Context via `Tone.start()` at the first interaction.
  */
+export function preloadSamplers() {
+  // Fetching and decoding need no user gesture: decodeAudioData resolves on a
+  // suspended AudioContext (measured 2026-09-12 — 19 files, 1361 kB, 73 ms to
+  // decode, context state never leaves "suspended"). Starting here, at mount,
+  // means the buffers are ready by the time anything is clicked. Left to
+  // initAudio() alone, the first note fired before onload and got the fallback.
+  initPianoSampler();
+  initGuitarSampler();
+}
+
 export async function initAudio() {
   await Tone.start();
   Tone.context.lookAhead = 0.1; // 100ms buffer — réduit les glitches sous charge CPU

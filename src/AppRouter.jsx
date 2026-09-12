@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useEffect } from "react";
 import useBreakpoint, { BREAKPOINTS } from "./hooks/useBreakpoint";
 import "./AppRouter.css";
 
@@ -23,6 +23,21 @@ const LoadingFallback = () => (
  */
 export default function AppRouter() {
   const { breakpoint } = useBreakpoint();
+
+  // Start fetching and decoding the instrument samples as soon as the app is on
+  // screen, rather than on the first click that makes a sound. Loading takes no
+  // user gesture, but it does take time, and a click that arrives first gets the
+  // PolySynth fallback (VMU-102). Imported dynamically so Tone.js stays out of
+  // the entry chunk.
+  useEffect(() => {
+    let cancelled = false;
+    import("./audio/AudioEngine").then((engine) => {
+      if (!cancelled) engine.preloadSamplers();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <Suspense fallback={<LoadingFallback />}>
