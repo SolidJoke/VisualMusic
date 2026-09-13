@@ -51,6 +51,14 @@ export function useFretboardPlayback({
 
     const absNote = getAbsoluteNoteValue(noteName);
 
+    // The instrument that was clicked, not the one selected before the click.
+    // autoPlayNote switches the selection and plays in the same event, so
+    // `playbackInstrument` in this closure still holds the previous instrument:
+    // clicking the guitar neck with the piano selected sent the guitar grip
+    // (C3-E4) to the piano, an octave below the piano's own chord (VMU-105,
+    // measured in the browser). Same trap as useSelectThenPlay (#104).
+    const inst = context?.instrument || playbackInstrument;
+
     const currentToken = scheduler.startPlaybackSession();
 
     setCurrentlyPlayingNotes([]);
@@ -61,7 +69,6 @@ export function useFretboardPlayback({
         let absolutePitches = [];
 
         if (dictType?.includes("scale")) {
-          const inst = context?.instrument || playbackInstrument;
           const currentFingering = inst === "guitar" ? guitarFingering : (inst === "bass" ? bassFingering : null);
 
           if (currentFingering?.scaleFrets && currentFingering.scaleFrets.length > 0) {
@@ -95,7 +102,6 @@ export function useFretboardPlayback({
           }
         } else {
           // Chord: existing logic
-          const inst = context?.instrument || playbackInstrument;
           const currentFingering = inst === "guitar" ? guitarFingering : (inst === "bass" ? bassFingering : null);
 
           if (currentFingering?.fingeringMap && (inst === "guitar" || inst === "bass")) {
@@ -116,7 +122,7 @@ export function useFretboardPlayback({
 
         if (dictType?.includes("chord")) {
           const notesToPlay = absolutePitches.map(p => midiToNoteName(typeof p === 'object' ? p.absoluteValue : p));
-          playDictionaryNote(playbackInstrument, notesToPlay, "2n");
+          playDictionaryNote(inst, notesToPlay, "2n");
           setCurrentlyPlayingNotes(absolutePitches);
           Tone.getDraw().schedule(() => {
             if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
@@ -137,7 +143,7 @@ export function useFretboardPlayback({
           const scheduleTime = sequenceBaseTime + index * stepTime;
           const pitch = typeof p === 'object' ? p.absoluteValue : p;
           const noteNameStr = midiToNoteName(pitch);
-          playDictionaryNote(playbackInstrument, noteNameStr, "8n", scheduleTime);
+          playDictionaryNote(inst, noteNameStr, "8n", scheduleTime);
           Tone.getDraw().schedule(() => {
             if (!scheduler.isCurrentSession(currentToken)) return;
             setCurrentlyPlayingNotes([p]);
@@ -154,7 +160,7 @@ export function useFretboardPlayback({
       // (scaleAnchor is intentionally NOT set here — clicking non-root must not change the displayed box)
     }
 
-    playDictionaryNote(playbackInstrument, noteName, "8n");
+    playDictionaryNote(inst, noteName, "8n");
     setContextualScaleAbsoluteValues([]);
     setLastClickedContext(null);
     setSinglePlayContext(context ?? null);
