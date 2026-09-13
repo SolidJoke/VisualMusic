@@ -185,3 +185,27 @@ export function realizeDictionarySelection({
 
   return { notes: theoreticalNotes ?? [], source: "theory" };
 }
+
+/**
+ * The sounding span of a realization: its lowest and highest pitch.
+ *
+ * This is what the instrument bar shows under each instrument (VMU-101) — the
+ * register that instrument will actually sound for the current selection. It
+ * reads the realization rather than recomputing anything, so the number on the
+ * tile cannot disagree with what selecting that instrument lights up.
+ *
+ * @param {Array<RealizedNote|number>|null|undefined} notes
+ * @returns {{low: number, high: number}|null}
+ */
+export function realizationRange(notes) {
+  if (!notes?.length) return null;
+  let low = Infinity;
+  let high = -Infinity;
+  for (const n of notes) {
+    const v = typeof n === "number" ? n : n?.absoluteValue;
+    if (!Number.isFinite(v)) continue;
+    if (v < low) low = v;
+    if (v > high) high = v;
+  }
+  return Number.isFinite(low) ? { low, high } : null;
+}

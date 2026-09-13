@@ -162,7 +162,8 @@ function AppDesktop() {
     availableBassFingerings,
     inversionText: rawInversion,
     isGuitarOutOfRange,
-    isBassOutOfRange
+    isBassOutOfRange,
+    realizationsByInstrument
   } = musicState;
 
   const inversionText = useMemo(() => {
@@ -361,7 +362,14 @@ function AppDesktop() {
     setScaleAnchor,
     isGuitarOutOfRange,
     isBassOutOfRange,
-    highlightTargetNotes
+    highlightTargetNotes,
+    // VMU-101: the instrument bar in InstrumentView reads and sets the
+    // played instrument, plays it, and shows each instrument's register.
+    playbackInstrument,
+    setPlaybackInstrument,
+    playDictionaryAudio,
+    realizationsByInstrument,
+    notation
   }), [
     layoutMode,
     activeTab,
@@ -405,7 +413,12 @@ function AppDesktop() {
     setScaleAnchor,
     isGuitarOutOfRange,
     isBassOutOfRange,
-    highlightTargetNotes
+    highlightTargetNotes,
+    playbackInstrument,
+    setPlaybackInstrument,
+    playDictionaryAudio,
+    realizationsByInstrument,
+    notation
   ]);
 
   return (
