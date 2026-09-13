@@ -40,25 +40,32 @@ const ControlPanel = ({
 
 
       <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "15px" }}>
-        <div className="controls-group" style={{ flexDirection: "column", gap: "10px", alignItems: "center" }}>
-          <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "bold" }}>Audio :</span>
-          <div style={{ display: "flex", gap: "8px" }}>
-            {[
-              { id: "piano", label: txt.instPiano },
-              { id: "guitar", label: txt.instGuitarBass },
-              { id: "bass", label: txt.instBass }
-            ].map((inst) => (
-              <button
-                key={inst.id}
-                onClick={() => setPlaybackInstrument(inst.id)}
-                className={`btn-premium ${playbackInstrument === inst.id ? " active" : ""}`}
-                style={{ fontSize: "0.8rem", padding: "8px 12px" }}
-              >
-                {inst.label}
-              </button>
-            ))}
+        {/* In the Dictionary, the instrument bar above the keyboard owns this
+            choice (VMU-101); a second control for the same state, buried in a
+            modal, would only disagree with it. The Studio keeps it here. */}
+        {appMode !== "dictionary" && (
+          <div className="controls-group" style={{ flexDirection: "column", gap: "10px", alignItems: "center" }}>
+            <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "bold" }}>Audio :</span>
+            <div style={{ display: "flex", gap: "8px" }}>
+              {[
+                { id: "piano", label: txt.instPiano },
+                // Was "Guit./Bass": one label naming two instruments for a
+                // state that has three distinct values.
+                { id: "guitar", label: txt.instGuitar },
+                { id: "bass", label: txt.instBass }
+              ].map((inst) => (
+                <button
+                  key={inst.id}
+                  onClick={() => setPlaybackInstrument(inst.id)}
+                  className={`btn-premium ${playbackInstrument === inst.id ? " active" : ""}`}
+                  style={{ fontSize: "0.8rem", padding: "8px 12px" }}
+                >
+                  {inst.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="controls-group" style={{ flexDirection: "column", gap: "10px", alignItems: "center" }}>
           <div style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "center" }}>

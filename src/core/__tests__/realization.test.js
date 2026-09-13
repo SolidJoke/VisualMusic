@@ -17,6 +17,7 @@ import {
   realizeChordFromFingering,
   realizeScaleFromBox,
   realizeDictionarySelection,
+  realizationRange,
 } from "../realization";
 import { TUNINGS } from "../tunings";
 
@@ -158,5 +159,26 @@ describe("realizeDictionarySelection", () => {
     });
     expect(result.source).toBe("theory");
     expect(result.notes).toEqual(theoretical);
+  });
+});
+
+describe("realizationRange", () => {
+  it("returns the lowest and highest sounding pitch, whatever the input order", () => {
+    // Open C major grip, deliberately shuffled: G3, C3, E4, E3, C4.
+    const notes = [55, 48, 64, 52, 60].map((absoluteValue) => ({ absoluteValue }));
+    expect(realizationRange(notes)).toEqual({ low: 48, high: 64 });
+  });
+
+  it("accepts bare MIDI numbers as well as notes", () => {
+    expect(realizationRange([60, 64, 67])).toEqual({ low: 60, high: 67 });
+  });
+
+  it("gives a single pitch as a range of one", () => {
+    expect(realizationRange([{ absoluteValue: 60 }])).toEqual({ low: 60, high: 60 });
+  });
+
+  it("returns null when nothing is realized", () => {
+    expect(realizationRange([])).toBeNull();
+    expect(realizationRange(undefined)).toBeNull();
   });
 });

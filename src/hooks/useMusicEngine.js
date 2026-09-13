@@ -384,28 +384,43 @@ export function useMusicEngine({
   //
   // Studio mode is untouched: its notes come from a played progression, which
   // already carries its own register.
-  const realization = useMemo(() => {
+  //
+  // All three instruments are realized, not only the one being played: the
+  // instrument bar (VMU-101) shows each one's register, and a register on a tile
+  // is only honest if it comes from the same function that decides what
+  // selecting that instrument lights up and plays.
+  const realizations = useMemo(() => {
+    const theory = { notes: musicContext.activeNotes, source: "theory" };
     if (appMode !== "dictionary") {
-      return { notes: musicContext.activeNotes, source: "theory" };
+      return { piano: theory, guitar: theory, bass: theory };
     }
-    const fretted = playbackInstrument === "guitar" || playbackInstrument === "bass";
-    return realizeDictionarySelection({
-      instrument: playbackInstrument,
-      fingering: fretted
-        ? (playbackInstrument === "guitar" ? guitarFingering : bassFingering)
+    const realizeFor = (instrument) => realizeDictionarySelection({
+      instrument,
+      fingering: instrument === "guitar" ? guitarFingering
+        : instrument === "bass" ? bassFingering
         : null,
-      tuning: playbackInstrument === "bass"
+      tuning: instrument === "bass"
         ? (activeBrick?.bassStrings || TUNINGS.BASS_STANDARD)
         : (activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD),
       rootPitchClass: Number(dictRoot) % 12,
       theoreticalNotes: musicContext.activeNotes,
     });
-  }, [appMode, playbackInstrument, guitarFingering, bassFingering, activeBrick, dictRoot, musicContext.activeNotes]);
+    return { piano: realizeFor("piano"), guitar: realizeFor("guitar"), bass: realizeFor("bass") };
+  }, [appMode, guitarFingering, bassFingering, activeBrick, dictRoot, musicContext.activeNotes]);
+
+  const realization = realizations[playbackInstrument] ?? realizations.piano;
+
+  const realizationsByInstrument = useMemo(() => ({
+    piano: realizations.piano.notes,
+    guitar: realizations.guitar.notes,
+    bass: realizations.bass.notes,
+  }), [realizations]);
 
   return {
     ...musicContext,
     activeNotes: realization.notes,
     realizationSource: realization.source,
+    realizationsByInstrument,
     inversionText,
     guitarFingering,
     bassFingering,

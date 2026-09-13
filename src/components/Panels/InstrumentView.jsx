@@ -5,6 +5,11 @@ import Fretboard from "../Instruments/Fretboard";
 import SequencerPanel from "./SequencerPanel";
 import TheoryLegend from "./TheoryLegend";
 import PositionSelector from "../Layout/PositionSelector";
+import InstrumentBar from "../Instruments/InstrumentBar";
+import { useSelectThenPlay } from "../../hooks/useSelectThenPlay";
+import { realizationRange } from "../../core/realization";
+import { formatPitchRange } from "../../core/theory";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 
 import { useAppContext } from '../../context/AppContext';
 import { useMusicEngineContext } from "../../context/MusicEngineContext";
@@ -47,12 +52,40 @@ const InstrumentView = memo(function InstrumentView() {
     setSelectedVoicingIndexBass,
     scaleAnchor = null,
     setScaleAnchor,
+    playbackInstrument = "piano",
+    setPlaybackInstrument,
+    playDictionaryAudio,
+    realizationsByInstrument,
   } = useMusicEngineContext();
 
   const { currentStep, currentBpm } = usePlaybackContext();
 
-  const { txt } = useAppContext();
+  const { txt, notation } = useAppContext();
   const isScaleMode = (appMode === "dictionary" && dictType?.includes("scale"));
+
+  // --- Instrument bar (VMU-101) ---
+  // Each tile shows the register its instrument sounds for the current
+  // selection, read from the realizations useMusicEngine already computed:
+  // the same ones that decide what selecting it lights up and plays.
+  const instrumentBarItems = ["piano", "guitar", "bass"].map((id) => ({
+    id,
+    label:
+      id === "piano" ? (txt.instrumentPiano || "Piano")
+      : id === "guitar" ? (txt.instrumentGuitar || "Guitare")
+      : (txt.instrumentBass || "Basse"),
+    range: formatPitchRange(realizationRange(realizationsByInstrument?.[id]), notation),
+  }));
+
+  const selectAndPlay = useSelectThenPlay({
+    selected: playbackInstrument,
+    setSelected: setPlaybackInstrument,
+    play: playDictionaryAudio,
+  });
+
+  // The bar's phone layout is decided in the markup, with the query
+  // PianoKeyboard uses. CSS cannot hide a button under 768px in this app:
+  // App.css forces display:inline-flex !important on every button.
+  const isPhone = useMediaQuery("(max-width: 767px)");
 
   return (
     <div className="layout-col layout-center" style={{ alignItems: "center" }} data-testid="instrument-view">
@@ -85,6 +118,20 @@ const InstrumentView = memo(function InstrumentView() {
           activeProgression={activeProgression}
           chordOctaveOffset={chordOctaveOffset}
         />
+      )}
+
+      {appMode === "dictionary" && (
+        <div style={{ width: "100%", marginBottom: "12px" }}>
+          <InstrumentBar
+            instruments={instrumentBarItems}
+            selected={playbackInstrument}
+            onSelect={(id) => setPlaybackInstrument && setPlaybackInstrument(id)}
+            onPlay={selectAndPlay}
+            playLabel={txt.playInstrument || "Jouer"}
+            groupLabel={txt.instrumentBarLabel || "Instrument joué"}
+            compact={isPhone}
+          />
+        </div>
       )}
 
       {(appMode === "dictionary" || layoutMode === "all" || activeTab === "piano" || activeTab === "guitars") && (

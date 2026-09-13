@@ -151,8 +151,39 @@ async function runSelection({ root, type, octave, instrument }) {
     displayed: displayedPitches(engine.result.current.activeNotes),
     notes: engine.result.current.activeNotes ?? [],
     source: engine.result.current.realizationSource,
+    byInstrument: engine.result.current.realizationsByInstrument,
   };
 }
+
+/**
+ * VMU-101 — each tile of the instrument bar shows a register for its
+ * instrument, including the instruments NOT currently selected. That register
+ * is only honest if it is exactly what selecting that instrument would light up
+ * — and therefore, by the invariant above, what it would play.
+ *
+ * So: from every selected instrument, the precomputed realization of every
+ * instrument must equal what selecting that instrument displays.
+ */
+describe("VMU-101 — a tile's register is what selecting that instrument shows", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each(["chord_major", "chord_m7", "scale_major"])("%s", async (type) => {
+    const INSTRUMENTS = ["piano", "guitar", "bass"];
+    const runs = {};
+    for (const instrument of INSTRUMENTS) {
+      runs[instrument] = await runSelection({ root: 0, type, octave: 0, instrument });
+    }
+
+    for (const from of INSTRUMENTS) {
+      expect(runs[from].byInstrument).toBeTruthy();
+      for (const target of INSTRUMENTS) {
+        expect(displayedPitches(runs[from].byInstrument[target])).toEqual(
+          runs[target].displayed
+        );
+      }
+    }
+  });
+});
 
 describe("VMU-003 — played pitches and highlighted pitches are the same set", () => {
   beforeEach(() => vi.clearAllMocks());

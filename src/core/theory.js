@@ -849,6 +849,40 @@ export function midiToNoteName(midi) {
 }
 
 /**
+ * Converts a MIDI value to a name for the SCREEN, in the notation the user
+ * chose: "C4" in US notation, "Do4" in EU notation. MIDI 60 is middle C.
+ *
+ * Deliberately a separate function from midiToNoteName, which feeds the synth
+ * and must stay US-only (see its note). Adding a notation parameter to that one
+ * is the shortcut that once sent "Do4" to Tone.Frequency and silenced notes.
+ *
+ * @param {number} midi
+ * @param {'us'|'eu'} [notation='us']
+ * @returns {string}
+ */
+export function midiToDisplayName(midi, notation = 'us') {
+  const pitchClass = ((midi % 12) + 12) % 12;
+  const name = notation === 'eu' ? NOTES[pitchClass].eu : NOTES[pitchClass].us;
+  return `${name}${Math.floor(midi / 12) - 1}`;
+}
+
+/**
+ * Formats a pitch range for display: "Do3 – Mi4", or a single name when the
+ * range holds one pitch. Returns null when there is no range, so callers render
+ * nothing rather than the string "null".
+ *
+ * @param {{low: number, high: number}|null} range
+ * @param {'us'|'eu'} [notation='us']
+ * @returns {string|null}
+ */
+export function formatPitchRange(range, notation = 'us') {
+  if (!range) return null;
+  const low = midiToDisplayName(range.low, notation);
+  if (range.low === range.high) return low;
+  return `${low} – ${midiToDisplayName(range.high, notation)}`;
+}
+
+/**
  * Returns true if a MIDI note is within the physical playable range of the instrument.
  * Returns true for unknown instruments (no restriction applied).
  * @param {number} midiNote - Absolute MIDI note number

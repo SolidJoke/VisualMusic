@@ -1,0 +1,183 @@
+/* InstrumentBar — VMU-101, design option A.
+   Theme tokens with the theme-modern values as fallbacks. Selection uses
+   elevation and a light border, never the accent: in theme-modern the accent
+   and --role-root are the same cyan.
+
+   No media query in this file. The phone layout is the `--compact` modifier,
+   set by the component from the same useMediaQuery the rest of the app uses.
+   Two reasons: App.css forces `display: inline-flex !important` on every button
+   under 768px, so CSS cannot hide a button there; and a second breakpoint here
+   could disagree with the JavaScript one at the boundary. */
+
+.instrument-bar {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.instrument-bar__tile {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--lg-panel-bg, rgba(15, 15, 20, 0.75));
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.15));
+  transition: background var(--transition-fast, 150ms ease),
+    border-color var(--transition-fast, 150ms ease),
+    box-shadow var(--transition-fast, 150ms ease);
+}
+
+.instrument-bar__tile.is-selected {
+  background: var(--lg-panel-bg-elevated, rgba(25, 25, 30, 0.85));
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: var(--lg-shadow, 0 8px 32px rgba(0, 0, 0, 0.5));
+}
+
+.instrument-bar__select {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 8px 8px 12px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.instrument-bar__name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #8a8a96);
+}
+
+.instrument-bar__icon {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.instrument-bar__range {
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-faint, #5a5a66);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.is-selected .instrument-bar__name,
+.is-selected .instrument-bar__range {
+  color: var(--text-primary, #f0f0f0);
+}
+
+.is-selected .instrument-bar__icon {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.instrument-bar__play {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.15));
+  color: var(--text-muted, #8a8a96);
+  cursor: pointer;
+  transition: border-color var(--transition-fast, 150ms ease),
+    color var(--transition-fast, 150ms ease);
+}
+
+.is-selected .instrument-bar__play {
+  color: var(--text-primary, #f0f0f0);
+}
+
+.instrument-bar__play:hover,
+.instrument-bar__play-selected:hover {
+  border-color: var(--lg-accent, var(--accent));
+  color: var(--lg-accent, var(--accent));
+}
+
+.instrument-bar__select:focus-visible,
+.instrument-bar__play:focus-visible,
+.instrument-bar__play-selected:focus-visible {
+  outline: 2px solid var(--text-primary, #f0f0f0);
+  outline-offset: 2px;
+}
+
+/* ── Compact (phone) ────────────────────────────────────────────────────
+   The choice stays a row of three; listening becomes one full-width button,
+   which only exists in the markup when compact. */
+
+.instrument-bar--compact {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.instrument-bar--compact .instrument-bar__tile {
+  padding: 0;
+}
+
+.instrument-bar--compact .instrument-bar__select {
+  align-items: center;
+  text-align: center;
+  min-height: 62px;
+  padding: 8px 4px;
+}
+
+.instrument-bar--compact .instrument-bar__name {
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.instrument-bar--compact .instrument-bar__range {
+  font-size: 12px;
+}
+
+.instrument-bar__play-selected {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--lg-panel-bg, rgba(15, 15, 20, 0.75));
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.15));
+  color: var(--text-primary, #f0f0f0);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
