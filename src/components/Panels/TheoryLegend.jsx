@@ -35,7 +35,10 @@ const TheoryLegend = () => {
           gap: "20px",
           textAlign: "left",
           width: "100%",
-          maxWidth: "800px"
+          maxWidth: "800px",
+          // 20px padding and a 1px border on a 100%-wide panel: in content-box
+          // the legend opened 42px wider than the screen on a phone (measured).
+          boxSizing: "border-box"
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

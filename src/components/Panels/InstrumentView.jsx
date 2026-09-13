@@ -145,7 +145,7 @@ const InstrumentView = memo(function InstrumentView() {
       )}
 
       {(appMode === "dictionary" || layoutMode === "all" || activeTab === "guitars") && (
-        <div className="scrollable-instrument" style={{ width: "100%", paddingLeft: "35px" }}>
+        <div className="scrollable-instrument" style={{ width: "100%", paddingLeft: "35px", boxSizing: "border-box" }}>
           {showFingering && ((appMode === "studio" && clickedChord) || appMode === "dictionary") && (
             <PositionSelector 
               instrumentType="guitar"
