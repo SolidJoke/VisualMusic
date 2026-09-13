@@ -27,8 +27,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           # Vite 7 requires ^20.19 || >=22.12. Pinned to the LTS line rather
-          # than to whatever is on a developer's machine.
-          node-version: '22'
+          # than to whatever is on a developer's machine. Read from `.nvmrc`,
+          # which Netlify reads too: one declaration, so the build that ships
+          # and the build that is checked cannot run on different Node lines.
+          # Do not add `node-version` here — it would silently win over the file.
+          node-version-file: '.nvmrc'
           cache: npm
 
       # `npm ci` installs from the lockfile into a clean tree, so it verifies
