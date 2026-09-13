@@ -84,8 +84,11 @@ const AudioVisualizer = memo(function AudioVisualizer({ analyser, width = "100%"
     };
   }, [analyser]);
 
+  // border-box: the frame has a 1px border and is usually given width "100%".
+  // In content-box it was 2px wider than its parent on a phone (measured). The
+  // static inline-style guard cannot see this one — the width is a prop.
   return (
-    <div style={{ width, height, borderRadius: "6px", overflow: "hidden", border: "1px solid var(--border-default)", backgroundColor: "transparent" }}>
+    <div style={{ width, height, boxSizing: "border-box", borderRadius: "6px", overflow: "hidden", border: "1px solid var(--border-default)", backgroundColor: "transparent" }}>
       <canvas
         ref={canvasRef}
         style={{ width: "100%", height: "100%", display: "block" }}

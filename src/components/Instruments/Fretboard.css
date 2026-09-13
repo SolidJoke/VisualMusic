@@ -404,6 +404,9 @@
         min-width: unset !important; /* Retire le min-width: 800px */
         width: 100% !important;
         max-width: 100% !important;
+        /* The base rule gives .fretboard a 2px border: at width 100% in
+           content-box it was 2px wider than its parent on a phone (measured). */
+        box-sizing: border-box;
     }
 
     /* Marqueurs adaptés pour 7 frettes */

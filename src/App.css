@@ -944,6 +944,13 @@ input[type="range"]::-webkit-slider-runnable-track {
     flex-direction: column;
     gap: 8px;
     padding: 8px;
+    /* width 100% + padding 8px in content-box is the parent's width PLUS 16px.
+       Measured at 390px: .app-main-content 406px wide, and .layout-col and
+       #instrument-view each 16px past their parent — the right edge of the
+       keyboard, fretboards and instrument bar cut off, since
+       .app-container-inner hides horizontal overflow.
+       Guarded by src/__tests__/PhoneLayoutOverflow.test.js. */
+    box-sizing: border-box;
     overflow: visible;
   }
 }
