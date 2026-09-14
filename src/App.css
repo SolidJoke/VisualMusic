@@ -859,6 +859,31 @@ input[type="range"]::-webkit-slider-runnable-track {
   }
 }
 
+/* VMU-112 — fold-section headers are real <button> elements (needed for
+   aria-expanded/aria-controls and native keyboard activation), styled to
+   match the existing .panel__header look below via the shared class.
+   Browsers give <button> its own border/background/font: reset only that,
+   never touching .panel__header's layout rules. */
+button.panel__header {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.fold-section__indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fold-section__state-text {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
 /* Collapse UI for 1440px */
 @media (max-width: 2559px) {
   .panel__header {

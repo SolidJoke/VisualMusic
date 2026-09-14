@@ -26,7 +26,12 @@ export default function useDebugExport({
       const showFingering = appContextState?.showFingering;
       const fingeringMode = appContextState?.fingeringMode;
       const uiTheme = appContextState?.uiTheme;
-      const layoutMode = appContextState?.layoutMode;
+      // VMU-112: layoutMode no longer exists (replaced by per-section
+      // folding). collapsedSections is the closest equivalent — which
+      // instrument sections are open — and still useful in a debug
+      // snapshot, so it takes layoutMode's place here rather than leaving
+      // the key out.
+      const collapsedSections = appContextState?.collapsedSections ?? {};
 
       const dictRoot = musicEngineState?.dictRoot;
       const dictType = musicEngineState?.dictType;
@@ -52,7 +57,7 @@ export default function useDebugExport({
           showFingering,
           fingeringMode,
           uiTheme,
-          layoutMode,
+          collapsedSections,
         },
         musicEngine: {
           dictRoot,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import React from "react";
 import { AppProvider } from "../context/AppContext";
 import AppRouter from "../AppRouter";
@@ -142,10 +142,15 @@ describe("QA Testing Sessions - Integration Journeys", () => {
       fireEvent.click(settingsBtn);
 
       // 3. Changer le preset d'instrument
-      const pianoBtn = screen.getByRole("button", { name: /piano/i });
+      // Scoped to ControlPanel (VMU-112): InstrumentView's fold sections
+      // (always mounted, not modal-gated) now also expose buttons named
+      // "Piano"/"Guitare" — the section headers — so an unscoped query
+      // matches two buttons instead of one.
+      const controlPanel = document.querySelector(".control-panel-container");
+      const pianoBtn = within(controlPanel).getByRole("button", { name: /piano/i });
       fireEvent.click(pianoBtn);
 
-      const guitarBtn = screen.getByRole("button", { name: /guit/i });
+      const guitarBtn = within(controlPanel).getByRole("button", { name: /guit/i });
       fireEvent.click(guitarBtn);
 
       expect(screen.getByTestId("studio-panel")).toBeDefined();

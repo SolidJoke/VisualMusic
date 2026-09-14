@@ -56,7 +56,7 @@ describe("useDebugExport hook", () => {
       showFingering: true,
       fingeringMode: "guitar",
       uiTheme: "dark",
-      layoutMode: "4k",
+      collapsedSections: { guitar: true },
     };
 
     const mockMusicEngine = {

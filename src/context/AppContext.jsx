@@ -15,8 +15,11 @@ const initialState = {
   showFingering: true,
   fingeringMode: 'anatomic',
   playbackInstrument: 'piano',
-  layoutMode: 'all',
-  activeTab: 'sequencer',
+  // VMU-112: replaces layoutMode/activeTab ("Tout afficher / Mode Focus").
+  // Keyed by section id ("sequencer" | "piano" | "guitar" | "bass"); a
+  // missing key means expanded, so the default {} is "everything open" —
+  // required behaviour (§2.3), and it needs no per-section initialisation.
+  collapsedSections: {},
   uiTheme: 'modern',
   showLegend: false,
   harmonicMode: false,
