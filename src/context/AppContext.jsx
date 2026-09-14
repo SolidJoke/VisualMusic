@@ -8,7 +8,14 @@ const AppContext = createContext(null);
 const initialState = {
   appMode: 'studio',
   lang: 'fr',
-  notation: 'us',
+  // VMU-100: latin (do, ré, mi) notation by default, at the product owner's
+  // request. US (A, B, C) stays available through the existing US/EU
+  // selector (DictionaryPanel.jsx, dispatches SET_NOTATION). Safe to flip
+  // because every path that feeds the synth (midiToNoteName, Fretboard.jsx
+  // and PianoKeyboard.jsx's click handlers) builds its name from `.us`
+  // unconditionally, never from this value — see PitchConsistency.test.js
+  // and EuNotationDefault.test.jsx for the audibility guards this relies on.
+  notation: 'eu',
   chordDisplayMode: 'standard',
   showAbout: false,
   showTheory: false,

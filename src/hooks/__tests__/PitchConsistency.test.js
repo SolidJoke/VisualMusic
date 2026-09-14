@@ -171,6 +171,45 @@ describe("Dictionnaire — ce qu'on entend est ce qu'on voit", () => {
     expect(names.slice(0, 8)).toEqual(["C3", "D3", "E3", "F3", "G3", "A3", "B3", "C4"]);
     expect(names.map(midi)).toEqual(shownOn(setCurrentlyPlayingNotes));
   });
+
+  // VMU-100: useDictionaryPlayback never reads `notation` — it always builds
+  // synth names through midiToNoteName (US), by design (see theory.js). These
+  // three tests pin that invariant explicitly for the paths VMU-100 audited as
+  // "not covered": single note, chord and scale playback from the Dictionary.
+  // `notation: "eu"` is passed for documentation, matching the convention
+  // already used below for Studio — the hook itself ignores it.
+  const audible = (name) => expect(name).toMatch(/^[A-G]#?-?\d+$/);
+
+  it("dictionary playback stays audible in EU notation — single note", async () => {
+    const { result } = renderDictionary({
+      dictType: "single_note",
+      activeNotes: [{ value: 0, absoluteValue: 60 }],
+      notation: "eu",
+    });
+    await play(result);
+
+    const names = sentToSynth();
+    expect(names).toEqual(["C4"]);
+    names.forEach(audible);
+  });
+
+  it("dictionary playback stays audible in EU notation — chord", async () => {
+    const { result } = renderDictionary({ dictType: "chord_major", notation: "eu" });
+    await play(result);
+
+    const names = sentToSynth();
+    expect(names).toEqual(["C4", "E4", "G4"]);
+    names.forEach(audible);
+  });
+
+  it("dictionary playback stays audible in EU notation — scale", async () => {
+    const { result } = renderDictionary({ dictType: "scale_major", notation: "eu" });
+    await play(result);
+
+    const names = sentToSynth();
+    expect(names.slice(0, 8)).toEqual(["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"]);
+    names.forEach(audible);
+  });
 });
 
 describe("Studio — clic sur un accord de la progression", () => {
