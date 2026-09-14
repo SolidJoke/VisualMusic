@@ -53,7 +53,7 @@ describe("CompositionPanel Component", () => {
     const { container } = render(<CompositionPanel {...defaultProps} />);
 
     const select = screen.getAllByRole("combobox")[0];
-    
+
     // Choose "Tresillo" from presets
     fireEvent.change(select, { target: { value: "tresillo" } });
 
@@ -79,9 +79,12 @@ describe("CompositionPanel Component", () => {
 
     const exportBtn = container.querySelector(".export-btn");
 
-    // Default target is Kick drum, should call setCustomDrums
+    // Default target is Kick drum, should call setCustomDrums — once, for the
+    // click. This asserted 2 calls, and passed: the second was the export the
+    // panel fired on mount, which overwrote the style's kick the moment the
+    // modal opened (VMU-113). The test was certifying the bug.
     fireEvent.click(exportBtn);
-    expect(setCustomDrums).toHaveBeenCalledTimes(2);
+    expect(setCustomDrums).toHaveBeenCalledTimes(1);
 
     // E(5,16) yields indices [0, 3, 6, 9, 12]
     const drumSetterArg = setCustomDrums.mock.calls[0][0];
@@ -155,8 +158,83 @@ describe("CompositionPanel Component", () => {
 
     // Forced Realignment section should now be visible
     expect(screen.getByText("FORCED REALIGNMENT (CALCULATRICE M)")).toBeTruthy();
-    
+
     // Isorhythm section should be closed due to mutual exclusion
     expect(screen.queryByText("ISORHYTHM ENGINE (TALEA & COLOR)")).toBeNull();
+  });
+});
+
+// VMU-113. The panel lives in a modal that mounts its content on opening. An
+// effect exported the current rhythm on every render-time change, mount
+// included, so opening "Math & Rythmes" replaced the style's kick with E(5,16)
+// before the user touched anything. Measured in the browser on d54badb: kick
+// steps 0,8 -> 0,3,6,9,12 on opening, still there after closing.
+describe("CompositionPanel — opening writes nothing to the sequencer (VMU-113)", () => {
+  const renderPanel = (wrap = (node) => node) => {
+    const setters = {
+      setSuggestedBassTrack: vi.fn(),
+      setCustomRhythm: vi.fn(),
+      setCustomDrums: vi.fn(),
+    };
+    const utils = render(
+      wrap(
+        <CompositionPanel
+          activeTracks={{ drums: [], melody: [], progression: ["I"], rhythm: [0] }}
+          currentStep={-1}
+          {...setters}
+        />
+      )
+    );
+    return { ...utils, ...setters };
+  };
+
+  // The rhythm the last drum export would write, read through the functional
+  // updater the panel passes to setCustomDrums.
+  const lastKick = (setCustomDrums) => {
+    const calls = setCustomDrums.mock.calls;
+    return calls[calls.length - 1][0]({}).Kick;
+  };
+
+  const pulsesSlider = (container) => container.querySelectorAll('input[type="range"]')[1];
+
+  it("opening the panel calls no sequencer setter", () => {
+    const { setSuggestedBassTrack, setCustomRhythm, setCustomDrums } = renderPanel();
+
+    expect(setCustomDrums).not.toHaveBeenCalled();
+    expect(setCustomRhythm).not.toHaveBeenCalled();
+    expect(setSuggestedBassTrack).not.toHaveBeenCalled();
+  });
+
+  it("opening the panel under StrictMode calls no sequencer setter either", () => {
+    // main.jsx renders the app in StrictMode, which runs mount effects twice in
+    // development. A "skip the first run" flag would export on the second.
+    const { setCustomDrums } = renderPanel((node) => <React.StrictMode>{node}</React.StrictMode>);
+
+    expect(setCustomDrums).not.toHaveBeenCalled();
+  });
+
+  it("a change made by the user is still exported live", () => {
+    const { container, setCustomDrums } = renderPanel();
+
+    fireEvent.change(pulsesSlider(container), { target: { value: "6" } });
+
+    // E(6,16): six onsets among sixteen steps, whatever the rotation.
+    expect(setCustomDrums).toHaveBeenCalled();
+    const kick = lastKick(setCustomDrums);
+    expect(kick).toHaveLength(6);
+    expect(new Set(kick).size).toBe(6);
+    expect(kick.every((step) => step >= 0 && step < 16)).toBe(true);
+  });
+
+  it("returning to the opening value after a change still exports it", () => {
+    // Once the user has changed something, the sequencer must follow the panel
+    // even back to where it started; otherwise the track keeps E(6,16) while
+    // the panel shows E(5,16).
+    const { container, setCustomDrums } = renderPanel();
+
+    fireEvent.change(pulsesSlider(container), { target: { value: "6" } });
+    fireEvent.change(pulsesSlider(container), { target: { value: "5" } });
+
+    expect(lastKick(setCustomDrums)).toHaveLength(5);
   });
 });
