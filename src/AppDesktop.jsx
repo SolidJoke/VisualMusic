@@ -46,8 +46,7 @@ function AppDesktop() {
     showFingering,
     fingeringMode,
     playbackInstrument,
-    layoutMode,
-    activeTab,
+    collapsedSections,
     chordDisplayMode,
     uiTheme,
     highlightTargetNotes,
@@ -72,11 +71,18 @@ function AppDesktop() {
   const setShowFingering = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingering', value: val } }), [dispatch]);
   const setFingeringMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'fingeringMode', value: val } }), [dispatch]);
   const setPlaybackInstrument = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'playbackInstrument', value: val } }), [dispatch]);
-  const setLayoutMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'layoutMode', value: val } }), [dispatch]);
+  // VMU-112: replaces setLayoutMode/setActiveTab. Folding is independent of
+  // which instrument is played — this never touches playbackInstrument.
   // Memoized: passed to InstrumentView (memoized), stable ref avoids unnecessary re-renders
-  const setActiveTab = useCallback(
-    (val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'activeTab', value: val } }),
-    [dispatch]
+  const toggleSection = useCallback(
+    (section) => dispatch({
+      type: 'SET_UI_VALUE',
+      payload: {
+        key: 'collapsedSections',
+        value: { ...collapsedSections, [section]: !collapsedSections[section] },
+      },
+    }),
+    [dispatch, collapsedSections]
   );
   const setChordDisplayMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'chordDisplayMode', value: val } }), [dispatch]);
   const setUiTheme = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } }), [dispatch]);
@@ -320,9 +326,8 @@ function AppDesktop() {
 
   const musicEngineContextValue = useMemo(() => ({
     masterAnalyser,
-    layoutMode,
-    activeTab,
-    setActiveTab,
+    collapsedSections,
+    toggleSection,
     appMode,
     displayMode,
     activeDrums,
@@ -371,9 +376,8 @@ function AppDesktop() {
     realizationsByInstrument,
     notation
   }), [
-    layoutMode,
-    activeTab,
-    setActiveTab,
+    collapsedSections,
+    toggleSection,
     appMode,
     displayMode,
     activeDrums,
@@ -591,9 +595,6 @@ function AppDesktop() {
               handleInstrumentVolumeChange={handleInstrumentVolumeChange}
               displayMode={displayMode}
               setDisplayMode={setDisplayMode}
-              layoutMode={layoutMode}
-              setLayoutMode={setLayoutMode}
-              activeTab={activeTab}
               fretboardZone={fretboardZone}
               setFretboardZone={setFretboardZone}
               visualFocus={visualFocus}

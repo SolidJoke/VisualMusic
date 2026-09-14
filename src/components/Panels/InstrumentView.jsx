@@ -6,6 +6,7 @@ import SequencerPanel from "./SequencerPanel";
 import TheoryLegend from "./TheoryLegend";
 import PositionSelector from "../Layout/PositionSelector";
 import InstrumentBar from "../Instruments/InstrumentBar";
+import FoldSection from "./FoldSection";
 import { useSelectThenPlay } from "../../hooks/useSelectThenPlay";
 import { realizationRange } from "../../core/realization";
 import { formatPitchRange } from "../../core/theory";
@@ -23,9 +24,8 @@ import { usePlaybackContext } from "../../context/PlaybackContext";
 const InstrumentView = memo(function InstrumentView() {
   const {
     masterAnalyser,
-    layoutMode,
-    activeTab,
-    setActiveTab,
+    collapsedSections = {},
+    toggleSection = () => {},
     appMode,
     activeDrums,
     activeMelody,
@@ -93,31 +93,26 @@ const InstrumentView = memo(function InstrumentView() {
         <AudioVisualizer analyser={masterAnalyser} height="60px" />
       </div>
 
-      {layoutMode === "tabs" && (
-        <div style={{ width: "100%", display: "flex", gap: "10px", marginBottom: "20px", justifyContent: "center", flexWrap: "wrap" }}>
-          {["sequencer", "piano", "guitars"].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`btn-premium ${activeTab === tab ? " active" : ""}`}
-            >
-              {txt[`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`] || tab}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {appMode === "studio" && (layoutMode === "all" || activeTab === "sequencer") && (
-        <SequencerPanel
-          activeDrums={activeDrums}
-          activeMelody={activeMelody}
-          activeChordTrack={activeChordTrack}
-          currentStep={currentStep}
-          currentBpm={currentBpm}
-          activeBrick={activeBrick}
-          activeProgression={activeProgression}
-          chordOctaveOffset={chordOctaveOffset}
-        />
+      {appMode === "studio" && (
+        <FoldSection
+          id="instrument-section-sequencer"
+          title={txt.sectionSequencer || "Séquenceur"}
+          expanded={!collapsedSections.sequencer}
+          onToggle={() => toggleSection("sequencer")}
+          expandedLabel={txt.foldSectionExpanded}
+          collapsedLabel={txt.foldSectionCollapsed}
+        >
+          <SequencerPanel
+            activeDrums={activeDrums}
+            activeMelody={activeMelody}
+            activeChordTrack={activeChordTrack}
+            currentStep={currentStep}
+            currentBpm={currentBpm}
+            activeBrick={activeBrick}
+            activeProgression={activeProgression}
+            chordOctaveOffset={chordOctaveOffset}
+          />
+        </FoldSection>
       )}
 
       {appMode === "dictionary" && (
@@ -134,20 +129,37 @@ const InstrumentView = memo(function InstrumentView() {
         </div>
       )}
 
-      {(appMode === "dictionary" || layoutMode === "all" || activeTab === "piano" || activeTab === "guitars") && (
+      {/* VMU-112: the legend stays up as long as there is something for it
+          to explain — i.e. at least one of piano/guitar/bass is unfolded.
+          Independent of which instrument is actually played. */}
+      {!(collapsedSections.piano && collapsedSections.guitar && collapsedSections.bass) && (
         <TheoryLegend />
       )}
 
-      {(appMode === "dictionary" || layoutMode === "all" || activeTab === "piano") && (
+      <FoldSection
+        id="instrument-section-piano"
+        title={txt.instrumentPiano || "Piano"}
+        expanded={!collapsedSections.piano}
+        onToggle={() => toggleSection("piano")}
+        expandedLabel={txt.foldSectionExpanded}
+        collapsedLabel={txt.foldSectionCollapsed}
+      >
         <div className="scrollable-instrument" style={{ width: "100%" }}>
           <PianoKeyboard />
         </div>
-      )}
+      </FoldSection>
 
-      {(appMode === "dictionary" || layoutMode === "all" || activeTab === "guitars") && (
+      <FoldSection
+        id="instrument-section-guitar"
+        title={txt.instrumentGuitar || "Guitare"}
+        expanded={!collapsedSections.guitar}
+        onToggle={() => toggleSection("guitar")}
+        expandedLabel={txt.foldSectionExpanded}
+        collapsedLabel={txt.foldSectionCollapsed}
+      >
         <div className="scrollable-instrument" style={{ width: "100%", paddingLeft: "35px", boxSizing: "border-box" }}>
           {showFingering && ((appMode === "studio" && clickedChord) || appMode === "dictionary") && (
-            <PositionSelector 
+            <PositionSelector
               instrumentType="guitar"
               selectedRootString={selectedRootStringGuitar}
               setSelectedRootString={setSelectedRootStringGuitar}
@@ -165,11 +177,20 @@ const InstrumentView = memo(function InstrumentView() {
           <div className="fretboard-scroll-container">
             <Fretboard instrument="guitar" />
           </div>
-          
-          <br />
+        </div>
+      </FoldSection>
 
+      <FoldSection
+        id="instrument-section-bass"
+        title={txt.instrumentBass || "Basse"}
+        expanded={!collapsedSections.bass}
+        onToggle={() => toggleSection("bass")}
+        expandedLabel={txt.foldSectionExpanded}
+        collapsedLabel={txt.foldSectionCollapsed}
+      >
+        <div className="scrollable-instrument" style={{ width: "100%", paddingLeft: "35px", boxSizing: "border-box" }}>
           {showFingering && ((appMode === "studio" && clickedChord) || appMode === "dictionary") && (
-            <PositionSelector 
+            <PositionSelector
               instrumentType="bass"
               selectedRootString={selectedRootStringBass}
               setSelectedRootString={setSelectedRootStringBass}
@@ -188,7 +209,7 @@ const InstrumentView = memo(function InstrumentView() {
             <Fretboard instrument="bass" />
           </div>
         </div>
-      )}
+      </FoldSection>
     </div>
   );
 });

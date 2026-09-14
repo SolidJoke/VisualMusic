@@ -14,9 +14,6 @@ const PlaybackPanel = ({
   handleInstrumentVolumeChange,
   displayMode,
   setDisplayMode,
-  layoutMode,
-  setLayoutMode,
-  activeTab,
   fretboardZone,
   setFretboardZone,
   visualFocus,
@@ -108,45 +105,27 @@ const PlaybackPanel = ({
           </div>
         )}
 
-        {appMode !== "dictionary" && (
-          <div className="controls-group">
-            <button
-              onClick={() => setLayoutMode("all")}
-              className={`btn-premium ${layoutMode === "all" ? " active" : ""}`}
-              style={{ borderRadius: "var(--radius-xl)" }}
-            >
-              {txt.showAll}
-            </button>
-            <button
-              onClick={() => setLayoutMode("tabs")}
-              className={`btn-premium ${layoutMode === "tabs" ? " active" : ""}`}
-              style={{ borderRadius: "var(--radius-xl)" }}
-            >
-              {txt.focusMode}
-            </button>
-          </div>
-        )}
+        {/* VMU-112: "Tout afficher / Mode Focus" removed — replaced by
+            per-section folding in InstrumentView. The guitar-position
+            selector below no longer depends on it and shows in both
+            app modes. */}
 
-        {(appMode === "dictionary" ||
-          layoutMode === "all" ||
-          activeTab === "guitars") && (
-          <div className="select-group">
-            <span className="section-label">
-              {txt.guitarPos}
-            </span>
-            <CustomSelect
-              value={fretboardZone}
-              onChange={(val) => setFretboardZone(val)}
-              options={[
-                { value: "all", label: txt.posAll },
-                { value: "open", label: txt.posOpen },
-                { value: "mid", label: txt.posMid },
-                { value: "high", label: txt.posHigh },
-              ]}
-              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
-            />
-          </div>
-        )}
+        <div className="select-group">
+          <span className="section-label">
+            {txt.guitarPos}
+          </span>
+          <CustomSelect
+            value={fretboardZone}
+            onChange={(val) => setFretboardZone(val)}
+            options={[
+              { value: "all", label: txt.posAll },
+              { value: "open", label: txt.posOpen },
+              { value: "mid", label: txt.posMid },
+              { value: "high", label: txt.posHigh },
+            ]}
+            theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
+          />
+        </div>
       </div>
     </div>
   );
