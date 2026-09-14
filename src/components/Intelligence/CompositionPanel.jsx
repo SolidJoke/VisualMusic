@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { EuclideanCircle } from "./EuclideanCircle";
 import { PhasingVisualizer } from "./PhasingVisualizer";
 import PolyrhythmAlgebraPanel from "./PolyrhythmAlgebraPanel";
@@ -177,17 +177,32 @@ export default function CompositionPanel({
     setTimeout(() => setShowExportSuccess(false), 2000);
   };
 
-  // VIBE CODING: Auto-wire Math Rhythm directly to the target sequence!
+  // Live export: the sequencer follows the panel, but only once the user has
+  // changed something. Exporting on mount overwrote the style's kick the
+  // moment the modal opened, before anything was touched (VMU-113, measured in
+  // the browser). What decides is the export's content compared with the one
+  // the panel opened with, not a "first run" flag: main.jsx renders in
+  // StrictMode, which runs mount effects twice, and a flag would let the second
+  // run export. Once armed, every change is exported, a return to the opening
+  // value included.
+  const exportSignature = JSON.stringify([
+    exportTarget,
+    pattern,
+    showIsorhythm && isorhythmResult ? isorhythmResult.sequence : null,
+    showRealignment && realignedPattern ? realignedPattern : null,
+    showPolyrhythm && polyrhythmResult ? polyrhythmResult.pattern : null,
+  ]);
+  const openingSignature = useRef(exportSignature);
+  const liveExportArmed = useRef(false);
+
   useEffect(() => {
+    if (!liveExportArmed.current) {
+      if (exportSignature === openingSignature.current) return;
+      liveExportArmed.current = true;
+    }
     handleExport();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    pattern, 
-    showIsorhythm, isorhythmResult, 
-    showRealignment, realignedPattern, 
-    showPolyrhythm, polyrhythmResult, 
-    exportTarget
-  ]);
+  }, [exportSignature]);
 
   // Clear all overrides
   const handleClearOverrides = () => {
