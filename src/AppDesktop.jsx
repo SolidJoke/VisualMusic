@@ -1,7 +1,6 @@
 // @ts-check
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./App.css";
-import "./styles/vintage-theme.css";
 import "./styles/modern-theme.css";
 
 
