@@ -100,7 +100,6 @@ function AppDesktop() {
     contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues,
     lastClickedContext, setLastClickedContext,
     singlePlayContext, setSinglePlayContext,
-    visualFocus, setVisualFocus,
     suggestedBassTrack, setSuggestedBassTrack,
     setCustomProgression,
     customRhythm, setCustomRhythm,
@@ -143,7 +142,6 @@ function AppDesktop() {
     currentAbsoluteNotes,
     chordOctaveOffset,
     displayMode,
-    visualFocus,
     selectedRootStringGuitar,
     selectedRootStringBass,
     selectedVoicingIndexGuitar,
@@ -363,7 +361,6 @@ function AppDesktop() {
     setSelectedVoicingIndexBass,
     availableGuitarFingerings,
     availableBassFingerings,
-    visualFocus,
     scaleAnchor,
     setScaleAnchor,
     isGuitarOutOfRange,
@@ -414,7 +411,6 @@ function AppDesktop() {
     setSelectedVoicingIndexBass,
     availableGuitarFingerings,
     availableBassFingerings,
-    visualFocus,
     scaleAnchor,
     setScaleAnchor,
     isGuitarOutOfRange,
@@ -599,8 +595,6 @@ function AppDesktop() {
               setDisplayMode={setDisplayMode}
               fretboardZone={fretboardZone}
               setFretboardZone={setFretboardZone}
-              visualFocus={visualFocus}
-              setVisualFocus={setVisualFocus}
               txt={txt}
             />
           </Modal>

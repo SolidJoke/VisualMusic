@@ -32,7 +32,6 @@ import { realizeDictionarySelection } from "../core/realization";
  * @param {any[]} options.currentAbsoluteNotes
  * @param {number} options.chordOctaveOffset
  * @param {string} options.displayMode
- * @param {string} options.visualFocus
  * @param {any} options.selectedRootStringGuitar
  * @param {any} options.selectedRootStringBass
  * @param {any} options.selectedVoicingIndexGuitar
@@ -54,7 +53,6 @@ export function useMusicEngine({
   currentAbsoluteNotes,
   chordOctaveOffset,
   displayMode,
-  visualFocus,
   selectedRootStringGuitar,
   selectedRootStringBass,
   selectedVoicingIndexGuitar,
@@ -123,19 +121,6 @@ export function useMusicEngine({
         }
       }
 
-      if (visualFocus === "bass" && clickedChord) {
-        const chordType = resolveNnsToChordType(clickedChord.nns);
-        const chordData = resolveChordSemitones(chordType);
-        if (chordData) {
-          activeNotes = chordData.semitones.slice(0, 4).map((semi, i) => ({
-            value: (clickedChord.rootNote.value + semi) % 12,
-            order: getChordIntervalLabel(i, semi),
-            absoluteValue: clickedChord.rootNote.value + semi + 36,
-          }));
-          fretboardActiveNotes = activeNotes;
-        }
-      }
-
       currentRootValue = clickedChord
         ? clickedChord.rootNote.value
         : activeBrick.rootValue;
@@ -150,7 +135,7 @@ export function useMusicEngine({
     }
 
     return { activeNotes, fretboardActiveNotes, currentRootValue, targetValue };
-  }, [appMode, activeBrick, clickedChord, currentAbsoluteNotes, displayMode, visualFocus, dictRoot, dictActiveNotes]);
+  }, [appMode, activeBrick, clickedChord, currentAbsoluteNotes, displayMode, dictRoot, dictActiveNotes]);
 
   // --- 2. Inversion Logic ---
   const inversionText = useMemo(() => {

@@ -202,9 +202,6 @@ export const translations = {
     chordQualMin: "Min.",
     chordQualDim: "Dim.",
     mixerVolumes: "Volumes du Mixeur",
-    visualFocusLabel: "Vue Instrument :",
-    focusChords: "🎸 Accords",
-    focusBass: "🎸 Lignes de Basse",
     harmonicModeToggle: "Mode Harmonique",
     magicNoteLabel: "Note magique",
     modes: {
@@ -534,10 +531,6 @@ export const translations = {
     chordQualMin: "Min.",
     chordQualDim: "Dim.",
     mixerVolumes: "Mixer Volumes",
-    visualFocusLabel: "Instrument View:",
-    focusChords: "🎸 Chords",
-    focusBass: "🎸 Bass Lines",
-    focusBoth: "🔄 Both",
     magicNoteLabel: "Magic Note",
     modes: {
       Ionian: { emotion: "Happy, Triumphant, Bright", description: "The foundation of popular music. Stable and resolved." },
@@ -842,10 +835,6 @@ export const translations = {
     chordQualMaj: "Maior",
     chordQualMin: "Menor",
     chordQualDim: "Dim.",
-    visualFocusLabel: "Visualização:",
-    focusChords: "🎸 Acordes",
-    focusBass: "🎸 Linhas de Baixo",
-    focusBoth: "🔄 Ambos",
     magicNoteLabel: "Nota mágica",
     modes: {
       Ionian: { emotion: "Feliz, Triunfante, Brilhante", description: "A base da música popular. Estável e resolvida." },
@@ -1148,10 +1137,6 @@ export const translations = {
     chordQualMaj: "大",
     chordQualMin: "小",
     chordQualDim: "减",
-    visualFocusLabel: "乐器视图:",
-    focusChords: "🎸 和弦",
-    focusBass: "🎸 贝斯线",
-    focusBoth: "🔄 全部",
     magicNoteLabel: "魔法音符",
     modes: {
       Ionian: { emotion: "快乐、凯旋、明亮", description: "流行音乐的基础。稳定且坚决。" },

@@ -108,7 +108,6 @@ async function runSelection({ root, type, octave, instrument }) {
         currentAbsoluteNotes: [],
         chordOctaveOffset: 0,
         displayMode: "chord",
-        visualFocus: "guitar",
         selectedRootStringGuitar: null,
         selectedRootStringBass: null,
         selectedVoicingIndexGuitar: null,
