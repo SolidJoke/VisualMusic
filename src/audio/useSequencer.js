@@ -14,8 +14,8 @@ import {
   getPianoSynth,
   getGuitarSynth
 } from "./AudioEngine";
-import { 
-  getAbsoluteNoteValue,  
+import {
+  getAbsoluteNoteValue,
   generateChordsFromNNS,
   resolveNnsToChordType,
   resolveChordSemitones,
@@ -24,6 +24,7 @@ import {
   getLeadingTone,
   midiToNoteName
 } from "../core/theory";
+import { classifyDrumTrack, shouldPlayChordStep } from "./trackMapping";
 
 const noteNamesArray = [
   "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
@@ -133,11 +134,13 @@ export function useSequencer({
             const relativeStep = stepCounter % 16;
             if (track.activeSteps.includes(relativeStep)) {
               let vel = track.lowVelocitySteps && track.lowVelocitySteps.includes(relativeStep) ? 0.3 : 0.8;
-              let name = track.name.toLowerCase();
+              // Shared with MidiExporter.js so playback and export can't
+              // diverge on what a track name plays as (VMU-128).
+              const category = classifyDrumTrack(track.name);
 
-              if (name.includes("kick")) {
+              if (category === "kick") {
                 kickSynth.triggerAttackRelease("C1", "8n", time, vel);
-              } else if (name.includes("snare") || name.includes("clap") || name.includes("rim")) {
+              } else if (category === "snare") {
                 snareSynth.triggerAttackRelease("16n", time, vel);
               } else {
                 hatSynth.triggerAttackRelease("32n", time, vel);
@@ -151,11 +154,10 @@ export function useSequencer({
           const chordIndex = Math.floor(stepCounter / 16) % progression.length;
           const currentNns = progression[chordIndex];
           const rhythm = rhythmRef.current || [0];
-          
-          const isAbsolute16 = rhythm.some(step => step > 3);
-          const shouldPlay = isAbsolute16 ? rhythm.includes(stepCounter % 16) : rhythm.includes(stepCounter % 4);
-            
-          if (shouldPlay) {
+
+          // Shared with MidiExporter.js (VMU-125) so an exported chord track
+          // can't drift from what this loop actually plays.
+          if (shouldPlayChordStep(rhythm, stepCounter)) {
              const chords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [currentNns]);
              if (chords.length > 0) {
                const c = chords[0];
