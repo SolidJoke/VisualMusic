@@ -4,8 +4,6 @@ import { useAppContext } from '../../context/AppContext';
 import InfoTooltip from '../Common/InfoTooltip';
 
 const ControlPanel = ({
-  chordDisplayMode,
-  setChordDisplayMode,
   showFingering,
   setShowFingering,
   fingeringMode,
@@ -19,26 +17,6 @@ const ControlPanel = ({
   const { txt } = useAppContext();
   return (
     <div className="glass-panel control-panel-container">
-      {appMode !== "dictionary" && (
-        <div className="controls-group">
-          {[
-            { id: "standard", label: "Chord" },
-            { id: "nns", label: "NNS (1,4,5)" },
-            { id: "roman", label: "Roman (I,IV,V)" }
-          ].map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setChordDisplayMode(m.id)}
-              className={`btn-premium ${chordDisplayMode === m.id ? " active" : ""}`}
-              style={{ fontSize: "0.75rem" }}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-
       <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "15px" }}>
         {/* In the Dictionary, the instrument bar above the keyboard owns this
             choice (VMU-101); a second control for the same state, buried in a

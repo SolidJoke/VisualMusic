@@ -16,7 +16,6 @@ const initialState = {
   // unconditionally, never from this value — see PitchConsistency.test.js
   // and EuNotationDefault.test.jsx for the audibility guards this relies on.
   notation: 'eu',
-  chordDisplayMode: 'standard',
   showAbout: false,
   showTheory: false,
   showFingering: true,

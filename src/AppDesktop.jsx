@@ -47,7 +47,6 @@ function AppDesktop() {
     fingeringMode,
     playbackInstrument,
     collapsedSections,
-    chordDisplayMode,
     uiTheme,
     highlightTargetNotes,
     useShellVoicings
@@ -84,7 +83,6 @@ function AppDesktop() {
     }),
     [dispatch, collapsedSections]
   );
-  const setChordDisplayMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'chordDisplayMode', value: val } }), [dispatch]);
   const setUiTheme = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } }), [dispatch]);
   const setUseShellVoicings = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'useShellVoicings', value: val } }), [dispatch]);
 
@@ -517,7 +515,6 @@ function AppDesktop() {
                 setChordOctaveOffset={setChordOctaveOffset}
                 setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
                 activeProgression={activeProgression}
-                chordDisplayMode={chordDisplayMode}
                 clickedChord={clickedChord}
                 setClickedChord={setClickedChord}
                 handleChordClick={handleChordClick}
@@ -571,8 +568,6 @@ function AppDesktop() {
 
           <Modal uiTheme={uiTheme} isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio">
             <ControlPanel
-              chordDisplayMode={chordDisplayMode}
-              setChordDisplayMode={setChordDisplayMode}
               showFingering={showFingering}
               setShowFingering={setShowFingering}
               fingeringMode={fingeringMode}
