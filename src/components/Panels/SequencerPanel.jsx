@@ -13,6 +13,7 @@ const SequencerPanel = ({
   currentBpm,
   activeBrick,
   activeProgression,
+  activeRhythm,
   chordOctaveOffset,
 }) => {
   const { lang, txt } = useAppContext();
@@ -70,7 +71,7 @@ const SequencerPanel = ({
       <div className="vintage-header" style={{ marginTop: "30px" }}>
         <span>🎹 {txt.harmonicSeq || "Harmonic Sequencer"}</span>
         <button className="vintage-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
-          const midiData = exportChords(activeBrick, activeProgression, chordOctaveOffset, currentBpm, activeBrick?.name?.[lang] || "Genre");
+          const midiData = exportChords(activeBrick, activeProgression, activeRhythm, chordOctaveOffset, currentBpm, activeBrick?.name?.[lang] || "Genre");
           triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Chords"}_${currentBpm}bpm.mid`);
         }}>⬇️ MIDI</button>
       </div>

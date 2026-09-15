@@ -32,6 +32,7 @@ const InstrumentView = memo(function InstrumentView() {
     activeChordTrack,
     activeBrick,
     activeProgression,
+    activeRhythm,
     chordOctaveOffset,
     dictType,
     currentRootValue,
@@ -110,6 +111,7 @@ const InstrumentView = memo(function InstrumentView() {
             currentBpm={currentBpm}
             activeBrick={activeBrick}
             activeProgression={activeProgression}
+            activeRhythm={activeRhythm}
             chordOctaveOffset={chordOctaveOffset}
           />
         </FoldSection>
