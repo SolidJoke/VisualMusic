@@ -11,17 +11,6 @@ import CompositionPanel from "../Intelligence/CompositionPanel";
  * Gemini Flash doit JUSTE lancer ces tests, capturer les logs de crash et les rapporter.
  */
 
-// On mock le hook pour forcer un état de lecture (isPlaying: true) et un currentStep non nul.
-vi.mock("../../hooks/useCompositionPlayback", () => ({
-  useCompositionPlayback: () => ({
-    isPlaying: true,
-    togglePlayback: vi.fn(),
-    bpm: 120,
-    setBpm: vi.fn(),
-    currentStep: 3 // Simule la tête de lecture en cours
-  })
-}));
-
 describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
   const defaultProps = {
     activeTracks: {
