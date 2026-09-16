@@ -162,7 +162,7 @@ function resolveScaleAnchorMask({ scaleAnchor }, fret, instrument, isActiveIn, i
 }
 
 function resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue, isActive, isPlaying, activeNote, isScaleMode, noteInfo, actualFingering, isOutOfBox) {
-  const { contextualScaleAbsoluteValues, activePath, rootValue, targetValue, showFingerNumbers, notation } = params;
+  const { contextualScaleAbsoluteValues, activePath, rootValue, targetValues = [], showFingerNumbers, notation } = params;
   let roleClass = "";
   let orderToDisplay = null;
   let isSubtle = isOutOfBox || false;
@@ -191,7 +191,7 @@ function resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue
   }
 
   if (isActive || isPlaying) {
-    if (noteValue === targetValue) {
+    if (targetValues.includes(noteValue)) {
       roleClass = "role-target";
       isTargetNote = true;
     } else if (orderToDisplay) {

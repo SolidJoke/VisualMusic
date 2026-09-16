@@ -32,7 +32,7 @@ export function useFretboard(instrument) {
     activeNotes: rawActiveNotes = [],
     fretboardActiveNotes,
     currentRootValue: rootValue = 0,
-    targetValue = -1,
+    targetValuesByInstrument = {},
     fretboardZone = "all",
     autoPlayNote: onNoteClick,
     currentlyPlayingNotes = [],
@@ -47,7 +47,6 @@ export function useFretboard(instrument) {
     scaleAnchor = null,
     isGuitarOutOfRange,
     isBassOutOfRange,
-    highlightTargetNotes = false,
     appMode = "studio",
     activeBrick,
   } = useMusicEngineContext();
@@ -59,6 +58,12 @@ export function useFretboard(instrument) {
   const fingering = instrument === "bass" ? bassFingering : guitarFingering;
   const isOutOfRange = instrument === "bass" ? isBassOutOfRange : isGuitarOutOfRange;
   const dictType = appMode === "dictionary" ? rawDictType : null;
+  // VMU-123 decision #4 — the bass never shows a target note. The engine
+  // (useMusicEngine's targetValuesByInstrument) already returns [] for
+  // "bass"; this re-asserts it here rather than trusting a single source,
+  // because a Fretboard rendered for "bass" must never show role-target
+  // even if some future caller feeds this hook a context built by hand.
+  const targetValues = instrument === "bass" ? [] : (targetValuesByInstrument[instrument] || []);
 
   // ── Accordage (useMemo car dépend de activeBrick qui peut être un objet stable) ──
   const stringTuning = useMemo(
@@ -119,7 +124,7 @@ export function useFretboard(instrument) {
 
     // Props transmises telles quelles au composant (pour computeFretMetadata)
     rootValue,
-    targetValue,
+    targetValues,
     fretboardZone,
     onNoteClick,
     currentlyPlayingNotes,
@@ -129,7 +134,6 @@ export function useFretboard(instrument) {
     showFingering,
     showFingerNumbers,
     scaleAnchor,
-    highlightTargetNotes,
     appMode,
   };
 }

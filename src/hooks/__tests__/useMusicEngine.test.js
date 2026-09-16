@@ -200,3 +200,258 @@ describe('useMusicEngine — les instruments suivent la mesure en cours pendant 
     expect(result.current.currentRootValue).toBe(7);
   });
 });
+
+// VMU-123 — les cibles (targetValuesByInstrument) suivent le meme accord
+// "effectif" que le reste du moteur (VMU-129) : l'accord joue pendant la
+// lecture, l'accord clique a l'arret, la note caracteristique du mode sans
+// accord. Piano et guitare recoivent les cibles ; la basse jamais (decision
+// #4 du brief). Do majeur (racine 0, chord_major), preset par defaut
+// majorMinor -> tierce mi (4). Sol majeur (racine 7) -> tierce si (11).
+//
+// Rouge predit (mesure avant ce commit) : `targetValue` valait -1 des qu'un
+// accord existait (musicContext, useMusicEngine.js:151-153) ; ces tests White-
+// box appellent le hook reel et echouaient donc tous sur le code d'avant.
+describe('useMusicEngine — target notes (VMU-123)', () => {
+  const activeBrick = { rootValue: 0, scaleKey: 'scale_major' };
+
+  function playingChordFor(nns, absolutePitches) {
+    const chord = generateChordsFromNNS(activeBrick.rootValue, activeBrick.scaleKey, [nns])[0];
+    return { ...chord, absolutePitches };
+  }
+
+  const baseParams = {
+    appMode: 'studio',
+    activeBrick,
+    displayMode: 'chord',
+    selectedRootStringGuitar: null,
+    selectedRootStringBass: null,
+    selectedVoicingIndexGuitar: null,
+    selectedVoicingIndexBass: null,
+    dictRoot: '0',
+    dictType: 'chord_major',
+    dictActiveNotes: [],
+    dictOctave: 0,
+    chordOctaveOffset: 0,
+  };
+
+  it('while playing, the targets follow the chord being PLAYED, not the last clicked one', () => {
+    const clicked = { rootNote: { value: 0 }, nns: '1' }; // do majeur clique
+    const playingV = playingChordFor('5', [67, 71, 74]); // sol majeur en cours
+
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        clickedChord: clicked,
+        currentAbsoluteNotes: [48, 52, 55],
+        isPlaying: true,
+        currentPlayingChord: playingV,
+        targetNotesPreset: 'majorMinor',
+      })
+    );
+    // Tierce de sol majeur = si (11), pas tierce de do majeur = mi (4).
+    expect(result.current.targetValuesByInstrument.piano).toEqual([11]);
+    expect(result.current.targetValuesByInstrument.guitar).toEqual([11]);
+  });
+
+  it('at rest, a stale currentPlayingChord is ignored — the clicked chord still governs the targets', () => {
+    const clicked = { rootNote: { value: 0 }, nns: '1' }; // do majeur
+    const staleFromPlayback = playingChordFor('5', [67, 71, 74]); // sol majeur, obsolete
+
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        clickedChord: clicked,
+        currentAbsoluteNotes: [48, 52, 55],
+        isPlaying: false,
+        currentPlayingChord: staleFromPlayback,
+        targetNotesPreset: 'majorMinor',
+      })
+    );
+    expect(result.current.targetValuesByInstrument.piano).toEqual([4]); // mi, tierce de do
+  });
+
+  it('with no chord at all (Studio at rest, nothing clicked), the targets fall back to the characteristic note of the mode', () => {
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        clickedChord: null,
+        currentAbsoluteNotes: [],
+        isPlaying: false,
+        currentPlayingChord: null,
+        targetNotesPreset: 'majorMinor',
+      })
+    );
+    // scale_major -> targetInterval 11 (note sensible), depuis do (0) -> si (11).
+    expect(result.current.targetValuesByInstrument.piano).toEqual([11]);
+  });
+
+  it('with no chord, and a mode that declares no targetInterval, the targets are empty — never the root', () => {
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        activeBrick: { rootValue: 0, scaleKey: 'scale_harmonic_minor' }, // pas de targetInterval
+        clickedChord: null,
+        currentAbsoluteNotes: [],
+        isPlaying: false,
+        currentPlayingChord: null,
+        targetNotesPreset: 'majorMinor',
+      })
+    );
+    expect(result.current.targetValuesByInstrument.piano).toEqual([]);
+  });
+
+  it('the bass never receives a target, whatever the preset or the chord', () => {
+    const clicked = { rootNote: { value: 0 }, nns: '1' };
+    for (const preset of ['majorMinor', 'color', 'skeleton']) {
+      const { result } = renderHook(() =>
+        useMusicEngine({
+          ...baseParams,
+          clickedChord: clicked,
+          currentAbsoluteNotes: [48, 52, 55],
+          isPlaying: false,
+          currentPlayingChord: null,
+          targetNotesPreset: preset,
+        })
+      );
+      expect(result.current.targetValuesByInstrument.bass).toEqual([]);
+    }
+  });
+
+  it('preset "off" clears every instrument, chord or not', () => {
+    const clicked = { rootNote: { value: 0 }, nns: '1' };
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        clickedChord: clicked,
+        currentAbsoluteNotes: [48, 52, 55],
+        isPlaying: false,
+        currentPlayingChord: null,
+        targetNotesPreset: 'off',
+      })
+    );
+    expect(result.current.targetValuesByInstrument).toEqual({ piano: [], guitar: [], bass: [] });
+  });
+
+  it('Dictionary mode, a chord family, computes targets from dictRoot/dictType exactly like Studio', () => {
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        appMode: 'dictionary',
+        clickedChord: null,
+        currentAbsoluteNotes: [],
+        dictRoot: '7', // sol
+        dictType: 'chord_major',
+        targetNotesPreset: 'majorMinor',
+      })
+    );
+    expect(result.current.targetValuesByInstrument.piano).toEqual([11]); // si, tierce de sol
+  });
+
+  it('Dictionary mode, a scale family (no chord), falls back to the mode characteristic note', () => {
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        appMode: 'dictionary',
+        clickedChord: null,
+        currentAbsoluteNotes: [],
+        dictRoot: '0',
+        dictType: 'scale_major',
+        targetNotesPreset: 'majorMinor',
+      })
+    );
+    expect(result.current.targetValuesByInstrument.piano).toEqual([11]);
+  });
+
+  it('Dictionary mode, a single note (no chord, no scale), never shows a target', () => {
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        appMode: 'dictionary',
+        clickedChord: null,
+        currentAbsoluteNotes: [],
+        dictRoot: '0',
+        dictType: 'single_note',
+        targetNotesPreset: 'majorMinor',
+      })
+    );
+    expect(result.current.targetValuesByInstrument.piano).toEqual([]);
+  });
+
+  // VMU-123 (trouve en QA de VMU-129) — inversionText lisait encore
+  // clickedChord/currentAbsoluteNotes directement : pendant la lecture,
+  // l'etiquette de renversement restait celle de l'accord clique (ou vide).
+  it('inversionText follows the chord being PLAYED, not the last clicked one', () => {
+    const clicked = { rootNote: { value: 0 }, nns: '1' }; // do majeur, fondamentale
+    // Sol majeur joue en 1er renversement : basse = si (71), fondamentale sol (7).
+    const playingVFirstInversion = playingChordFor('5', [71, 74, 79]);
+
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        clickedChord: clicked,
+        currentAbsoluteNotes: [48, 52, 55], // do majeur a l'etat fondamental (clique)
+        isPlaying: true,
+        currentPlayingChord: playingVFirstInversion,
+      })
+    );
+    // Si inversionText lisait encore clickedChord/currentAbsoluteNotes, ce
+    // serait "root" (do majeur fondamental, l'accord clique) au lieu du
+    // premier renversement de l'accord reellement joue.
+    expect(result.current.inversionText).toBe('first');
+  });
+
+  it('at rest, inversionText still reads the clicked chord (unchanged pre-VMU-129 behaviour)', () => {
+    const clicked = { rootNote: { value: 0 }, nns: '1' };
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        ...baseParams,
+        clickedChord: clicked,
+        currentAbsoluteNotes: [48, 52, 55], // do majeur, etat fondamental
+        isPlaying: false,
+        currentPlayingChord: null,
+      })
+    );
+    expect(result.current.inversionText).toBe('root');
+  });
+});
+
+// VMU-123 point 4 du "Definition de terminé" — preuve de cassage : si le
+// calcul des cibles lisait l'accord CLIQUE au lieu d'effectiveChord pendant
+// la lecture, ce test doit repasser au rouge. Vecu comme un test normal ici
+// (pas un script jetable) pour qu'il proteje la regression dans le temps ;
+// la sortie de la version cassee est citee dans le rapport, pas rejouee ici.
+describe('useMusicEngine — target notes, breakage proof scaffold (VMU-123)', () => {
+  it('while playing, the targets differ from what the CLICKED chord alone would give', () => {
+    const activeBrick = { rootValue: 0, scaleKey: 'scale_major' };
+    const clicked = { rootNote: { value: 0 }, nns: '1' }; // do majeur
+    const playingV = { ...generateChordsFromNNS(0, 'scale_major', ['5'])[0], absolutePitches: [67, 71, 74] };
+
+    const { result } = renderHook(() =>
+      useMusicEngine({
+        appMode: 'studio',
+        activeBrick,
+        displayMode: 'chord',
+        selectedRootStringGuitar: null,
+        selectedRootStringBass: null,
+        selectedVoicingIndexGuitar: null,
+        selectedVoicingIndexBass: null,
+        dictRoot: '0',
+        dictType: 'chord_major',
+        dictActiveNotes: [],
+        dictOctave: 0,
+        chordOctaveOffset: 0,
+        clickedChord: clicked,
+        currentAbsoluteNotes: [48, 52, 55],
+        isPlaying: true,
+        currentPlayingChord: playingV,
+        targetNotesPreset: 'majorMinor',
+      })
+    );
+    // Cible du CLIQUE (do majeur) serait mi (4) ; cible attendue est celle du
+    // JOUE (sol majeur) = si (11). Si le hook lit clickedChord au lieu
+    // d'effectiveChord, cette assertion echoue (voir rapport pour la sortie
+    // mesuree de cette regression volontaire).
+    expect(result.current.targetValuesByInstrument.piano).toEqual([11]);
+    expect(result.current.targetValuesByInstrument.piano).not.toEqual([4]);
+  });
+});

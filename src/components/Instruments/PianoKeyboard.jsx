@@ -22,13 +22,16 @@ function PianoKeyboard() {
   const {
     activeNotes = [],
     currentRootValue: rootValue = 0,
-    targetValue = -1,
+    targetValuesByInstrument = {},
     autoPlayNote: onNoteClick,
     currentlyPlayingNotes = [],
     contextualScaleAbsoluteValues = [],
     dictType: rawDictType = null,
     appMode
   } = useMusicEngineContext();
+  // VMU-123 — piano gets the shared target notes (unlike the bass, which
+  // never does; see useFretboard.js's instrument-keyed suppression).
+  const targetValues = targetValuesByInstrument.piano || [];
 
   const dictType = appMode === "dictionary" ? rawDictType : null;
   const numOctaves = 7;
@@ -150,7 +153,7 @@ function PianoKeyboard() {
 
   const getKeyRoleClass = (i, isActive, activeNote, isPlaying) => {
     if (!isActive && !isPlaying) return "";
-    if (i === targetValue) return "role-target";
+    if (targetValues.includes(i)) return "role-target";
     
     // Use the explicitly passed order if available (favors clicked chord roles)
     // If order is provided (e.g. 1, 3, 5), map to role classes

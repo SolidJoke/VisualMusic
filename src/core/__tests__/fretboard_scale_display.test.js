@@ -25,7 +25,7 @@ const BASE_PARAMS = {
   scaleAnchor: null,
   activeBrick: null,
   rootValue: 0,
-  targetValue: -1,
+  targetValues: [],
   notation: 'us',
   showFingering: false,
   showFingerNumbers: false,

@@ -24,7 +24,7 @@ function Fretboard({
     dictType,
     notation,
     rootValue,
-    targetValue,
+    targetValues,
     fretboardZone,
     onNoteClick,
     currentlyPlayingNotes,
@@ -33,7 +33,6 @@ function Fretboard({
     showFingering,
     showFingerNumbers,
     scaleAnchor,
-    highlightTargetNotes,
     appMode,
   } = useFretboard(instrument);
 
@@ -294,7 +293,7 @@ function Fretboard({
                     stringIndex, fret, openStringAbsValue, activeNotes,
                     currentlyPlayingNotes, contextualScaleAbsoluteValues,
                     activePath, dictType, fingering, instrument,
-                    rootValue, targetValue, showFingering, showFingerNumbers,
+                    rootValue, targetValues, showFingering, showFingerNumbers,
                     singlePlayContext, notation, scaleAnchor, appMode
                   });
                   return (
@@ -312,7 +311,7 @@ function Fretboard({
 
                            {/* Note Marker for Open Strings */}
                            {((meta.isActive && fret === 0) || meta.isPlaying) && (
-                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${highlightTargetNotes && meta.isTargetNote ? "is-target-note" : ""} open-marker`}>
+                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isTargetNote ? "is-target-note" : ""} open-marker`}>
                                {meta.label}
                              </span>
                            )}
@@ -327,7 +326,7 @@ function Fretboard({
                     stringIndex, fret, openStringAbsValue, activeNotes,
                     currentlyPlayingNotes, contextualScaleAbsoluteValues,
                     activePath, dictType, fingering, instrument,
-                    rootValue, targetValue, showFingering, showFingerNumbers,
+                    rootValue, targetValues, showFingering, showFingerNumbers,
                     singlePlayContext, notation, scaleAnchor, appMode
                   });
 
@@ -348,7 +347,7 @@ function Fretboard({
                       <div className="string-line"></div>
                       {(meta.isActive || meta.isPlaying) && (
                         <div
-                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${highlightTargetNotes && meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""}`}
+                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""}`}
                           title={`${meta.noteInfo.us} / ${meta.noteInfo.eu}`}
                           style={{
                             opacity: inZone ? 1 : 0.25,
