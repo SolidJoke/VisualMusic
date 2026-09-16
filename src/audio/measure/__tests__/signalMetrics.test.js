@@ -21,6 +21,8 @@ import {
   magnitudeSpectrum,
   detectPitches,
   comparePitches,
+  comparePitchContent,
+  estimateAlignmentSamples,
   freqToMidi,
   midiToFreq,
   noteNameToMidi,
@@ -79,7 +81,7 @@ describe("spectral peak — the harness measuring a signal we built", () => {
     expect(verdict.worstCents).toBeLessThan(10);
   });
 
-  it("reports one pitch for a note with harmonics, not one per partial", () => {
+  it("marks partials as partials instead of reporting them as notes", () => {
     // A harmonic stack on C4 — what a piano sample actually looks like.
     const n = SR;
     const out = new Float32Array(n);
@@ -91,8 +93,28 @@ describe("spectral peak — the harness measuring a signal we built", () => {
         0.2 * Math.sin((2 * Math.PI * 3 * f0 * i) / SR) +
         0.1 * Math.sin((2 * Math.PI * 4 * f0 * i) / SR);
     }
-    const { pitches } = detectPitches(out, { sampleRate: SR });
-    expect(pitches.map((p) => p.note)).toEqual(["C4"]);
+    const { pitches, fundamentals } = detectPitches(out, { sampleRate: SR });
+    // Every partial is seen...
+    expect(pitches.map((p) => p.note)).toEqual(["C4", "C5", "G5", "C6"]);
+    // ...and exactly one of them is a fundamental.
+    expect(fundamentals.map((p) => p.note)).toEqual(["C4"]);
+    expect(pitches[1].partialNumber).toBe(2);
+    expect(pitches[2].partialNumber).toBe(3);
+  });
+
+  it("does not depend on the fundamental being the loudest partial", () => {
+    // The case that broke the first implementation: a second partial louder
+    // than the fundamental, which is ordinary in a piano sample.
+    const n = SR;
+    const out = new Float32Array(n);
+    const f0 = 261.63;
+    for (let i = 0; i < n; i++) {
+      out[i] =
+        0.2 * Math.sin((2 * Math.PI * f0 * i) / SR) +
+        0.6 * Math.sin((2 * Math.PI * 2 * f0 * i) / SR);
+    }
+    const { fundamentals } = detectPitches(out, { sampleRate: SR });
+    expect(fundamentals.map((p) => p.note)).toEqual(["C4"]);
   });
 
   it("refines the peak past the bin grid", () => {
@@ -253,5 +275,88 @@ describe("analyzeChannel", () => {
     const report = analyzeChannel(new Float32Array(4096), { sampleRate: SR });
     expect(report.pitches).toEqual([]);
     expect(report.silence.silent).toBe(true);
+  });
+});
+
+describe("comparePitchContent — what can honestly be asserted about a real sample", () => {
+  const detectedC4WithPartials = [
+    { note: "C4", freq: 261.4, midi: freqToMidi(261.4) },
+    { note: "C5", freq: 523.4, midi: freqToMidi(523.4) },
+    { note: "G5", freq: 784.2, midi: freqToMidi(784.2) },
+  ];
+
+  it("accepts a requested note that arrives with its partials", () => {
+    const verdict = comparePitchContent(detectedC4WithPartials, ["C4"]);
+    expect(verdict.missing).toEqual([]);
+    expect(verdict.unexplained).toEqual([]);
+    expect(verdict.ok).toBe(true);
+  });
+
+  it("still catches the VMU-080 failure: the right chord, one octave up", () => {
+    const detected = [
+      { note: "C5", freq: 523.25, midi: freqToMidi(523.25) },
+      { note: "E5", freq: 659.26, midi: freqToMidi(659.26) },
+      { note: "G5", freq: 783.99, midi: freqToMidi(783.99) },
+    ];
+    const verdict = comparePitchContent(detected, ["C4", "E4", "G4"]);
+    expect(verdict.ok).toBe(false);
+    // E5 and G5 are not integer multiples of C4/E4/G4, so they are unexplained;
+    // C5 is C4's second partial, which is why "missing" is what proves the bug.
+    expect(verdict.missing).toEqual(["C4", "E4", "G4"]);
+  });
+
+  it("flags a note nobody asked for", () => {
+    const detected = [
+      { note: "C4", freq: 261.63, midi: freqToMidi(261.63) },
+      { note: "F#4", freq: 369.99, midi: freqToMidi(369.99) },
+    ];
+    const verdict = comparePitchContent(detected, ["C4"]);
+    expect(verdict.ok).toBe(false);
+    expect(verdict.unexplained).toEqual(["F#4"]);
+  });
+
+  it("flags a silent render as every note missing", () => {
+    const verdict = comparePitchContent([], ["C4", "E4", "G4"]);
+    expect(verdict.ok).toBe(false);
+    expect(verdict.missing).toEqual(["C4", "E4", "G4"]);
+  });
+});
+
+describe("estimateAlignmentSamples — finding a processor's look-ahead delay", () => {
+  it("recovers a delay it was given", () => {
+    const pre = new Float32Array(SR);
+    // A burst, so the envelope has something to correlate on.
+    for (let i = 5000; i < 9000; i++) pre[i] = Math.sin((2 * Math.PI * 300 * i) / SR);
+    const lag = 288;
+    const post = new Float32Array(SR);
+    for (let i = 0; i < SR - lag; i++) post[i + lag] = pre[i];
+    // Resolution is the envelope hop (32 samples by default).
+    expect(Math.abs(estimateAlignmentSamples(pre, post) - lag)).toBeLessThanOrEqual(32);
+  });
+
+  it("reports no delay for an undelayed pair", () => {
+    const pre = new Float32Array(SR);
+    for (let i = 5000; i < 9000; i++) pre[i] = Math.sin((2 * Math.PI * 300 * i) / SR);
+    expect(estimateAlignmentSamples(pre, pre)).toBe(0);
+  });
+
+  it("makes gain reduction non-negative on a delayed, attenuated copy", () => {
+    // Without alignment this returns a negative mean, which is what exposed
+    // Chrome's compressor look-ahead in the first place.
+    const pre = new Float32Array(SR);
+    for (let i = 0; i < SR; i++) {
+      const env = i < 2000 ? i / 2000 : Math.exp(-(i - 2000) / 8000);
+      pre[i] = 0.8 * env * Math.sin((2 * Math.PI * 300 * i) / SR);
+    }
+    const lag = 288;
+    const post = new Float32Array(SR);
+    for (let i = 0; i < SR - lag; i++) post[i + lag] = pre[i] * 0.5;
+
+    const aligned = gainReductionMetrics(pre, post);
+    expect(aligned.alignmentSamples).toBeGreaterThan(0);
+    expect(aligned.meanDb).toBeCloseTo(6.02, 0);
+
+    const naive = gainReductionMetrics(pre, post, { align: false });
+    expect(naive.meanDb).toBeLessThan(aligned.meanDb);
   });
 });

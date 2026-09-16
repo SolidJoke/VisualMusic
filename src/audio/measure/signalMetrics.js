@@ -132,18 +132,30 @@ export function discontinuityMetrics(samples, threshold = 0.5) {
  * `framesOverThresholdRatio` is the number VMU-020 quotes as "31 % of frames
  * above the threshold", recomputed rather than trusted.
  *
+ * The two taps are aligned first. Chrome's DynamicsCompressorNode applies a
+ * fixed look-ahead delay (measured here, 2026-09-16: ~6.4 ms, 282 samples at
+ * 44.1 kHz), so a naive frame-by-frame comparison lines each onset in `pre`
+ * up against silence in `post` and each decay against a louder earlier frame.
+ * Unaligned, this function reported max 16.4 dB of reduction and a *negative*
+ * mean on a single piano note — reduction cannot be negative, which is what
+ * gave the delay away.
+ *
  * @param {Float32Array|number[]} pre samples before the processor
  * @param {Float32Array|number[]} post samples after it
  * @param {Object} [options]
  * @param {number} [options.frameSize] samples per frame
  * @param {number} [options.floorDbfs] frames whose pre-level is below this are ignored
  * @param {number} [options.thresholdDbfs] processor threshold, for the ratio above
+ * @param {boolean} [options.align] compensate the processor's look-ahead delay
+ * @param {number} [options.sampleRate] only used to report the alignment in ms
  * @returns {{ maxDb: number, meanDb: number, p95Db: number, framesCounted: number,
- *             framesOverThresholdRatio: number, thresholdDbfs: number, frameSize: number }}
+ *             framesOverThresholdRatio: number, thresholdDbfs: number, frameSize: number,
+ *             alignmentSamples: number, alignmentMs: number }}
  */
 export function gainReductionMetrics(pre, post, options = {}) {
-  const { frameSize = 512, floorDbfs = -60, thresholdDbfs = -6 } = options;
-  const n = Math.min(pre.length, post.length);
+  const { frameSize = 512, floorDbfs = -60, thresholdDbfs = -6, align = true, sampleRate = 44100 } = options;
+  const lag = align ? estimateAlignmentSamples(pre, post) : 0;
+  const n = Math.min(pre.length - lag, post.length - lag);
   /** @type {number[]} */
   const reductions = [];
   let framesOverThreshold = 0;
@@ -154,7 +166,7 @@ export function gainReductionMetrics(pre, post, options = {}) {
     let postPeak = 0;
     for (let i = start; i < start + frameSize; i++) {
       const a = Math.abs(pre[i]);
-      const b = Math.abs(post[i]);
+      const b = Math.abs(post[i + lag]);
       if (a > prePeak) prePeak = a;
       if (b > postPeak) postPeak = b;
     }
@@ -169,6 +181,7 @@ export function gainReductionMetrics(pre, post, options = {}) {
     return {
       maxDb: 0, meanDb: 0, p95Db: 0, framesCounted: 0,
       framesOverThresholdRatio: 0, thresholdDbfs, frameSize,
+      alignmentSamples: lag, alignmentMs: (lag / sampleRate) * 1000,
     };
   }
   const sorted = [...reductions].sort((a, b) => a - b);
@@ -181,7 +194,69 @@ export function gainReductionMetrics(pre, post, options = {}) {
     framesOverThresholdRatio: framesWithSignal > 0 ? framesOverThreshold / framesWithSignal : 0,
     thresholdDbfs,
     frameSize,
+    alignmentSamples: lag,
+    alignmentMs: (lag / sampleRate) * 1000,
   };
+}
+
+/**
+ * How many samples `post` lags behind `pre`, by correlating their rectified
+ * envelopes.
+ *
+ * Needed because a dynamics processor is not a pure gain: Chrome's compressor
+ * delays its output by a fixed look-ahead. Correlating envelopes rather than
+ * waveforms keeps this robust when the processor has also changed the signal's
+ * shape, which is the whole point of comparing the two taps.
+ *
+ * @param {Float32Array|number[]} pre
+ * @param {Float32Array|number[]} post
+ * @param {Object} [options]
+ * @param {number} [options.maxLagSamples] widest delay considered
+ * @param {number} [options.hop] envelope resolution, in samples
+ * @returns {number} lag in samples, never negative
+ */
+export function estimateAlignmentSamples(pre, post, options = {}) {
+  const { maxLagSamples = 2048, hop = 32 } = options;
+  const n = Math.min(pre.length, post.length);
+  if (n <= maxLagSamples * 2) return 0;
+
+  const envelope = (buf) => {
+    const out = new Float64Array(Math.floor(n / hop));
+    for (let f = 0; f < out.length; f++) {
+      let peak = 0;
+      for (let i = f * hop; i < (f + 1) * hop; i++) {
+        const a = Math.abs(buf[i]);
+        if (a > peak) peak = a;
+      }
+      out[f] = peak;
+    }
+    return out;
+  };
+
+  const a = envelope(pre);
+  const b = envelope(post);
+  const maxLagFrames = Math.floor(maxLagSamples / hop);
+  let bestLag = 0;
+  let bestScore = -Infinity;
+
+  for (let lag = 0; lag <= maxLagFrames; lag++) {
+    let dot = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i + lag < b.length && i < a.length; i++) {
+      dot += a[i] * b[i + lag];
+      normA += a[i] * a[i];
+      normB += b[i + lag] * b[i + lag];
+    }
+    const denom = Math.sqrt(normA * normB);
+    if (denom <= 0) continue;
+    const score = dot / denom;
+    if (score > bestScore) {
+      bestScore = score;
+      bestLag = lag;
+    }
+  }
+  return bestLag * hop;
 }
 
 // ─── Spectrum ────────────────────────────────────────────────────────
@@ -327,8 +402,9 @@ export function centsFromEqualTemperament(freq) {
  * @param {number} [options.minHz] low edge of the fundamental search band
  * @param {number} [options.maxHz] high edge of the fundamental search band
  * @param {number} [options.harmonicToleranceCents] how close to n*f counts as a harmonic
- * @returns {{ pitches: Array<{ freq: number, midi: number, note: string, cents: number, magDb: number }>,
- *             binHz: number, fftSize: number }}
+ * @returns {{ pitches: Array<{ freq: number, midi: number, note: string, cents: number,
+ *                               magDb: number, partialOf: number|null, partialNumber: number|null }>,
+ *             fundamentals: Array<Object>, binHz: number, fftSize: number }}
  */
 export function detectPitches(samples, options) {
   const {
@@ -348,7 +424,7 @@ export function detectPitches(samples, options) {
 
   let globalMax = 0;
   for (let i = loBin; i <= hiBin; i++) if (magnitudes[i] > globalMax) globalMax = magnitudes[i];
-  if (globalMax <= 0) return { pitches: [], binHz, fftSize };
+  if (globalMax <= 0) return { pitches: [], fundamentals: [], binHz, fftSize };
   const floor = globalMax * fromDbfs(peakFloorDb);
 
   /** @type {Array<{ freq: number, mag: number }>} */
@@ -360,40 +436,119 @@ export function detectPitches(samples, options) {
     candidates.push({ freq: refinePeakBin(magnitudes, i) * binHz, mag: m });
   }
 
-  // Strongest first, so harmonic suppression always keeps the louder partial
-  // and a merge keeps the more prominent of two peaks a fraction apart.
+  // Strongest first, so that when two bins land on the same semitone the more
+  // prominent one is the one kept.
   candidates.sort((a, b) => b.mag - a.mag);
 
   /** @type {Array<{ freq: number, mag: number }>} */
-  const kept = [];
+  const distinct = [];
   for (const cand of candidates) {
-    const isHarmonicOfKept = kept.some((k) => {
-      if (cand.freq <= k.freq * 1.01) return false; // only look upward
-      const ratio = cand.freq / k.freq;
-      const nearest = Math.round(ratio);
-      if (nearest < 2 || nearest > 10) return false;
-      return Math.abs(1200 * Math.log2(ratio / nearest)) < harmonicToleranceCents;
-    });
-    if (isHarmonicOfKept) continue;
     // Two bins on the same semitone are one pitch, not two.
-    const duplicate = kept.some((k) => Math.abs(1200 * Math.log2(cand.freq / k.freq)) < 50);
-    if (duplicate) continue;
-    kept.push(cand);
-    if (kept.length >= maxPitches) break;
+    if (distinct.some((k) => Math.abs(1200 * Math.log2(cand.freq / k.freq)) < 50)) continue;
+    distinct.push(cand);
+    if (distinct.length >= maxPitches) break;
   }
+  distinct.sort((a, b) => a.freq - b.freq);
 
-  const pitches = kept.map((k) => {
+  const pitches = distinct.map((k, index) => {
     const midi = freqToMidi(k.freq);
+    // Which lower peak this one is an integer multiple of, if any.
+    //
+    // Annotated, not dropped. Dropping was tried first and was wrong: it
+    // depended on which peak the magnitude sort reached first, and in a real
+    // piano sample the second partial routinely beats the fundamental, so a
+    // single C4 came back as "C4 and C5" — C5 was kept first, and C4, which
+    // only ever looks upward, never suppressed it. Annotating is also the
+    // honest shape of the problem: a played C5 and the second partial of a
+    // played C4 are the same spectral line, and no arithmetic separates them.
+    // Callers decide, in domain terms, whether a partial is expected —
+    // see comparePitchContent.
+    let partialOf = null;
+    let partialNumber = null;
+    for (let j = 0; j < index; j++) {
+      const ratio = k.freq / distinct[j].freq;
+      const nearest = Math.round(ratio);
+      if (nearest < 2 || nearest > 10) continue;
+      if (Math.abs(1200 * Math.log2(ratio / nearest)) < harmonicToleranceCents) {
+        partialOf = distinct[j].freq;
+        partialNumber = nearest;
+        break;
+      }
+    }
     return {
       freq: k.freq,
       midi,
       note: midiToNoteName(Math.round(midi)),
       cents: centsFromEqualTemperament(k.freq),
       magDb: toDbfs(k.mag / globalMax),
+      partialOf,
+      partialNumber,
     };
   });
-  pitches.sort((a, b) => a.freq - b.freq);
-  return { pitches, binHz, fftSize };
+
+  return {
+    pitches,
+    fundamentals: pitches.filter((p) => p.partialOf === null),
+    binHz,
+    fftSize,
+  };
+}
+
+/**
+ * Whether rendered audio contains the notes that were asked for, and nothing
+ * it cannot account for.
+ *
+ * This is the assertion that can honestly be made about a real instrument, as
+ * opposed to a synthetic sine. A played note brings its partials with it, so
+ * "the set of detected pitches equals the set of requested notes" is false for
+ * every real sample. What must hold instead is:
+ *
+ *   - every requested note is present, and
+ *   - every detected pitch is either a requested note or an integer multiple
+ *     of one.
+ *
+ * It still catches the failures this harness exists for. VMU-080 played
+ * C5/E5/G5 where C4/E4/G4 were shown: C4 is then absent, so `missing` is not
+ * empty and the check fails — even though C5 is a legitimate partial of C4.
+ *
+ * @param {Array<{ note: string, freq: number, midi: number }>} detected
+ * @param {string[]} expectedNotes
+ * @param {Object} [options]
+ * @param {number} [options.toleranceCents]
+ * @param {number} [options.harmonicToleranceCents]
+ * @returns {{ ok: boolean, missing: string[], unexplained: string[], worstCents: number }}
+ */
+export function comparePitchContent(detected, expectedNotes, options = {}) {
+  const { toleranceCents = 50, harmonicToleranceCents = 60 } = options;
+  const expectedFreqs = expectedNotes.map((n) => midiToFreq(noteNameToMidi(n)));
+
+  /** @type {string[]} */
+  const missing = [];
+  let worstCents = 0;
+  expectedNotes.forEach((name, i) => {
+    let best = Infinity;
+    for (const d of detected) {
+      best = Math.min(best, Math.abs(1200 * Math.log2(d.freq / expectedFreqs[i])));
+    }
+    if (best > toleranceCents) missing.push(name);
+    else worstCents = Math.max(worstCents, best);
+  });
+
+  const unexplained = detected
+    .filter((d) => {
+      for (const f of expectedFreqs) {
+        if (Math.abs(1200 * Math.log2(d.freq / f)) <= toleranceCents) return false;
+        const ratio = d.freq / f;
+        const nearest = Math.round(ratio);
+        if (nearest >= 2 && nearest <= 10 && Math.abs(1200 * Math.log2(ratio / nearest)) < harmonicToleranceCents) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .map((d) => d.note);
+
+  return { ok: missing.length === 0 && unexplained.length === 0, missing, unexplained, worstCents };
 }
 
 /**
@@ -483,6 +638,6 @@ export function analyzeChannel(samples, options) {
     discontinuity: discontinuityMetrics(samples),
     ...(level.peak > 0
       ? detectPitches(samples, { sampleRate, fftSize, offset: pitchOffset, maxPitches })
-      : { pitches: [], binHz: sampleRate / fftSize, fftSize }),
+      : { pitches: [], fundamentals: [], binHz: sampleRate / fftSize, fftSize }),
   };
 }
