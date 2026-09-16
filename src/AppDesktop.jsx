@@ -131,11 +131,49 @@ function AppDesktop() {
     activeNotes: dictActiveNotes
   } = useDictionaryMode();
 
+  // --- Sequencer (Playback engine) ---
+  // Called before useMusicEngine: VMU-129 needs the sequencer's isPlaying
+  // and currentPlayingChord as *inputs* to the music engine (so instruments
+  // can follow the chord actually playing), so the engine's own output
+  // can no longer be the source of the sequencer's currentRootValue input.
+  // That input only ever fed a fallback register for a non-bass melody
+  // track (no such track exists in any style today) — unrelated to which
+  // chord of the progression is playing — so it is derived here the same
+  // way useMusicEngine used to derive it, without waiting on the engine.
+  const {
+    isAudioReady,
+    setIsAudioReady,
+    isPlaying,
+    masterVolume,
+    setMasterVolume,
+    currentBpm,
+    setCurrentBpm,
+    instrumentVolumes,
+    handleInstrumentVolumeChange,
+    currentStep,
+    togglePlayback,
+    handleBpmChange,
+    activeChordTrack,
+    currentPlayingChord
+  } = useSequencer({
+    appMode,
+    activeBrick,
+    activeDrums,
+    activeMelody,
+    activeProgression,
+    activeRhythm: activeTracks.rhythm,
+    currentRootValue: clickedChord ? clickedChord.rootNote.value : activeBrick.rootValue,
+    setCurrentlyPlayingNotes,
+    chordOctaveOffset,
+  });
+
   // --- Music Engine (Harmonics & Fingering) ---
   const musicState = useMusicEngine({
     appMode,
     activeBrick,
     clickedChord,
+    isPlaying,
+    currentPlayingChord,
     currentAbsoluteNotes,
     chordOctaveOffset,
     displayMode,
@@ -173,31 +211,6 @@ function AppDesktop() {
     if (rawInversion === 'second')  return txt.invSecond  || '2e renversement';
     return "";
   }, [rawInversion, txt]);
-  const {
-    isAudioReady,
-    setIsAudioReady,
-    isPlaying,
-    masterVolume,
-    setMasterVolume,
-    currentBpm,
-    setCurrentBpm,
-    instrumentVolumes,
-    handleInstrumentVolumeChange,
-    currentStep,
-    togglePlayback,
-    handleBpmChange,
-    activeChordTrack
-  } = useSequencer({
-    appMode,
-    activeBrick,
-    activeDrums,
-    activeMelody,
-    activeProgression,
-    activeRhythm: activeTracks.rhythm,
-    currentRootValue,
-    setCurrentlyPlayingNotes,
-    chordOctaveOffset,
-  });
 
   const {
     handleChordClick,
