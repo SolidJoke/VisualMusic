@@ -53,6 +53,23 @@ jobs:
       - name: Build
         run: npm run build
 
+      # The offline audio harness (VMU-026). It needs a real browser, because
+      # jsdom implements no Web Audio at all and the vitest suite therefore
+      # cannot render a single sample. `npm ci` installs the playwright package
+      # but no browser binary, so the download is explicit here — without this
+      # step the harness would be green on a developer's machine and simply not
+      # exist in CI, which is how a harness quietly dies.
+      #
+      # Blocking, and it renders offline rather than in real time, so it does
+      # not depend on the runner's speed. It carries one expected-red check
+      # against VMU-020's makeup-gain defect: that does not fail the run, but if
+      # it ever passes, the run fails, so the marker cannot outlive the bug.
+      - name: Install Chromium for the audio harness
+        run: npx playwright install --with-deps chromium
+
+      - name: Audio harness (VMU-026)
+        run: npm run audio:check
+
       # Non-blocking on purpose: there are 68 pre-existing eslint errors.
       # Making it blocking today would mean either a red CI on every PR or a
       # large unrelated cleanup bundled into this one. VMU-011 resorbs them and

@@ -18,7 +18,12 @@ import { DRUM_PRESETS, BASS_PRESETS, PIANO_PRESET } from "./InstrumentPresets";
 import { log } from "../utils/debug";
 
 // ─── Safety & Analysis: Hard Limiter and FFT ──────────────────────────
-const masterLimiter = new Tone.Compressor({
+// Exported for the offline measurement harness (VMU-026) only: it taps this
+// node output to measure how much the last link of the chain reduces gain,
+// which is the number VMU-020 and VMU-024 are about. Nothing in the app reads
+// it. The alternative was for the harness to rebuild a mirror of this node,
+// which would have measured the mirror settings instead of these ones.
+export const masterLimiter = new Tone.Compressor({
   threshold: -6,
   ratio: 20,
   attack: 0.001,
@@ -99,6 +104,10 @@ export async function initAudio() {
  * @returns {void}
  */
 export function setMasterVolume(vol) {
+  // Still the deprecated Tone.Destination export, deliberately: useSequencer
+  // ramps the same property the same way, and the offline harness never calls
+  // this. Migrating both to getDestination() belongs with VMU-025, which is
+  // about giving master volume a single owner.
   Tone.Destination.volume.rampTo(vol, 0.05);
 }
 
@@ -464,6 +473,14 @@ export function applyGenrePreset(group) {
 }
 
 masterAnalyser.connect(masterLimiter);
-masterLimiter.connect(Tone.Destination);
+// getDestination(), not the deprecated Tone.Destination export. That export is
+// `getContext().destination` evaluated once, when Tone is first imported, so it
+// is a snapshot of whichever context existed at that moment. In the app the two
+// are the same object. Under an injected context — which is how the VMU-026
+// harness renders this graph offline — the snapshot belongs to a foreign
+// context, and Web Audio refuses the connection with InvalidAccessError,
+// aborting this module's evaluation. One line, and it is the only production
+// change the harness needs.
+masterLimiter.connect(Tone.getDestination());
 
 // ─── Exports ─────────────────────────────────────────────────────────

@@ -62,18 +62,22 @@ vi.mock("tone", () => {
     toDestination: vi.fn().mockReturnThis()
   };
 
+  const destination = {
+    volume: { rampTo: mockMasterRampTo, value: 0 },
+    connect: vi.fn()
+  };
+
   return {
     start: vi.fn().mockResolvedValue(true),
     context: {
       lookAhead: 0
     },
-    Destination: {
-      volume: {
-        rampTo: mockMasterRampTo,
-        value: 0
-      },
-      connect: vi.fn()
-    },
+    Destination: destination,
+    // The real module exports both; getDestination() is the current API and
+    // Destination is a deprecated snapshot of it. Same object here, as in the
+    // app, so the assertion below on Tone.Destination.volume.rampTo still
+    // sees every call.
+    getDestination: () => destination,
     Transport: {
       bpm: { value: 120 }
     },

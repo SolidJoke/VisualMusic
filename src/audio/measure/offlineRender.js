@@ -1,0 +1,416 @@
+// @ts-check
+/**
+ * offlineRender.js — the other half of the audio harness (VMU-026): it makes
+ * VisualMusic's *real* audio graph play into an `OfflineAudioContext` and hands
+ * the samples to `signalMetrics.js`.
+ *
+ * ## Why this file runs in a browser and not in vitest
+ *
+ * jsdom implements no Web Audio at all, so the jsdom suite cannot render one
+ * sample. This module therefore runs inside a real Chromium page, driven by
+ * `scripts/audio_measure.mjs`. It is a normal module under `src/` for one
+ * concrete reason: it must import `tone` by bare specifier, exactly as
+ * `AudioEngine.js` does, so Vite resolves both to the *same* optimized
+ * dependency. Importing Tone by URL from the page instead gives a second Tone
+ * module with its own global context — measured, 2026-09-16: two Tone banners
+ * in the console, `AudioContext is suspended` warnings, and a render that came
+ * back digital silence while the notes played into the realtime context nobody
+ * was recording.
+ *
+ * ## How the graph is captured without rebuilding it
+ *
+ * `AudioEngine.js` builds all of its nodes at import time, bound to whatever
+ * context is current — the difficulty VMU-026 flagged as the real one. The fix
+ * needs no production change and no mirror: `Tone.Offline` installs an offline
+ * context as the global one for the duration of its callback, so importing
+ * `AudioEngine` *inside* that callback builds every node on the offline
+ * context. The import is dynamic for that ordering alone.
+ *
+ * Because an import is cached, a module instance belongs to the first context
+ * that built it: one render per page. The driver opens a fresh page per
+ * scenario, which also keeps sampler state and Transport state from leaking
+ * between measurements.
+ *
+ * ## Two taps, one render
+ *
+ * The chain is `instrumentVols.* -> masterAnalyser -> masterLimiter ->
+ * Destination`. The harness unhooks the last edge and merges two taps into one
+ * stereo render: channel 0 is the mix *before* the output link, channel 1 the
+ * mix *after* it. Gain reduction is then sample-aligned. Rendering twice and
+ * diffing would not work — the drums are NoiseSynths, so two renders are not
+ * the same signal.
+ *
+ * The merge goes to the *raw* context destination, bypassing Tone's
+ * `Destination` volume node, so the reported levels are the levels inside the
+ * chain and do not move when someone changes the master fader. Master volume
+ * is reported separately.
+ *
+ * @module audio/measure/offlineRender
+ */
+import * as Tone from "tone";
+import { analyzeChannel, comparePitchContent, gainReductionMetrics, levelMetrics } from "./signalMetrics";
+
+/** Sample rate every measurement is taken at. */
+export const DEFAULT_SAMPLE_RATE = 44100;
+
+/**
+ * Musical content starts here, not at 0. `setInstrumentVolume` ramps over
+ * 50 ms and the samplers settle at the top of the render; measuring across
+ * that would report the ramp.
+ */
+export const LEAD_IN_SEC = 0.2;
+
+/**
+ * The Studio's state on a cold start, which is what "the default progression"
+ * means. Read from the app's own data and defaults rather than retyped:
+ * `useStudioMode` opens on `BRICKS[0]` with theme "A", and `useSequencer`
+ * opens at 120 BPM, master -12 dB, with these instrument trims.
+ */
+export const STUDIO_DEFAULTS = {
+  brickIndex: 0,
+  bpm: 120,
+  masterVolumeDb: -12,
+  chordOctaveOffset: 0,
+  instrumentVolumes: { kick: -3, snare: -5, hat: -8, bass: -6, piano: 0, guitar: 0 },
+};
+
+/**
+ * Renders a scenario and returns its measurements.
+ *
+ * @param {Object} spec
+ * @param {string} spec.scenario name from SCENARIOS
+ * @param {Object} [spec.params] scenario-specific parameters
+ * @param {number} [spec.durationSec]
+ * @param {number} [spec.sampleRate]
+ * @param {number} [spec.pitchOffsetSec] where to place the pitch-analysis window
+ * @param {number} [spec.fftSize]
+ * @param {number} [spec.maxPitches]
+ * @param {string[]} [spec.expectedNotes] notes the render is supposed to contain;
+ *   the verdict is computed here rather than in the Node driver so there is one
+ *   implementation of "is this the right pitch" and one note-naming convention
+ *   (the driver cannot import this module — Node does not resolve Vite's
+ *   extensionless imports)
+ * @returns {Promise<Object>} plain JSON, safe to cross the page boundary
+ */
+export async function runScenario(spec) {
+  const {
+    scenario,
+    params = {},
+    durationSec,
+    sampleRate = DEFAULT_SAMPLE_RATE,
+    pitchOffsetSec,
+    fftSize = 16384,
+    maxPitches = 8,
+    expectedNotes = null,
+  } = spec;
+
+  const definition = SCENARIOS[scenario];
+  if (!definition) {
+    throw new Error(`runScenario: unknown scenario "${scenario}". Known: ${Object.keys(SCENARIOS).join(", ")}`);
+  }
+
+  const duration = durationSec ?? definition.durationSec;
+  const pitchOffset = pitchOffsetSec ?? definition.pitchOffsetSec ?? LEAD_IN_SEC + 0.05;
+
+  /** @type {Object} */
+  const diagnostics = { scenario, params, durationSec: duration, sampleRate };
+  /** @type {Object|null} set by the render callback, read after render() */
+  let scenarioContext = null;
+
+  const buffer = await Tone.Offline(
+    async () => {
+      diagnostics.contextDuringRender = Tone.getContext().constructor.name;
+
+      // Built on the offline context precisely because the import happens here.
+      const engine = await import("../AudioEngine");
+      diagnostics.destinationIsOffline = Tone.getDestination().context === Tone.getContext();
+
+      // Unhook masterLimiter -> Destination, then tap both sides of it.
+      engine.masterLimiter.disconnect();
+      const merge = new Tone.Merge();
+      engine.masterAnalyser.connect(merge, 0, 0); // pre-limiter  -> channel 0
+      engine.masterLimiter.connect(merge, 0, 1); // post-limiter -> channel 1
+      merge.connect(Tone.getContext().rawContext.destination);
+
+      const ctx = { Tone, engine, params, diagnostics };
+      await definition.body(ctx);
+      scenarioContext = ctx;
+    },
+    duration,
+    2,
+    sampleRate,
+  );
+
+  if (scenarioContext?.scheduledPitches) {
+    const pitches = scenarioContext.scheduledPitches;
+    diagnostics.scheduledPitchCount = pitches.length;
+    diagnostics.scheduledPitchRange = pitches.length
+      ? { lowest: Math.min(...pitches), highest: Math.max(...pitches) }
+      : null;
+  }
+
+  const pre = buffer.getChannelData(0);
+  const post = buffer.getChannelData(1);
+  const pitchOffsetSamples = Math.max(0, Math.round(pitchOffset * sampleRate));
+
+  const mix = analyzeChannel(post, { sampleRate, pitchOffset: pitchOffsetSamples, fftSize, maxPitches });
+
+  return {
+    ...diagnostics,
+    renderedSamples: pre.length,
+    // "The mix", as heard: the output of the last link in the chain.
+    mix,
+    // The same mix before that link — the level VMU-020 is about.
+    preLimiter: levelMetrics(pre),
+    gainReduction: gainReductionMetrics(pre, post, { thresholdDbfs: -6, sampleRate }),
+    pitchVerdict: expectedNotes ? comparePitchContent(mix.pitches, expectedNotes) : null,
+    expectedNotes,
+  };
+}
+
+/**
+ * Waits for every Tone buffer to finish decoding, and reports which piano
+ * voice the render will actually use. VMU-102 was the first note playing the
+ * fallback synth; a measurement that does not say which voice it heard cannot
+ * tell that defect from a bad sample.
+ *
+ * @param {Object} args
+ * @returns {Promise<void>}
+ */
+async function loadSamplers({ Tone: T, engine, diagnostics }) {
+  engine.initPianoSampler();
+  engine.initGuitarSampler();
+  await T.loaded();
+  diagnostics.pianoVoice = engine.getPianoSynth().constructor.name;
+  diagnostics.guitarVoice = engine.getGuitarSynth().constructor.name;
+}
+
+/**
+ * The measurement scenarios. Each `body` schedules audio; the caller renders
+ * and measures. Keeping them here rather than in the Node driver means they
+ * are versioned next to the graph they exercise.
+ */
+export const SCENARIOS = {
+  /**
+   * Control, and the ticket's TDD step 1 against a real OfflineAudioContext
+   * rather than a synthetic array: a bare 440 Hz oscillator, no AudioEngine.
+   * If this does not come back as A4, the harness is broken and nothing it
+   * says about the app means anything. It separates "harness broken" from
+   * "application silent", which is the distinction the VMU-129 QA could not
+   * make.
+   */
+  "sine-440": {
+    durationSec: 1.0,
+    pitchOffsetSec: 0.2,
+    async body(ctx) {
+      const { Tone: T, diagnostics } = ctx;
+      const osc = new T.Oscillator({ frequency: 440, type: "sine", volume: -6 });
+      // Straight to the raw destination: this scenario deliberately bypasses
+      // the app's chain, so it stays valid even if that chain is silent.
+      osc.connect(T.getContext().rawContext.destination);
+      osc.start(0.05).stop(0.95);
+      diagnostics.note = "bare oscillator, bypasses AudioEngine on purpose";
+    },
+  },
+
+  /**
+   * One note on one instrument, through the real router. Answers "is this path
+   * silent" and "is the pitch the one asked for" — the two questions VMU-100
+   * and VMU-080 turned out to be.
+   */
+  "single-note": {
+    durationSec: 1.6,
+    async body(ctx) {
+      const { engine, params, diagnostics } = ctx;
+      await loadSamplers(ctx);
+      const instrument = params.instrument ?? "piano";
+      const note = params.note ?? "C4";
+      diagnostics.requested = { instrument, notes: [note] };
+      engine.playDictionaryNote(instrument, note, params.duration ?? 1.0, LEAD_IN_SEC);
+    },
+  },
+
+  /**
+   * A chord, to check that every note asked for is present and that none
+   * arrives an octave out — the VMU-080 / VMU-103 / VMU-105 failure shape.
+   */
+  chord: {
+    durationSec: 1.6,
+    async body(ctx) {
+      const { engine, params, diagnostics } = ctx;
+      await loadSamplers(ctx);
+      const instrument = params.instrument ?? "piano";
+      const notes = params.notes ?? ["C4", "E4", "G4"];
+      diagnostics.requested = { instrument, notes };
+      engine.playDictionaryNote(instrument, notes, params.duration ?? 1.0, LEAD_IN_SEC);
+    },
+  },
+
+  /**
+   * A calibrated sine injected into the real chain at a known level, to
+   * characterise what the last link actually does to a signal.
+   *
+   * This is the measurement VMU-020 and VMU-024 need and cannot get from
+   * musical material, where level and content vary together: here the input
+   * level is known exactly, so the difference between the two taps is a
+   * property of the node and not of the music.
+   */
+  "output-link-probe": {
+    durationSec: 1.2,
+    pitchOffsetSec: 0.3,
+    async body(ctx) {
+      const { Tone: T, engine, params, diagnostics } = ctx;
+      const levelDb = params.levelDb ?? -40;
+      // Unity on the piano trim, so the only thing between the oscillator and
+      // the pre tap is a volume node at 0 dB.
+      engine.setInstrumentVolume("piano", 0);
+      const osc = new T.Oscillator({ frequency: 220, type: "sine", volume: levelDb });
+      osc.connect(engine.instrumentVols.piano);
+      osc.start(0.1).stop(1.15);
+      diagnostics.probeLevelDb = levelDb;
+      diagnostics.note = `220 Hz sine at ${levelDb} dBFS into instrumentVols.piano`;
+    },
+  },
+
+  /**
+   * A path that is asked for nothing. The control that proves a silent result
+   * is a real observation and not the harness failing to connect anything.
+   */
+  "silent-path": {
+    durationSec: 0.5,
+    async body(ctx) {
+      const { diagnostics } = ctx;
+      diagnostics.note = "nothing triggered; a non-silent result would mean the harness leaks signal";
+    },
+  },
+
+  /**
+   * The Studio's default four-chord pop loop, driven through the real synths
+   * and the real Transport.
+   *
+   * Every musical decision here comes from the application's own exported
+   * functions — `resolveMeasureChord`, `classifyDrumTrack`,
+   * `shouldPlayChordStep`, `getBassNote`, `getLeadingTone`, `midiToNoteName` —
+   * and every voice is the real one. What is reproduced rather than reused is
+   * the ~30-line dispatch inside `useSequencer`'s `repeat` callback, which
+   * lives in a React effect and cannot be called from outside the hook. That
+   * is a real limitation: if someone changes the dispatch (say, which
+   * instrument plays the chords, per VMU-116's C-06 review) this scenario will
+   * not follow until it is updated too. Extracting that callback as a pure
+   * function is the fix, and belongs to VMU-116, not here.
+   */
+  "default-progression": {
+    durationSec: 8.7,
+    pitchOffsetSec: 0.3,
+    async body(ctx) {
+      const { Tone: T, engine, params, diagnostics } = ctx;
+      await loadSamplers(ctx);
+
+      const [{ BRICKS }, theory, trackMapping, sequencer] = await Promise.all([
+        import("../../core/bricks"),
+        import("../../core/theory"),
+        import("../trackMapping"),
+        import("../useSequencer"),
+      ]);
+
+      const brickIndex = params.brickIndex ?? STUDIO_DEFAULTS.brickIndex;
+      const brick = BRICKS[brickIndex];
+      const bpm = params.bpm ?? brick.bpm ?? STUDIO_DEFAULTS.bpm;
+      const octaveOffset = params.chordOctaveOffset ?? STUDIO_DEFAULTS.chordOctaveOffset;
+      const progression = brick.nnsProgression;
+      const drums = brick.drumTracks ?? [];
+      const melodies = brick.melodyTracks ?? [];
+      const rhythm = brick.chordRhythm ?? [0];
+
+      const volumes = { ...STUDIO_DEFAULTS.instrumentVolumes, ...(params.instrumentVolumes ?? {}) };
+      Object.entries(volumes).forEach(([name, db]) => engine.setInstrumentVolume(name, db));
+      const masterVolumeDb = params.masterVolumeDb ?? STUDIO_DEFAULTS.masterVolumeDb;
+
+      diagnostics.style = { index: brickIndex, name: brick.name?.en ?? brick.name, progression, bpm };
+      diagnostics.mixerState = { instrumentVolumes: volumes, masterVolumeDb };
+      diagnostics.masterVolumeNote =
+        "master volume is reported, not applied: both taps sit before Tone.Destination";
+
+      const transport = T.getTransport();
+      transport.bpm.value = bpm;
+
+      let stepCounter = 0;
+      /** @type {number[]} */
+      const scheduledPitches = [];
+
+      // Mirror of useSequencer's `repeat`, using its own exported helpers.
+      const repeat = (time) => {
+        const relativeStep = stepCounter % 16;
+
+        drums.forEach((/** @type {any} */ track) => {
+          if (!track.activeSteps.includes(relativeStep)) return;
+          const vel = track.lowVelocitySteps?.includes(relativeStep) ? 0.3 : 0.8;
+          const category = trackMapping.classifyDrumTrack(track.name);
+          if (category === "kick") engine.kickSynth.triggerAttackRelease("C1", "8n", time, vel);
+          else if (category === "snare") engine.snareSynth.triggerAttackRelease("16n", time, vel);
+          else engine.hatSynth.triggerAttackRelease("32n", time, vel);
+        });
+
+        const measureChord = sequencer.resolveMeasureChord(stepCounter, progression, brick, octaveOffset);
+        if (measureChord && trackMapping.shouldPlayChordStep(rhythm, stepCounter)) {
+          const notesToPlay = measureChord.absolutePitches.map((p) => theory.midiToNoteName(p));
+          const duration = rhythm.length > 1 ? "16n" : "4n";
+          engine.playDictionaryNote("piano", notesToPlay, duration, time);
+          scheduledPitches.push(...measureChord.absolutePitches);
+        }
+
+        melodies.forEach((/** @type {any} */ track) => {
+          if (!track.activeSteps.includes(relativeStep)) return;
+          const vel = track.lowVelocitySteps?.includes(relativeStep) ? 0.4 : 0.9;
+          const isBass = track.name.toLowerCase().includes("bass");
+          const octave = isBass ? 2 : 4;
+          let finalNoteName;
+          let absNote;
+
+          if (isBass && measureChord) {
+            const intervalLabel = (track.pitchSteps && track.pitchSteps[relativeStep]) || "R";
+            if (relativeStep === 15 && progression.length > 1) {
+              const nextChordIndex = (measureChord.chordIndex + 1) % progression.length;
+              const nextChords = theory.generateChordsFromNNS(brick.rootValue, brick.scaleKey, [
+                progression[nextChordIndex],
+              ]);
+              if (nextChords.length > 0) {
+                const resolved = theory.getLeadingTone(nextChords[0].rootNote.value, octave);
+                finalNoteName = resolved.name;
+                absNote = resolved.midi;
+              }
+            }
+            if (!finalNoteName) {
+              const resolved = theory.getBassNote(measureChord.chord.rootNote.value, intervalLabel, octave);
+              finalNoteName = resolved.name;
+              absNote = resolved.midi;
+            }
+          }
+
+          if (!finalNoteName) {
+            finalNoteName = `${theory.midiToNoteName((brick.rootValue % 12) + (octave + 1) * 12)}`;
+            absNote = theory.getAbsoluteNoteValue(finalNoteName);
+          }
+
+          engine.bassSynth.triggerAttackRelease(finalNoteName, "16n", time, vel);
+          scheduledPitches.push(absNote);
+        });
+
+        stepCounter = (stepCounter + 1) % 64;
+      };
+
+      const measures = params.measures ?? progression.length;
+      transport.scheduleRepeat(repeat, "16n", 0, `${measures}m`);
+      transport.start(LEAD_IN_SEC);
+
+      diagnostics.measures = measures;
+      // The loop runs during render(), after this callback has returned, so the
+      // array is handed over by reference and counted by runScenario once the
+      // render has finished.
+      ctx.scheduledPitches = scheduledPitches;
+    },
+  },
+};
+
+/** Names of the available scenarios, for the driver's --help and validation. */
+export const SCENARIO_NAMES = Object.keys(SCENARIOS);

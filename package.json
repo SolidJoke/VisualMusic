@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "screenshots": "node scripts/take_screenshots.js"
+    "screenshots": "node scripts/take_screenshots.js",
+    "audio:measure": "node scripts/audio_measure.mjs",
+    "audio:check": "node scripts/audio_measure.mjs --assert"
   },
   "dependencies": {
     "@tonaljs/tonal": "^4.10.0",
