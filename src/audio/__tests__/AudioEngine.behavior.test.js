@@ -107,6 +107,14 @@ vi.mock("tone", () => {
       connect: vi.fn().mockReturnThis(),
       toDestination: vi.fn().mockReturnThis()
     })),
+    Limiter: vi.fn().mockImplementation(() => ({
+      connect: vi.fn().mockReturnThis(),
+      toDestination: vi.fn().mockReturnThis()
+    })),
+    WaveShaper: vi.fn().mockImplementation(() => ({
+      connect: vi.fn().mockReturnThis(),
+      toDestination: vi.fn().mockReturnThis()
+    })),
     Frequency: vi.fn().mockImplementation((note) => {
       const notesMap = {
         "C1": 24,

@@ -63,6 +63,8 @@ vi.mock("tone", () => {
     Chorus: vi.fn().mockImplementation(node),
     Analyser: vi.fn().mockImplementation(node),
     Compressor: vi.fn().mockImplementation(node),
+    Limiter: vi.fn().mockImplementation(node),
+    WaveShaper: vi.fn().mockImplementation(node),
     Frequency: vi.fn().mockImplementation(() => ({ toMidi: () => 60 })),
     Sampler: vi.fn().mockImplementation((options) => {
       const instance = node();

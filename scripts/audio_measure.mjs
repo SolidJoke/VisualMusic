@@ -46,6 +46,37 @@ const KEEP_OPEN = flag("headed");
 const ONLY = option("scenario", null);
 
 /**
+ * VMU-020 QA follow-up (coordinator, 2026-09-16). The gain-reduction checks
+ * above compare levels at the *internal* tap points the harness installs
+ * (`masterAnalyser` for "pre", whatever node `masterLimiter` currently points
+ * to for "post" — today that is the last of three stages). That coupling is
+ * only as strong as the internal wiring: it would not catch a regression
+ * introduced *inside* an earlier stage in a way the later stages happen to
+ * mask, or a future rewire that changes what `masterLimiter` points to.
+ *
+ * These two constants back an *end-to-end* check instead: the known,
+ * deterministic level the probe oscillator injects (`r.probeLevelDb`, set by
+ * the scenario itself, not measured) against the actual rendered mix peak
+ * (`r.mix.peakDbfs`, the destination-bound signal) — no internal tap
+ * involved, so it holds regardless of how many stages the chain has or which
+ * one is named `masterLimiter`.
+ *
+ * AMPLIFICATION_TOLERANCE_DB reuses the 0.5 dB already justified for the "no
+ * static gain" check below rather than inventing a second number: same
+ * property (the chain must not make a signal louder), same bound, now
+ * checked end-to-end instead of tap-to-tap. CEILING_TOLERANCE_DB is tighter
+ * (0.2 dB) because it is not a tolerance on a measurement so much as on
+ * floating-point rounding through the render: `outputCeiling` (AudioEngine.js)
+ * hard-clamps to a fixed linear value equal to CEILING_DBFS by construction,
+ * so any input clearly above it should render at essentially exactly the
+ * ceiling — confirmed repeatedly at -1.00 dBFS (to 2 decimals) across
+ * +0/+3/+6/+12 dBFS probes during VMU-020's own verification.
+ */
+const AMPLIFICATION_TOLERANCE_DB = 0.5;
+const CEILING_DBFS = -1;
+const CEILING_TOLERANCE_DB = 0.2;
+
+/**
  * The measurements taken, and what each one is for.
  *
  * `expect` runs only under --assert. It returns a list of {label, ok, detail}
@@ -89,7 +120,7 @@ const PLAN = [
   },
   {
     id: "output-link-probe-quiet",
-    title: "Output link characterised: a 220 Hz sine at -40 dBFS, far below the -6 dB threshold",
+    title: "Output link characterised: a 220 Hz sine at -40 dBFS, far below the ~-1 dBFS ceiling",
     spec: { scenario: "output-link-probe", params: { levelDb: -40 }, expectedNotes: ["A3"] },
     why: "A signal this quiet must pass the output link untouched. Any level change here is static gain, not compression.",
     expect: (r) => [
@@ -98,25 +129,58 @@ const PLAN = [
         "level is unchanged within 0.5 dB (no static gain)",
         Math.abs(r.gainReduction.meanDb) <= 0.5,
         `level change ${fmt(-r.gainReduction.meanDb)} dB (positive = louder after the link)`,
-        "VMU-020: the node called masterLimiter is a Tone.Compressor, and Chrome's " +
-          "DynamicsCompressorNode applies a static makeup gain. Measured 2026-09-16: " +
-          "+2.93 dB on a signal 34 dB below the threshold, where no compression can occur.",
+      ),
+      check(
+        "end-to-end: rendered mix is never louder than what was injected (whole chain, not one tap)",
+        r.mix.peakDbfs <= r.probeLevelDb + AMPLIFICATION_TOLERANCE_DB,
+        `injected ${fmt(r.probeLevelDb)} dBFS, mix peak ${fmt(r.mix.peakDbfs)} dBFS`,
       ),
     ],
   },
   {
     id: "output-link-probe-hot",
-    title: "Output link characterised: a 220 Hz sine at -1 dBFS, well above the -6 dB threshold",
+    title: "Output link characterised: a 220 Hz sine at -1 dBFS, at the ~-1 dBFS ceiling",
     spec: { scenario: "output-link-probe", params: { levelDb: -1 }, expectedNotes: ["A3"] },
     why:
-      "A signal this loud is above the -6 dB threshold, so 20:1 compression outweighs the static " +
-      "makeup gain and the net effect is a reduction. Measured, not assumed: this is the one level " +
-      "at which the node behaves as its name claims.",
+      "VMU-020 fixed 2026-09-16: masterLimiter is now a limiter with a real ~-1 dBFS ceiling " +
+      "(previously a Tone.Compressor thresholded at -6 dB). A signal sitting right at the ceiling " +
+      "should be left alone or trimmed a hair, never amplified — this is the boundary case. See " +
+      "output-link-probe-loud below for a signal well above the ceiling.",
     expect: (r) => [
       check(
         "the link reduces rather than amplifies",
         r.gainReduction.meanDb >= 0,
         `level change ${fmt(-r.gainReduction.meanDb)} dB (positive = louder after the link)`,
+      ),
+      check(
+        "end-to-end: rendered mix is never louder than what was injected (whole chain, not one tap)",
+        r.mix.peakDbfs <= r.probeLevelDb + AMPLIFICATION_TOLERANCE_DB,
+        `injected ${fmt(r.probeLevelDb)} dBFS, mix peak ${fmt(r.mix.peakDbfs)} dBFS`,
+      ),
+    ],
+  },
+  {
+    id: "output-link-probe-loud",
+    title: "Output link characterised: a 220 Hz sine at +12 dBFS, well above the ~-1 dBFS ceiling",
+    spec: { scenario: "output-link-probe", params: { levelDb: 12 }, expectedNotes: ["A3"] },
+    why:
+      "VMU-020 QA follow-up (coordinator, 2026-09-16): the stress case, made permanent. Verified " +
+      "once by hand during VMU-020 that a genuinely loud signal is capped rather than digitally " +
+      "clipped; a guarantee checked once by hand goes stale in silence, so it belongs here instead. " +
+      "The compressor stage alone does not hold this ceiling (an envelope follower does not settle " +
+      "fast enough against a continuous tone); the WaveShaper stage after it is a static per-sample " +
+      "clamp and cannot overshoot, whatever the input.",
+    expect: (r) => [
+      check("the pitch survives the chain", r.pitchVerdict.ok, verdictDetail(r)),
+      check(
+        `the output holds the ~${CEILING_DBFS} dBFS ceiling instead of passing the input through`,
+        Math.abs(r.mix.peakDbfs - CEILING_DBFS) <= CEILING_TOLERANCE_DB,
+        `injected ${fmt(r.probeLevelDb)} dBFS, mix peak ${fmt(r.mix.peakDbfs)} dBFS (ceiling ${CEILING_DBFS} dBFS)`,
+      ),
+      check(
+        "no digital clipping",
+        r.mix.clippedSamples === 0,
+        `${r.mix.clippedSamples} of ${r.renderedSamples} samples past full scale`,
       ),
     ],
   },
