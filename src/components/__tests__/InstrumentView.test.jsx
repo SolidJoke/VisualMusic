@@ -230,3 +230,27 @@ describe("InstrumentView — foldable sections (VMU-112)", () => {
     expect(getFoldButtons(container)).toHaveLength(4);
   });
 });
+
+describe("InstrumentView — position selectors keep their default visibility (VMU-111 §5)", () => {
+  // VMU-111 §5 decoupled the fretted-note LABEL (degree vs finger number)
+  // from showFingering, which must otherwise be untouched: it still gates
+  // the guitar/bass position selector here (InstrumentView.jsx:163/194) and
+  // the voicing mask (fretboardUtils.js). This must fail if showFingering's
+  // default were simply flipped to false.
+  it("shows the guitar and bass position selectors by default in Studio mode with a chord clicked", () => {
+    const { queryByTestId } = render(
+      <Harness
+        appMode="studio"
+        overrides={{ clickedChord: { rootNote: { value: 0 }, nns: "I" } }}
+      />
+    );
+    expect(queryByTestId("position-selector-guitar")).not.toBeNull();
+    expect(queryByTestId("position-selector-bass")).not.toBeNull();
+  });
+
+  it("shows the guitar and bass position selectors by default in Dictionary mode", () => {
+    const { queryByTestId } = render(<Harness appMode="dictionary" />);
+    expect(queryByTestId("position-selector-guitar")).not.toBeNull();
+    expect(queryByTestId("position-selector-bass")).not.toBeNull();
+  });
+});

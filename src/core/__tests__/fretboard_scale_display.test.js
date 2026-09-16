@@ -28,7 +28,7 @@ const BASE_PARAMS = {
   targetValue: -1,
   notation: 'us',
   showFingering: false,
-  fingeringMode: 'numeric',
+  showFingerNumbers: false,
   contextualScaleAbsoluteValues: [],
   activePath: [],
   instrument: 'guitar',

@@ -54,7 +54,7 @@ describe("useDebugExport hook", () => {
       notation: "latin",
       playbackInstrument: "piano",
       showFingering: true,
-      fingeringMode: "guitar",
+      showFingerNumbers: true,
       uiTheme: "dark",
       collapsedSections: { guitar: true },
     };

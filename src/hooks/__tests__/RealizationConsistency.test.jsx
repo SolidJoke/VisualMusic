@@ -116,7 +116,6 @@ async function runSelection({ root, type, octave, instrument }) {
         dictType: type,
         dictActiveNotes: dict.result.current.activeNotes,
         dictOctave: octave,
-        fingeringMode: "numbers",
         notation: "EN",
         playbackInstrument: instrument,
       }),

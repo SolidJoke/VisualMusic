@@ -6,8 +6,8 @@ import InfoTooltip from '../Common/InfoTooltip';
 const ControlPanel = ({
   showFingering,
   setShowFingering,
-  fingeringMode,
-  setFingeringMode,
+  showFingerNumbers,
+  setShowFingerNumbers,
   playbackInstrument,
   setPlaybackInstrument,
   appMode,
@@ -66,24 +66,18 @@ const ControlPanel = ({
           >
             {showFingering ? txt.fingeringToggleOn : txt.fingeringToggleOff}
           </button>
-          {showFingering && (
-            <div style={{ display: "flex", gap: "8px", marginTop: "5px" }}>
-               <button
-                 onClick={() => setFingeringMode("numeric")}
-                 className={`btn-premium ${fingeringMode === "numeric" ? " active" : ""}`}
-                 style={{ fontSize: "0.75rem", padding: "6px 10px" }}
-               >
-                 {txt.fingeringNumeric}
-               </button>
-               <button
-                 onClick={() => setFingeringMode("anatomic")}
-                 className={`btn-premium ${fingeringMode === "anatomic" ? " active" : ""}`}
-                 style={{ fontSize: "0.75rem", padding: "6px 10px" }}
-               >
-                 {txt.fingeringAnatomic}
-               </button>
-            </div>
-          )}
+          {/* VMU-111 §5: separate from showFingering above (which still
+              gates the voicing mask and position selector). This one only
+              swaps a fretted note's label between its degree (default) and
+              its finger number (1-4) — the old numeric/anatomic choice is
+              gone, finger labels are always numeric now. */}
+          <button
+            onClick={() => setShowFingerNumbers(!showFingerNumbers)}
+            className={`btn-premium ${showFingerNumbers ? " active" : ""}`}
+            style={{ width: "100%", fontSize: "0.75rem", padding: "8px", marginTop: "8px" }}
+          >
+            {showFingerNumbers ? txt.fingerNumbersToggleOn : txt.fingerNumbersToggleOff}
+          </button>
         </div>
       </div>
     </div>

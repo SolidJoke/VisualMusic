@@ -43,7 +43,7 @@ function AppDesktop() {
     showAbout,
     showTheory,
     showFingering,
-    fingeringMode,
+    showFingerNumbers,
     playbackInstrument,
     collapsedSections,
     uiTheme,
@@ -67,7 +67,7 @@ function AppDesktop() {
   const setShowAbout = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showAbout', value: val } }), [dispatch]);
   const setShowTheory = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showTheory', value: val } }), [dispatch]);
   const setShowFingering = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingering', value: val } }), [dispatch]);
-  const setFingeringMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'fingeringMode', value: val } }), [dispatch]);
+  const setShowFingerNumbers = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingerNumbers', value: val } }), [dispatch]);
   const setPlaybackInstrument = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'playbackInstrument', value: val } }), [dispatch]);
   // VMU-112: replaces setLayoutMode/setActiveTab. Folding is independent of
   // which instrument is played — this never touches playbackInstrument.
@@ -147,7 +147,6 @@ function AppDesktop() {
     dictType,
     dictActiveNotes,
     dictOctave,
-    fingeringMode,
     notation,
     playbackInstrument
   });
@@ -341,7 +340,7 @@ function AppDesktop() {
     currentlyPlayingNotes,
     contextualScaleAbsoluteValues,
     showFingering,
-    fingeringMode,
+    showFingerNumbers,
     clickedChord,
     selectedRootStringGuitar,
     setSelectedRootStringGuitar,
@@ -391,7 +390,7 @@ function AppDesktop() {
     currentlyPlayingNotes,
     contextualScaleAbsoluteValues,
     showFingering,
-    fingeringMode,
+    showFingerNumbers,
     clickedChord,
     selectedRootStringGuitar,
     setSelectedRootStringGuitar,
@@ -569,8 +568,8 @@ function AppDesktop() {
             <ControlPanel
               showFingering={showFingering}
               setShowFingering={setShowFingering}
-              fingeringMode={fingeringMode}
-              setFingeringMode={setFingeringMode}
+              showFingerNumbers={showFingerNumbers}
+              setShowFingerNumbers={setShowFingerNumbers}
               playbackInstrument={playbackInstrument}
               setPlaybackInstrument={setPlaybackInstrument}
               appMode={appMode}

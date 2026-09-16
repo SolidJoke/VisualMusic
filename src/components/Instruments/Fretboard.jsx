@@ -31,7 +31,7 @@ function Fretboard({
     contextualScaleAbsoluteValues,
     singlePlayContext,
     showFingering,
-    fingeringMode,
+    showFingerNumbers,
     scaleAnchor,
     highlightTargetNotes,
     appMode,
@@ -294,7 +294,7 @@ function Fretboard({
                     stringIndex, fret, openStringAbsValue, activeNotes,
                     currentlyPlayingNotes, contextualScaleAbsoluteValues,
                     activePath, dictType, fingering, instrument,
-                    rootValue, targetValue, showFingering, fingeringMode,
+                    rootValue, targetValue, showFingering, showFingerNumbers,
                     singlePlayContext, notation, scaleAnchor, appMode
                   });
                   return (
@@ -327,7 +327,7 @@ function Fretboard({
                     stringIndex, fret, openStringAbsValue, activeNotes,
                     currentlyPlayingNotes, contextualScaleAbsoluteValues,
                     activePath, dictType, fingering, instrument,
-                    rootValue, targetValue, showFingering, fingeringMode,
+                    rootValue, targetValue, showFingering, showFingerNumbers,
                     singlePlayContext, notation, scaleAnchor, appMode
                   });
 

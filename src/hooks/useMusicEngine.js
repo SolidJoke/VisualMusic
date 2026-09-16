@@ -40,7 +40,6 @@ import { realizeDictionarySelection } from "../core/realization";
  * @param {string} options.dictType
  * @param {any[]} options.dictActiveNotes
  * @param {number} options.dictOctave
- * @param {string} options.fingeringMode
  * @param {string} options.notation
  * @param {'piano'|'guitar'|'bass'} [options.playbackInstrument] instrument that
  *   owns the realization: its fingering decides the pitches that are both
@@ -61,7 +60,6 @@ export function useMusicEngine({
   dictType,
   dictActiveNotes,
   dictOctave,
-  fingeringMode,
   notation,
   playbackInstrument = 'piano'
 }) {

@@ -4,14 +4,15 @@ import { TUNINGS } from "./tunings";
 /**
  * Calculates optimal fingering positions for guitar and bass chords.
 // Finger notation: 1=Index, 2=Middle, 3=Ring, 4=Pinky, O=Open, X=Muted
-// Anatomical labels: I=Index, M=Middle, A=Annulaire(Ring), m=Auriculaire(Pinky)
 
 /**
- * Maps numeric finger IDs to anatomical labels.
+ * Maps numeric finger IDs to their display labels.
+ * VMU-111: the anatomic label set (I/M/A/m) is removed — finger labels are
+ * always numeric now. The underlying finger assignment (which finger plays
+ * which fret, computed elsewhere in this file) is unchanged.
  */
 export const FINGER_LABELS = {
   numeric: { 1: '1', 2: '2', 3: '3', 4: '4', O: 'O', X: 'X' },
-  anatomic: { 1: 'I', 2: 'M', 3: 'A', 4: 'm', O: 'O', X: 'X' },
 };
 
 /**

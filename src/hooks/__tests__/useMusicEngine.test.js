@@ -25,7 +25,6 @@ describe('useMusicEngine', () => {
     dictType: 'chord_major',
     dictActiveNotes: [],
     dictOctave: 0,
-    fingeringMode: 'anatomic'
   };
 
   it('calculates guitar fingering for C Major chord in studio mode', () => {
