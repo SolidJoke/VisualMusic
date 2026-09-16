@@ -31,6 +31,42 @@ const noteNamesArray = [
 ];
 
 /**
+ * Resolves the chord that owns the current step's measure — the one thing
+ * both the chord track and the bass track (VMU-129) must agree on. Pure:
+ * same inputs, same chord, so it is the single place stepCounter is turned
+ * into "which chord of the progression is this", instead of the chord and
+ * bass branches each recomputing it (and risking disagreeing).
+ *
+ * `absolutePitches` are the actual MIDI notes this measure's chord is
+ * played at (root position, the octave the Studio octave offset selects) —
+ * the same values the chord track sends to the synth, so a consumer that
+ * only wants to *display* the chord never has to re-derive them from
+ * `chord.nns` and re-guess the octave.
+ *
+ * @param {number} stepCounter absolute 16th-note step (0..63 across the 4-measure loop)
+ * @param {any[]} progression NNS degrees of the current progression
+ * @param {any} brick active style (rootValue, scaleKey)
+ * @param {number} octaveOffset Studio "Octave Base" setting
+ * @returns {{ chordIndex: number, chord: any, absolutePitches: number[] } | null}
+ */
+export function resolveMeasureChord(stepCounter, progression, brick, octaveOffset) {
+  if (!progression || progression.length === 0 || !brick) return null;
+  const chordIndex = Math.floor(stepCounter / 16) % progression.length;
+  const nns = progression[chordIndex];
+  const chords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [nns]);
+  if (chords.length === 0) return null;
+
+  const chord = chords[0];
+  const chordType = resolveNnsToChordType(chord.nns);
+  const semitones = resolveChordSemitones(chordType)?.semitones || [0, 4, 7];
+  // MIDI (C4 = 60), the convention every display uses.
+  const baseOctave = 4 + (octaveOffset || 0);
+  const absolutePitches = semitones.map((s) => chord.rootNote.value + s + (baseOctave + 1) * 12);
+
+  return { chordIndex, chord, absolutePitches };
+}
+
+/**
  * @param {Object} options
  * @param {string} options.appMode
  * @param {any} options.activeBrick
@@ -59,6 +95,11 @@ export function useSequencer({
   const [currentBpm, setCurrentBpm] = useState(120);
   const [currentStep, setCurrentStep] = useState(-1);
   const [isPianoReady, setIsPianoReady] = useState(false);
+  // VMU-129: the chord this measure of the loop is playing, published once
+  // per measure so useMusicEngine can make the instruments follow it during
+  // playback instead of the last clicked chord. Same shape as clickedChord
+  // ({ rootNote: { value }, nns, ... }) plus absolutePitches. Null at rest.
+  const [currentPlayingChord, setCurrentPlayingChord] = useState(null);
   
   const [instrumentVolumes, setInstrumentVolumes] = useState({
     kick: -3,
@@ -109,6 +150,10 @@ export function useSequencer({
 
   useEffect(() => {
     let stepCounter = 0;
+    // VMU-129: chordIndex of the measure last published via
+    // setCurrentPlayingChord, so the state update (and the Draw-scheduled
+    // callback it costs) only fires at a measure boundary, not every step.
+    let lastPublishedChordIndex = null;
 
     const repeat = (time) => {
       Tone.Draw.schedule(() => setCurrentStep(stepCounter), time);
@@ -127,6 +172,22 @@ export function useSequencer({
         const octaveOffset = octaveRef.current;
 
         let frameNotes = [];
+
+        // --- Measure chord (VMU-129) ---
+        // Computed once per step, here — the single source both the chord
+        // track (below) and the bass track read from, instead of each
+        // recomputing chordIndex/currentNns/chords on its own. Published
+        // (once per measure, not per step) so the instruments can follow
+        // the chord actually playing instead of the last clicked one.
+        const measureChord = resolveMeasureChord(stepCounter, progression, brick, octaveOffset);
+        const measureChordIndex = measureChord ? measureChord.chordIndex : null;
+        if (measureChordIndex !== lastPublishedChordIndex) {
+          lastPublishedChordIndex = measureChordIndex;
+          const forDisplay = measureChord
+            ? { ...measureChord.chord, absolutePitches: measureChord.absolutePitches }
+            : null;
+          Tone.Draw.schedule(() => setCurrentPlayingChord(forDisplay), time);
+        }
 
         // --- 1. Drums ---
         if (drums && drums.length > 0) {
@@ -150,31 +211,16 @@ export function useSequencer({
         }
 
         // --- 2. Chords (Harmonic progression) ---
-        if (progression && progression.length > 0 && brick) {
-          const chordIndex = Math.floor(stepCounter / 16) % progression.length;
-          const currentNns = progression[chordIndex];
+        if (measureChord) {
           const rhythm = rhythmRef.current || [0];
 
           // Shared with MidiExporter.js (VMU-125) so an exported chord track
           // can't drift from what this loop actually plays.
           if (shouldPlayChordStep(rhythm, stepCounter)) {
-             const chords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [currentNns]);
-             if (chords.length > 0) {
-               const c = chords[0];
-               const rootValChord = c.rootNote.value;
-               const chordType = resolveNnsToChordType(c.nns);
-               const semitones = resolveChordSemitones(chordType)?.semitones || [0, 4, 7];
-               const baseOctave = 4 + (octaveOffset || 0);
-               // MIDI (C4 = 60), the convention every display uses. `baseOctave * 12`
-               // was the pre-MIDI one: the chord was highlighted an octave below
-               // the octave it was named and heard at.
-               const absPitches = semitones.map(s => rootValChord + s + (baseOctave + 1) * 12);
-               
-               const notesToPlay = absPitches.map((p) => midiToNoteName(p));
-               const duration = rhythm.length > 1 ? "16n" : "4n";
-               playDictionaryNote("piano", notesToPlay, duration, time);
-               frameNotes = [...frameNotes, ...absPitches];
-             }
+             const notesToPlay = measureChord.absolutePitches.map((p) => midiToNoteName(p));
+             const duration = rhythm.length > 1 ? "16n" : "4n";
+             playDictionaryNote("piano", notesToPlay, duration, time);
+             frameNotes = [...frameNotes, ...measureChord.absolutePitches];
           }
         }
 
@@ -189,30 +235,24 @@ export function useSequencer({
               let finalNoteName;
               let absNote;
 
-              if (isBass && progression && progression.length > 0 && brick) {
-                 const chordIndex = Math.floor(stepCounter / 16) % progression.length;
-                 const currentNns = progression[chordIndex];
-                 const chords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [currentNns]);
-                 
-                 if (chords.length > 0) {
-                   const currentChordRoot = chords[0].rootNote.value;
-                   const intervalLabel = (track.pitchSteps && track.pitchSteps[relativeStep]) || 'R';
-                   
-                   if (relativeStep === 15 && progression.length > 1) {
-                      const nextChordIndex = (chordIndex + 1) % progression.length;
-                      const nextChords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [progression[nextChordIndex]]);
-                      if (nextChords.length > 0) {
-                        const resolved = getLeadingTone(nextChords[0].rootNote.value, octave);
-                        finalNoteName = resolved.name;
-                        absNote = resolved.midi;
-                      }
-                   }
+              if (isBass && measureChord) {
+                 const currentChordRoot = measureChord.chord.rootNote.value;
+                 const intervalLabel = (track.pitchSteps && track.pitchSteps[relativeStep]) || 'R';
 
-                   if (!finalNoteName) {
-                     const resolved = getBassNote(currentChordRoot, intervalLabel, octave);
-                     finalNoteName = resolved.name;
-                     absNote = resolved.midi;
-                   }
+                 if (relativeStep === 15 && progression.length > 1) {
+                    const nextChordIndex = (measureChord.chordIndex + 1) % progression.length;
+                    const nextChords = generateChordsFromNNS(brick.rootValue, brick.scaleKey, [progression[nextChordIndex]]);
+                    if (nextChords.length > 0) {
+                      const resolved = getLeadingTone(nextChords[0].rootNote.value, octave);
+                      finalNoteName = resolved.name;
+                      absNote = resolved.midi;
+                    }
+                 }
+
+                 if (!finalNoteName) {
+                   const resolved = getBassNote(currentChordRoot, intervalLabel, octave);
+                   finalNoteName = resolved.name;
+                   absNote = resolved.midi;
                  }
               }
 
@@ -246,6 +286,9 @@ export function useSequencer({
       if (repeatId !== null) Tone.Transport.clear(repeatId);
       setCurrentStep(-1);
       stepCounter = 0;
+      // At rest, useMusicEngine falls back to clickedChord on its own
+      // (isPlaying is false) — this reset is hygiene, not a behavior gate.
+      setCurrentPlayingChord(null);
     }
 
     return () => {
@@ -322,6 +365,7 @@ export function useSequencer({
     togglePlayback,
     handleBpmChange,
     isPianoReady,
-    activeChordTrack
+    activeChordTrack,
+    currentPlayingChord
   };
 }

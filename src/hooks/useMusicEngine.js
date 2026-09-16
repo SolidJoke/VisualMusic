@@ -29,6 +29,15 @@ import { realizeDictionarySelection } from "../core/realization";
  * @param {string} options.appMode
  * @param {any} options.activeBrick
  * @param {any} options.clickedChord
+ * @param {boolean} [options.isPlaying] whether the sequencer loop is currently
+ *   playing (VMU-129). While true, the studio-mode musical context (notes,
+ *   fingerings) follows `currentPlayingChord` instead of `clickedChord`; at
+ *   rest (or with nothing playing yet) it follows `clickedChord`, unchanged
+ *   from before VMU-129.
+ * @param {any} [options.currentPlayingChord] the chord useSequencer is
+ *   currently playing, published once per measure — same shape as
+ *   clickedChord ({ rootNote: { value }, nns }) plus `absolutePitches`, the
+ *   actual MIDI notes it is playing this measure. Null at rest.
  * @param {any[]} options.currentAbsoluteNotes
  * @param {number} options.chordOctaveOffset
  * @param {string} options.displayMode
@@ -49,6 +58,8 @@ export function useMusicEngine({
   appMode,
   activeBrick,
   clickedChord,
+  isPlaying = false,
+  currentPlayingChord = null,
   currentAbsoluteNotes,
   chordOctaveOffset,
   displayMode,
@@ -63,6 +74,21 @@ export function useMusicEngine({
   notation,
   playbackInstrument = 'piano'
 }) {
+
+  // VMU-129 — while the sequencer plays, the studio-mode chord the
+  // instruments show is the one it is currently playing, not the last
+  // clicked one; at rest it's the clicked chord, unchanged. Every read
+  // below that used to say `clickedChord` reads `effectiveChord` instead,
+  // so no consumer here ever recomputes the chord from the progression on
+  // its own — the sequencer is the only place that does that (VMU-003).
+  const effectiveChord = (isPlaying && currentPlayingChord) ? currentPlayingChord : clickedChord;
+  // The absolute pitches behind effectiveChord: the actually-played voicing
+  // for a clicked chord (state set at click time), or the sequencer's own
+  // `absolutePitches` for the chord it is currently playing — never
+  // re-derived from `effectiveChord.nns` here.
+  const effectiveAbsoluteNotes = (isPlaying && currentPlayingChord)
+    ? currentPlayingChord.absolutePitches
+    : currentAbsoluteNotes;
 
   // --- 1. Harmonization & Active Notes ---
   const musicContext = useMemo(() => {
@@ -81,28 +107,28 @@ export function useMusicEngine({
       if (displayMode === "scale") {
         activeNotes = scaleNotes;
       } else {
-        if (clickedChord) {
-          activeNotes = currentAbsoluteNotes.map((val) => {
-            const semi = (val - clickedChord.rootNote.value + 12) % 12;
+        if (effectiveChord) {
+          activeNotes = effectiveAbsoluteNotes.map((val) => {
+            const semi = (val - effectiveChord.rootNote.value + 12) % 12;
             return {
               value: val % 12,
               order: getChordIntervalLabel(-1, semi),
               absoluteValue: val,
             };
           });
-          
-          const chordType = resolveNnsToChordType(clickedChord.nns);
+
+          const chordType = resolveNnsToChordType(effectiveChord.nns);
           const chordData = resolveChordSemitones(chordType);
           if (chordData) {
             // Use the absolute value of the played notes if possible, or calculate from root
             fretboardActiveNotes = chordData.semitones.map((semi, i) => {
-              const val = (clickedChord.rootNote.value + semi) % 12;
+              const val = (effectiveChord.rootNote.value + semi) % 12;
               // Try to find if this note is in the played voicing to get its absolute value
               const played = activeNotes.find(n => n.value === val);
               return {
                 value: val,
                 order: getChordIntervalLabel(i, semi),
-                absoluteValue: played ? played.absoluteValue : (clickedChord.rootNote.value + semi + 48)
+                absoluteValue: played ? played.absoluteValue : (effectiveChord.rootNote.value + semi + 48)
               };
             });
           }
@@ -119,10 +145,10 @@ export function useMusicEngine({
         }
       }
 
-      currentRootValue = clickedChord
-        ? clickedChord.rootNote.value
+      currentRootValue = effectiveChord
+        ? effectiveChord.rootNote.value
         : activeBrick.rootValue;
-      targetValue = !clickedChord
+      targetValue = !effectiveChord
         ? (activeBrick.rootValue + modeData.targetInterval) % 12
         : -1;
 
@@ -133,7 +159,7 @@ export function useMusicEngine({
     }
 
     return { activeNotes, fretboardActiveNotes, currentRootValue, targetValue };
-  }, [appMode, activeBrick, clickedChord, currentAbsoluteNotes, displayMode, dictRoot, dictActiveNotes]);
+  }, [appMode, activeBrick, effectiveChord, effectiveAbsoluteNotes, displayMode, dictRoot, dictActiveNotes]);
 
   // --- 2. Inversion Logic ---
   const inversionText = useMemo(() => {
@@ -212,9 +238,9 @@ export function useMusicEngine({
       rootVal = Number(dictRoot);
       chordType = dictType;
     } else {
-      if (!clickedChord) return null;
-      rootVal = clickedChord.rootNote.value;
-      chordType = resolveNnsToChordType(clickedChord.nns);
+      if (!effectiveChord) return null;
+      rootVal = effectiveChord.rootNote.value;
+      chordType = resolveNnsToChordType(effectiveChord.nns);
     }
 
     if (appMode === "dictionary" && selectedVoicingIndexGuitar !== null) {
@@ -225,7 +251,7 @@ export function useMusicEngine({
 
     const offset = appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0);
     return toV2(getGuitarFingering(rootVal, chordType, selectedRootStringGuitar, offset), 'guitar');
-  }, [clickedChord, selectedRootStringGuitar, appMode, dictRoot, dictType, selectedVoicingIndexGuitar, activeBrick.guitarStrings, dictOctave, chordOctaveOffset, notation]);
+  }, [effectiveChord, selectedRootStringGuitar, appMode, dictRoot, dictType, selectedVoicingIndexGuitar, activeBrick.guitarStrings, dictOctave, chordOctaveOffset, notation]);
 
   const availableGuitarFingerings = useMemo(() => {
     let rootVal, chordType;
@@ -237,9 +263,9 @@ export function useMusicEngine({
         return getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning, notation);
       }
     } else {
-      if (!clickedChord) return [];
-      rootVal = clickedChord.rootNote.value;
-      chordType = resolveNnsToChordType(clickedChord.nns);
+      if (!effectiveChord) return [];
+      rootVal = effectiveChord.rootNote.value;
+      chordType = resolveNnsToChordType(effectiveChord.nns);
     }
 
     if (dictType === "single_note") {
@@ -250,7 +276,7 @@ export function useMusicEngine({
     }
 
     return getAvailableGuitarFingerings(rootVal, chordType, appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0), notation);
-  }, [clickedChord, appMode, dictRoot, dictType, activeBrick.guitarStrings, chordOctaveOffset, dictOctave, notation]);
+  }, [effectiveChord, appMode, dictRoot, dictType, activeBrick.guitarStrings, chordOctaveOffset, dictOctave, notation]);
 
   const bassFingering = useMemo(() => {
     let rootVal, chordType;
@@ -284,9 +310,9 @@ export function useMusicEngine({
       rootVal = Number(dictRoot);
       chordType = dictType;
     } else {
-      if (!clickedChord) return null;
-      rootVal = clickedChord.rootNote.value;
-      chordType = resolveNnsToChordType(clickedChord.nns);
+      if (!effectiveChord) return null;
+      rootVal = effectiveChord.rootNote.value;
+      chordType = resolveNnsToChordType(effectiveChord.nns);
     }
 
     if (appMode === "dictionary" && selectedVoicingIndexBass !== null) {
@@ -297,7 +323,7 @@ export function useMusicEngine({
 
     const offset = appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0);
     return toV2(getBassFingering(rootVal, chordType, selectedRootStringBass, offset), 'bass');
-  }, [clickedChord, selectedRootStringBass, appMode, dictRoot, dictType, selectedVoicingIndexBass, activeBrick.bassStrings, dictOctave, chordOctaveOffset, notation]);
+  }, [effectiveChord, selectedRootStringBass, appMode, dictRoot, dictType, selectedVoicingIndexBass, activeBrick.bassStrings, dictOctave, chordOctaveOffset, notation]);
 
   const availableBassFingerings = useMemo(() => {
     let rootVal, chordType;
@@ -309,9 +335,9 @@ export function useMusicEngine({
         return getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning, notation);
       }
     } else {
-      if (!clickedChord) return [];
-      rootVal = clickedChord.rootNote.value;
-      chordType = resolveNnsToChordType(clickedChord.nns);
+      if (!effectiveChord) return [];
+      rootVal = effectiveChord.rootNote.value;
+      chordType = resolveNnsToChordType(effectiveChord.nns);
     }
     if (dictType === "single_note") {
       if (dictActiveNotes.length > 0) {
@@ -320,7 +346,7 @@ export function useMusicEngine({
       return [];
     }
     return getAvailableBassFingerings(rootVal, chordType, appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0), notation);
-  }, [clickedChord, appMode, dictRoot, dictType, activeBrick.bassStrings, chordOctaveOffset, dictOctave, notation]);
+  }, [effectiveChord, appMode, dictRoot, dictType, activeBrick.bassStrings, chordOctaveOffset, dictOctave, notation]);
 
   // isOutOfRange: covers both chords AND scales (Option A: warning only, audio is not blocked)
   const isGuitarOutOfRange = useMemo(() => {
