@@ -89,7 +89,7 @@ const PLAN = [
   },
   {
     id: "output-link-probe-quiet",
-    title: "Output link characterised: a 220 Hz sine at -40 dBFS, far below the -6 dB threshold",
+    title: "Output link characterised: a 220 Hz sine at -40 dBFS, far below the ~-1 dBFS ceiling",
     spec: { scenario: "output-link-probe", params: { levelDb: -40 }, expectedNotes: ["A3"] },
     why: "A signal this quiet must pass the output link untouched. Any level change here is static gain, not compression.",
     expect: (r) => [
@@ -98,20 +98,19 @@ const PLAN = [
         "level is unchanged within 0.5 dB (no static gain)",
         Math.abs(r.gainReduction.meanDb) <= 0.5,
         `level change ${fmt(-r.gainReduction.meanDb)} dB (positive = louder after the link)`,
-        "VMU-020: the node called masterLimiter is a Tone.Compressor, and Chrome's " +
-          "DynamicsCompressorNode applies a static makeup gain. Measured 2026-09-16: " +
-          "+2.93 dB on a signal 34 dB below the threshold, where no compression can occur.",
       ),
     ],
   },
   {
     id: "output-link-probe-hot",
-    title: "Output link characterised: a 220 Hz sine at -1 dBFS, well above the -6 dB threshold",
+    title: "Output link characterised: a 220 Hz sine at -1 dBFS, at the ~-1 dBFS ceiling",
     spec: { scenario: "output-link-probe", params: { levelDb: -1 }, expectedNotes: ["A3"] },
     why:
-      "A signal this loud is above the -6 dB threshold, so 20:1 compression outweighs the static " +
-      "makeup gain and the net effect is a reduction. Measured, not assumed: this is the one level " +
-      "at which the node behaves as its name claims.",
+      "VMU-020 fixed 2026-09-16: masterLimiter is now a limiter with a real ~-1 dBFS ceiling " +
+      "(previously a Tone.Compressor thresholded at -6 dB). A signal sitting right at the ceiling " +
+      "should be left alone or trimmed a hair, never amplified — this is the boundary case, not " +
+      "the stress case (see the VMU-020 header comment in AudioEngine.js for a signal well above " +
+      "the ceiling, which is capped by a separate WaveShaper stage this scenario does not exercise).",
     expect: (r) => [
       check(
         "the link reduces rather than amplifies",

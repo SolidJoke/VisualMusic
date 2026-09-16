@@ -1,8 +1,9 @@
 /**
  * AudioEngine.js — Centralized audio synth management for VisualMusic
  *
- * All synths route through a Hard Limiter (-1 dBFS) before reaching
- * Tone.Destination. This is a non-negotiable safety guard.
+ * All synths route through a real peak limiter (~-1 dBFS ceiling) before
+ * reaching Tone.Destination. This is a non-negotiable safety guard: it must
+ * cap loud signals and must never make a quiet signal louder.
  *
  * Architecture:
  * - Piano: Tone.Sampler (Salamander samples, served from /samples/piano/)
@@ -18,18 +19,61 @@ import { DRUM_PRESETS, BASS_PRESETS, PIANO_PRESET } from "./InstrumentPresets";
 import { log } from "../utils/debug";
 
 // ─── Safety & Analysis: Hard Limiter and FFT ──────────────────────────
+// VMU-020 — this used to be a `Tone.Compressor` named `masterLimiter` and
+// documented above as a brickwall limiter, which it was not: threshold -6 dB,
+// ratio 20:1, attack 1 ms, release 100 ms, knee 3 — a slow-recovering
+// compressor that pumped on every kick, not a ceiling.
+//
+// A real limiter has two properties: it never makes a quiet signal louder,
+// and it never lets a loud signal through above its ceiling. One node cannot
+// cheaply guarantee both on top of the browser's native
+// `DynamicsCompressorNode` (which both `Tone.Compressor` and `Tone.Limiter`
+// wrap), so this is two stages, each responsible for one property, both
+// measured with the VMU-026 harness (2026-09-16):
+//
+// 1. `limiterCompressor` + `outputTrim` — gentle, mostly-transparent gain
+//    reduction for material that gets loud but not extreme, so ordinary
+//    playback is not hard-clipped every time a chord peaks. Chrome's
+//    `DynamicsCompressorNode` applies a small *level-independent* gain even
+//    on a signal 39 dB below threshold, where no compression can occur:
+//    +0.03 dB for these settings (`npm run audio:measure --
+//    --scenario=output-link-probe-quiet`). `outputTrim` cancels it with
+//    margin, so this stage alone never amplifies.
+// 2. `outputCeiling` — a `Tone.WaveShaper` hard-clamped to CEILING_LINEAR
+//    (-1 dBFS). Unlike the compressor, this is a static function of the
+//    instantaneous sample, not an envelope follower with attack/release: it
+//    cannot overshoot, however extreme or sudden the input. Needed because
+//    stage 1 alone does not: the harness's own "output-link-probe" scenario
+//    (`src/audio/measure/offlineRender.js`) takes an arbitrary `levelDb`, and
+//    at +12 dBFS — well beyond the two levels the shipped checks use — this
+//    stage alone rendered a peak of +11.06 dBFS with 37457 of 52920 samples
+//    clipped, confirmed with and without stage 2 in the chain. A wide, gentle
+//    knee (Tone.Limiter's default, kept for stage 1 precisely
+//    because it is what makes the residual gain above small enough to trim)
+//    barely engages on a single sustained tone; a narrow/hard knee tuned to
+//    engage harder was tried and made the residual static gain worse instead
+//    (+0.5 to +1.2 dB at -40 dBFS, failing property 1). Stage 2 is what
+//    "plafonne, n'amplifie jamais" actually requires, unconditionally; stage 1
+//    is the "compression, named as such" the ticket allows on top of it.
+const limiterCompressor = new Tone.Limiter(-1);
+const outputTrim = new Tone.Volume(-0.1);
+
+/** -1 dBFS as a linear amplitude, the hard ceiling `outputCeiling` clamps to. */
+const CEILING_LINEAR = Math.pow(10, -1 / 20);
+const outputCeiling = new Tone.WaveShaper(
+  (x) => Math.max(-CEILING_LINEAR, Math.min(CEILING_LINEAR, x)),
+  8192
+);
+
+limiterCompressor.connect(outputTrim);
+outputTrim.connect(outputCeiling);
+
 // Exported for the offline measurement harness (VMU-026) only: it taps this
-// node output to measure how much the last link of the chain reduces gain,
+// node's output to measure how much the last link of the chain changes gain,
 // which is the number VMU-020 and VMU-024 are about. Nothing in the app reads
 // it. The alternative was for the harness to rebuild a mirror of this node,
 // which would have measured the mirror settings instead of these ones.
-export const masterLimiter = new Tone.Compressor({
-  threshold: -6,
-  ratio: 20,
-  attack: 0.001,
-  release: 0.1,
-  knee: 3
-});
+export const masterLimiter = outputCeiling;
 
 export const masterAnalyser = new Tone.Analyser({
   type: "fft",
@@ -472,7 +516,7 @@ export function applyGenrePreset(group) {
   });
 }
 
-masterAnalyser.connect(masterLimiter);
+masterAnalyser.connect(limiterCompressor);
 // getDestination(), not the deprecated Tone.Destination export. That export is
 // `getContext().destination` evaluated once, when Tone is first imported, so it
 // is a snapshot of whichever context existed at that moment. In the app the two
