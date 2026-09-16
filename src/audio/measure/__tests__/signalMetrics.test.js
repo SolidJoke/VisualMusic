@@ -23,6 +23,7 @@ import {
   comparePitches,
   comparePitchContent,
   estimateAlignmentSamples,
+  SIGNIFICANCE_DB,
   freqToMidi,
   midiToFreq,
   noteNameToMidi,
@@ -276,6 +277,18 @@ describe("analyzeChannel", () => {
     expect(report.pitches).toEqual([]);
     expect(report.silence.silent).toBe(true);
   });
+
+  it("reports no pitch for a signal that is periodic but inaudible", () => {
+    // The defect a break proof exposed on 2026-09-16: forcing every instrument
+    // gain to silence dropped a render to -177 dBFS, and the pitch check still
+    // passed, because a signal 140 dB down is still a perfect sine. A dead
+    // audio path must not pass a pitch check.
+    const inaudible = sineSum([220], { seconds: 0.5, amplitude: fromDbfs(-140) });
+    const report = analyzeChannel(inaudible, { sampleRate: SR });
+    expect(report.silence.silent).toBe(true);
+    expect(report.pitches).toEqual([]);
+    expect(comparePitchContent(report.pitches, ["A3"]).missing).toEqual(["A3"]);
+  });
 });
 
 describe("comparePitchContent — what can honestly be asserted about a real sample", () => {
@@ -358,5 +371,47 @@ describe("estimateAlignmentSamples — finding a processor's look-ahead delay", 
 
     const naive = gainReductionMetrics(pre, post, { align: false });
     expect(naive.meanDb).toBeLessThan(aligned.meanDb);
+  });
+});
+
+describe("judging only what is reproducible", () => {
+  it("ignores a peak too weak to be a note", () => {
+    // Tone.Reverb's impulse response is built from noise, so the weakest peaks
+    // move between renders. Judging them made the verdict a coin toss.
+    const detected = [
+      { note: "C4", freq: 261.63, midi: freqToMidi(261.63), magDb: -3 },
+      { note: "D7", freq: 2327.3, midi: freqToMidi(2327.3), magDb: -17 },
+    ];
+    expect(comparePitchContent(detected, ["C4"]).ok).toBe(true);
+  });
+
+  it("still flags a wrong note played at full level", () => {
+    const detected = [
+      { note: "C4", freq: 261.63, midi: freqToMidi(261.63), magDb: -3 },
+      { note: "F#4", freq: 369.99, midi: freqToMidi(369.99), magDb: -4 },
+    ];
+    const verdict = comparePitchContent(detected, ["C4"]);
+    expect(verdict.ok).toBe(false);
+    expect(verdict.unexplained).toEqual(["F#4"]);
+  });
+
+  it("counts a requested note as present however quiet it is", () => {
+    // Asymmetric on purpose: a missing note is missing at any level, so the
+    // significance floor must not hide one.
+    const detected = [{ note: "C4", freq: 261.63, midi: freqToMidi(261.63), magDb: -40 }];
+    expect(comparePitchContent(detected, ["C4"]).missing).toEqual([]);
+    expect(SIGNIFICANCE_DB).toBeLessThan(0);
+  });
+
+  it("recognises a high partial of a real piano note as a partial", () => {
+    // The 9th partial of a triad's root shows up above the floor on the
+    // Salamander samples, which a window of 10 treated as a note.
+    const f0 = 261.63;
+    const detected = [
+      { note: "C4", freq: f0, midi: freqToMidi(f0), magDb: 0 },
+      { note: "D7", freq: f0 * 9, midi: freqToMidi(f0 * 9), magDb: -5 },
+      { note: "C7", freq: f0 * 12, midi: freqToMidi(f0 * 12), magDb: -5 },
+    ];
+    expect(comparePitchContent(detected, ["C4"]).unexplained).toEqual([]);
   });
 });

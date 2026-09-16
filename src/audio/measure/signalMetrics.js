@@ -17,6 +17,29 @@
  */
 import { midiToNoteName } from "../../core/theory";
 
+/**
+ * Highest partial number still recognised as a harmonic of a lower peak.
+ * Measured on the Salamander piano samples: the 9th partial shows up above the
+ * detection floor on a C major triad, so a window of 10 was too narrow and
+ * reported real partials as notes nobody asked for.
+ */
+export const MAX_PARTIAL = 16;
+
+/**
+ * A detected peak is only *judged* if it is within this many dB of the
+ * strongest peak in the spectrum.
+ *
+ * Weak peaks are still listed — they are useful in the printed table — but
+ * they must not decide a pass/fail, because they are not reproducible.
+ * `Tone.Reverb` builds its impulse response from noise, so no two renders are
+ * bit-identical: measured 2026-09-16, the 8th-strongest peak of the same
+ * triad came back as D7 in one run and G#6 in the next, both around -17 dB.
+ * Judging those made the verdict a coin toss. Everything that matters is far
+ * above this line: the three fundamentals of that triad sit between -2 and
+ * -4.7 dB.
+ */
+export const SIGNIFICANCE_DB = -15;
+
 /** Amplitude below which we call a buffer silent, in dBFS. */
 export const SILENCE_FLOOR_DBFS = -90;
 
@@ -468,7 +491,7 @@ export function detectPitches(samples, options) {
     for (let j = 0; j < index; j++) {
       const ratio = k.freq / distinct[j].freq;
       const nearest = Math.round(ratio);
-      if (nearest < 2 || nearest > 10) continue;
+      if (nearest < 2 || nearest > MAX_PARTIAL) continue;
       if (Math.abs(1200 * Math.log2(ratio / nearest)) < harmonicToleranceCents) {
         partialOf = distinct[j].freq;
         partialNumber = nearest;
@@ -511,15 +534,18 @@ export function detectPitches(samples, options) {
  * C5/E5/G5 where C4/E4/G4 were shown: C4 is then absent, so `missing` is not
  * empty and the check fails — even though C5 is a legitimate partial of C4.
  *
- * @param {Array<{ note: string, freq: number, midi: number }>} detected
+ * @param {Array<{ note: string, freq: number, midi: number, magDb?: number }>} detected
  * @param {string[]} expectedNotes
  * @param {Object} [options]
  * @param {number} [options.toleranceCents]
  * @param {number} [options.harmonicToleranceCents]
- * @returns {{ ok: boolean, missing: string[], unexplained: string[], worstCents: number }}
+ * @param {number} [options.significanceDb] peaks weaker than this, relative to the
+ *   strongest, are listed but never fail the check — see SIGNIFICANCE_DB
+ * @returns {{ ok: boolean, missing: string[], unexplained: string[], worstCents: number,
+ *             significanceDb: number }}
  */
 export function comparePitchContent(detected, expectedNotes, options = {}) {
-  const { toleranceCents = 50, harmonicToleranceCents = 60 } = options;
+  const { toleranceCents = 50, harmonicToleranceCents = 60, significanceDb = SIGNIFICANCE_DB } = options;
   const expectedFreqs = expectedNotes.map((n) => midiToFreq(noteNameToMidi(n)));
 
   /** @type {string[]} */
@@ -535,12 +561,16 @@ export function comparePitchContent(detected, expectedNotes, options = {}) {
   });
 
   const unexplained = detected
+    // A missing note is a missing note at any level, so `missing` above looks
+    // at every peak. An *extra* one only counts if it is loud enough to be a
+    // note rather than a reverb tail.
+    .filter((d) => d.magDb === undefined || d.magDb >= significanceDb)
     .filter((d) => {
       for (const f of expectedFreqs) {
         if (Math.abs(1200 * Math.log2(d.freq / f)) <= toleranceCents) return false;
         const ratio = d.freq / f;
         const nearest = Math.round(ratio);
-        if (nearest >= 2 && nearest <= 10 && Math.abs(1200 * Math.log2(ratio / nearest)) < harmonicToleranceCents) {
+        if (nearest >= 2 && nearest <= MAX_PARTIAL && Math.abs(1200 * Math.log2(ratio / nearest)) < harmonicToleranceCents) {
           return false;
         }
       }
@@ -548,7 +578,13 @@ export function comparePitchContent(detected, expectedNotes, options = {}) {
     })
     .map((d) => d.note);
 
-  return { ok: missing.length === 0 && unexplained.length === 0, missing, unexplained, worstCents };
+  return {
+    ok: missing.length === 0 && unexplained.length === 0,
+    missing,
+    unexplained,
+    worstCents,
+    significanceDb,
+  };
 }
 
 /**
@@ -630,13 +666,19 @@ export function noteNameToMidi(name) {
 export function analyzeChannel(samples, options) {
   const { sampleRate, pitchOffset = 0, fftSize = 16384, maxPitches = 8 } = options;
   const level = levelMetrics(samples);
+  const silence = silenceMetrics(samples);
   return {
     ...level,
     sampleRate,
     durationSec: samples.length / sampleRate,
-    silence: silenceMetrics(samples),
+    silence,
     discontinuity: discontinuityMetrics(samples),
-    ...(level.peak > 0
+    // Gated on audibility, not on `peak > 0`. A buffer 140 dB down is still
+    // perfectly periodic, so the FFT happily returns its pitch — measured
+    // 2026-09-16, a render at -177 dBFS reported A3 while being flagged
+    // SILENT in the same breath. Reporting notes in a buffer this function
+    // calls silent is how a dead audio path passes a pitch check.
+    ...(!silence.silent
       ? detectPitches(samples, { sampleRate, fftSize, offset: pitchOffset, maxPitches })
       : { pitches: [], fundamentals: [], binHz: sampleRate / fftSize, fftSize }),
   };
