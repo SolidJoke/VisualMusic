@@ -32,7 +32,8 @@ export const translations = {
       magicBass: "Génère automatiquement une ligne de basse adaptée au style musical et à la progression d'accords actuelle.",
       playabilityScore: "Évalue la difficulté de jouer cette progression à la guitare. Un score élevé signifie peu de sauts de doigts et des positions naturelles.",
       quickProgressions: "Charge instantanément des suites d'accords classiques (I-IV-V, ii-V-I...) pour démarrer rapidement une composition.",
-      inversions: "Renversements d'accords : change la note de basse (la note la plus grave) d'un accord sans changer sa nature fondamentale."
+      inversions: "Renversements d'accords : change la note de basse (la note la plus grave) d'un accord sans changer sa nature fondamentale.",
+      targetNotes: "Aucune : rien n'est marqué. Ce qui dit majeur ou mineur : la note qui rend un accord joyeux ou triste — le repère le plus utile pour débuter. Les notes de couleur : deux notes qui donnent sa saveur à l'accord (jazz, funk...). Le squelette : les deux notes qui posent l'accord, sans dire s'il est joyeux ou triste (rock, musique électronique)."
     },
     enableAudio: "▶ PLAY",
     stopAudio: "⏹ STOP",
@@ -64,6 +65,13 @@ export const translations = {
     familyNote: "🎵 Note unique",
     familyChord: "🎸 Accords",
     familyScale: "🎹 Gammes",
+    // --- Target notes selector (VMU-123) — presets named by intent, never
+    // by theory jargon (VMU-136's anti-jargon rule).
+    targetNotesLabel: "Notes à viser",
+    targetNotesOff: "Aucune",
+    targetNotesMajorMinor: "Ce qui dit majeur ou mineur",
+    targetNotesColor: "Les notes de couleur",
+    targetNotesSkeleton: "Le squelette",
     // --- Scale category labels ---
     scaleCatClassical: "Gammes Classiques",
     scaleCatModes: "Modes",
@@ -362,7 +370,8 @@ export const translations = {
       magicBass: "Automatically generates a bassline tailored to the musical style and current chord progression.",
       playabilityScore: "Evaluates how easy this progression is to play on a guitar. A high score means minimal finger jumps and natural positions.",
       quickProgressions: "Instantly loads classic chord sequences (I-IV-V, ii-V-I...) to quickly kickstart a composition.",
-      inversions: "Chord Inversions: changes the bass note (the lowest note) of a chord without changing its fundamental nature."
+      inversions: "Chord Inversions: changes the bass note (the lowest note) of a chord without changing its fundamental nature.",
+      targetNotes: "None: nothing is marked. What says major or minor: the note that makes a chord sound happy or sad — the most useful starting point. The color notes: two notes that give the chord its flavour (jazz, funk...). The skeleton: the two notes that anchor the chord, without saying whether it's happy or sad (rock, electronic music)."
     },
     enableAudio: "▶ PLAY",
     stopAudio: "⏹ STOP",
@@ -391,6 +400,13 @@ export const translations = {
     familyNote: "🎵 Single Note",
     familyChord: "🎸 Chords",
     familyScale: "🎹 Scales",
+    // --- Target notes selector (VMU-123) — presets named by intent, never
+    // by theory jargon (VMU-136's anti-jargon rule).
+    targetNotesLabel: "Target Notes",
+    targetNotesOff: "None",
+    targetNotesMajorMinor: "What says major or minor",
+    targetNotesColor: "The color notes",
+    targetNotesSkeleton: "The skeleton",
     // --- Scale category labels ---
     scaleCatClassical: "Classical Scales",
     scaleCatModes: "Modes",
@@ -707,6 +723,18 @@ export const translations = {
     familyNote: "🎵 Nota Única",
     familyChord: "🎸 Acordes",
     familyScale: "🎹 Escalas",
+    // --- Target notes selector (VMU-123) — presets named by intent, never
+    // by theory jargon (VMU-136's anti-jargon rule). This language block had
+    // no `tooltip` object before VMU-123 (pre-existing gap, other tooltip
+    // keys stay untranslated here) — added narrowly for this one key.
+    targetNotesLabel: "Notas-alvo",
+    targetNotesOff: "Nenhuma",
+    targetNotesMajorMinor: "O que diz maior ou menor",
+    targetNotesColor: "As notas de cor",
+    targetNotesSkeleton: "O esqueleto",
+    tooltip: {
+      targetNotes: "Nenhuma: nada é marcado. O que diz maior ou menor: a nota que torna um acorde alegre ou triste — o ponto de partida mais útil. As notas de cor: duas notas que dão sabor ao acorde (jazz, funk...). O esqueleto: as duas notas que sustentam o acorde, sem dizer se é alegre ou triste (rock, música eletrônica)."
+    },
     // --- Scale category labels ---
     scaleCatClassical: "Escalas Clássicas",
     scaleCatModes: "Modos",
@@ -1007,6 +1035,18 @@ export const translations = {
     familyNote: "🎵 单音",
     familyChord: "🎸 和弦",
     familyScale: "🎹 音阶",
+    // --- Target notes selector (VMU-123) — presets named by intent, never
+    // by theory jargon (VMU-136's anti-jargon rule). This language block had
+    // no `tooltip` object before VMU-123 (pre-existing gap, other tooltip
+    // keys stay untranslated here) — added narrowly for this one key.
+    targetNotesLabel: "目标音符",
+    targetNotesOff: "无",
+    targetNotesMajorMinor: "决定大调或小调的音",
+    targetNotesColor: "色彩音",
+    targetNotesSkeleton: "骨架音",
+    tooltip: {
+      targetNotes: "无：不标记任何音符。决定大调或小调的音：让和弦听起来快乐或悲伤的那个音——最实用的入门参考。色彩音：赋予和弦独特味道的两个音（常见于爵士、放克）。骨架音：支撑和弦的两个音，不表明它是快乐还是悲伤（常见于摇滚、电子音乐）。"
+    },
     // --- Scale category labels ---
     scaleCatClassical: "古典音阶",
     scaleCatModes: "调式",
