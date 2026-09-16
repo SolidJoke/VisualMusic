@@ -47,7 +47,7 @@ function AppDesktop() {
     playbackInstrument,
     collapsedSections,
     uiTheme,
-    highlightTargetNotes,
+    targetNotesPreset,
     useShellVoicings
   } = state;
 
@@ -84,6 +84,7 @@ function AppDesktop() {
   );
   const setUiTheme = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } }), [dispatch]);
   const setUseShellVoicings = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'useShellVoicings', value: val } }), [dispatch]);
+  const setTargetNotesPreset = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'targetNotesPreset', value: val } }), [dispatch]);
 
 
   const {
@@ -186,14 +187,15 @@ function AppDesktop() {
     dictActiveNotes,
     dictOctave,
     notation,
-    playbackInstrument
+    playbackInstrument,
+    targetNotesPreset
   });
 
   const {
     activeNotes,
     fretboardActiveNotes,
     currentRootValue,
-    targetValue,
+    targetValuesByInstrument,
     guitarFingering,
     bassFingering,
     availableGuitarFingerings,
@@ -346,7 +348,7 @@ function AppDesktop() {
     chordOctaveOffset,
     dictType,
     currentRootValue,
-    targetValue,
+    targetValuesByInstrument,
     activeNotes,
     fretboardActiveNotes,
     autoPlayNote,
@@ -374,7 +376,6 @@ function AppDesktop() {
     setScaleAnchor,
     isGuitarOutOfRange,
     isBassOutOfRange,
-    highlightTargetNotes,
     // VMU-101: the instrument bar in InstrumentView reads and sets the
     // played instrument, plays it, and shows each instrument's register.
     playbackInstrument,
@@ -396,7 +397,7 @@ function AppDesktop() {
     chordOctaveOffset,
     dictType,
     currentRootValue,
-    targetValue,
+    targetValuesByInstrument,
     activeNotes,
     fretboardActiveNotes,
     autoPlayNote,
@@ -424,7 +425,6 @@ function AppDesktop() {
     setScaleAnchor,
     isGuitarOutOfRange,
     isBassOutOfRange,
-    highlightTargetNotes,
     playbackInstrument,
     setPlaybackInstrument,
     playDictionaryAudio,
@@ -535,6 +535,8 @@ function AppDesktop() {
                 setCustomProgression={setCustomProgression}
                 customRhythm={customRhythm}
                 setCustomRhythm={setCustomRhythm}
+                targetNotesPreset={targetNotesPreset}
+                setTargetNotesPreset={setTargetNotesPreset}
               />
             ) : (
               <DictionaryPanel
@@ -556,6 +558,8 @@ function AppDesktop() {
                 selectedVoicingIndexBass={selectedVoicingIndexBass}
                 setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
                 dictActiveNotes={dictActiveNotes}
+                targetNotesPreset={targetNotesPreset}
+                setTargetNotesPreset={setTargetNotesPreset}
               />
             )}
           </Modal>

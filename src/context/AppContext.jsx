@@ -34,7 +34,10 @@ const initialState = {
   uiTheme: 'modern',
   showLegend: false,
   harmonicMode: false,
-  highlightTargetNotes: false,
+  // VMU-123 — replaces highlightTargetNotes (a boolean gate on a single
+  // hard-coded "3rd + 5th" note). majorMinor is the default: good without
+  // any setting, since a beginner will not go looking for the selector.
+  targetNotesPreset: 'majorMinor',
   useShellVoicings: false
 };
 

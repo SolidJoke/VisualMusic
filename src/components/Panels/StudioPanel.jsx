@@ -9,6 +9,7 @@ import CustomSelect from '../Common/CustomSelect';
 import { log } from '../../utils/debug';
 import extendedTheoryData from '../../core/extendedTheoryData.json';
 import InfoTooltip from '../Common/InfoTooltip';
+import TargetNotesSelector from '../Common/TargetNotesSelector';
 
 const StudioPanel = ({
   currentBrickIndex,
@@ -28,7 +29,9 @@ const StudioPanel = ({
   setSuggestedBassTrack,
   setCustomProgression,
   customRhythm,
-  setCustomRhythm
+  setCustomRhythm,
+  targetNotesPreset,
+  setTargetNotesPreset
 }) => {
   const RHYTHM_PATTERNS = [
     { id: 'default', name: 'Original', steps: null },
@@ -389,6 +392,12 @@ const StudioPanel = ({
             })()}
           </div>
         )}
+        {/* VMU-123 — rendered unconditionally (not gated on clickedChord):
+            with no chord clicked, the targets fall back to the mode's
+            characteristic note, so the selector already has an effect. */}
+        <div style={{ marginTop: "15px" }}>
+          <TargetNotesSelector preset={targetNotesPreset} onChange={setTargetNotesPreset} />
+        </div>
         {inversionText && (
           <div
             style={{

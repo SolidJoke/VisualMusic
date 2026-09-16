@@ -8,10 +8,9 @@ import {
   getAvailableScaleFingerings,
   getAvailableSingleNoteFingerings
 } from "../core/fingeringLogic";
-import { 
-  getScaleNotes, 
-  resolveChordSemitones, 
-  SCALES,
+import {
+  getScaleNotes,
+  resolveChordSemitones,
   resolveNnsToChordType,
   isNoteInRange,
   computeAbsoluteNote
@@ -19,6 +18,7 @@ import {
 import { TUNINGS } from "../core/tunings";
 import { getInversionType, getChordIntervalLabel } from "../core/harmonyEngine";
 import { realizeDictionarySelection } from "../core/realization";
+import { getChordTargetNotes, getModeTargetNote } from "../core/targetNotes";
 
 /**
  * useMusicEngine Hook
@@ -53,6 +53,11 @@ import { realizeDictionarySelection } from "../core/realization";
  * @param {'piano'|'guitar'|'bass'} [options.playbackInstrument] instrument that
  *   owns the realization: its fingering decides the pitches that are both
  *   played and highlighted. Defaults to piano, i.e. the theoretical notes.
+ * @param {string} [options.targetNotesPreset] VMU-123 — which notes of the
+ *   current chord (or, with no chord, the current mode) to mark as targets:
+ *   one of core/targetNotes.js's TARGET_NOTES_PRESETS. Defaults to
+ *   "majorMinor" — good without any setting, since a beginner will not
+ *   change it (brief decision #2).
  */
 export function useMusicEngine({
   appMode,
@@ -72,7 +77,8 @@ export function useMusicEngine({
   dictActiveNotes,
   dictOctave,
   notation,
-  playbackInstrument = 'piano'
+  playbackInstrument = 'piano',
+  targetNotesPreset = 'majorMinor'
 }) {
 
   // VMU-129 — while the sequencer plays, the studio-mode chord the
@@ -95,14 +101,12 @@ export function useMusicEngine({
     let activeNotes = [];
     let fretboardActiveNotes = null;
     let currentRootValue = 0;
-    let targetValue = -1;
 
     if (appMode === "studio") {
       const scaleNotes = getScaleNotes(
         activeBrick.rootValue,
         activeBrick.scaleKey
       );
-      const modeData = Reflect.get(SCALES, activeBrick.scaleKey);
 
       if (displayMode === "scale") {
         activeNotes = scaleNotes;
@@ -148,9 +152,6 @@ export function useMusicEngine({
       currentRootValue = effectiveChord
         ? effectiveChord.rootNote.value
         : activeBrick.rootValue;
-      targetValue = !effectiveChord
-        ? (activeBrick.rootValue + modeData.targetInterval) % 12
-        : -1;
 
     } else {
       // Dictionary Mode
@@ -158,23 +159,72 @@ export function useMusicEngine({
       activeNotes = dictActiveNotes;
     }
 
-    return { activeNotes, fretboardActiveNotes, currentRootValue, targetValue };
+    return { activeNotes, fretboardActiveNotes, currentRootValue };
   }, [appMode, activeBrick, effectiveChord, effectiveAbsoluteNotes, displayMode, dictRoot, dictActiveNotes]);
 
+  // --- 1bis. Target notes (VMU-123) ---
+  //
+  // A "target note" is always a note of the chord being played — never a
+  // scale-degree suggestion outside it (redefined 2026-09-16). Two branches,
+  // mirrored between Studio and Dictionary:
+  //   - a chord is showing (effectiveChord in Studio; a chord_* family in
+  //     Dictionary) -> the chord's own notes for the chosen preset
+  //     (getChordTargetNotes).
+  //   - no chord (nothing clicked yet in Studio; a scale_* family in
+  //     Dictionary) -> the mode's characteristic note, the former "Magic
+  //     Note" (getModeTargetNote), or nothing if the mode has none.
+  //   - Dictionary "single_note" family, or preset "off": nothing.
+  // Bass never receives a target (brief decision #4) — enforced in
+  // targetValuesByInstrument below, not here, the same way realizations
+  // above are computed generically and only diverge per instrument in
+  // realizationsByInstrument.
+  const targetValues = useMemo(() => {
+    if (appMode === "studio") {
+      if (effectiveChord) {
+        const chordType = resolveNnsToChordType(effectiveChord.nns);
+        return getChordTargetNotes(effectiveChord.rootNote.value, chordType, targetNotesPreset);
+      }
+      return getModeTargetNote(activeBrick.rootValue, activeBrick.scaleKey, targetNotesPreset);
+    }
+
+    // Dictionary mode
+    if (typeof dictType === "string" && dictType.startsWith("chord_")) {
+      return getChordTargetNotes(Number(dictRoot), dictType, targetNotesPreset);
+    }
+    if (typeof dictType === "string" && dictType.startsWith("scale_")) {
+      return getModeTargetNote(Number(dictRoot), dictType, targetNotesPreset);
+    }
+    // "single_note", or an unrecognised dictType: nothing.
+    return [];
+  }, [appMode, effectiveChord, activeBrick, dictType, dictRoot, targetNotesPreset]);
+
+  const targetValuesByInstrument = useMemo(() => ({
+    piano: targetValues,
+    guitar: targetValues,
+    bass: [], // VMU-123 decision #4 — the bass never shows the 3rd or any other target.
+  }), [targetValues]);
+
   // --- 2. Inversion Logic ---
+  //
+  // VMU-129 QA follow-up (found while implementing VMU-123): this used to
+  // read `clickedChord`/`currentAbsoluteNotes` directly, so during playback
+  // the label kept describing the last CLICKED chord (or stayed empty)
+  // instead of the chord actually playing. Reads `effectiveChord` /
+  // `effectiveAbsoluteNotes` now, exactly like block 1 above — "which chord
+  // are we describing right now" is the same question in both places.
   const inversionText = useMemo(() => {
-    if (clickedChord && currentAbsoluteNotes.length > 0) {
+    if (effectiveChord && effectiveAbsoluteNotes && effectiveAbsoluteNotes.length > 0) {
       const invType = getInversionType(
-        currentAbsoluteNotes[0],
-        clickedChord.rootNote.value,
-        clickedChord.nns,
+        effectiveAbsoluteNotes[0],
+        effectiveChord.rootNote.value,
+        effectiveChord.nns,
       );
-      // Note: Translations should ideally be handled outside or passed in, 
+      // Note: Translations should ideally be handled outside or passed in,
       // but we match App.jsx behavior for now.
-      return invType; 
+      return invType;
     }
     return "";
-  }, [clickedChord, currentAbsoluteNotes]);
+  }, [effectiveChord, effectiveAbsoluteNotes]);
 
   // --- 3. Fingering Logic (Guitar & Bass) ---
   
@@ -430,6 +480,7 @@ export function useMusicEngine({
     activeNotes: realization.notes,
     realizationSource: realization.source,
     realizationsByInstrument,
+    targetValuesByInstrument,
     inversionText,
     guitarFingering,
     bassFingering,

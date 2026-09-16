@@ -9,6 +9,7 @@ import extendedData from "../../core/extendedTheoryData.json";
 import DictPositionPanel from './DictPositionPanel';
 import DictChordPanel from './DictChordPanel';
 import { SCALE_LABEL_MAP } from '../../core/constants';
+import TargetNotesSelector from '../Common/TargetNotesSelector';
 
 // Group scales by category, sorted by category order
 function getGroupedScales() {
@@ -55,9 +56,11 @@ export default function DictionaryPanel({
   setSelectedVoicingIndexGuitar,
   selectedVoicingIndexBass,
   setSelectedVoicingIndexBass,
-  dictActiveNotes
+  dictActiveNotes,
+  targetNotesPreset,
+  setTargetNotesPreset
 }) {
-  const { lang, txt, notation, state, dispatch } = useAppContext();
+  const { lang, txt, notation, dispatch } = useAppContext();
   // Derive family from dictType
   const family = dictType === "single_note"
     ? "note"
@@ -189,18 +192,14 @@ export default function DictionaryPanel({
           </div>
         </div>
         
-        {/* FLASH-12: Improvisation Helper (Target Notes) */}
-        {family === "scale" && (
-          <div className="select-group">
-            <button
-              onClick={() => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'highlightTargetNotes', value: !state.highlightTargetNotes } })}
-              className={`btn-toggle ${state.highlightTargetNotes ? "btn-toggle--active" : ""}`}
-              style={{ width: "100%", padding: "0.6rem", marginTop: "0.5rem" }}
-              title="Highlight 3rd and 5th for improvisation"
-            >
-              {state.highlightTargetNotes ? "🎯 " + (txt.targetNotesActive || "Helper Actif") : "🎯 " + (txt.targetNotesToggle || "Aide Impro")}
-            </button>
-          </div>
+        {/* VMU-123 — replaces the "Aide Impro" button (FLASH-12), which had
+            no effect here: the old targetValue was only ever computed in
+            Studio. Shown for the two families that have a target-notes
+            concept at all — Accord (the chord's own notes) and Gamme (falls
+            back to the mode's characteristic note, no chord) — never for
+            Note, which VMU-123 decision #3 excludes entirely. */}
+        {(family === "chord" || family === "scale") && (
+          <TargetNotesSelector preset={targetNotesPreset} onChange={setTargetNotesPreset} />
         )}
 
         {/* Harmonic Mode Toggle */}
