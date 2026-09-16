@@ -16,11 +16,15 @@ const initialState = {
   // unconditionally, never from this value — see PitchConsistency.test.js
   // and EuNotationDefault.test.jsx for the audibility guards this relies on.
   notation: 'eu',
-  chordDisplayMode: 'standard',
   showAbout: false,
   showTheory: false,
   showFingering: true,
-  fingeringMode: 'anatomic',
+  // VMU-111 §5: separate from showFingering (which still gates the voicing
+  // mask and the position selector, unchanged). This one only decides
+  // whether a fretted note's label shows a finger number (1-4) instead of
+  // its degree. Off by default — degree is the default label. The old
+  // anatomic/classical label set (I/M/A/m) is removed entirely.
+  showFingerNumbers: false,
   playbackInstrument: 'piano',
   // VMU-112: replaces layoutMode/activeTab ("Tout afficher / Mode Focus").
   // Keyed by section id ("sequencer" | "piano" | "guitar" | "bass"); a

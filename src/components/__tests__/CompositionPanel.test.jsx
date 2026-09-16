@@ -3,16 +3,6 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import CompositionPanel from "../Intelligence/CompositionPanel";
 
-vi.mock("../../hooks/useCompositionPlayback", () => ({
-  useCompositionPlayback: () => ({
-    isPlaying: false,
-    togglePlayback: vi.fn(),
-    bpm: 120,
-    setBpm: vi.fn(),
-    currentStep: -1
-  })
-}));
-
 describe("CompositionPanel Component", () => {
   const defaultProps = {
     activeTracks: {

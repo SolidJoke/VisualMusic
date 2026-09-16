@@ -24,7 +24,7 @@ export default function useDebugExport({
       const notation = appContextState?.notation;
       const playbackInstrument = appContextState?.playbackInstrument;
       const showFingering = appContextState?.showFingering;
-      const fingeringMode = appContextState?.fingeringMode;
+      const showFingerNumbers = appContextState?.showFingerNumbers;
       const uiTheme = appContextState?.uiTheme;
       // VMU-112: layoutMode no longer exists (replaced by per-section
       // folding). collapsedSections is the closest equivalent — which
@@ -55,7 +55,7 @@ export default function useDebugExport({
           notation,
           playbackInstrument,
           showFingering,
-          fingeringMode,
+          showFingerNumbers,
           uiTheme,
           collapsedSections,
         },

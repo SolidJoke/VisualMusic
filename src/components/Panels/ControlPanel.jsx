@@ -4,12 +4,10 @@ import { useAppContext } from '../../context/AppContext';
 import InfoTooltip from '../Common/InfoTooltip';
 
 const ControlPanel = ({
-  chordDisplayMode,
-  setChordDisplayMode,
   showFingering,
   setShowFingering,
-  fingeringMode,
-  setFingeringMode,
+  showFingerNumbers,
+  setShowFingerNumbers,
   playbackInstrument,
   setPlaybackInstrument,
   appMode,
@@ -19,26 +17,6 @@ const ControlPanel = ({
   const { txt } = useAppContext();
   return (
     <div className="glass-panel control-panel-container">
-      {appMode !== "dictionary" && (
-        <div className="controls-group">
-          {[
-            { id: "standard", label: "Chord" },
-            { id: "nns", label: "NNS (1,4,5)" },
-            { id: "roman", label: "Roman (I,IV,V)" }
-          ].map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setChordDisplayMode(m.id)}
-              className={`btn-premium ${chordDisplayMode === m.id ? " active" : ""}`}
-              style={{ fontSize: "0.75rem" }}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-
       <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "15px" }}>
         {/* In the Dictionary, the instrument bar above the keyboard owns this
             choice (VMU-101); a second control for the same state, buried in a
@@ -88,24 +66,18 @@ const ControlPanel = ({
           >
             {showFingering ? txt.fingeringToggleOn : txt.fingeringToggleOff}
           </button>
-          {showFingering && (
-            <div style={{ display: "flex", gap: "8px", marginTop: "5px" }}>
-               <button
-                 onClick={() => setFingeringMode("numeric")}
-                 className={`btn-premium ${fingeringMode === "numeric" ? " active" : ""}`}
-                 style={{ fontSize: "0.75rem", padding: "6px 10px" }}
-               >
-                 {txt.fingeringNumeric}
-               </button>
-               <button
-                 onClick={() => setFingeringMode("anatomic")}
-                 className={`btn-premium ${fingeringMode === "anatomic" ? " active" : ""}`}
-                 style={{ fontSize: "0.75rem", padding: "6px 10px" }}
-               >
-                 {txt.fingeringAnatomic}
-               </button>
-            </div>
-          )}
+          {/* VMU-111 §5: separate from showFingering above (which still
+              gates the voicing mask and position selector). This one only
+              swaps a fretted note's label between its degree (default) and
+              its finger number (1-4) — the old numeric/anatomic choice is
+              gone, finger labels are always numeric now. */}
+          <button
+            onClick={() => setShowFingerNumbers(!showFingerNumbers)}
+            className={`btn-premium ${showFingerNumbers ? " active" : ""}`}
+            style={{ width: "100%", fontSize: "0.75rem", padding: "8px", marginTop: "8px" }}
+          >
+            {showFingerNumbers ? txt.fingerNumbersToggleOn : txt.fingerNumbersToggleOff}
+          </button>
         </div>
       </div>
     </div>

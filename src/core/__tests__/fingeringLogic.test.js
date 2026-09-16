@@ -5,12 +5,17 @@ import { getGuitarFingering, getBassFingering, FINGER_LABELS } from '../fingerin
 describe('fingeringLogic', () => {
 
   describe('FINGER_LABELS', () => {
-    it('should have numeric and anatomic mappings', () => {
+    it('should have numeric mappings for fingers 1-4', () => {
       expect(FINGER_LABELS.numeric[1]).toBe('1');
-      expect(FINGER_LABELS.anatomic[1]).toBe('I');
-      expect(FINGER_LABELS.anatomic[2]).toBe('M');
-      expect(FINGER_LABELS.anatomic[3]).toBe('A');
-      expect(FINGER_LABELS.anatomic[4]).toBe('m');
+      expect(FINGER_LABELS.numeric[2]).toBe('2');
+      expect(FINGER_LABELS.numeric[3]).toBe('3');
+      expect(FINGER_LABELS.numeric[4]).toBe('4');
+    });
+
+    // VMU-111 §5: the anatomic label set (I/M/A/m) is removed — finger
+    // labels are always numeric now. This must fail if that set comes back.
+    it('should have no anatomic label set', () => {
+      expect(FINGER_LABELS.anatomic).toBeUndefined();
     });
   });
 

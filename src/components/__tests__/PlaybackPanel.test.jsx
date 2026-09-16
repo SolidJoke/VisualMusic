@@ -25,10 +25,6 @@ const baseTxt = {
   posOpen: "Ouvertes",
   posMid: "Médianes",
   posHigh: "Hautes",
-  visualFocusLabel: "Vue instrument",
-  focusChords: "Accords",
-  focusBass: "Basse",
-  focusBoth: "Les deux",
   // Sentinels: if these ever render, the old controls came back.
   showAll: "SHOULD-NOT-RENDER-SHOWALL",
   focusMode: "SHOULD-NOT-RENDER-FOCUSMODE",
@@ -49,8 +45,6 @@ function renderPanel(props = {}) {
         setDisplayMode={vi.fn()}
         fretboardZone="all"
         setFretboardZone={vi.fn()}
-        visualFocus="chords"
-        setVisualFocus={vi.fn()}
         txt={baseTxt}
         {...props}
       />

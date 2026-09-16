@@ -13,7 +13,6 @@ export function useStudioMode() {
   const [contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues] = useState([]);
   const [lastClickedContext, setLastClickedContext] = useState(null);
   const [singlePlayContext, setSinglePlayContext] = useState(null);
-  const [visualFocus, setVisualFocus] = useState("chords");
 
   const [suggestedBassTrack, setSuggestedBassTrack] = useState(null);
   const [customProgression, setCustomProgression] = useState(null);
@@ -75,7 +74,6 @@ export function useStudioMode() {
     contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues,
     lastClickedContext, setLastClickedContext,
     singlePlayContext, setSinglePlayContext,
-    visualFocus, setVisualFocus,
     suggestedBassTrack, setSuggestedBassTrack,
     customProgression, setCustomProgression,
     customRhythm, setCustomRhythm,

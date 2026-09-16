@@ -20,7 +20,6 @@ const StudioPanel = ({
   setChordOctaveOffset,
   setCurrentAbsoluteNotes,
   activeProgression,
-  chordDisplayMode,
   clickedChord,
   setClickedChord,
   handleChordClick,
@@ -309,14 +308,7 @@ const StudioPanel = ({
           {currentChords.map((c, i, arr) => {
             const isSelected =
               clickedChord && clickedChord.nns === c.nns;
-            const chordText =
-              chordDisplayMode === "nns"
-                ? c.nns
-                : chordDisplayMode === "roman"
-                  ? toRoman(c.nns)
-                  : notation === "us"
-                    ? c.chordNameUS
-                    : c.chordNameEU;
+            const chordText = notation === "us" ? c.chordNameUS : c.chordNameEU;
 
             const isAntiClimax = (i === arr.length - 1 && c.role?.startsWith("Tonic") && arr.length >= 3);
 

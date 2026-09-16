@@ -37,7 +37,6 @@ const InstrumentView = memo(function InstrumentView() {
     dictType,
     currentRootValue,
     showFingering,
-    fingeringMode,
     clickedChord,
     selectedRootStringGuitar,
     setSelectedRootStringGuitar,

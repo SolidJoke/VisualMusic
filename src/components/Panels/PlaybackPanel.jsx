@@ -16,8 +16,6 @@ const PlaybackPanel = ({
   setDisplayMode,
   fretboardZone,
   setFretboardZone,
-  visualFocus,
-  setVisualFocus,
   txt
 }) => {
   const { state } = useAppContext();
@@ -55,37 +53,6 @@ const PlaybackPanel = ({
         uiTheme={uiTheme}
         isPlaying={isPlaying}
       />
-
-      {appMode === "studio" && (
-        <div className="glass-panel" style={{ padding: "12px", marginBottom: "20px" }}>
-          <label className="section-label" style={{ marginBottom: "10px", display: "block" }}>
-            {txt.visualFocusLabel}
-          </label>
-          <div className="controls-group" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-            <button
-              onClick={() => setVisualFocus("chords")}
-              className={`btn-premium ${visualFocus === "chords" ? " active" : ""}`}
-              style={{ fontSize: "0.9rem", padding: "8px" }}
-            >
-              {txt.focusChords}
-            </button>
-            <button
-              onClick={() => setVisualFocus("bass")}
-              className={`btn-premium ${visualFocus === "bass" ? " active" : ""}`}
-              style={{ fontSize: "0.9rem", padding: "8px" }}
-            >
-              {txt.focusBass}
-            </button>
-            <button
-              onClick={() => setVisualFocus("both")}
-              className={`btn-premium ${visualFocus === "both" ? " active" : ""}`}
-              style={{ fontSize: "0.9rem", padding: "8px", gridColumn: "span 2" }}
-            >
-              {txt.focusBoth}
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="glass-panel secondary-controls">
         {appMode === "studio" && (

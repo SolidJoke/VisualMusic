@@ -17,7 +17,6 @@ describe('useMusicEngine', () => {
     currentAbsoluteNotes: [48, 52, 55], // C3, E3, G3
     chordOctaveOffset: 0,
     displayMode: 'chord',
-    visualFocus: 'chords',
     selectedRootStringGuitar: null,
     selectedRootStringBass: null,
     selectedVoicingIndexGuitar: null,
@@ -26,7 +25,6 @@ describe('useMusicEngine', () => {
     dictType: 'chord_major',
     dictActiveNotes: [],
     dictOctave: 0,
-    fingeringMode: 'anatomic'
   };
 
   it('calculates guitar fingering for C Major chord in studio mode', () => {
@@ -78,5 +76,23 @@ describe('useMusicEngine', () => {
     };
     const { result } = renderHook(() => useMusicEngine(bassOutOfRangeParams));
     expect(result.current.isBassOutOfRange).toBe(true);
+  });
+
+  // VMU-117 — the "Vue instrument: Accords/Basse/Les deux" instrument-view
+  // toggle is removed. In Studio mode, with a chord clicked, the notes
+  // shown must always be the clicked chord's own notes (currentAbsoluteNotes,
+  // mapped as-is) — never a separate "bass view" re-derivation folded into
+  // octave 2 (previously reachable through that toggle's "Basse" option).
+  it("shows the clicked chord's own notes, not a bass-only re-derivation", () => {
+    const params = {
+      ...defaultParams,
+      clickedChord: { rootNote: { value: 0 }, nns: 'I' }, // C Major
+      currentAbsoluteNotes: [48, 52, 55], // C3, E3, G3 — the actually-played voicing
+    };
+    const { result } = renderHook(() => useMusicEngine(params));
+    const absoluteValues = result.current.activeNotes
+      .map((n) => n.absoluteValue)
+      .sort((a, b) => a - b);
+    expect(absoluteValues).toEqual([48, 52, 55]);
   });
 });

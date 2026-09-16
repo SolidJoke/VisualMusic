@@ -1,7 +1,6 @@
 // @ts-check
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./App.css";
-import "./styles/vintage-theme.css";
 import "./styles/modern-theme.css";
 
 
@@ -44,10 +43,9 @@ function AppDesktop() {
     showAbout,
     showTheory,
     showFingering,
-    fingeringMode,
+    showFingerNumbers,
     playbackInstrument,
     collapsedSections,
-    chordDisplayMode,
     uiTheme,
     highlightTargetNotes,
     useShellVoicings
@@ -69,7 +67,7 @@ function AppDesktop() {
   const setShowAbout = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showAbout', value: val } }), [dispatch]);
   const setShowTheory = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showTheory', value: val } }), [dispatch]);
   const setShowFingering = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingering', value: val } }), [dispatch]);
-  const setFingeringMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'fingeringMode', value: val } }), [dispatch]);
+  const setShowFingerNumbers = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingerNumbers', value: val } }), [dispatch]);
   const setPlaybackInstrument = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'playbackInstrument', value: val } }), [dispatch]);
   // VMU-112: replaces setLayoutMode/setActiveTab. Folding is independent of
   // which instrument is played — this never touches playbackInstrument.
@@ -84,7 +82,6 @@ function AppDesktop() {
     }),
     [dispatch, collapsedSections]
   );
-  const setChordDisplayMode = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'chordDisplayMode', value: val } }), [dispatch]);
   const setUiTheme = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } }), [dispatch]);
   const setUseShellVoicings = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'useShellVoicings', value: val } }), [dispatch]);
 
@@ -100,7 +97,6 @@ function AppDesktop() {
     contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues,
     lastClickedContext, setLastClickedContext,
     singlePlayContext, setSinglePlayContext,
-    visualFocus, setVisualFocus,
     suggestedBassTrack, setSuggestedBassTrack,
     setCustomProgression,
     customRhythm, setCustomRhythm,
@@ -143,7 +139,6 @@ function AppDesktop() {
     currentAbsoluteNotes,
     chordOctaveOffset,
     displayMode,
-    visualFocus,
     selectedRootStringGuitar,
     selectedRootStringBass,
     selectedVoicingIndexGuitar,
@@ -152,7 +147,6 @@ function AppDesktop() {
     dictType,
     dictActiveNotes,
     dictOctave,
-    fingeringMode,
     notation,
     playbackInstrument
   });
@@ -346,7 +340,7 @@ function AppDesktop() {
     currentlyPlayingNotes,
     contextualScaleAbsoluteValues,
     showFingering,
-    fingeringMode,
+    showFingerNumbers,
     clickedChord,
     selectedRootStringGuitar,
     setSelectedRootStringGuitar,
@@ -363,7 +357,6 @@ function AppDesktop() {
     setSelectedVoicingIndexBass,
     availableGuitarFingerings,
     availableBassFingerings,
-    visualFocus,
     scaleAnchor,
     setScaleAnchor,
     isGuitarOutOfRange,
@@ -397,7 +390,7 @@ function AppDesktop() {
     currentlyPlayingNotes,
     contextualScaleAbsoluteValues,
     showFingering,
-    fingeringMode,
+    showFingerNumbers,
     clickedChord,
     selectedRootStringGuitar,
     setSelectedRootStringGuitar,
@@ -414,7 +407,6 @@ function AppDesktop() {
     setSelectedVoicingIndexBass,
     availableGuitarFingerings,
     availableBassFingerings,
-    visualFocus,
     scaleAnchor,
     setScaleAnchor,
     isGuitarOutOfRange,
@@ -521,7 +513,6 @@ function AppDesktop() {
                 setChordOctaveOffset={setChordOctaveOffset}
                 setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
                 activeProgression={activeProgression}
-                chordDisplayMode={chordDisplayMode}
                 clickedChord={clickedChord}
                 setClickedChord={setClickedChord}
                 handleChordClick={handleChordClick}
@@ -575,12 +566,10 @@ function AppDesktop() {
 
           <Modal uiTheme={uiTheme} isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio">
             <ControlPanel
-              chordDisplayMode={chordDisplayMode}
-              setChordDisplayMode={setChordDisplayMode}
               showFingering={showFingering}
               setShowFingering={setShowFingering}
-              fingeringMode={fingeringMode}
-              setFingeringMode={setFingeringMode}
+              showFingerNumbers={showFingerNumbers}
+              setShowFingerNumbers={setShowFingerNumbers}
               playbackInstrument={playbackInstrument}
               setPlaybackInstrument={setPlaybackInstrument}
               appMode={appMode}
@@ -599,8 +588,6 @@ function AppDesktop() {
               setDisplayMode={setDisplayMode}
               fretboardZone={fretboardZone}
               setFretboardZone={setFretboardZone}
-              visualFocus={visualFocus}
-              setVisualFocus={setVisualFocus}
               txt={txt}
             />
           </Modal>

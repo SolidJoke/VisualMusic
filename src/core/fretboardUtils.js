@@ -162,7 +162,7 @@ function resolveScaleAnchorMask({ scaleAnchor }, fret, instrument, isActiveIn, i
 }
 
 function resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue, isActive, isPlaying, activeNote, isScaleMode, noteInfo, actualFingering, isOutOfBox) {
-  const { contextualScaleAbsoluteValues, activePath, rootValue, targetValue, showFingering, fingeringMode, notation } = params;
+  const { contextualScaleAbsoluteValues, activePath, rootValue, targetValue, showFingerNumbers, notation } = params;
   let roleClass = "";
   let orderToDisplay = null;
   let isSubtle = isOutOfBox || false;
@@ -209,8 +209,12 @@ function resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue
     }
   }
 
+  // VMU-111 §5: the label defaults to the degree/note name. Finger numbers
+  // (1-4) are shown only when showFingerNumbers is explicitly on — a state
+  // separate from showFingering, which keeps gating the voicing mask above
+  // and the position selector (InstrumentView.jsx) exactly as before.
   let label = orderToDisplay || noteInfo[notation];
-  if (showFingering && !isScaleMode && actualFingering) {
+  if (showFingerNumbers && !isScaleMode && actualFingering) {
     let fingerNum = null;
     if (actualFingering.status === 'played' && actualFingering.fret === fret) {
       fingerNum = actualFingering.finger;
@@ -218,8 +222,7 @@ function resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue
       fingerNum = actualFingering[fret];
     }
     if (fingerNum) {
-      const labels = (fingeringMode === 'anatomic' || fingeringMode === 'classical') ? FINGER_LABELS.anatomic : FINGER_LABELS.numeric;
-      label = labels[fingerNum] ?? fingerNum;
+      label = FINGER_LABELS.numeric[fingerNum] ?? fingerNum;
     }
   }
 
