@@ -33,6 +33,13 @@ export function useDictionaryMode() {
 
 
   const activeNotes = useMemo(() => {
+    // `order` is a number for a computed degree (1, 2, 3...) and the string
+    // '1' for the scale's closing note — pre-existing (matches the object
+    // getChordIntervalLabel can also return, e.g. 'b3', '4'), annotated
+    // explicitly because inferring it from the first assignment below (the
+    // scale branch's `.map`) otherwise locks `order` to `number` and the
+    // closing note's `push` fails typecheck.
+    /** @type {Array<{value?: number, us?: string, eu?: string, order: number|string|null, absoluteValue: number}>} */
     let notes = [];
     const currentRootValue = Number(dictRoot);
     const baseOctave = 4 + (dictOctave || 0);
