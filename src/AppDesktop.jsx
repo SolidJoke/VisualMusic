@@ -514,7 +514,7 @@ function AppDesktop() {
           })()}
 
           {/* --- MODALS --- */}
-          <Modal uiTheme={uiTheme} isOpen={showStudioModal} onClose={() => setShowStudioModal(false)} title="🎭 Studio & Harmonie">
+          <Modal uiTheme={uiTheme} isOpen={showStudioModal} onClose={() => setShowStudioModal(false)} title="🎭 Studio & Harmonie" columns>
             {appMode === "studio" ? (
               <StudioPanel
                 currentBrickIndex={currentBrickIndex}
@@ -564,7 +564,7 @@ function AppDesktop() {
             )}
           </Modal>
 
-          <Modal uiTheme={uiTheme} isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`}>
+          <Modal uiTheme={uiTheme} isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`} columns>
             {appMode !== "dictionary" ? (
               <CompositionPanel
                 activeTracks={activeTracks}
@@ -581,7 +581,7 @@ function AppDesktop() {
             )}
           </Modal>
 
-          <Modal uiTheme={uiTheme} isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio">
+          <Modal uiTheme={uiTheme} isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio" columns>
             <ControlPanel
               showFingering={showFingering}
               setShowFingering={setShowFingering}

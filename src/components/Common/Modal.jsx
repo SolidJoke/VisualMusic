@@ -7,7 +7,7 @@ import './Modal.css';
  * Displays a floating window with an overlay.
  * Uses React Portal to append to document.body avoiding z-index stacking issues.
  */
-const Modal = ({ isOpen, onClose, title, children, uiTheme }) => {
+const Modal = ({ isOpen, onClose, title, children, uiTheme, columns }) => {
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose();
@@ -50,7 +50,9 @@ const Modal = ({ isOpen, onClose, title, children, uiTheme }) => {
             ✕
           </button>
         </div>
-        <div className="modal-body">
+        {/* VMU-138: opt-in per popup (see Modal.css) — a popup passes `columns`
+            only when its own content structure survives a column split. */}
+        <div className={`modal-body${columns ? ' modal-body--columns' : ''}`}>
           {children}
         </div>
       </div>
