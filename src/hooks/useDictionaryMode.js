@@ -1,8 +1,9 @@
 // @ts-check
 
 import { useState, useMemo, useEffect } from "react";
-import { resolveScaleIntervals, resolveChordSemitones, getScaleNotesGeneric } from "../core/theory";
+import { resolveScaleIntervals, resolveScaleSemitones, resolveChordSemitones, NOTES } from "../core/theory";
 import { getChordIntervalLabel } from "../core/harmonyEngine";
+import { realizeScale, realizeChord, realizeNote } from "../core/noteEngine";
 import { useAppContext } from "../context/AppContext";
 
 export function useDictionaryMode() {
@@ -32,42 +33,58 @@ export function useDictionaryMode() {
 
 
   const activeNotes = useMemo(() => {
+    // `order` is a number for a computed degree (1, 2, 3...) and the string
+    // '1' for the scale's closing note — pre-existing (matches the object
+    // getChordIntervalLabel can also return, e.g. 'b3', '4'), annotated
+    // explicitly because inferring it from the first assignment below (the
+    // scale branch's `.map`) otherwise locks `order` to `number` and the
+    // closing note's `push` fails typecheck.
+    /** @type {Array<{value?: number, us?: string, eu?: string, order: number|string|null, absoluteValue: number}>} */
     let notes = [];
     const currentRootValue = Number(dictRoot);
     const baseOctave = 4 + (dictOctave || 0);
     
     const scaleData = resolveScaleIntervals(dictType);
     if (scaleData) {
-      notes = getScaleNotesGeneric(currentRootValue, scaleData.intervals).map(n => ({
-        ...n,
-        absoluteValue: n.value + (baseOctave + 1) * 12
+      // VMU-140 — realizeScale (core/noteEngine.js) gives strictly ascending
+      // absolute pitches root-to-root+12 for any root; this used to fold
+      // each degree's pitch class into a fixed octave by hand
+      // (`n.value + (baseOctave + 1) * 12`, n.value already having lost its
+      // octave in getScaleNotesGeneric), which put any degree below the
+      // root's class a full octave too low (mi pentatonic major: do# a
+      // fourth degree below mi's class landed as do#4 instead of do#5).
+      const semitones = resolveScaleSemitones(dictType);
+      const absolutePitches = realizeScale(currentRootValue, dictType, baseOctave);
+      notes = semitones.map((semi, i) => ({
+        ...NOTES.at((currentRootValue + semi) % 12),
+        order: i + 1,
+        absoluteValue: absolutePitches[i]
       }));
       // Add the final octave note to visually close the scale on the piano
       notes.push({
         value: currentRootValue,
         order: '1',
-        absoluteValue: currentRootValue + (baseOctave + 2) * 12
+        absoluteValue: absolutePitches[absolutePitches.length - 1]
       });
     } else if (dictType && dictType.includes("chord")) {
       const chordData = resolveChordSemitones(dictType);
       if (chordData) {
-        notes = chordData.semitones.map((semi, i) => {
-          const val = (currentRootValue + semi) % 12;
-          // For chords, if the note wraps around (semi + root > 12), it might be in the next octave
-          // but for dictionary display we usually stay in one octave unless it's a specific voicing.
-          // Here we just use the baseOctave.
-          return {
-            value: val,
-            order: getChordIntervalLabel(i, semi),
-            absoluteValue: val + (baseOctave + 1) * 12
-          };
-        });
+        // VMU-140 — realizeChord: fundamental position, no modulo, so an
+        // extension (chord_9's 14) stays above the octave instead of
+        // folding back down next to the root, and a note whose class is
+        // below the root's (e.g. do# above la) stays above it in pitch too.
+        const absolutePitches = realizeChord(currentRootValue, chordData.semitones, baseOctave);
+        notes = chordData.semitones.map((semi, i) => ({
+          value: (currentRootValue + semi) % 12,
+          order: getChordIntervalLabel(i, semi),
+          absoluteValue: absolutePitches[i]
+        }));
       }
     } else if (dictType === "single_note") {
-      notes.push({ 
-        value: currentRootValue, 
+      notes.push({
+        value: currentRootValue,
         order: null,
-        absoluteValue: currentRootValue + (baseOctave + 1) * 12
+        absoluteValue: realizeNote(currentRootValue, baseOctave)
       });
     }
     return notes;
