@@ -1,11 +1,12 @@
 // @ts-check
 import { useCallback } from "react";
 import * as Tone from 'tone';
-import { SCALES, CHORDS, resolveScaleIntervals, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute, midiToNoteName, computeAbsoluteNote } from "../core/theory";
+import { CHORDS, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute, midiToNoteName, computeAbsoluteNote } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { logPlaybackSequence, logNotePlay } from "../core/debugScale";
 import { getInstrumentTuning, buildAscDescSequence } from "./playbackUtils";
 import { realizeDictionarySelection } from "../core/realization";
+import { realizeScale, realizeNote } from "../core/noteEngine";
 import { calcActivePath } from "../core/fretboardLogic";
 
 /**
@@ -71,15 +72,20 @@ export function useDictionaryPlayback({
         notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
       } else {
         // Nothing selected yet: derive from theory so the hook still plays.
-        const scaleData = resolveScaleIntervals(dictType);
-        const intervals = scaleData ? scaleData.intervals : SCALES.scale_major.intervals;
+        // VMU-140 — realizeScale (core/noteEngine.js) replaces a hand-rolled
+        // cumulative-interval walk that lived here. That walk started at the
+        // root's own absolute pitch and only ever added (never re-derived a
+        // pitch class), so it was already correct for any root — but it
+        // duplicated exactly the formula the engine now owns in one place;
+        // numerically identical output, one fewer place to get it wrong next.
         const baseOctave = 4 + (dictOctave || 0);
-        let currentPitch = Number(dictRoot) + (baseOctave + 1) * 12;
-        absolutePitches.push(currentPitch);
-        intervals.forEach((interval) => {
-          currentPitch += interval;
-          absolutePitches.push(currentPitch);
-        });
+        absolutePitches = realizeScale(Number(dictRoot), dictType, baseOctave);
+        if (absolutePitches.length === 0) {
+          // Defensive: this branch only runs when dictType already contains
+          // "scale", so it should always resolve — kept as a fallback to
+          // major (the previous behaviour) rather than playing nothing.
+          absolutePitches = realizeScale(Number(dictRoot), "scale_major", baseOctave);
+        }
         absolutePitches = buildAscDescSequence(absolutePitches);
         notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
       }
@@ -112,8 +118,11 @@ export function useDictionaryPlayback({
       // Play the note at the absolute pitch it is displayed at. This used
       // `n.value + 4 * 12` — pitch class plus a fixed octave in the pre-MIDI
       // convention — which sounded right at octave 0 by accident and ignored
-      // the octave selector. useDictionaryMode already provides absoluteValue.
-      absolutePitches = activeNotes.map((n) => n.absoluteValue ?? n.value + 60);
+      // the octave selector. useDictionaryMode already provides absoluteValue;
+      // realizeNote(n.value, 4) is the VMU-140 stand-in for the rare case it
+      // doesn't, kept at the same fixed octave 4 the fallback always used —
+      // this path still ignores the octave selector, unchanged from before.
+      absolutePitches = activeNotes.map((n) => n.absoluteValue ?? realizeNote(n.value, 4));
       notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
     }
 

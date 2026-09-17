@@ -1,3 +1,4 @@
+import React from "react";
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -16,9 +17,11 @@ vi.mock("../../audio/AudioEngine", () => ({
 
 import * as AudioEngine from "../../audio/AudioEngine";
 import { useDictionaryPlayback } from "../useDictionaryPlayback";
+import { useDictionaryMode } from "../useDictionaryMode";
 import { useStudioPlayback } from "../useStudioPlayback";
 import { useFretboardPlayback } from "../useFretboardPlayback";
 import { getAbsoluteNoteValue } from "../../core/theory";
+import { AppProvider } from "../../context/AppContext";
 
 /**
  * What you hear must be what you see.
@@ -106,6 +109,45 @@ async function play(result) {
   await act(async () => {
     await result.current.playDictionaryAudio();
   });
+}
+
+// VMU-140 — chains the REAL useDictionaryMode (what's shown) into the REAL
+// useDictionaryPlayback (what's played), instead of injecting a fixed
+// `activeNotes`. The reported bug lived entirely on the display side
+// (useDictionaryMode.js computed each scale/chord note's absoluteValue by
+// hand); useDictionaryPlayback only ever reads whatever absoluteValue it is
+// handed, correctly, for the piano's realization path. A test that supplies
+// its own `activeNotes` — like every other test in this file — cannot
+// reproduce that defect: it would pass on the pre-fix code too, because it
+// never exercises useDictionaryMode's own computation. Piano only: the
+// instrument the bug was reported on, and the one whose realization is the
+// theoretical notes unchanged (core/realization.js), so `activeNotes` here
+// is exactly what the piano keyboard highlights.
+function renderDictionaryChain(dictRoot, dictType, dictOctave = 0) {
+  const wrapper = ({ children }) => React.createElement(AppProvider, null, children);
+  const mode = renderHook(() => useDictionaryMode(), { wrapper });
+  act(() => {
+    mode.result.current.setDictRoot(dictRoot);
+    mode.result.current.setDictType(dictType);
+    mode.result.current.setDictOctave(dictOctave);
+  });
+  const playback = renderHook(() =>
+    useDictionaryPlayback({
+      dictRoot: mode.result.current.dictRoot,
+      dictType: mode.result.current.dictType,
+      dictOctave: mode.result.current.dictOctave,
+      playbackInstrument: "piano",
+      guitarFingering: null,
+      bassFingering: null,
+      activeBrick: null,
+      activeNotes: mode.result.current.activeNotes,
+      currentBpm: 120,
+      lastClickedContext: null,
+      setCurrentlyPlayingNotes,
+      scheduler,
+    })
+  );
+  return { mode, playback };
 }
 
 describe("Dictionnaire — ce qu'on entend est ce qu'on voit", () => {
@@ -200,6 +242,46 @@ describe("Dictionnaire — ce qu'on entend est ce qu'on voit", () => {
     const names = sentToSynth();
     expect(names).toEqual(["C4", "E4", "G4"]);
     names.forEach(audible);
+  });
+
+  // VMU-140 — predicted red on the code before this ticket: mi pentatonique
+  // majeure crosses do (do# < mi's pitch class), which PitchConsistency's
+  // other scale test (root=do) never does. The buggy code played AND showed
+  // do#4 (61) instead of do#5 (73) — checked here on both: `mode` is what
+  // useDictionaryMode shows, `playback` is what reaches the synth.
+  it("piano, gamme de mi pentatonique majeure, octave 0 : joué ET affiché mi4 fa#4 sol#4 si4 do#5 mi5, pas do#4 (VMU-140)", async () => {
+    const { mode, playback } = renderDictionaryChain(4, "scale_pentatonic_major", 0);
+
+    expect(mode.result.current.activeNotes.map((n) => n.absoluteValue)).toEqual([64, 66, 68, 71, 73, 76]);
+
+    await play(playback.result);
+    const names = sentToSynth();
+    expect(names.slice(0, 6)).toEqual(["E4", "F#4", "G#4", "B4", "C#5", "E5"]);
+    expect(names.map(midi)).toEqual(shownOn(setCurrentlyPlayingNotes));
+  });
+
+  // VMU-140 — same defect, chords: `(root + semi) % 12` folded any note past
+  // do back down, so a la majeur showed/played inverted (do#4 la4 mi4
+  // instead of root position) and a do9 folded its 9th (ré) back into the
+  // octave below mi. Both rouges predicted on the code before this ticket.
+  it("piano, accord de la majeur : joué ET affiché la4 do#5 mi5, position fondamentale (VMU-140)", async () => {
+    const { mode, playback } = renderDictionaryChain(9, "chord_major", 0);
+
+    expect(mode.result.current.activeNotes.map((n) => n.absoluteValue)).toEqual([69, 73, 76]);
+
+    await play(playback.result);
+    expect(sentToSynth()).toEqual(["A4", "C#5", "E5"]);
+    expect(sentToSynth().map(midi)).toEqual(shownOn(setCurrentlyPlayingNotes));
+  });
+
+  it("piano, accord de do9 : joué ET affiché do4 mi4 sol4 sib4 ré5, la neuvième reste au-dessus de l'octave (VMU-140)", async () => {
+    const { mode, playback } = renderDictionaryChain(0, "chord_9", 0);
+
+    expect(mode.result.current.activeNotes.map((n) => n.absoluteValue)).toEqual([60, 64, 67, 70, 74]);
+
+    await play(playback.result);
+    expect(sentToSynth()).toEqual(["C4", "E4", "G4", "A#4", "D5"]);
+    expect(sentToSynth().map(midi)).toEqual(shownOn(setCurrentlyPlayingNotes));
   });
 
   it("dictionary playback stays audible in EU notation — scale", async () => {
