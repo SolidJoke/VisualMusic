@@ -204,6 +204,26 @@
   padding: 0 6px;
 }
 
+/* VMU-138: only the Math & Rythmes modal's opt-in column grid (Modal.css
+   .modal-body--columns) narrows this row below what it always had before
+   (a full-width single column, at every screen size including phone) —
+   checked in-browser at 1920x1080: confined to one ~440px grid column,
+   .switch-group's 5 items have no wrap guard and get flex-shrunk edge to
+   edge with zero gap (e.g. "MODE PHASING" against "MODE ISORYTHMIE").
+   Gated on `.modal-body--columns` AND `min-width: 768px` — the class
+   alone is not enough, since it is present on the DOM node at phone width
+   too (Modal.css's own phone media query resets `display`, not this
+   file); without the width gate here as well, phone read 1393 instead of
+   the unchanged 1273 layout:probe expects (VMU-138 report) because this
+   row wrapped there too, taller, even though phone's own column width
+   never changed. */
+@media (min-width: 768px) {
+  .modal-body--columns .switch-group {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+}
+
 /* Retro Toggle Switch */
 .retro-switch-container {
   display: flex;

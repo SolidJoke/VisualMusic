@@ -21,7 +21,20 @@
   border: var(--lg-border);
   border-radius: var(--radius-lg);
   width: 90%;
-  max-width: 500px;
+  /* VMU-138 (provisional, ahead of the VMU-082 modal-content rework): was a
+     flat 500px on every screen >= 768px, so the popups stayed a narrow
+     single column no matter how wide the window was — the reported problem
+     ("Studio & Harmonie" 492 x 1252px on a 2560x1440 screen, scrolling a
+     1222px-tall body). 1440px keeps a single-column popup (Math & Rythmes,
+     the un-opted-in case) from stretching into an awkwardly wide, sparse
+     column, while still tripling the old cap; a popup that opts into
+     `columns` (below) uses the extra width for a second column instead of
+     just standing wider. Measured with layout:probe (VMU-138 report):
+     1920x1080/2560x1440/3840x2160 no longer scroll at opening, and at
+     3840x1263 (Gabriel's measured maximized LibreWolf window) the container
+     reaches the 1440px cap — see the report for the exact before/after
+     numbers this bound was chosen against. */
+  max-width: 1440px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -77,6 +90,95 @@
 
 .modal-body::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ─── VMU-138: opt-in multi-column body (Modal `columns` prop) ───────────
+   Per-popup opt-in, not a grid forced on every modal: each of the three
+   popups has its own content structure (Modal.jsx's `columns` prop just
+   toggles this class), and only the ones whose structure survives a column
+   split use it — see the VMU-138 report for which popup got which
+   treatment and why. `auto-fit` + `minmax` collapses back to a single
+   column on its own once a track would go under its minimum, so this does
+   not need its own breakpoint: a narrow modal (phone width is excluded by
+   the `!important` rules below anyway) just falls through to one column. */
+.modal-body--columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+/* Studio & Harmonie / Studio mode (StudioPanel.jsx): .panel__content already
+   wraps exactly the panel's two top-level blocks — its own controls
+   (root/style/octave/rhythm), then the magic-progression block
+   (.glass-panel) — as direct children, so gridding it needs no markup
+   change. Scoped to StudioPanel's own [data-testid] rather than the bare
+   .panel__content class: CompositionPanel.jsx reuses that same class name
+   for a different shape (a thin .panel-header strip next to the real
+   .panel-body, not two comparable blocks) and has its own rule below. */
+.modal-body--columns [data-testid="studio-panel"] > .panel__content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+/* Math & Rythmes (CompositionPanel.jsx): grids .panel-body's direct
+   children (presets/sliders/viz/grid/phasing/isorhythm/realignment
+   sections, plus PolyrhythmAlgebraPanel and ExportTargetPanel) — every
+   direct child becomes a grid item regardless of its own class, so no
+   per-section selector is needed. Every measured child here is fluid
+   (retro-selects, range sliders, and EuclideanCircle's SVG is width:
+   100%/height: 100% against its own viewBox — grepped for a fixed pixel
+   width across CompositionPanel.css and found none over 120px), so a
+   narrower column just renders smaller rather than overflowing.
+   .viz-section's row of 5 toggle switches (.switch-group) needed its own
+   fix, not an exception here: checked in-browser at 1920x1080, confining
+   it to a ~440px column packed the 5 labels edge to edge with zero gap
+   (e.g. "MODE PHASING" against "MODE ISORYTHMIE") because .switch-group
+   had no wrap guard — see the `flex-wrap` added next to
+   CompositionPanel.css's .switch-group rule. Spanning viz-section full
+   width instead was tried first and cost enough height to bring back a
+   scroll at 1920x1080 that the wrap fix does not. */
+.modal-body--columns #composition-panel .panel-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+/* Studio & Harmonie / Dictionary mode (DictionaryPanel.jsx): the field list
+   (.select-group children of .dict-panel__controls) grids into columns;
+   the guitar/bass position diagrams (.dict-panel__positions) are wide,
+   free-form fretboard renders that a narrow column would squeeze, so they
+   keep the full width regardless of column count. */
+.modal-body--columns .dict-panel__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px 24px;
+}
+
+.modal-body--columns .dict-panel__controls > .dict-panel__positions {
+  grid-column: 1 / -1;
+}
+
+/* The scale/chord-type dropdown (CustomSelect.jsx) is a `position: absolute`
+   popover capped at `min(400px, 90vw)` independently of the modal's own
+   width (CustomSelect.css) — widening .modal-container does nothing for it.
+   With many grouped items (e.g. the Gammes list) that narrow cap means many
+   short rows, and since the popover overflows its scrollable ancestor
+   (.modal-body) even though it is out of normal flow, that height still
+   counts toward .modal-body's scrollHeight (confirmed with layout:probe:
+   the Gammes-list-open state scrolled at every tested viewport, including
+   3840x2160, before this rule). Widening it here — scoped to columns-opted
+   modals only, so every other CustomSelect in the app (e.g. AppHeader.jsx)
+   is unaffected — lets the existing `repeat(auto-fill, minmax(140px,1fr))`
+   grid in CustomSelect.css lay out more items per row.
+   width: min(...%) resolves against .custom-select-container's own box
+   (the popover's containing block), which spans the field's grid column,
+   so this cannot overflow past the modal's own edges. */
+.modal-body--columns .custom-select-body {
+  width: min(720px, 96%);
 }
 
 .modal-body::-webkit-scrollbar-thumb {
@@ -153,6 +255,33 @@
   
   .modal-body {
     padding: 20px 16px; /* slightly smaller padding on mobile */
+  }
+
+  /* VMU-138: phone stays strictly unchanged even when a popup opts into
+     `columns` — revert every columns rule above back to the exact
+     pre-VMU-138 layout (plain block/flex stacking, the original 400px
+     popover cap) instead of relying on `auto-fit` to collapse to one
+     column on its own. */
+  .modal-body--columns {
+    display: block;
+  }
+
+  .modal-body--columns [data-testid="studio-panel"] > .panel__content {
+    display: block;
+  }
+
+  .modal-body--columns #composition-panel .panel-body {
+    display: block;
+  }
+
+  .modal-body--columns .dict-panel__controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .modal-body--columns .custom-select-body {
+    width: min(400px, 90vw);
   }
 }
 
