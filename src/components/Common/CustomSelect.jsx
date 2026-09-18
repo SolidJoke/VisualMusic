@@ -89,7 +89,19 @@ const CustomSelect = ({
       headerRef.current?.focus();
     };
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') closeAndRefocus();
+      if (e.key !== 'Escape') return;
+      // Modal.jsx has its own Escape listener on `document` to close the
+      // whole popup, registered earlier (the modal must already be open
+      // before a CustomSelect inside it can be). Listeners on the same
+      // node fire in registration order regardless of stopPropagation —
+      // capture phase is what lets this one run first: capture on
+      // `document` completes, for the whole path to the event's target,
+      // before any bubble-phase listener anywhere (including Modal's own,
+      // also on `document`) gets a turn. Without stopPropagation() here,
+      // Escape closed the dropdown *and* the popup underneath it in one
+      // keystroke — found while building the VMU-142 width follow-up probe.
+      e.stopPropagation();
+      closeAndRefocus();
     };
     const handleScroll = (e) => {
       // e.target is a Node for an element/document scroll, but window.scroll
@@ -101,13 +113,15 @@ const CustomSelect = ({
     };
     const handleResize = () => closeAndRefocus();
 
-    document.addEventListener('keydown', handleKeyDown);
-    // capture: true — scroll does not bubble, so this is the only way to
-    // observe it on an arbitrary ancestor (e.g. `.modal-body`) from here.
+    // capture: true — needed for Escape to reach Modal.jsx's own listener
+    // first (see the comment above); scroll needs it regardless, since
+    // scroll does not bubble and this is the only way to observe it on an
+    // arbitrary ancestor (e.g. `.modal-body`) from here.
+    document.addEventListener('keydown', handleKeyDown, true);
     window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('resize', handleResize);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', handleResize);
     };

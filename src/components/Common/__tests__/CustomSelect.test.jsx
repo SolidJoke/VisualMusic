@@ -145,6 +145,27 @@ describe("CustomSelect (VMU-142 — portal)", () => {
       expect(document.activeElement).toBe(header);
     });
 
+    it("Escape does not also reach an outer Escape listener (e.g. Modal.jsx closing the whole popup)", () => {
+      // Regression: Modal.jsx registers its own bubble-phase `keydown`
+      // listener on `document` to close the popup on Escape, and it is
+      // registered *before* CustomSelect's (the modal has to already be
+      // open for a CustomSelect inside it to be openable). Listeners on the
+      // same node fire in registration order regardless of stopPropagation,
+      // so without capture + stopPropagation, one Escape press closed the
+      // dropdown *and* the popup underneath it — found live while building
+      // the VMU-142 width follow-up probe (D:/IA/VisualMusic/scratch-width-probe.mjs).
+      const outerHandler = vi.fn();
+      document.addEventListener("keydown", outerHandler); // simulates Modal.jsx's own listener, registered first
+      const { container } = renderSelect();
+      openViaClick(container);
+
+      fireEvent.keyDown(document, { key: "Escape" });
+
+      expect(document.body.querySelector('[data-testid="custom-select-dropdown"]')).toBeNull();
+      expect(outerHandler).not.toHaveBeenCalled();
+      document.removeEventListener("keydown", outerHandler);
+    });
+
     it("scrolling the window (e.g. the popup body) closes the panel", () => {
       const { container } = renderSelect();
       openViaClick(container);
