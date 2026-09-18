@@ -77,6 +77,14 @@
     top: calc(100% + 10px);
     left: 50%;
     transform: translateX(-50%);
+    /* VMU-142: the inline `max-height` (CustomSelect.jsx) is computed as the
+       exact space available between the field and the viewport edge, so it
+       must bound the whole box — border-box, not the default content-box
+       (which would add padding + border on top and push the box past the
+       edge it was just sized to respect; caught live: 514px rendered vs a
+       482px budget, a 32px padding+border overshoot). Same reasoning covers
+       `width`, previously 432px rendered for a nominal `min(400px, 90vw)`. */
+    box-sizing: border-box;
     width: min(400px, 90vw);
     background: rgba(15, 20, 30, 0.95);
     backdrop-filter: blur(30px);
