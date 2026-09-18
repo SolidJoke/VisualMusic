@@ -26,6 +26,14 @@ vi.mock("../../audio/AudioEngine", () => ({
 }));
 
 vi.mock("../../audio/useSequencer", () => ({
+  // VMU-131 — DAWHelper now imports resolveMeasureChord directly (the
+  // single source for "which chord plays this measure", reused rather than
+  // recomputed); this whole-module mock must still export something callable
+  // or the real AppDesktop's default studio brick/progression makes DAWHelper
+  // throw "resolveMeasureChord is not a function". Stubbed to `null`, same
+  // as the real function's own "nothing to show" return — this test only
+  // asserts the app renders without throwing, not what the row displays.
+  resolveMeasureChord: () => null,
   useSequencer: () => ({
     isAudioReady: true,
     setIsAudioReady: vi.fn(),

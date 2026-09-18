@@ -26,6 +26,32 @@
     flex-wrap: wrap;
 }
 
+.daw-helper__chords {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.daw-helper__chord {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 2px 8px;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+.daw-helper__chord-degree {
+    color: var(--theme-primary, #ffd700);
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.daw-helper__chord-name {
+    color: #ccc;
+}
+
 .daw-helper__icon {
     flex-shrink: 0;
 }
