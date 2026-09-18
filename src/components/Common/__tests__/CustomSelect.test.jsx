@@ -133,6 +133,101 @@ describe("CustomSelect (VMU-142 — portal)", () => {
     });
   });
 
+  describe("Width follows content (VMU-142 width follow-up)", () => {
+    // Grouped items (`.opt-group`) always counted 1 for 1 as leaf items by
+    // countLeafItems regardless of grouping — flat options are enough to
+    // exercise the width formula itself; the `display: contents` structural
+    // fix that lets *grouped* items actually use the extra columns is
+    // verified live (Chromium — jsdom has no layout), numbers in the report.
+    let originalInnerWidth, originalInnerHeight;
+    beforeEach(() => {
+      originalInnerWidth = window.innerWidth;
+      originalInnerHeight = window.innerHeight;
+    });
+    afterEach(() => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: originalInnerWidth });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: originalInnerHeight });
+    });
+
+    function mockHeaderRect(rect) {
+      Element.prototype.getBoundingClientRect = vi.fn(function () {
+        if (this.className === "custom-select-header") return rect;
+        return { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 };
+      });
+    }
+
+    function flatOptions(n) {
+      return Array.from({ length: n }, (_, i) => ({ value: `v${i}`, label: `Item ${i}` }));
+    }
+
+    function openWith(itemCount, extraProps = {}) {
+      const { container } = render(
+        <CustomSelect options={flatOptions(itemCount)} value="v0" onChange={vi.fn()} {...extraProps} />
+      );
+      openViaClick(container);
+      return document.body.querySelector('[data-testid="custom-select-dropdown"]');
+    }
+
+    it("a short list (4 items — the header language select's real count) keeps today's 400px width, unchanged", () => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 2560 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 1440 });
+      mockHeaderRect({ top: 100, bottom: 140, left: 1000, right: 1200, width: 200, height: 40 });
+
+      const panel = openWith(4);
+      expect(panel.style.width).toBe("400px");
+    });
+
+    it("a long list (18 items — measured live: the Gammes scale-type list) widens to fit several columns", () => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 2560 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 1440 });
+      mockHeaderRect({ top: 100, bottom: 140, left: 1000, right: 1200, width: 200, height: 40 });
+
+      const panel = openWith(18);
+      // ceil(18/ITEMS_PER_COLUMN_TARGET=5) = 4 columns;
+      // 4*140 + 3*10 + 32 = 622px (CustomSelect.jsx, computePanelWidth).
+      expect(panel.style.width).toBe("622px");
+    });
+
+    it("width never exceeds the viewport minus margin, even for a very long list", () => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 500 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 900 });
+      mockHeaderRect({ top: 100, bottom: 140, left: 100, right: 300, width: 200, height: 40 });
+
+      const panel = openWith(60);
+      expect(parseFloat(panel.style.width)).toBeLessThanOrEqual(500 - 24); // 2 * VIEWPORT_MARGIN
+    });
+
+    it("a long list stays at the floor width in the vintage theme (its grid is forced to a single column)", () => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 2560 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 1440 });
+      mockHeaderRect({ top: 100, bottom: 140, left: 1000, right: 1200, width: 200, height: 40 });
+
+      const panel = openWith(18, { theme: "vintage" });
+      expect(panel.style.width).toBe("400px");
+    });
+
+    it("a wide panel is clamped to the viewport's right edge when the field sits near it", () => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 1000 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 900 });
+      mockHeaderRect({ top: 100, bottom: 140, left: 900, right: 980, width: 80, height: 40 });
+
+      const panel = openWith(18);
+      const left = parseFloat(panel.style.left);
+      const width = parseFloat(panel.style.width);
+      expect(left).toBeGreaterThanOrEqual(12); // VIEWPORT_MARGIN
+      expect(left + width).toBeLessThanOrEqual(1000 - 12);
+    });
+
+    it("a wide panel is clamped to the viewport's left edge when the field sits near it", () => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 1000 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 900 });
+      mockHeaderRect({ top: 100, bottom: 140, left: 10, right: 90, width: 80, height: 40 });
+
+      const panel = openWith(18);
+      expect(parseFloat(panel.style.left)).toBeGreaterThanOrEqual(12); // VIEWPORT_MARGIN
+    });
+  });
+
   describe("4. Closing", () => {
     it("Escape closes the panel and returns focus to the field", () => {
       const { container } = renderSelect();
