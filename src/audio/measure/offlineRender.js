@@ -48,7 +48,7 @@
  * @module audio/measure/offlineRender
  */
 import * as Tone from "tone";
-import { analyzeChannel, comparePitchContent, gainReductionMetrics, levelMetrics } from "./signalMetrics";
+import { analyzeChannel, comparePitchContent, detectOnsets, gainReductionMetrics, levelMetrics } from "./signalMetrics";
 
 /** Sample rate every measurement is taken at. */
 export const DEFAULT_SAMPLE_RATE = 44100;
@@ -155,6 +155,17 @@ export async function runScenario(spec) {
 
   const mix = analyzeChannel(post, { sampleRate, pitchOffset: pitchOffsetSamples, fftSize, maxPitches });
 
+  // Opt-in (VMU-056's "metronome" scenario below): counts clicks and their
+  // spacing on the real post-limiter mix. Gated on a param rather than always
+  // computed, so every other scenario's returned shape is unchanged.
+  const onsets = params.detectOnsets
+    ? detectOnsets(post, {
+        sampleRate,
+        thresholdDbfs: params.onsetThresholdDbfs ?? -35,
+        minGapMs: params.onsetMinGapMs ?? 150,
+      })
+    : null;
+
   return {
     ...diagnostics,
     renderedSamples: pre.length,
@@ -165,6 +176,7 @@ export async function runScenario(spec) {
     gainReduction: gainReductionMetrics(pre, post, { thresholdDbfs: -6, sampleRate }),
     pitchVerdict: expectedNotes ? comparePitchContent(mix.pitches, expectedNotes) : null,
     expectedNotes,
+    onsets,
   };
 }
 
@@ -281,6 +293,36 @@ export const SCENARIOS = {
     async body(ctx) {
       const { diagnostics } = ctx;
       diagnostics.note = "nothing triggered; a non-silent result would mean the harness leaks signal";
+    },
+  },
+
+  /**
+   * The metronome alone, sequencer stopped (VMU-056): the exact case decision
+   * 3 of the brief requires ("marche... seul, séquenceur à l'arrêt"). Proves
+   * three things at once: it produces audible clicks through the real output
+   * chain (so through the VMU-020 limiter, same as every other voice — decision
+   * 2), it starts the transport itself since nothing else has, and it never
+   * writes the tempo — this scenario sets `transport.bpm.value` once, exactly
+   * as the BPM badge would, and metronome.js only ever reads it back.
+   *
+   * `startMetronome()` decides on its own whether to start the transport
+   * (nothing here calls `transport.start()`), which is the standalone
+   * behaviour under test, not a detail this scenario works around.
+   */
+  metronome: {
+    durationSec: 2.3, // 0.2s lead-in convention unused here on purpose — see body()
+    pitchOffsetSec: 0.05,
+    async body(ctx) {
+      const { Tone: T, params, diagnostics } = ctx;
+      const bpm = params.bpm ?? 120;
+      T.getTransport().bpm.value = bpm;
+
+      const metronomeMod = await import("../metronome");
+      metronomeMod.startMetronome();
+
+      diagnostics.bpm = bpm;
+      diagnostics.note =
+        "metronome alone, sequencer not playing (VMU-056); transport started by the module itself, not by this scenario";
     },
   },
 

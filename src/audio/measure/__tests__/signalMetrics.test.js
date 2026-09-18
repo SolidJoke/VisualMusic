@@ -29,6 +29,7 @@ import {
   noteNameToMidi,
   centsFromEqualTemperament,
   analyzeChannel,
+  detectOnsets,
 } from "../signalMetrics";
 
 const SR = 44100;
@@ -413,5 +414,66 @@ describe("judging only what is reproducible", () => {
       { note: "C7", freq: f0 * 12, midi: freqToMidi(f0 * 12), magDb: -5 },
     ];
     expect(comparePitchContent(detected, ["C4"]).unexplained).toEqual([]);
+  });
+});
+
+describe("detectOnsets — counting and spacing metronome clicks (VMU-056)", () => {
+  /**
+   * A synthetic click track: sharp decaying impulses at a fixed BPM, silence
+   * between them — the same shape src/audio/__tests__/AudioEngine.test.js
+   * already uses to validate estimateBPM/detectOnsets-style helpers on a
+   * signal whose answer is known by construction.
+   * @param {number} bpm
+   * @param {number} durationSec
+   * @param {number} [sampleRate]
+   */
+  function generateClickTrack(bpm, durationSec, sampleRate = SR) {
+    const length = Math.ceil(sampleRate * durationSec);
+    const buffer = new Float32Array(length);
+    const samplesPerBeat = Math.round((60 / bpm) * sampleRate);
+    const clickDuration = 64; // samples
+
+    for (let beat = 0; beat * samplesPerBeat < length; beat++) {
+      const start = beat * samplesPerBeat;
+      for (let j = 0; j < clickDuration && start + j < length; j++) {
+        buffer[start + j] = 0.8 * Math.exp(-j / 10); // sharp decaying click
+      }
+    }
+    return buffer;
+  }
+
+  it("finds silence between clicks as no onsets at all", () => {
+    const silence = new Float32Array(SR); // 1s of digital silence
+    const { onsets, meanIntervalSec } = detectOnsets(silence, { sampleRate: SR });
+    expect(onsets).toEqual([]);
+    expect(meanIntervalSec).toBeNull();
+  });
+
+  it("counts 5 clicks at 120 BPM over 2.3s (one every 0.5s: t=0, 0.5, 1.0, 1.5, 2.0)", () => {
+    const buffer = generateClickTrack(120, 2.3, SR);
+    const { onsets } = detectOnsets(buffer, { sampleRate: SR, minGapMs: 150 });
+    expect(onsets.length).toBe(5);
+  });
+
+  it("measures the mean interval at 500ms, within a few ms (120 BPM = 60/120s per beat)", () => {
+    const buffer = generateClickTrack(120, 2.3, SR);
+    const { meanIntervalSec } = detectOnsets(buffer, { sampleRate: SR, minGapMs: 150 });
+    expect(meanIntervalSec).not.toBeNull();
+    expect(Math.abs(meanIntervalSec - 0.5)).toBeLessThan(0.01);
+  });
+
+  it("a different tempo (90 BPM) changes the measured interval to 60/90s, not 0.5s", () => {
+    const buffer = generateClickTrack(90, 2.7, SR);
+    const { onsets, meanIntervalSec } = detectOnsets(buffer, { sampleRate: SR, minGapMs: 150 });
+    expect(onsets.length).toBeGreaterThanOrEqual(4);
+    expect(Math.abs(meanIntervalSec - 60 / 90)).toBeLessThan(0.01);
+  });
+
+  it("minGapMs prevents one click's decay tail from being counted as a second onset", () => {
+    // A single click, generous decay: without a minimum gap, a low enough
+    // threshold could straddle the tail and report two onsets for one click.
+    const buffer = generateClickTrack(120, 0.3, SR); // one click only in this window
+    const { onsets } = detectOnsets(buffer, { sampleRate: SR, minGapMs: 100 });
+    expect(onsets.length).toBe(1);
   });
 });
