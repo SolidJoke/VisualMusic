@@ -52,34 +52,47 @@
     transform: rotate(180deg);
 }
 
-/* ─── POP BODY ─── */
+/* ─── POP BODY ───────────────────────────────────────────────────────────
+   VMU-142: portaled into `document.body` (CustomSelect.jsx, `createPortal`)
+   instead of rendered as a `position: absolute` descendant here — an
+   absolutely-positioned descendant still gets clipped by a scrolling/
+   `overflow: hidden` ancestor (e.g. the "Studio & Harmonie" popup's
+   `.modal-container`/`.modal-body`, Modal.css) regardless of z-index. Now
+   `position: fixed`, with `top`/`bottom`/`left`/`max-height` set inline per
+   open, from the field's own `getBoundingClientRect()` (CustomSelect.jsx) —
+   this rule only carries what doesn't vary per instance.
+   `top`/`left`/`max-height` below are a fallback only (e.g. if JS somehow
+   fails to size it before paint); the inline style always overrides them
+   once the panel renders, which — since position is computed in the same
+   handler that opens it, before the state update that mounts the panel —
+   is on every actual open. The panel used to fade/scale in via
+   `.is-open .custom-select-body` (a descendant-of-`.is-open` selector);
+   folded into this rule because that never actually played (the whole
+   block was conditionally rendered only once already open, so the
+   `opacity: 0` / `scale(0.9)` "closed" state was never painted) and, once
+   portaled, `.is-open` (on the field's container) is no longer an ancestor
+   of this element at all, so the old selector could never match again. */
 .custom-select-body {
-    position: absolute;
+    position: fixed;
     top: calc(100% + 10px);
     left: 50%;
-    transform: translateX(-50%) scale(0.9);
+    transform: translateX(-50%);
     width: min(400px, 90vw);
     background: rgba(15, 20, 30, 0.95);
     backdrop-filter: blur(30px);
     border: 1px solid var(--accent);
     border-radius: 16px;
     padding: 15px;
-    z-index: 9999;
+    /* Above the popup overlay/container (both z-index: 9999, Modal.css) —
+       explicit rather than relying on DOM insertion order between this
+       portal and Modal's own portal, both of which target document.body. */
+    z-index: 10000;
     box-shadow: 0 25px 80px rgba(0,0,0,0.9), 0 0 30px var(--accent-glow);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 10px;
     max-height: 500px;
     overflow-y: auto;
-}
-
-.is-open .custom-select-body {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) scale(1);
 }
 
 .opt-group {
@@ -143,7 +156,13 @@
     text-shadow: 0 0 8px var(--led-cyan);
 }
 
-.vintage-select .custom-select-body {
+/* Was `.vintage-select .custom-select-body` (descendant): the panel is now
+   portaled outside `.custom-select-container`, so it can no longer be
+   reached as a descendant of the container's own `.vintage-select` class.
+   CustomSelect.jsx now puts `${theme}-select` directly on the panel too, so
+   this is a same-element compound selector instead — same specificity
+   (0,2,0) as the descendant form it replaces. */
+.custom-select-body.vintage-select {
     background: #000;
     border: 2px solid var(--led-cyan);
     grid-template-columns: 1fr;
