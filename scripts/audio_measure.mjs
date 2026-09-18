@@ -192,6 +192,28 @@ const PLAN = [
     expect: (r) => [check("is silent", r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
   },
   {
+    id: "metronome",
+    title: "Metronome alone at 120 BPM, sequencer stopped (VMU-056)",
+    spec: { scenario: "metronome", params: { bpm: 120, detectOnsets: true } },
+    why:
+      "VMU-056 definition of done: proves the module produces audible, evenly-spaced clicks on its " +
+      "own (decision 3 — 'seul, séquenceur à l'arrêt'), through the real output chain (decision 2), " +
+      "without metronome.js writing the tempo itself — this scenario sets it once, the module only reads it.",
+    expect: (r) => [
+      check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`),
+      check(
+        "at least 4 clicks detected over 2.3s at 120 BPM",
+        (r.onsets?.onsets.length ?? 0) >= 4,
+        `${r.onsets?.onsets.length ?? 0} onsets at ${r.onsets?.onsets.map((t) => fmt(t, 3)).join(", ")}s`,
+      ),
+      check(
+        "click spacing matches 120 BPM (500ms) within 20ms",
+        r.onsets?.meanIntervalSec != null && Math.abs(r.onsets.meanIntervalSec - 0.5) <= 0.02,
+        `mean interval ${fmt((r.onsets?.meanIntervalSec ?? 0) * 1000, 1)} ms (expected 500 ms)`,
+      ),
+    ],
+  },
+  {
     id: "default-progression",
     title: "The Studio's default four-chord pop loop, 120 BPM, default mixer",
     spec: { scenario: "default-progression" },
@@ -419,6 +441,15 @@ function printMeasurement(item, m, checks, pageErrors) {
     rows.push(["fundamentals", pitchDetail(m.mix.fundamentals), "partials excluded"]);
   }
   if (m.requested) rows.push(["pitches requested", `${m.requested.instrument}: ${m.requested.notes.join(", ")}`, ""]);
+  if (m.onsets) {
+    rows.push([
+      "onsets (clicks)",
+      `${m.onsets.onsets.length} detected`,
+      m.onsets.meanIntervalSec != null
+        ? `mean interval ${fmt(m.onsets.meanIntervalSec * 1000, 1)} ms — at ${m.onsets.onsets.map((t) => fmt(t, 3)).join(", ")}s`
+        : "fewer than 2 onsets, no interval",
+    ]);
+  }
   if (m.pitchVerdict) {
     rows.push([
       "pitch verdict",

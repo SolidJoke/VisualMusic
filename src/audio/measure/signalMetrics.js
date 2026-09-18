@@ -117,6 +117,58 @@ export function silenceMetrics(samples, floorDbfs = SILENCE_FLOOR_DBFS) {
 }
 
 /**
+ * Onset (attack) times of short, separated transients — a metronome click
+ * (VMU-056) is exactly this shape — via a sliding energy window compared to a
+ * fixed level threshold.
+ *
+ * Deliberately simple, not a general-purpose onset detector (no spectral
+ * flux, no adaptive threshold): a synthesized click against near-silence
+ * between beats needs only a level floor and a minimum gap to tell one click
+ * from the tail of the previous one. `Tone.Offline` renders deterministically
+ * (unlike `Tone.Reverb`'s noise-seeded impulse response, see SIGNIFICANCE_DB
+ * above), so a fixed threshold is reliable here.
+ *
+ * @param {Float32Array|number[]} samples
+ * @param {Object} options
+ * @param {number} options.sampleRate
+ * @param {number} [options.windowSize] samples per energy frame
+ * @param {number} [options.thresholdDbfs] a frame's RMS above this counts as an onset
+ * @param {number} [options.minGapMs] minimum time between two reported onsets,
+ *   so one click's decay is not counted as a second onset
+ * @returns {{ onsets: number[], intervalsSec: number[], meanIntervalSec: number|null }}
+ */
+export function detectOnsets(samples, options) {
+  const { sampleRate, windowSize = 256, thresholdDbfs = -30, minGapMs = 100 } = options;
+  const minGapSamples = (minGapMs / 1000) * sampleRate;
+
+  /** @type {number[]} */
+  const onsets = [];
+  let lastOnsetSample = -Infinity;
+
+  for (let i = 0; i + windowSize <= samples.length; i += windowSize) {
+    let sumSquares = 0;
+    for (let j = 0; j < windowSize; j++) {
+      const s = samples[i + j];
+      sumSquares += s * s;
+    }
+    const rms = Math.sqrt(sumSquares / windowSize);
+    if (toDbfs(rms) >= thresholdDbfs && i - lastOnsetSample >= minGapSamples) {
+      onsets.push(i / sampleRate);
+      lastOnsetSample = i;
+    }
+  }
+
+  /** @type {number[]} */
+  const intervalsSec = [];
+  for (let i = 1; i < onsets.length; i++) intervalsSec.push(onsets[i] - onsets[i - 1]);
+  const meanIntervalSec = intervalsSec.length
+    ? intervalsSec.reduce((a, b) => a + b, 0) / intervalsSec.length
+    : null;
+
+  return { onsets, intervalsSec, meanIntervalSec };
+}
+
+/**
  * Largest jump between consecutive samples, a proxy for clicks and
  * discontinuities (VMU-081: crackle at playback start and on repeat).
  *

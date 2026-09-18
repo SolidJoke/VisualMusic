@@ -5,24 +5,34 @@ import { AppProvider } from "../context/AppContext";
 import AppDesktop from "../AppDesktop";
 
 // Same Tone.js / AudioEngine mocking strategy as QA_Journeys.integration.test.jsx
-vi.mock("tone", () => ({
-  start: vi.fn(),
-  now: vi.fn(() => 0),
-  getDraw: vi.fn(() => ({ schedule: vi.fn() })),
-  context: { lookAhead: 0.1 },
-  Transport: {
+vi.mock("tone", () => {
+  // VMU-056: metronome.js reads Tone.getTransport() (never the deprecated
+  // Transport snapshot — see that module's own comment for why). Same object
+  // both ways, as in the real module, so a test asserting on either sees the
+  // same calls.
+  const transport = {
     bpm: { value: 120 },
     scheduleRepeat: vi.fn(),
+    clear: vi.fn(),
     cancel: vi.fn(),
     pause: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
-  },
-  Draw: { schedule: vi.fn() },
-  Destination: { volume: { value: 0, rampTo: vi.fn() } },
-  Analyser: vi.fn(() => ({ dispose: vi.fn() })),
-  Frequency: vi.fn(() => ({ toMidi: () => 60 })),
-}));
+    state: "stopped",
+  };
+  return {
+    start: vi.fn(),
+    now: vi.fn(() => 0),
+    getDraw: vi.fn(() => ({ schedule: vi.fn() })),
+    context: { lookAhead: 0.1 },
+    Transport: transport,
+    getTransport: () => transport,
+    Draw: { schedule: vi.fn() },
+    Destination: { volume: { value: 0, rampTo: vi.fn() } },
+    Analyser: vi.fn(() => ({ dispose: vi.fn() })),
+    Frequency: vi.fn(() => ({ toMidi: () => 60 })),
+  };
+});
 
 vi.mock("../audio/AudioEngine", () => ({
   kickSynth: { triggerAttackRelease: vi.fn() },

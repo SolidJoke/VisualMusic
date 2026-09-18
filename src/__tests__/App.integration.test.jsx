@@ -5,24 +5,34 @@ import AppDesktop from "../AppDesktop";
 import { AppProvider } from "../context/AppContext";
 
 // Mocking Tone.js
-vi.mock("tone", () => ({
-  start: vi.fn(),
-  now: vi.fn(() => 0),
-  getDraw: vi.fn(() => ({ schedule: vi.fn() })),
-  Transport: {
+vi.mock("tone", () => {
+  // VMU-056: metronome.js reads Tone.getTransport() (never the deprecated
+  // Transport snapshot — see that module's own comment for why). Same object
+  // both ways, as in the real module, so a test asserting on either sees the
+  // same calls.
+  const transport = {
     bpm: { value: 120 },
     scheduleRepeat: vi.fn(),
+    clear: vi.fn(),
     cancel: vi.fn(),
     pause: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
-  },
-  Draw: { schedule: vi.fn() },
-  Destination: { volume: { value: 0, rampTo: vi.fn() } },
-  Analyser: vi.fn(() => ({
-    dispose: vi.fn(),
-  })),
-}));
+    state: "stopped",
+  };
+  return {
+    start: vi.fn(),
+    now: vi.fn(() => 0),
+    getDraw: vi.fn(() => ({ schedule: vi.fn() })),
+    Transport: transport,
+    getTransport: () => transport,
+    Draw: { schedule: vi.fn() },
+    Destination: { volume: { value: 0, rampTo: vi.fn() } },
+    Analyser: vi.fn(() => ({
+      dispose: vi.fn(),
+    })),
+  };
+});
 
 // Mocking AudioEngine
 vi.mock("../audio/AudioEngine", () => ({

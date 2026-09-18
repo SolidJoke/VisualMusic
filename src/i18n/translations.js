@@ -331,7 +331,9 @@ export const translations = {
       studio: "Studio",
       dictionary: "Dictionnaire",
       nowPlaying: "En lecture",
-      clickToEditBpm: "Cliquer pour modifier le BPM"
+      clickToEditBpm: "Cliquer pour modifier le BPM",
+      metronomeOn: "Métronome activé",
+      metronomeOff: "Métronome désactivé"
     },
     suggestedVoicings: "Voicings suggérés :",
     voicingImpossible: "⛔ Voicing impossible",
@@ -666,7 +668,9 @@ export const translations = {
       studio: "Studio",
       dictionary: "Dictionary",
       nowPlaying: "Playing",
-      clickToEditBpm: "Click to edit BPM"
+      clickToEditBpm: "Click to edit BPM",
+      metronomeOn: "Metronome on",
+      metronomeOff: "Metronome off"
     },
     suggestedVoicings: "Suggested voicings:",
     voicingImpossible: "⛔ Unplayable voicing",
@@ -940,7 +944,9 @@ export const translations = {
       studio: "Estúdio",
       dictionary: "Dicionário",
       nowPlaying: "Em reprodução",
-      clickToEditBpm: "Clique para editar o BPM"
+      clickToEditBpm: "Clique para editar o BPM",
+      metronomeOn: "Metrônomo ativado",
+      metronomeOff: "Metrônomo desativado"
     },
     suggestedVoicings: "Voicings sugeridos:",
     voicingImpossible: "⛔ Voicing impossível",
@@ -1253,7 +1259,9 @@ export const translations = {
       studio: "工作室",
       dictionary: "字典",
       nowPlaying: "正在播放",
-      clickToEditBpm: "点击修改 BPM"
+      clickToEditBpm: "点击修改 BPM",
+      metronomeOn: "节拍器已开启",
+      metronomeOff: "节拍器已关闭"
     },
     suggestedVoicings: "建议的声位:",
     voicingImpossible: "⛔ 无法演奏的声位",
