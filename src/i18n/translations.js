@@ -131,6 +131,9 @@ export const translations = {
     kofi: "☕ M'offrir un café sur Ko-fi",
     github: "💻 Voir le code sur GitHub",
     listen: "🎵 Écouter",
+    // VMU-134: label for the US/EU note-naming toggle, moved to the header
+    // (HeaderActions) so it is reachable from both Studio and Dictionnaire.
+    noteNamesLabel: "Noms des notes",
     guideTheoryBtn: "💡 Guide & Théorie",
     theoryModalTitle: "📖 Théorie Musicale & Guide",
     guideTitle: "💡 Guide d'Improvisation (La Méthode du Drone)",
@@ -466,6 +469,7 @@ export const translations = {
     kofi: "☕ Buy me a coffee on Ko-fi",
     github: "💻 View code on GitHub",
     listen: "🎵 Listen",
+    noteNamesLabel: "Note names",
     guideTheoryBtn: "💡 Guide & Theory",
     theoryModalTitle: "📖 Music Theory & Guide",
     guideTitle: "💡 Improvisation Guide (The Drone Method)",
@@ -794,6 +798,7 @@ export const translations = {
     kofi: "☕ Pague-me um café no Ko-fi",
     github: "💻 Ver código no GitHub",
     listen: "🎵 Ouvir",
+    noteNamesLabel: "Nomes das notas",
     guideTheoryBtn: "💡 Guia e Teoria",
     theoryModalTitle: "📖 Teoria Musical e Guia",
     guideTitle: "💡 Guia de Improvisação (Método Drone)",
@@ -1112,6 +1117,7 @@ export const translations = {
     kofi: "☕ 在 Ko-fi 上请我喝杯咖啡",
     github: "💻 在 GitHub 上查看代码",
     listen: "🎵 听",
+    noteNamesLabel: "音名",
     guideTheoryBtn: "💡 指南与理论",
     theoryModalTitle: "📖 音乐理论与指南",
     guideTitle: "💡 即兴演奏指南 (持续音方法)",

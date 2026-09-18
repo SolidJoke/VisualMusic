@@ -2,7 +2,6 @@ import React from "react";
 import { useAppContext } from "../../context/AppContext";
 import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord, resolveChordFromShortName, getRelatedScales } from "../../core/theory";
 import CustomSelect from "../Common/CustomSelect";
-import DualToggle from "../Common/DualToggle";
 import { log } from "../../utils/debug";
 import HarmonicSeriesPanel from "./HarmonicSeriesPanel";
 import extendedData from "../../core/extendedTheoryData.json";
@@ -60,7 +59,7 @@ export default function DictionaryPanel({
   targetNotesPreset,
   setTargetNotesPreset
 }) {
-  const { lang, txt, notation, dispatch } = useAppContext();
+  const { lang, txt, notation } = useAppContext();
   // Derive family from dictType
   const family = dictType === "single_note"
     ? "note"
@@ -161,16 +160,11 @@ export default function DictionaryPanel({
           />
         </div>
 
-        <div className="select-group" style={{ marginTop: "-10px" }}>
-          <DualToggle 
-            value={notation}
-            onChange={(val) => dispatch({ type: 'SET_NOTATION', payload: val })}
-            options={[
-              { value: "us", label: "US (A, B, C)" },
-              { value: "eu", label: "EU (Do, Ré)" }
-            ]}
-          />
-        </div>
+        {/* VMU-134: the US/EU notation switch used to live here. It is now
+            a single global control in HeaderActions (src/components/Layout/AppHeader.jsx),
+            reachable from Studio too — this panel still reads `notation` for
+            display (line ~156 above and the related-scales root name below),
+            it just no longer owns the toggle. */}
 
         {/* Family selector (Note / Chord / Scale) */}
         <div className="select-group">

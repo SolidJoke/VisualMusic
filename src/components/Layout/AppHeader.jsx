@@ -22,7 +22,9 @@ export function HeaderActions({
   setShowHelp,
   setShowAbout,
   setShowTheory,
-  exportDebugSnapshot
+  exportDebugSnapshot,
+  notation,
+  setNotation
 }) {
   return (
     <>
@@ -35,6 +37,34 @@ export function HeaderActions({
           className="btn-header-action"
         >
           {uiTheme === 'vintage' ? '✨ Neon Monolith' : '🌿 Zen Studio'}
+        </button>
+
+        {/*
+          VMU-134: the only US/EU notation switch, moved here from
+          DictionaryPanel so it is reachable from every screen (Studio
+          included), not just the Dictionary panel it used to live in.
+          Provisional placement (VMU-082's canvas may relocate it). Measured
+          in-browser at 1280px that the header row already overflows before
+          this control exists (165px, pre-existing, out of this ticket's
+          scope) — the plain DualToggle (label + two always-visible pills,
+          ~250px) would have added ~78px more. Using the row's own
+          btn-header-action idiom instead, exactly like the theme switch
+          above, keeps this to one ~150px button and doubles as "the style
+          of the other header controls" the brief allows when DualToggle is
+          too wide here.
+        */}
+        <button
+          className="btn-header-action"
+          data-testid="header-notation-toggle"
+          onClick={() => {
+            const next = notation === 'us' ? 'eu' : 'us';
+            log("app", `Switching notation to ${next}`);
+            setNotation(next);
+          }}
+          aria-label={txt.noteNamesLabel}
+          title={txt.noteNamesLabel}
+        >
+          {notation === 'us' ? 'US (A, B, C)' : 'EU (Do, Ré)'}
         </button>
 
         <button
