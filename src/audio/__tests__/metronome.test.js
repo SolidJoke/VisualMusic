@@ -34,7 +34,9 @@ function makeMockTransport() {
   const bpmObj = {};
   Object.defineProperty(bpmObj, "value", {
     get: () => 120,
-    set: (v) => bpmWrites.push(v),
+    set: (v) => {
+      bpmWrites.push(v);
+    },
   });
 
   return {
@@ -42,7 +44,7 @@ function makeMockTransport() {
     get state() {
       return transportState;
     },
-    scheduleRepeat: vi.fn((fn, interval) => {
+    scheduleRepeat: vi.fn((fn) => {
       scheduledCallback = fn;
       return "metronome-repeat-id";
     }),

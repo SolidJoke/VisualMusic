@@ -7,7 +7,8 @@ import './Sidebar.css';
  * Fixed header always visible (even when scrolled):
  *   - Mode selector (Studio / Dictionary)
  *   - Play/Stop button (Studio only)
- *   - BPM badge (clickable inline editor, Studio only)
+ *   - BPM badge (clickable inline editor, Studio only), half-width, next to
+ *     the metronome on/off button (VMU-056)
  *
  * Rail icons visible when sidebar is collapsed:
  *   - Mode icon  🎹 / 📖
@@ -24,6 +25,8 @@ import './Sidebar.css';
  * @param {function} [props.playDictionaryAudio] - joue l'entree courante en mode dictionnaire
  * @param {number}   props.currentBpm
  * @param {function} props.handleBpmChange - receives the new tempo as a number
+ * @param {boolean}  [props.metronomeOn]     - VMU-056, starts off (no persistence)
+ * @param {function} [props.toggleMetronome] - flips the metronome on/off
  * @param {object}   props.txt             - i18n strings
  * @param {React.ReactNode} props.children
  */
@@ -38,6 +41,8 @@ const Sidebar = ({
   playDictionaryAudio,
   currentBpm,
   handleBpmChange,
+  metronomeOn = false,
+  toggleMetronome,
   txt = {},
   children,
 }) => {
@@ -141,29 +146,44 @@ const Sidebar = ({
             {isPlaying ? '■ Stop' : '▶ Play'}
           </button>
 
-          <div
-            className="bpm-badge"
-            onClick={() => !bpmEditing && setBpmEditing(true)}
-            title={txt.sidebar?.clickToEditBpm || "Cliquer pour modifier le BPM"}
-          >
-            ♩{' '}
-            {bpmEditing ? (
-              <input
-                ref={bpmInputRef}
-                type="number"
-                min="60"
-                max="200"
-                value={bpmInputVal}
-                onChange={(e) => setBpmInputVal(e.target.value)}
-                onBlur={commitBpm}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitBpm();
-                  if (e.key === 'Escape') { setBpmEditing(false); setBpmInputVal(currentBpm); }
-                }}
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <span>{currentBpm}</span>
+          <div className="bpm-metronome-group">
+            <div
+              className="bpm-badge"
+              onClick={() => !bpmEditing && setBpmEditing(true)}
+              title={txt.sidebar?.clickToEditBpm || "Cliquer pour modifier le BPM"}
+            >
+              ♩{' '}
+              {bpmEditing ? (
+                <input
+                  ref={bpmInputRef}
+                  type="number"
+                  min="60"
+                  max="200"
+                  value={bpmInputVal}
+                  onChange={(e) => setBpmInputVal(e.target.value)}
+                  onBlur={commitBpm}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitBpm();
+                    if (e.key === 'Escape') { setBpmEditing(false); setBpmInputVal(currentBpm); }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <span>{currentBpm}</span>
+              )}
+            </div>
+            {toggleMetronome && (
+              <button
+                type="button"
+                className={`metronome-toggle${metronomeOn ? ' active' : ''}`}
+                onClick={toggleMetronome}
+                aria-pressed={metronomeOn}
+                aria-label={metronomeOn ? (txt.sidebar?.metronomeOn || 'Metronome on') : (txt.sidebar?.metronomeOff || 'Metronome off')}
+                title={metronomeOn ? (txt.sidebar?.metronomeOn || 'Metronome on') : (txt.sidebar?.metronomeOff || 'Metronome off')}
+                data-testid="btn-metronome-toggle"
+              >
+                {metronomeOn ? '●' : '○'}
+              </button>
             )}
           </div>
         </div>
