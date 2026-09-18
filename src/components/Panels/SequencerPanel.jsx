@@ -16,7 +16,7 @@ const SequencerPanel = ({
   activeRhythm,
   chordOctaveOffset,
 }) => {
-  const { lang, txt } = useAppContext();
+  const { lang, txt, notation } = useAppContext();
   const { isPlaying, togglePlayback, handleBpmChange } = usePlaybackContext();
 
   return (
@@ -104,6 +104,8 @@ const SequencerPanel = ({
         genreName={activeBrick.name?.[lang] || activeBrick.name?.en || ""}
         lang={lang}
         progression={activeProgression}
+        brick={activeBrick}
+        notation={notation}
       />
     </div>
   );

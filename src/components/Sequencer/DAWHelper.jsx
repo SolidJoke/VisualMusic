@@ -1,5 +1,7 @@
 import React from 'react';
 import './DAWHelper.css';
+import { resolveMeasureChord } from '../../audio/useSequencer';
+import { toRoman } from '../../core/theory';
 
 /**
  * DAWHelper — Textual description of the current pattern for DAW reproduction.
@@ -13,15 +15,40 @@ import './DAWHelper.css';
  * - bpm: number
  * - genreName: string
  * - lang: 'fr' | 'en' | 'pt' | 'zh'
+ * - progression: NNS degrees of the active chord progression (e.g. ["1","5","6-","4"])
+ * - brick: active style ({ rootValue, scaleKey }) — required to resolve chord names/degrees
+ * - notation: 'eu' | 'us' — which chord-name notation to display (AppContext, VMU-100)
  */
-export default function DAWHelper({ drumTracks = [], melodyTracks = [], bpm, genreName, lang = 'fr', progression = [] }) {
+export default function DAWHelper({ drumTracks = [], melodyTracks = [], bpm, genreName, lang = 'fr', progression = [], brick = null, notation = 'eu' }) {
     const labels = LABELS[lang] || LABELS.fr;
+
+    // VMU-131 — one measure per chord of the progression, derived from its
+    // length (never hard-coded). Single source for "which chord plays this
+    // measure": resolveMeasureChord (VMU-129), the same function the chord
+    // and bass tracks follow during playback — never a second calculation.
+    const measureChords = brick
+        ? progression.map((_, i) => resolveMeasureChord(i * 16, progression, brick, 0)).filter(Boolean)
+        : [];
 
     return (
         <div className="daw-helper">
             <div className="daw-helper__title">
                 {labels.title}
             </div>
+
+            {/* Chord-per-measure row (VMU-131) */}
+            {measureChords.length > 0 && (
+                <div className="daw-helper__chords" data-testid="daw-helper-chords">
+                    {measureChords.map((mc, i) => (
+                        <span key={`c-${i}`} className="daw-helper__chord">
+                            <span className="daw-helper__chord-degree">{toRoman(mc.chord.nns)}</span>{' '}
+                            <span className="daw-helper__chord-name">
+                                {notation === 'us' ? mc.chord.chordNameUS : mc.chord.chordNameEU}
+                            </span>
+                        </span>
+                    ))}
+                </div>
+            )}
 
             {/* Drum tracks */}
             {drumTracks.map((track, i) => (
