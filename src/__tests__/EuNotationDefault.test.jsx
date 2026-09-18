@@ -86,19 +86,18 @@ describe("VMU-100 — clicks stay audible once EU notation is selected", () => {
     // selected first (same setup as PlaybackHandlersContract.test.jsx).
     fireEvent.click(screen.getByText(/Dictionnaire/i));
 
-    // Reach the notation selector, which only lives in the Dictionary panel
-    // inside the "Studio & Harmonie" modal. Only two options exist, so one
-    // click of the slider is enough to land on EU when starting from US —
-    // and does nothing harmful if EU is already the (now default) state,
-    // handled below by clicking again if needed rather than assuming which
-    // side we started from.
+    // Reach the notation control. VMU-134 moved it out of the Dictionary
+    // panel into the header (HeaderActions) — global now, not tied to the
+    // "Studio & Harmonie" modal, though opening it here is still harmless
+    // and keeps the fretboard note markers this test needs visible. Only
+    // two options exist, so one click is enough to land on EU when starting
+    // from US, and does nothing harmful if EU is already the (default)
+    // state, handled below by clicking again if needed rather than assuming
+    // which side we started from.
     fireEvent.click(screen.getByText(/Studio & Harmonie/i));
-    const toggle = document.querySelector(".dual-toggle-slider");
-    expect(toggle).not.toBeNull();
-    let euOption = screen.getByText(/EU \(Do, Ré\)/i).closest(".dual-toggle-option");
-    if (!euOption.className.includes("active")) fireEvent.click(toggle);
-    euOption = screen.getByText(/EU \(Do, Ré\)/i).closest(".dual-toggle-option");
-    expect(euOption.className).toContain("active");
+    const toggle = screen.getByTestId("header-notation-toggle");
+    if (!/EU \(Do, Ré\)/i.test(toggle.textContent)) fireEvent.click(toggle);
+    expect(toggle.textContent).toMatch(/EU \(Do, Ré\)/i);
 
     const marker = document.querySelector(".instrument-guitar .note-marker");
     expect(marker).not.toBeNull();
@@ -123,11 +122,9 @@ describe("VMU-100 — clicks stay audible once EU notation is selected", () => {
 
     fireEvent.click(screen.getByText(/Dictionnaire/i));
     fireEvent.click(screen.getByText(/Studio & Harmonie/i));
-    const toggle = document.querySelector(".dual-toggle-slider");
-    let euOption = screen.getByText(/EU \(Do, Ré\)/i).closest(".dual-toggle-option");
-    if (!euOption.className.includes("active")) fireEvent.click(toggle);
-    euOption = screen.getByText(/EU \(Do, Ré\)/i).closest(".dual-toggle-option");
-    expect(euOption.className).toContain("active");
+    const toggle = screen.getByTestId("header-notation-toggle");
+    if (!/EU \(Do, Ré\)/i.test(toggle.textContent)) fireEvent.click(toggle);
+    expect(toggle.textContent).toMatch(/EU \(Do, Ré\)/i);
 
     const key = document.querySelector(".piano-key.white-key");
     expect(key).not.toBeNull();

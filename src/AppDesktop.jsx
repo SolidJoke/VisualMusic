@@ -61,9 +61,12 @@ function AppDesktop() {
   }, [uiTheme]);
 
   const setLang = useCallback((newLang) => dispatch({ type: 'SET_LANG', payload: newLang }), [dispatch]);
-  // Pas de wrapper setNotation ici : le bascule US/EU vit dans DictionaryPanel,
-  // qui dispatche SET_NOTATION directement. Le wrapper etait passe a ControlPanel,
-  // qui ne l'a jamais destructure.
+  // VMU-134: the wrapper this comment used to say didn't exist. The US/EU
+  // toggle moved out of DictionaryPanel (which dispatched SET_NOTATION
+  // directly) and into HeaderActions, shared by the header and the phone
+  // drawer — so it now needs a stable callback like every other headerProps
+  // entry, rather than a raw dispatch passed down.
+  const setNotation = useCallback((val) => dispatch({ type: 'SET_NOTATION', payload: val }), [dispatch]);
   const setShowAbout = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showAbout', value: val } }), [dispatch]);
   const setShowTheory = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showTheory', value: val } }), [dispatch]);
   const setShowFingering = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingering', value: val } }), [dispatch]);
@@ -330,7 +333,8 @@ function AppDesktop() {
   // Shared by the header row and, on a phone, by the drawer that replaces it.
   const headerProps = {
     txt, uiTheme, setUiTheme, lang, setLang,
-    setShowHelp, setShowAbout, setShowTheory, exportDebugSnapshot
+    setShowHelp, setShowAbout, setShowTheory, exportDebugSnapshot,
+    notation, setNotation
   };
 
   const musicEngineContextValue = useMemo(() => ({
