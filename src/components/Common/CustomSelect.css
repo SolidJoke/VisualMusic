@@ -52,23 +52,55 @@
     transform: rotate(180deg);
 }
 
-/* ─── POP BODY ─── */
+/* ─── POP BODY ───────────────────────────────────────────────────────────
+   VMU-142: portaled into `document.body` (CustomSelect.jsx, `createPortal`)
+   instead of rendered as a `position: absolute` descendant here — an
+   absolutely-positioned descendant still gets clipped by a scrolling/
+   `overflow: hidden` ancestor (e.g. the "Studio & Harmonie" popup's
+   `.modal-container`/`.modal-body`, Modal.css) regardless of z-index. Now
+   `position: fixed`, with `top`/`bottom`/`left`/`width`/`max-height` set
+   inline per open, from the field's own `getBoundingClientRect()` and the
+   option count (CustomSelect.jsx) — this rule only carries what doesn't
+   vary per instance.
+   `top`/`left`/`width`/`max-height` below are a fallback only (e.g. if JS
+   somehow fails to size it before paint); the inline style always
+   overrides them once the panel renders, which — since position is
+   computed in the same handler that opens it, before the state update that
+   mounts the panel — is on every actual open. `left` used to be the
+   field's horizontal center with a `translateX(-50%)` offset to center the
+   fixed-width panel under it; now that width varies with content (VMU-142
+   follow-up) and can approach the viewport's own width, `left` is instead
+   the panel's literal, already-clamped left edge (computed in JS, which
+   knows the viewport bounds), so no CSS transform is needed or applied.
+   The panel used to fade/scale in via `.is-open .custom-select-body` (a
+   descendant-of-`.is-open` selector); folded into this rule because that
+   never actually played (the whole block was conditionally rendered only
+   once already open, so the `opacity: 0` / `scale(0.9)` "closed" state was
+   never painted) and, once portaled, `.is-open` (on the field's container)
+   is no longer an ancestor of this element at all, so the old selector
+   could never match again. */
 .custom-select-body {
-    position: absolute;
+    position: fixed;
     top: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%) scale(0.9);
+    left: 0;
+    /* VMU-142: the inline `max-height`/`width` (CustomSelect.jsx) are
+       computed as the exact space available to a viewport edge, so they
+       must bound the whole box — border-box, not the default content-box
+       (which would add padding + border on top and push the box past the
+       edge it was just sized to respect; caught live: 514px rendered vs a
+       482px budget, a 32px padding+border overshoot). */
+    box-sizing: border-box;
     width: min(400px, 90vw);
     background: rgba(15, 20, 30, 0.95);
     backdrop-filter: blur(30px);
     border: 1px solid var(--accent);
     border-radius: 16px;
     padding: 15px;
-    z-index: 9999;
+    /* Above the popup overlay/container (both z-index: 9999, Modal.css) —
+       explicit rather than relying on DOM insertion order between this
+       portal and Modal's own portal, both of which target document.body. */
+    z-index: 10000;
     box-shadow: 0 25px 80px rgba(0,0,0,0.9), 0 0 30px var(--accent-glow);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 10px;
@@ -76,23 +108,39 @@
     overflow-y: auto;
 }
 
-.is-open .custom-select-body {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(-50%) scale(1);
-}
-
+/* VMU-142 width follow-up: `.opt-group` used to be a plain block box (no
+   `display: grid`/`flex` of its own), so its children — the label and every
+   `.select-item` in that group — laid out in normal block flow: one
+   full-width row per item, no matter how wide `.custom-select-body` (the
+   grid one level up) was. Confirmed live (Chromium): every item in a group
+   shared the exact same `left`/`width`, one per row. Grouped lists (e.g.
+   "Gammes" — every scale is grouped by category) could never use more than
+   one column; ungrouped lists (e.g. the header language select) could,
+   which is why only the former looked cramped regardless of panel width.
+   `display: contents` removes `.opt-group`'s own box without touching the
+   DOM/JSX: its children become direct children of `.custom-select-body`'s
+   grid instead, so each `.select-item` now flows into
+   `repeat(auto-fill, minmax(140px, 1fr))` exactly like an ungrouped item
+   does — panel width now genuinely governs the column count for grouped
+   lists too, not just ungrouped ones. `grid-column: 1 / -1` (full-row) and
+   the group's spacing move onto `.opt-group-label`, the only child left to
+   carry them (a `display: contents` element has no box of its own, so a
+   margin or `grid-column` declared on `.opt-group` itself no longer
+   applies to anything). Grid items don't collapse adjacent margins the way
+   block siblings would have, so the two margins this replaces
+   (`.opt-group`'s 15px-before / 5px-after) are combined into one 20px top
+   margin on the label instead of kept as two separate ones. */
 .opt-group {
-    grid-column: 1 / -1;
-    margin-top: 15px;
-    margin-bottom: 5px;
+    display: contents;
 }
 
-.opt-group:first-child {
+.opt-group:first-child .opt-group-label {
     margin-top: 0;
 }
 
 .opt-group-label {
+    grid-column: 1 / -1;
+    margin-top: 20px;
     font-size: 0.7rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -143,7 +191,13 @@
     text-shadow: 0 0 8px var(--led-cyan);
 }
 
-.vintage-select .custom-select-body {
+/* Was `.vintage-select .custom-select-body` (descendant): the panel is now
+   portaled outside `.custom-select-container`, so it can no longer be
+   reached as a descendant of the container's own `.vintage-select` class.
+   CustomSelect.jsx now puts `${theme}-select` directly on the panel too, so
+   this is a same-element compound selector instead — same specificity
+   (0,2,0) as the descendant form it replaces. */
+.custom-select-body.vintage-select {
     background: #000;
     border: 2px solid var(--led-cyan);
     grid-template-columns: 1fr;

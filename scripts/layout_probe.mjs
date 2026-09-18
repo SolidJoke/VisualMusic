@@ -39,6 +39,11 @@ const KEEP_OPEN = flag("headed");
  * Gabriel's own measured window sizes (LibreWolf, 4K screen, maximized and
  * restored); the others bracket common desktop/tablet sizes plus one phone
  * size as a "strictly unchanged" control.
+ *
+ * 1280x800 added for VMU-142 (dropdown portal): its own brief asks for
+ * before/after numbers at that size specifically (a common small-desktop
+ * resolution VMU-138's own list did not bracket) — kept rather than measured
+ * ad hoc, so any later ticket gets the same data point for free.
  */
 const VIEWPORTS = [
   { w: 3840, h: 2160, label: "3840x2160" },
@@ -46,6 +51,7 @@ const VIEWPORTS = [
   { w: 2560, h: 1440, label: "2560x1440" },
   { w: 2406, h: 627, label: "2406x627" },
   { w: 1920, h: 1080, label: "1920x1080" },
+  { w: 1280, h: 800, label: "1280x800" },
   { w: 390, h: 844, label: "390x844" },
 ];
 
