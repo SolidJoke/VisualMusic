@@ -187,8 +187,9 @@ const EXCEPTIONS = {
   // defect (a note falling below a DIFFERENT note in the same sequence)
   // does not apply to a single note. It does hard-code octave 3, ignoring
   // the Dictionary's octave selector — a real but separate issue, left for
-  // VMU-115 as the brief asks. ---
-  "components/Instruments/PianoKeyboard.jsx:83": "harmonic-series overlay base pitch — single note, fixed octave 3 (ignores the octave selector; separate, pre-existing, VMU-115 territory)",
+  // VMU-115 as the brief asks. Line shifted 83 -> 84 (VMU-146 added an
+  // import line above it for getRoleForDegreeLabel); content unchanged. ---
+  "components/Instruments/PianoKeyboard.jsx:84": "harmonic-series overlay base pitch — single note, fixed octave 3 (ignores the octave selector; separate, pre-existing, VMU-115 territory)",
 };
 
 function relKey(file, line) {

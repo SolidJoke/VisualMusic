@@ -225,6 +225,38 @@ export function getChordIntervalLabel(index, semitone) {
 }
 
 // ---------------------------------------------------------------------------
+// Degree Label -> Harmonic Role (VMU-146)
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps a chord-degree label (as produced by getChordIntervalLabel, e.g.
+ * 1, 'b3', 3, 'b5', 5, '#5', 'b7', 7, 9) to the harmonic role used to color
+ * a piano key or fretboard dot.
+ *
+ * Single rule for the two consumers that used to diverge (VMU-146):
+ * PianoKeyboard.jsx tested exact equality ("3" -> third), while
+ * core/fretboardUtils.js tested inclusion (order.includes("3") -> third) —
+ * so a minor-third label "b3" (or an augmented fifth "#5") read as
+ * third/fifth on the fretboard and extension on the piano. Both now call
+ * this function instead of their own rule.
+ *
+ * Sevenths (b7, 7) fall to 'extension': no `role-seventh` CSS variable or
+ * class exists yet (checked App.css, styles/tokens.css and
+ * styles/modern-theme.css, 2026-09-21) — the day one is added, this is the
+ * only place to change so both consumers pick it up together.
+ *
+ * @param {string|number} label a degree label, e.g. from getChordIntervalLabel
+ * @returns {'root'|'third'|'fifth'|'extension'}
+ */
+export function getRoleForDegreeLabel(label) {
+  const degree = String(label);
+  if (degree === '1') return 'root';
+  if (degree === '3' || degree === 'b3') return 'third';
+  if (degree === '5' || degree === 'b5' || degree === '#5') return 'fifth';
+  return 'extension';
+}
+
+// ---------------------------------------------------------------------------
 // Playability Score (G.4.3)
 // ---------------------------------------------------------------------------
 

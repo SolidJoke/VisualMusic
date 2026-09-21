@@ -142,10 +142,17 @@ export function useMusicEngine({
           const n2 = scaleNotes.at(2).value;
           const n3 = scaleNotes.at(4).value;
           activeNotes.push(
-            { value: n1, order: 1, absoluteValue: n1 + 48 },
-            { value: n2, order: 2, absoluteValue: n2 + (n2 < n1 ? 60 : 48) },
-            { value: n3, order: 3, absoluteValue: n3 + (n3 < n1 ? 60 : 48) },
+            { value: n1, order: getChordIntervalLabel(0, 0), absoluteValue: n1 + 48 },
+            { value: n2, order: getChordIntervalLabel(1, (n2 - n1 + 12) % 12), absoluteValue: n2 + (n2 < n1 ? 60 : 48) },
+            { value: n3, order: getChordIntervalLabel(2, (n3 - n1 + 12) % 12), absoluteValue: n3 + (n3 < n1 ? 60 : 48) },
           );
+          // VMU-146: `order` is now a degree label from getChordIntervalLabel
+          // (the same function the clicked-chord branch above already uses),
+          // not the note's bare rank (1, 2, 3) in the triad. The rank read as
+          // a degree is exactly the bug: PianoKeyboard.jsx and
+          // core/fretboardUtils.js both interpreted `order` as a harmonic
+          // degree, so the 3rd (rank 2) showed as "extension" and the 5th
+          // (rank 3) as "third". See getRoleForDegreeLabel (harmonyEngine.js).
         }
       }
 
