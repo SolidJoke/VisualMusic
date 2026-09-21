@@ -14,6 +14,7 @@ import {
   SONG_STRUCTURES,
   getInversionType,
   getChordIntervalLabel,
+  getRoleForDegreeLabel,
 } from '../harmonyEngine.js';
 
 // ---------------------------------------------------------------------------
@@ -276,5 +277,50 @@ describe('getChordIntervalLabel', () => {
     // aug chord: [0, 4, 8] — semitone 8 has no explicit case → falls to index+2 = 2+2 = 4
     // This is acceptable as a display fallback for unusual intervals
     expect(getChordIntervalLabel(2, 8)).toBe(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getRoleForDegreeLabel (VMU-146)
+// ---------------------------------------------------------------------------
+//
+// The single degree-label -> role rule, replacing two consumers that used
+// to disagree: PianoKeyboard.jsx tested exact equality ("3" -> third),
+// core/fretboardUtils.js tested inclusion (order.includes("3") -> third),
+// so "b3" (contains no "3" as a full label under equality, but does under
+// inclusion) read as extension on the piano and third on the fretboard.
+// Table below is the single rule both now call (brief decision #1):
+// "b3"/"3" -> third, "b5"/"5"/"#5" -> fifth, "1" -> root, rest -> extension
+// (sevenths included: no role-seventh CSS class exists today).
+describe('getRoleForDegreeLabel (VMU-146) — single degree-label -> role rule', () => {
+  it.each([
+    // [label, expected role]
+    ['1', 'root'],
+    [1, 'root'],          // getChordIntervalLabel(0, _) returns the number 1
+    ['3', 'third'],
+    [3, 'third'],         // getChordIntervalLabel(i, 4) returns the number 3
+    ['b3', 'third'],      // minor 3rd — the case the old equality rule missed
+    ['5', 'fifth'],
+    [5, 'fifth'],         // getChordIntervalLabel(i, 7) returns the number 5
+    ['b5', 'fifth'],
+    ['#5', 'fifth'],      // augmented 5th — the case the old equality rule missed
+    ['b7', 'extension'],  // no role-seventh class today — documented fallback
+    ['7', 'extension'],
+    [7, 'extension'],
+    ['9', 'extension'],
+    [9, 'extension'],
+    ['2', 'extension'],   // sus2
+    ['4', 'extension'],   // sus4
+  ])('degree label %p maps to role %p', (label, expected) => {
+    expect(getRoleForDegreeLabel(label)).toBe(expected);
+  });
+
+  it('is the single rule: equality-style and inclusion-style labels for the minor 3rd agree', () => {
+    // The pre-fix divergence, made explicit: PianoKeyboard's old rule
+    // (order === "3") and fretboardUtils's old rule (order.includes("3"))
+    // would have disagreed on "b3". The single function cannot: both
+    // consumers now call the exact same code path.
+    expect(getRoleForDegreeLabel('b3')).toBe(getRoleForDegreeLabel(3));
+    expect(getRoleForDegreeLabel('b3')).toBe('third');
   });
 });

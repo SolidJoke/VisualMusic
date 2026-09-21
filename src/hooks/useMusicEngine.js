@@ -125,13 +125,16 @@ export function useMusicEngine({
           const chordData = resolveChordSemitones(chordType);
           if (chordData) {
             // Use the absolute value of the played notes if possible, or calculate from root
-            fretboardActiveNotes = chordData.semitones.map((semi, i) => {
+            // VMU-146: index -1 (not chordData's own position `i`), to match
+            // the piano producer above (:119) — see report, "producer index
+            // divergence" (chord_aug/chord_dim7 disagreed with the piano).
+            fretboardActiveNotes = chordData.semitones.map((semi) => {
               const val = (effectiveChord.rootNote.value + semi) % 12;
               // Try to find if this note is in the played voicing to get its absolute value
               const played = activeNotes.find(n => n.value === val);
               return {
                 value: val,
-                order: getChordIntervalLabel(i, semi),
+                order: getChordIntervalLabel(-1, semi),
                 absoluteValue: played ? played.absoluteValue : (effectiveChord.rootNote.value + semi + 48)
               };
             });

@@ -169,18 +169,23 @@ const EXCEPTIONS = {
 
   // --- useMusicEngine.js: Studio mode, explicitly out of scope (brief
   // decision #3 — untouched; VMU-123 touches this file in parallel and
-  // VMU-115 migrates the rest). Both sites are correct for any root: :135
+  // VMU-115 migrates the rest). Both sites are correct for any root: :138
   // never re-derives a pitch class before adding (root+semi+base, like
-  // theory.js's getChordNotesAbsolute); :145-147 is the default-triad
+  // theory.js's getChordNotesAbsolute); :148-150 is the default-triad
   // fallback, which explicitly re-checks for the do-crossing case
   // (`n2 < n1 ? 60 : 48`) and picks the next octave up when it happens —
   // the "correct" hand calc the ticket's own cause analysis names (there
   // cited as useMusicEngine.js:141-143; VMU-123 (PR #117, merged onto this
-  // ticket's base) shifted it to :145-147 — see report for the discrepancy). ---
-  "hooks/useMusicEngine.js:135": "Studio fretboardActiveNotes fallback — root+semi+48, no modulo; correct for any root",
-  "hooks/useMusicEngine.js:145": "Studio default-triad fallback, root note — trivially correct (first note, nothing to cross)",
-  "hooks/useMusicEngine.js:146": "Studio default-triad fallback, 3rd — ternary explicitly picks the octave above when it crosses do",
-  "hooks/useMusicEngine.js:147": "Studio default-triad fallback, 5th — same explicit do-crossing check as :146",
+  // ticket's base) shifted it to :145-147 — see report for the discrepancy).
+  // VMU-146 shifted these four again, 135->138 and 145-147->148-150: a
+  // 3-line comment was added just above (explaining why fretboardActiveNotes
+  // now calls getChordIntervalLabel with index -1, not chordData's own
+  // position `i` — a real producer-side fix, not cosmetic; see the VMU-146
+  // report). The arithmetic on each line is untouched. ---
+  "hooks/useMusicEngine.js:138": "Studio fretboardActiveNotes fallback — root+semi+48, no modulo; correct for any root",
+  "hooks/useMusicEngine.js:148": "Studio default-triad fallback, root note — trivially correct (first note, nothing to cross)",
+  "hooks/useMusicEngine.js:149": "Studio default-triad fallback, 3rd — ternary explicitly picks the octave above when it crosses do",
+  "hooks/useMusicEngine.js:150": "Studio default-triad fallback, 5th — same explicit do-crossing check as :149",
 
   // --- PianoKeyboard.jsx: explicitly out of scope (brief decision #3).
   // Single pitch (the harmonic-series overlay's base note) — VMU-140's
