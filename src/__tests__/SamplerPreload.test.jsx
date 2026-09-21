@@ -43,7 +43,12 @@ vi.mock("tone", () => {
     // Destination is a deprecated snapshot of it. Same object here, as in the
     // app, so a test asserting on either sees the same calls.
     getDestination: () => destination,
-    Transport: { bpm: { value: 120 } },
+    // Same pairing for Transport: VMU-056's metronome.js reads
+    // Tone.getTransport() (never the deprecated Transport snapshot).
+    Transport: { bpm: { value: 120 }, scheduleRepeat: vi.fn(), clear: vi.fn(), start: vi.fn(), stop: vi.fn(), state: "stopped" },
+    getTransport() {
+      return this.Transport;
+    },
     Volume: vi.fn().mockImplementation(node),
     PolySynth: vi.fn().mockImplementation(node),
     MonoSynth: vi.fn().mockImplementation(node),

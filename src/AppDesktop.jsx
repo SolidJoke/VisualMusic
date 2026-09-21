@@ -18,6 +18,7 @@ import { useSequencer } from "./audio/useSequencer";
 import { useStudioMode } from "./hooks/useStudioMode";
 import { useDictionaryMode } from "./hooks/useDictionaryMode";
 import { usePlaybackHandlers } from "./hooks/usePlaybackHandlers";
+import { useMetronome } from "./hooks/useMetronome";
 import { useMusicEngine } from "./hooks/useMusicEngine";
 import useDebugExport from "./hooks/useDebugExport";
 import AboutModal from "./components/Modals/AboutModal";
@@ -220,7 +221,8 @@ function AppDesktop() {
   const {
     handleChordClick,
     playDictionaryAudio,
-    autoPlayNote
+    autoPlayNote,
+    ensureAudioReady
   } = usePlaybackHandlers({
     isAudioReady,
     setIsAudioReady,
@@ -250,6 +252,14 @@ function AppDesktop() {
     scaleAnchor,
     dictOctave,
     useShellVoicings
+  });
+
+  // --- Metronome (VMU-056) ---
+  // Own on/off state; own scheduling lives in audio/metronome.js. isPlaying is
+  // passed through only so an extinction never cuts playback already under way.
+  const { metronomeOn, toggleMetronome } = useMetronome({
+    isPlaying,
+    ensureAudioReady,
   });
 
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -509,6 +519,8 @@ function AppDesktop() {
                   playDictionaryAudio={playDictionaryAudio}
                   currentBpm={currentBpm}
                   handleBpmChange={handleBpmChange}
+                  metronomeOn={metronomeOn}
+                  toggleMetronome={toggleMetronome}
                   txt={txt}
                 >
                   {ctaButtons}
