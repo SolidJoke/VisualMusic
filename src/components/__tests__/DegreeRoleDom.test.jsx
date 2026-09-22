@@ -177,11 +177,11 @@ describe("VMU-146 DOM probe — clicked minor chord (la mineur): piano and guita
   });
 });
 
-describe("VMU-146 DOM probe — clicked augmented chord: piano and guitar agree", () => {
+describe("VMU-146 DOM probe — clicked augmented chord: piano and guitar agree, and the #5 reads as fifth (fix2)", () => {
   const doAug = { rootNote: { value: 0 }, nns: "aug" }; // do augmenté -> chord_aug
   const notes = [60, 64, 68]; // C4 (root), E4 (3, semi 4), G#4 (#5, semi 8)
 
-  it("the 3rd (mi) and the augmented 5th (sol#) get the same role class on piano and guitar, whatever it is", () => {
+  it("the 3rd (mi) is role-third and the augmented 5th (sol#) is role-fifth, on piano and guitar alike", () => {
     const { container } = render(
       <Harness clickedChord={doAug} currentAbsoluteNotes={notes} targetNotesPreset="off" />
     );
@@ -190,16 +190,64 @@ describe("VMU-146 DOM probe — clicked augmented chord: piano and guitar agree"
     const guitarThird = guitarNoteInfo(container, "E");
     expect(pianoThird.length).toBeGreaterThan(0);
     expect(guitarThird.length).toBeGreaterThan(0);
-    for (const m of guitarThird) expect(m.roleClasses).toEqual(pianoThird[0].roleClasses);
+    expect(pianoThird[0].roleClasses).toEqual(["role-third"]);
+    for (const m of guitarThird) expect(m.roleClasses).toEqual(["role-third"]);
 
-    // Augmented 5th (G#): getChordIntervalLabel(2, 8) has no explicit case
-    // and falls through to its own index+2 fallback (pre-existing, out of
-    // VMU-146's scope) — this test does not assert WHICH role that becomes,
-    // only that piano and guitar, both driven by the single rule, agree.
+    // Augmented 5th (G#, semitone 8 from root): getChordIntervalLabel now
+    // has an explicit case for semitone 8 -> '#5' (VMU-146 fix2,
+    // harmonyEngine.js), which getRoleForDegreeLabel maps to 'fifth'.
+    // Before fix2 this fell through to the index+2 fallback and read as
+    // role-root (fretboard/realization, index -1) or role-extension
+    // (piano/Dictionary, real index) depending on which convention called
+    // it — the two producers disagreeing is exactly what this probe
+    // previously only checked for agreement on, "whatever it is".
     const pianoFifth = pianoNoteInfo(container, "G#");
     const guitarFifth = guitarNoteInfo(container, "G#");
     expect(pianoFifth.length).toBeGreaterThan(0);
     expect(guitarFifth.length).toBeGreaterThan(0);
-    for (const m of guitarFifth) expect(m.roleClasses).toEqual(pianoFifth[0].roleClasses);
+    expect(pianoFifth[0].roleClasses).toEqual(["role-fifth"]);
+    for (const m of guitarFifth) expect(m.roleClasses).toEqual(["role-fifth"]);
+  });
+});
+
+// TDD point 3 of the fix2 brief — the diminished-7th chord's own semitone-9
+// tone (the "bb7", a diminished not minor seventh) must read as extension,
+// not as fifth or root, on both piano and guitar.
+//
+// resolveNnsToChordType (core/theory.js) checks `nns.includes('m7')` before
+// `nns.includes('dim7')` — and the substring "dim7" always contains "m7"
+// ("di" + "m7"), so no nns string could ever reach the dim7 branch: it was
+// unreachable dead code. Fixed by fix2 by moving the dim7 check above the m7
+// check (core/theory.js, resolveNnsToChordType) — found while writing this
+// test, necessary for "dim7" below to resolve to chord_dim7 at all.
+describe("VMU-146 DOM probe — clicked diminished 7th chord (do dim7): piano and guitar agree (fix2)", () => {
+  const doDim7 = { rootNote: { value: 0 }, nns: "dim7" }; // do dim7 -> chord_dim7
+  const notes = [60, 63, 66, 69]; // C4 (root), D#4 (b3, semi 3), F#4 (b5, semi 6), A4 (bb7, semi 9)
+
+  it("mib (D#) is role-third, solb (F#) is role-fifth, la (A, the bb7) is role-extension — on piano and guitar", () => {
+    const { container } = render(
+      <Harness clickedChord={doDim7} currentAbsoluteNotes={notes} targetNotesPreset="off" />
+    );
+
+    const pianoThird = pianoNoteInfo(container, "D#");
+    const guitarThird = guitarNoteInfo(container, "D#");
+    expect(pianoThird.length).toBeGreaterThan(0);
+    expect(guitarThird.length).toBeGreaterThan(0);
+    expect(pianoThird[0].roleClasses).toEqual(["role-third"]);
+    for (const m of guitarThird) expect(m.roleClasses).toEqual(["role-third"]);
+
+    const pianoFifth = pianoNoteInfo(container, "F#");
+    const guitarFifth = guitarNoteInfo(container, "F#");
+    expect(pianoFifth.length).toBeGreaterThan(0);
+    expect(guitarFifth.length).toBeGreaterThan(0);
+    expect(pianoFifth[0].roleClasses).toEqual(["role-fifth"]);
+    for (const m of guitarFifth) expect(m.roleClasses).toEqual(["role-fifth"]);
+
+    const pianoBb7 = pianoNoteInfo(container, "A");
+    const guitarBb7 = guitarNoteInfo(container, "A");
+    expect(pianoBb7.length).toBeGreaterThan(0);
+    expect(guitarBb7.length).toBeGreaterThan(0);
+    expect(pianoBb7[0].roleClasses).toEqual(["role-extension"]);
+    for (const m of guitarBb7) expect(m.roleClasses).toEqual(["role-extension"]);
   });
 });

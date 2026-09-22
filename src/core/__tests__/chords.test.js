@@ -10,6 +10,7 @@ import {
   getChordNotesAbsolute,
   getClosestInversion,
   getClosestInversionN,
+  resolveNnsToChordType,
   NOTES,
 } from '../theory';
 
@@ -276,6 +277,34 @@ describe('getClosestInversionN — generalized (A3)', () => {
     const result = getClosestInversionN(prev, 2, [0, 3, 7]); // Dm
     const avgDist = result.reduce((s, n, i) => s + Math.abs(n - prev[i]), 0) / 3;
     expect(avgDist).toBeLessThan(12); // moins d'une octave de mouvement moyen
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveNnsToChordType — dim7 branch reachability (VMU-146 fix2)
+// ---------------------------------------------------------------------------
+//
+// Found while writing the DegreeRoleDom "clicked dim7 chord" test
+// (VMU-146-fix2 TDD point 3): the substring "dim7" always contains "m7"
+// ("di" + "m7"), so `if (nns.includes('m7')) return 'chord_m7';` — checked
+// BEFORE `if (nns.includes('dim7')) return 'chord_dim7';` in the function
+// below — intercepts every possible nns before it ever reaches the dim7
+// branch. No nns string could resolve to 'chord_dim7'; the branch was dead
+// code. Fixed by moving the dim7 check above the m7 check.
+describe('resolveNnsToChordType — dim7 branch reachability (VMU-146 fix2)', () => {
+  it('an nns containing "dim7" resolves to chord_dim7, not chord_m7', () => {
+    expect(resolveNnsToChordType('dim7')).toBe('chord_dim7');
+  });
+
+  it('an nns containing plain "m7" (no "dim7") still resolves to chord_m7', () => {
+    // Regression guard for the fix: reordering the checks must not make a
+    // genuine m7 nns fall through to chord_dim7 or anything else.
+    expect(resolveNnsToChordType('m7')).toBe('chord_m7');
+    expect(resolveNnsToChordType('2m7')).toBe('chord_m7');
+  });
+
+  it('m7b5 still takes priority over both m7 and dim7', () => {
+    expect(resolveNnsToChordType('m7b5')).toBe('chord_m7b5');
   });
 });
 
