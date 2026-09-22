@@ -142,11 +142,18 @@ const EXCEPTIONS = {
   // either a single note (no scale/chord sequence to fold, so VMU-140's
   // do-crossing defect does not apply) or already ascending by construction. ---
   "core/theory.js:78": "getAbsoluteNoteValue — parses ONE note name + octave; no sequence to fold",
-  "core/theory.js:240": "getClosestInversionN — explicit ascending fix-up (`if pitch <= last, += 12`); correct for any root",
-  "core/theory.js:555": "getChordNotesAbsolute — root+semitones, no modulo before adding; same shape as realizeChord, still used by useDictionaryPlayback.js's chord fallback-of-fallback",
-  "core/theory.js:787": "getBassNote — one note, no sequence",
-  "core/theory.js:803": "getLeadingTone — one note, no sequence",
-  "core/theory.js:826": "computeAbsoluteNote — the canonical single-note octave-selector helper (realizeNote's pre-existing equivalent); still used directly (useDictionaryPlayback.js, useMusicEngine.js)",
+  // VMU-146 fix2 shifted the five lines below, 240->244, 555->559,
+  // 787->791, 803->807, 826->830: a 4-line comment was added just above
+  // resolveNnsToChordType's dim7 check, moving that check above the m7
+  // check (a genuine reachability fix — "dim7" always contains "m7" as a
+  // substring, so the old order made the dim7 branch dead code; found while
+  // writing the DegreeRoleDom "clicked dim7 chord" DOM test). The
+  // arithmetic on each exception's own line is untouched.
+  "core/theory.js:244": "getClosestInversionN — explicit ascending fix-up (`if pitch <= last, += 12`); correct for any root",
+  "core/theory.js:559": "getChordNotesAbsolute — root+semitones, no modulo before adding; same shape as realizeChord, still used by useDictionaryPlayback.js's chord fallback-of-fallback",
+  "core/theory.js:791": "getBassNote — one note, no sequence",
+  "core/theory.js:807": "getLeadingTone — one note, no sequence",
+  "core/theory.js:830": "computeAbsoluteNote — the canonical single-note octave-selector helper (realizeNote's pre-existing equivalent); still used directly (useDictionaryPlayback.js, useMusicEngine.js)",
 
   // --- core/voicingEngine.js: same explicit ascending fix-up as
   // getClosestInversionN, independent implementation, pre-existing, out of
