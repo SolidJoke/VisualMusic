@@ -118,6 +118,102 @@ const PLAN = [
       check("sounds C4, E4 and G4 and nothing unaccounted for", r.pitchVerdict.ok, verdictDetail(r)),
     ],
   },
+
+  // ─── VMU-144 phase A: piano vs guitar vs bass, measured ───────────────
+  // Gabriel (2026-09-18): guitar and bass sit notably quieter than piano in
+  // the Dictionary. None of the scenarios above ever played guitar or bass —
+  // this is the harness's first look at either (the ticket's own "angle
+  // mort" finding). Nine rows per the brief: for each instrument, (a) the
+  // same C4, (b) that instrument's own usual register (bass C2, guitar C3,
+  // piano C4 — piano's (a) and (b) therefore render the same note on
+  // purpose, not a copy-paste slip), (c) the C-E-G triad in that register.
+  // `expect` below only confirms each render is audible: phase A measures
+  // and reports, it does not yet judge the gap (no target/tolerance chosen —
+  // that is phase B, on the coordinator's word).
+  {
+    id: "vmu144-c4-piano",
+    title: "VMU-144 (a): piano, C4",
+    spec: { scenario: "single-note", params: { instrument: "piano", note: "C4" }, expectedNotes: ["C4"] },
+    why: "Same note on every instrument, before each one's own usual register below.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-c4-guitar",
+    title: "VMU-144 (a): guitar, C4",
+    spec: { scenario: "single-note", params: { instrument: "guitar", note: "C4" }, expectedNotes: ["C4"] },
+    why: "Same note on every instrument, before each one's own usual register below.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-c4-bass",
+    title: "VMU-144 (a): bass, C4",
+    spec: { scenario: "single-note", params: { instrument: "bass", note: "C4" }, expectedNotes: ["C4"] },
+    why:
+      "Same note on every instrument. C4 (MIDI 60) is inside bass's filtered range but near its top " +
+      "(E1-G4 = MIDI 28-67, AudioEngine.js:408-410) — near the edge of what bass ever plays, on purpose: " +
+      "the brief's registre usuel row below (C2) is where bass actually lives.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-register-piano",
+    title: "VMU-144 (b): piano, its own usual register (C4)",
+    spec: { scenario: "single-note", params: { instrument: "piano", note: "C4" }, expectedNotes: ["C4"] },
+    why: "Piano's usual register is C4 — the same render as (a) above by construction, kept as its own row for the brief's nine-row table.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-register-guitar",
+    title: "VMU-144 (b): guitar, its own usual register (C3)",
+    spec: { scenario: "single-note", params: { instrument: "guitar", note: "C3" }, expectedNotes: ["C3"] },
+    why: "C3 (MIDI 48) sits inside guitar's filtered range (E2-C6 = MIDI 40-84, AudioEngine.js:411-413), a register guitar is actually played in.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-register-bass",
+    title: "VMU-144 (b): bass, its own usual register (C2)",
+    spec: { scenario: "single-note", params: { instrument: "bass", note: "C2" }, expectedNotes: ["C2"] },
+    why: "C2 (MIDI 36) sits inside bass's filtered range (E1-G4 = MIDI 28-67, AudioEngine.js:408-410), a register bass is actually played in.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-chord-piano",
+    title: "VMU-144 (c): piano, C-E-G at C4 (C4 E4 G4)",
+    spec: {
+      scenario: "chord",
+      params: { instrument: "piano", notes: ["C4", "E4", "G4"] },
+      expectedNotes: ["C4", "E4", "G4"],
+    },
+    why: "The C major triad in piano's usual register.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-chord-guitar",
+    title: "VMU-144 (c): guitar, C-E-G at C3 (C3 E3 G3)",
+    spec: {
+      scenario: "chord",
+      params: { instrument: "guitar", notes: ["C3", "E3", "G3"] },
+      expectedNotes: ["C3", "E3", "G3"],
+    },
+    why: "The C major triad in guitar's usual register.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-chord-bass",
+    title: "VMU-144 (c): bass, C-E-G at C2 (C2 E2 G2)",
+    spec: {
+      scenario: "chord",
+      params: { instrument: "bass", notes: ["C2", "E2", "G2"] },
+      // No expectedNotes: bassSynth is a Tone.MonoSynth (AudioEngine.js:446).
+      // playDictionaryNote (:424-436) sorts the filtered notes by MIDI and
+      // plays only the lowest one — for this chord, just C2. Asserting the
+      // triad here would fail on the app's actual, intentional behaviour,
+      // not a defect; the "voices"/pitch-content row is where this shows up.
+    },
+    why:
+      "The C major triad in bass's usual register — but bass only ever sounds its lowest note of a chord " +
+      "(MonoSynth, AudioEngine.js:424-436): this row measures what actually plays, C2 alone, not C2+E2+G2.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
   {
     id: "output-link-probe-quiet",
     title: "Output link characterised: a 220 Hz sine at -40 dBFS, far below the ~-1 dBFS ceiling",
@@ -425,6 +521,11 @@ function printMeasurement(item, m, checks, pageErrors) {
   const rows = [
     ["mix peak", `${fmt(m.mix.peakDbfs)} dBFS`, m.mix.clippedSamples > 0 ? `${m.mix.clippedSamples} samples past full scale` : "no clipping"],
     ["mix RMS", `${fmt(m.mix.rmsDbfs)} dBFS`, ""],
+    [
+      "mix loudness",
+      `${fmt(m.mix.loudness.lufs)} LUFS`,
+      `ITU-R BS.1770, ${m.mix.loudness.gatedBlockCount}/${m.mix.loudness.blockCount} 400ms blocks passed gating`,
+    ],
     ["before output link", `${fmt(m.preLimiter.peakDbfs)} dBFS peak`, `${fmt(m.preLimiter.rmsDbfs)} dBFS RMS`],
     [
       "output link",
@@ -459,7 +560,18 @@ function printMeasurement(item, m, checks, pageErrors) {
         (m.pitchVerdict.unexplained.length ? `; unexplained ${m.pitchVerdict.unexplained.join(", ")}` : ""),
     ]);
   }
-  if (m.pianoVoice) rows.push(["voices", `piano: ${m.pianoVoice}`, m.guitarVoice ? `guitar: ${m.guitarVoice}` : ""]);
+  if (m.pianoVoice) {
+    const noteDetail = [m.guitarVoice ? `guitar: ${m.guitarVoice}` : "", m.bassVoice ? `bass: ${m.bassVoice}` : ""]
+      .filter(Boolean)
+      .join(", ");
+    rows.push(["voices", `piano: ${m.pianoVoice}`, noteDetail]);
+  } else if (m.bassVoice) {
+    // Bass-only scenarios still call loadSamplers (piano/guitar samplers are
+    // always loaded), so pianoVoice should be set too — this branch exists
+    // only so a future scenario that reports bass alone is not silently
+    // dropped from the table.
+    rows.push(["voices", `bass: ${m.bassVoice}`, ""]);
+  }
   if (m.style) rows.push(["style", `${m.style.name} — ${m.style.progression.join(" ")}`, `${m.style.bpm} BPM`]);
   if (m.scheduledPitchCount !== undefined) {
     rows.push([

@@ -181,10 +181,16 @@ export async function runScenario(spec) {
 }
 
 /**
- * Waits for every Tone buffer to finish decoding, and reports which piano
- * voice the render will actually use. VMU-102 was the first note playing the
- * fallback synth; a measurement that does not say which voice it heard cannot
- * tell that defect from a bad sample.
+ * Waits for every Tone buffer to finish decoding, and reports which voice
+ * each instrument's render will actually use. VMU-102 was the first note
+ * playing the fallback synth; a measurement that does not say which voice it
+ * heard cannot tell that defect from a bad sample.
+ *
+ * Bass has no sampler and no fallback distinction — `bassSynth` (AudioEngine.js)
+ * is a single `Tone.MonoSynth`, always — but VMU-144's brief asks the voice be
+ * reported "pour la basse aussi", so a reader comparing the three instruments'
+ * loudness sees in one place that bass is a synth while piano/guitar can be
+ * either a sampler or their own fallback synth.
  *
  * @param {Object} args
  * @returns {Promise<void>}
@@ -195,6 +201,7 @@ async function loadSamplers({ Tone: T, engine, diagnostics }) {
   await T.loaded();
   diagnostics.pianoVoice = engine.getPianoSynth().constructor.name;
   diagnostics.guitarVoice = engine.getGuitarSynth().constructor.name;
+  diagnostics.bassVoice = engine.bassSynth.constructor.name;
 }
 
 /**
