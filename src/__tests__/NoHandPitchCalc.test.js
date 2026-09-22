@@ -142,11 +142,18 @@ const EXCEPTIONS = {
   // either a single note (no scale/chord sequence to fold, so VMU-140's
   // do-crossing defect does not apply) or already ascending by construction. ---
   "core/theory.js:78": "getAbsoluteNoteValue — parses ONE note name + octave; no sequence to fold",
-  "core/theory.js:240": "getClosestInversionN — explicit ascending fix-up (`if pitch <= last, += 12`); correct for any root",
-  "core/theory.js:555": "getChordNotesAbsolute — root+semitones, no modulo before adding; same shape as realizeChord, still used by useDictionaryPlayback.js's chord fallback-of-fallback",
-  "core/theory.js:787": "getBassNote — one note, no sequence",
-  "core/theory.js:803": "getLeadingTone — one note, no sequence",
-  "core/theory.js:826": "computeAbsoluteNote — the canonical single-note octave-selector helper (realizeNote's pre-existing equivalent); still used directly (useDictionaryPlayback.js, useMusicEngine.js)",
+  // VMU-146 fix2 shifted the five lines below, 240->244, 555->559,
+  // 787->791, 803->807, 826->830: a 4-line comment was added just above
+  // resolveNnsToChordType's dim7 check, moving that check above the m7
+  // check (a genuine reachability fix — "dim7" always contains "m7" as a
+  // substring, so the old order made the dim7 branch dead code; found while
+  // writing the DegreeRoleDom "clicked dim7 chord" DOM test). The
+  // arithmetic on each exception's own line is untouched.
+  "core/theory.js:244": "getClosestInversionN — explicit ascending fix-up (`if pitch <= last, += 12`); correct for any root",
+  "core/theory.js:559": "getChordNotesAbsolute — root+semitones, no modulo before adding; same shape as realizeChord, still used by useDictionaryPlayback.js's chord fallback-of-fallback",
+  "core/theory.js:791": "getBassNote — one note, no sequence",
+  "core/theory.js:807": "getLeadingTone — one note, no sequence",
+  "core/theory.js:830": "computeAbsoluteNote — the canonical single-note octave-selector helper (realizeNote's pre-existing equivalent); still used directly (useDictionaryPlayback.js, useMusicEngine.js)",
 
   // --- core/voicingEngine.js: same explicit ascending fix-up as
   // getClosestInversionN, independent implementation, pre-existing, out of
@@ -169,26 +176,32 @@ const EXCEPTIONS = {
 
   // --- useMusicEngine.js: Studio mode, explicitly out of scope (brief
   // decision #3 — untouched; VMU-123 touches this file in parallel and
-  // VMU-115 migrates the rest). Both sites are correct for any root: :135
+  // VMU-115 migrates the rest). Both sites are correct for any root: :138
   // never re-derives a pitch class before adding (root+semi+base, like
-  // theory.js's getChordNotesAbsolute); :145-147 is the default-triad
+  // theory.js's getChordNotesAbsolute); :148-150 is the default-triad
   // fallback, which explicitly re-checks for the do-crossing case
   // (`n2 < n1 ? 60 : 48`) and picks the next octave up when it happens —
   // the "correct" hand calc the ticket's own cause analysis names (there
   // cited as useMusicEngine.js:141-143; VMU-123 (PR #117, merged onto this
-  // ticket's base) shifted it to :145-147 — see report for the discrepancy). ---
-  "hooks/useMusicEngine.js:135": "Studio fretboardActiveNotes fallback — root+semi+48, no modulo; correct for any root",
-  "hooks/useMusicEngine.js:145": "Studio default-triad fallback, root note — trivially correct (first note, nothing to cross)",
-  "hooks/useMusicEngine.js:146": "Studio default-triad fallback, 3rd — ternary explicitly picks the octave above when it crosses do",
-  "hooks/useMusicEngine.js:147": "Studio default-triad fallback, 5th — same explicit do-crossing check as :146",
+  // ticket's base) shifted it to :145-147 — see report for the discrepancy).
+  // VMU-146 shifted these four again, 135->138 and 145-147->148-150: a
+  // 3-line comment was added just above (explaining why fretboardActiveNotes
+  // now calls getChordIntervalLabel with index -1, not chordData's own
+  // position `i` — a real producer-side fix, not cosmetic; see the VMU-146
+  // report). The arithmetic on each line is untouched. ---
+  "hooks/useMusicEngine.js:138": "Studio fretboardActiveNotes fallback — root+semi+48, no modulo; correct for any root",
+  "hooks/useMusicEngine.js:148": "Studio default-triad fallback, root note — trivially correct (first note, nothing to cross)",
+  "hooks/useMusicEngine.js:149": "Studio default-triad fallback, 3rd — ternary explicitly picks the octave above when it crosses do",
+  "hooks/useMusicEngine.js:150": "Studio default-triad fallback, 5th — same explicit do-crossing check as :149",
 
   // --- PianoKeyboard.jsx: explicitly out of scope (brief decision #3).
   // Single pitch (the harmonic-series overlay's base note) — VMU-140's
   // defect (a note falling below a DIFFERENT note in the same sequence)
   // does not apply to a single note. It does hard-code octave 3, ignoring
   // the Dictionary's octave selector — a real but separate issue, left for
-  // VMU-115 as the brief asks. ---
-  "components/Instruments/PianoKeyboard.jsx:83": "harmonic-series overlay base pitch — single note, fixed octave 3 (ignores the octave selector; separate, pre-existing, VMU-115 territory)",
+  // VMU-115 as the brief asks. Line shifted 83 -> 84 (VMU-146 added an
+  // import line above it for getRoleForDegreeLabel); content unchanged. ---
+  "components/Instruments/PianoKeyboard.jsx:84": "harmonic-series overlay base pitch — single note, fixed octave 3 (ignores the octave selector; separate, pre-existing, VMU-115 territory)",
 };
 
 function relKey(file, line) {

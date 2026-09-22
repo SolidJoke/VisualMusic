@@ -90,9 +90,13 @@ export const resolveNnsToChordType = (nns) => {
     if (!nns) return 'chord_major';
     if (nns.includes('maj7')) return 'chord_maj7';
     if (nns.includes('m7b5')) return 'chord_m7b5';
+    // VMU-146 fix2: dim7 must be checked before the plain m7 check below —
+    // the substring "dim7" always contains "m7" ("di" + "m7"), so with m7
+    // checked first no nns could ever reach this branch (found while writing
+    // a DOM test that clicks a dim7 chord; see src/core/__tests__/chords.test.js).
+    if (nns.includes('dim7')) return 'chord_dim7';
     if (nns.includes('m7')) return 'chord_m7';
     if (nns.includes('m9')) return 'chord_m9';
-    if (nns.includes('dim7')) return 'chord_dim7';
     if (nns.includes('dim') || nns.includes('°')) return 'chord_dim';
     if (nns.includes('add9')) return 'chord_add9';
     if (nns.includes('9')) return 'chord_9';

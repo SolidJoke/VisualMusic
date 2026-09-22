@@ -7,6 +7,7 @@ import { NOTES } from "./theory";
 import { FINGER_LABELS } from "./fingeringLogic";
 import { logPlayingMismatch } from "./debugScale";
 import { TUNINGS } from "./tunings";
+import { getRoleForDegreeLabel } from "./harmonyEngine";
 
 /**
  * Calculates the width of each fret in a logarithmic progression (Rule of 18).
@@ -195,11 +196,8 @@ function resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue
       roleClass = "role-target";
       isTargetNote = true;
     } else if (orderToDisplay) {
-      const order = String(orderToDisplay);
-      if (order === "1") roleClass = "role-root";
-      else if (order.includes("3")) roleClass = "role-third";
-      else if (order.includes("5")) roleClass = "role-fifth";
-      else roleClass = "role-extension";
+      // Degree label ("1", "b3", "3", "5"...) -> role, single rule (VMU-146)
+      roleClass = `role-${getRoleForDegreeLabel(orderToDisplay)}`;
     } else {
       const interval = (noteValue - rootValue + 12) % 12;
       if (interval === 0) roleClass = "role-root";

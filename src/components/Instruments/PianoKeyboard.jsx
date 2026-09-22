@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from "react";
 import "./PianoKeyboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
 import { getHarmonicSeries } from "../../core/acousticEngine";
+import { getRoleForDegreeLabel } from "../../core/harmonyEngine";
 import { useAppContext } from "../../context/AppContext";
 import { useMusicEngineContext } from "../../context/MusicEngineContext";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
@@ -156,13 +157,10 @@ function PianoKeyboard() {
     if (targetValues.includes(i)) return "role-target";
     
     // Use the explicitly passed order if available (favors clicked chord roles)
-    // If order is provided (e.g. 1, 3, 5), map to role classes
+    // Degree label ("1", "b3", "3", "5"...) -> role, single rule (VMU-146)
     const order = activeNote?.order !== undefined ? String(activeNote.order) : null;
     if (order) {
-      if (order === "1") return "role-root";
-      if (order === "3") return "role-third";
-      if (order === "5") return "role-fifth";
-      return "role-extension";
+      return `role-${getRoleForDegreeLabel(order)}`;
     }
     
     // Fallback to calculation based on current rootValue

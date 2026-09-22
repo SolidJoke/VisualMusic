@@ -206,22 +206,67 @@ export function getInversionType(bassNoteAbsolute, rootValue, nns) {
  * Returns a human-readable interval label for a chord tone.
  * Used to label piano keys (1, b3, 3, b5, 5, b7, 7, 9…).
  *
+ * The root and the two labels below (VMU-146 fix2) key off `semitone` alone,
+ * not `index`: two callers use different index conventions for the same
+ * chord tone — fretboardActiveNotes and core/realization.js always pass -1,
+ * while the piano producer and useDictionaryMode.js pass the note's real
+ * position in the chord's semitone array — and a rule keyed on `index` gave
+ * each convention a different (and both wrong) answer for the same tone.
+ * Confirmed by the coordinator's probe over every note of core/theory.js's
+ * CHORDS catalog (52 notes, 14 chords): only chord_aug's semitone 8 and
+ * chord_dim7's semitone 9 were affected — both previously fell through to
+ * the index+2 fallback below.
+ *
  * @param {number} index    - Position in the chord's semitone array (0 = root)
  * @param {number} semitone - Semitone distance from root
- * @returns {number|string}  e.g. 1, 'b3', 3, 'b5', 5, 'b7', 7, 9
+ * @returns {number|string}  e.g. 1, 'b3', 3, 'b5', 5, '#5', 'b7', 7, 'bb7', 9
  */
 export function getChordIntervalLabel(index, semitone) {
-  if (index === 0)    return 1;
+  if (semitone === 0)  return 1;
   if (semitone === 2)  return '2';   // sus2 second
   if (semitone === 3)  return 'b3';
   if (semitone === 4)  return 3;
   if (semitone === 5)  return '4';   // sus4 fourth
   if (semitone === 6)  return 'b5';
   if (semitone === 7)  return 5;
+  if (semitone === 8)  return '#5';  // augmented 5th (VMU-146 fix2, chord_aug)
+  if (semitone === 9)  return 'bb7'; // diminished 7th (VMU-146 fix2, chord_dim7) — not a 6th/13th
   if (semitone === 10) return 'b7';
   if (semitone === 11) return 7;
   if (semitone > 12)   return 9;
-  return index + 2; // fallback for aug5 and other edge cases
+  return index + 2; // fallback for edge cases outside today's catalog
+}
+
+// ---------------------------------------------------------------------------
+// Degree Label -> Harmonic Role (VMU-146)
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps a chord-degree label (as produced by getChordIntervalLabel, e.g.
+ * 1, 'b3', 3, 'b5', 5, '#5', 'b7', 7, 9) to the harmonic role used to color
+ * a piano key or fretboard dot.
+ *
+ * Single rule for the two consumers that used to diverge (VMU-146):
+ * PianoKeyboard.jsx tested exact equality ("3" -> third), while
+ * core/fretboardUtils.js tested inclusion (order.includes("3") -> third) —
+ * so a minor-third label "b3" (or an augmented fifth "#5") read as
+ * third/fifth on the fretboard and extension on the piano. Both now call
+ * this function instead of their own rule.
+ *
+ * Sevenths (b7, 7) fall to 'extension': no `role-seventh` CSS variable or
+ * class exists yet (checked App.css, styles/tokens.css and
+ * styles/modern-theme.css, 2026-09-21) — the day one is added, this is the
+ * only place to change so both consumers pick it up together.
+ *
+ * @param {string|number} label a degree label, e.g. from getChordIntervalLabel
+ * @returns {'root'|'third'|'fifth'|'extension'}
+ */
+export function getRoleForDegreeLabel(label) {
+  const degree = String(label);
+  if (degree === '1') return 'root';
+  if (degree === '3' || degree === 'b3') return 'third';
+  if (degree === '5' || degree === 'b5' || degree === '#5') return 'fifth';
+  return 'extension';
 }
 
 // ---------------------------------------------------------------------------

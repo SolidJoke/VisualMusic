@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { useMusicEngine } from '../useMusicEngine';
 import { generateChordsFromNNS } from '../../core/theory';
+import { getRoleForDegreeLabel } from '../../core/harmonyEngine';
 
 // Mock theory and fingering logic if necessary, or use real ones for high-fidelity tests
 describe('useMusicEngine', () => {
@@ -412,6 +413,59 @@ describe('useMusicEngine — target notes (VMU-123)', () => {
       })
     );
     expect(result.current.inversionText).toBe('root');
+  });
+});
+
+// VMU-146 — Studio arrival, nothing clicked: the default-triad fallback
+// (musicContext's "else" branch, useMusicEngine.js:139-156) used to write
+// `order` as the note's bare rank in the triad (1, 2, 3) — the position it
+// occupies, not its harmonic degree. Both consumers (PianoKeyboard.jsx,
+// core/fretboardUtils.js) read `order` as a degree, so the 3rd (rank 2)
+// coloured as "extension" and the 5th (rank 3) as "third". Rouge prédit
+// (measured against the pre-fix code, see the VMU-146 report): order was
+// 1, 2, 3 — getRoleForDegreeLabel(2) and (3) both give 'extension'/'third'
+// respectively, not 'third'/'fifth'.
+describe('useMusicEngine — Studio arrival, default triad produces degrees not ranks (VMU-146)', () => {
+  const activeBrick = { rootValue: 0, scaleKey: 'scale_major' }; // do majeur
+
+  const baseParams = {
+    appMode: 'studio',
+    activeBrick,
+    clickedChord: null,
+    isPlaying: false,
+    currentPlayingChord: null,
+    currentAbsoluteNotes: [],
+    chordOctaveOffset: 0,
+    displayMode: 'chord',
+    selectedRootStringGuitar: null,
+    selectedRootStringBass: null,
+    selectedVoicingIndexGuitar: null,
+    selectedVoicingIndexBass: null,
+    dictRoot: '0',
+    dictType: 'chord_major',
+    dictActiveNotes: [],
+    dictOctave: 0,
+  };
+
+  it('do (root), mi (3rd) and sol (5th) carry degree labels 1, 3, 5 — not their rank 1, 2, 3', () => {
+    const { result } = renderHook(() => useMusicEngine(baseParams));
+    const byPitchClass = Object.fromEntries(
+      result.current.activeNotes.map((n) => [n.value, n.order])
+    );
+    // do=0, mi=4, sol=7 (scale_major degrees at scaleNotes index 0, 2, 4)
+    expect(byPitchClass[0]).toBe(1);
+    expect(byPitchClass[4]).toBe(3);  // NOT 2 (the old rank)
+    expect(byPitchClass[7]).toBe(5);  // NOT 3 (the old rank)
+  });
+
+  it('those degree labels resolve to root/third/fifth roles — the actual bug, via the single rule', () => {
+    const { result } = renderHook(() => useMusicEngine(baseParams));
+    const byPitchClass = Object.fromEntries(
+      result.current.activeNotes.map((n) => [n.value, n.order])
+    );
+    expect(getRoleForDegreeLabel(byPitchClass[0])).toBe('root');
+    expect(getRoleForDegreeLabel(byPitchClass[4])).toBe('third');
+    expect(getRoleForDegreeLabel(byPitchClass[7])).toBe('fifth');
   });
 });
 

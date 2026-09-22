@@ -14,7 +14,9 @@ import {
   SONG_STRUCTURES,
   getInversionType,
   getChordIntervalLabel,
+  getRoleForDegreeLabel,
 } from '../harmonyEngine.js';
+import { CHORDS } from '../theory.js';
 
 // ---------------------------------------------------------------------------
 // getChordFunction
@@ -272,9 +274,138 @@ describe('getChordIntervalLabel', () => {
     expect(getChordIntervalLabel(1, 5)).toBe('4');
   });
 
-  it('should return index+2 as fallback for genuinely unlabeled intervals (e.g. aug5)', () => {
-    // aug chord: [0, 4, 8] — semitone 8 has no explicit case → falls to index+2 = 2+2 = 4
-    // This is acceptable as a display fallback for unusual intervals
-    expect(getChordIntervalLabel(2, 8)).toBe(4);
+  // --- VMU-146 fix2 — the coordinator's probe over the full CHORDS catalog
+  // (see harmonyEngine.js:213) found two semitones whose label depended on
+  // which caller's index convention was used: fretboardActiveNotes and
+  // realization.js always pass index -1, while the piano/Dictionary
+  // producers pass the note's real position. Both must agree.
+  it('should return "1" for semitone 0 regardless of index — root, both conventions (VMU-146 fix2)', () => {
+    // Before fix2 this only worked for index -1 BY COINCIDENCE of the
+    // index+2 fallback (-1 + 2 = 1); any other index landed on 1 only
+    // because index===0 was checked explicitly. Now semitone 0 is the rule.
+    expect(getChordIntervalLabel(-1, 0)).toBe(1);
+    expect(getChordIntervalLabel(0, 0)).toBe(1);
+  });
+
+  it('should return "#5" for semitone 8 (augmented 5th) regardless of index (VMU-146 fix2)', () => {
+    // aug chord: [0, 4, 8] (core/theory.js CHORDS.chord_aug). Before fix2,
+    // semitone 8 had no explicit case and fell through to the index+2
+    // fallback: index -1 (fretboard/realization convention) produced 1
+    // ("root" — chord_aug's #5 read as its own root), index 2 (piano/
+    // Dictionary real-index convention) produced 4 ("extension"). Neither
+    // was "#5" ("fifth"), and the two disagreed with each other.
+    expect(getChordIntervalLabel(-1, 8)).toBe('#5');
+    expect(getChordIntervalLabel(2, 8)).toBe('#5');
+  });
+
+  it('should return "bb7" for semitone 9 (diminished 7th) regardless of index (VMU-146 fix2)', () => {
+    // dim7 chord: [0, 3, 6, 9] (core/theory.js CHORDS.chord_dim7) — the only
+    // catalog chord with a semitone-9 tone, and it is a diminished seventh,
+    // not a 6th/13th. Before fix2, index -1 produced 1 ("root"), the real
+    // index 3 produced 5 ("fifth") — both wrong, and disagreeing.
+    expect(getChordIntervalLabel(-1, 9)).toBe('bb7');
+    expect(getChordIntervalLabel(3, 9)).toBe('bb7');
+  });
+
+  it('should still return index+2 as fallback for indices with no explicit case', () => {
+    // No chord in the catalog has a semitone that reaches this fallback
+    // today (verified by the full-catalog property test below) — kept as
+    // the documented behaviour for any future/out-of-catalog semitone.
+    expect(getChordIntervalLabel(5, 1)).toBe(7);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getChordIntervalLabel × getRoleForDegreeLabel — full CHORDS catalog
+// (VMU-146 fix2)
+// ---------------------------------------------------------------------------
+//
+// The coordinator's probe (brief VMU-146-fix2-brief.md) measured every note
+// of every chord in core/theory.js's CHORDS registry (52 notes across 14
+// chords) against BOTH index conventions in live use: index -1
+// (useMusicEngine.js's fretboardActiveNotes, core/realization.js) and the
+// note's real array position (useMusicEngine.js's piano activeNotes,
+// useDictionaryMode.js). Only chord_aug (semitone 8) and chord_dim7
+// (semitone 9) disagreed with the expected role; the other 50 notes were
+// already correct on both conventions.
+describe('getChordIntervalLabel × getRoleForDegreeLabel — full CHORDS catalog (VMU-146 fix2)', () => {
+  /** Expected harmonic role by semitone-from-root, per the brief's table. */
+  function expectedRoleForSemitone(semitone) {
+    if (semitone === 0) return 'root';
+    if (semitone === 3 || semitone === 4) return 'third';
+    if (semitone === 6 || semitone === 7 || semitone === 8) return 'fifth';
+    return 'extension';
+  }
+
+  const chordEntries = Object.values(CHORDS);
+
+  it('sanity: the catalog has 52 notes across 14 chords (matches the brief\'s probe)', () => {
+    expect(chordEntries.length).toBe(14);
+    const totalNotes = chordEntries.reduce((sum, c) => sum + c.semitones.length, 0);
+    expect(totalNotes).toBe(52);
+  });
+
+  chordEntries.forEach((chord) => {
+    describe(`${chord.key} [${chord.semitones.join(', ')}]`, () => {
+      chord.semitones.forEach((semitone, realIndex) => {
+        const expectedRole = expectedRoleForSemitone(semitone);
+
+        it(`semitone ${semitone} (real index ${realIndex}) -> role ${expectedRole}, index -1 convention (fretboard/realization)`, () => {
+          const label = getChordIntervalLabel(-1, semitone);
+          expect(getRoleForDegreeLabel(label)).toBe(expectedRole);
+        });
+
+        it(`semitone ${semitone} (real index ${realIndex}) -> role ${expectedRole}, real-index convention (piano/Dictionary)`, () => {
+          const label = getChordIntervalLabel(realIndex, semitone);
+          expect(getRoleForDegreeLabel(label)).toBe(expectedRole);
+        });
+      });
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getRoleForDegreeLabel (VMU-146)
+// ---------------------------------------------------------------------------
+//
+// The single degree-label -> role rule, replacing two consumers that used
+// to disagree: PianoKeyboard.jsx tested exact equality ("3" -> third),
+// core/fretboardUtils.js tested inclusion (order.includes("3") -> third),
+// so "b3" (contains no "3" as a full label under equality, but does under
+// inclusion) read as extension on the piano and third on the fretboard.
+// Table below is the single rule both now call (brief decision #1):
+// "b3"/"3" -> third, "b5"/"5"/"#5" -> fifth, "1" -> root, rest -> extension
+// (sevenths included: no role-seventh CSS class exists today).
+describe('getRoleForDegreeLabel (VMU-146) — single degree-label -> role rule', () => {
+  it.each([
+    // [label, expected role]
+    ['1', 'root'],
+    [1, 'root'],          // getChordIntervalLabel(0, _) returns the number 1
+    ['3', 'third'],
+    [3, 'third'],         // getChordIntervalLabel(i, 4) returns the number 3
+    ['b3', 'third'],      // minor 3rd — the case the old equality rule missed
+    ['5', 'fifth'],
+    [5, 'fifth'],         // getChordIntervalLabel(i, 7) returns the number 5
+    ['b5', 'fifth'],
+    ['#5', 'fifth'],      // augmented 5th — the case the old equality rule missed
+    ['b7', 'extension'],  // no role-seventh class today — documented fallback
+    ['7', 'extension'],
+    [7, 'extension'],
+    ['9', 'extension'],
+    [9, 'extension'],
+    ['2', 'extension'],   // sus2
+    ['4', 'extension'],   // sus4
+    ['bb7', 'extension'], // diminished 7th (VMU-146 fix2) — falls to extension, same as b7/7
+  ])('degree label %p maps to role %p', (label, expected) => {
+    expect(getRoleForDegreeLabel(label)).toBe(expected);
+  });
+
+  it('is the single rule: equality-style and inclusion-style labels for the minor 3rd agree', () => {
+    // The pre-fix divergence, made explicit: PianoKeyboard's old rule
+    // (order === "3") and fretboardUtils's old rule (order.includes("3"))
+    // would have disagreed on "b3". The single function cannot: both
+    // consumers now call the exact same code path.
+    expect(getRoleForDegreeLabel('b3')).toBe(getRoleForDegreeLabel(3));
+    expect(getRoleForDegreeLabel('b3')).toBe('third');
   });
 });

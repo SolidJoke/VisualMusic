@@ -132,5 +132,35 @@ describe('useDictionaryMode', () => {
       expect(root.absoluteValue).toBe(96);
     });
   });
+
+  // -------------------------------------------------------
+  // VMU-146 fix2 — activeNotes order labels for chord_dim7 and chord_aug.
+  // useDictionaryMode calls getChordIntervalLabel(i, semi) with the note's
+  // REAL array index (harmonyEngine.js:79), one of the two conventions the
+  // fix2 brief's coordinator probe measured across the CHORDS catalog.
+  // -------------------------------------------------------
+  describe('activeNotes order label — augmented and diminished-7th chords (VMU-146 fix2)', () => {
+    it('chord_dim7: the last note (semitone 9, the "bb7") has order "bb7"', () => {
+      const { result } = renderHook(() => useDictionaryMode(), { wrapper });
+      act(() => {
+        result.current.setDictRoot(0);
+        result.current.setDictType('chord_dim7');
+      });
+      // core/theory.js CHORDS.chord_dim7.semitones = [0, 3, 6, 9] — last note is semitone 9.
+      const last = result.current.activeNotes[result.current.activeNotes.length - 1];
+      expect(last.order).toBe('bb7');
+    });
+
+    it('chord_aug: the last note (semitone 8, the augmented 5th) has order "#5"', () => {
+      const { result } = renderHook(() => useDictionaryMode(), { wrapper });
+      act(() => {
+        result.current.setDictRoot(0);
+        result.current.setDictType('chord_aug');
+      });
+      // core/theory.js CHORDS.chord_aug.semitones = [0, 4, 8] — last note is semitone 8.
+      const last = result.current.activeNotes[result.current.activeNotes.length - 1];
+      expect(last.order).toBe('#5');
+    });
+  });
 });
 
