@@ -172,7 +172,7 @@ const EXCEPTIONS = {
   // (scripts/audio_measure.mjs's engine). Single-note conversions, not a
   // scale or chord sequence — VMU-140's defect does not apply. ---
   "audio/measure/offlineRender.js:433": "bass fallback note name — one note, no sequence (line shifted from :391 by VMU-056's metronome scenario, added above it)",
-  "audio/measure/signalMetrics.js:704": "noteNameToMidi — the harness's own note-name parser, one note at a time (line shifted from :652 by VMU-056's detectOnsets, added above it)",
+  "audio/measure/signalMetrics.js:919": "noteNameToMidi — the harness's own note-name parser, one note at a time (line shifted from :704 by VMU-144's loudness/BS.1770 section, added above it)",
 
   // --- useMusicEngine.js: Studio mode, explicitly out of scope (brief
   // decision #3 — untouched; VMU-123 touches this file in parallel and

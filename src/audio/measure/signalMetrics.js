@@ -70,7 +70,7 @@ export function fromDbfs(db) {
  * compressor at +5 dBFS, i.e. peak > 1.0). RMS answers "how loud is it",
  * which is the gain-staging question (VMU-024).
  *
- * @param {Float32Array|number[]} samples
+ * @param {Float32Array|Float64Array|number[]} samples
  * @returns {{ peak: number, peakDbfs: number, rms: number, rmsDbfs: number,
  *             clippedSamples: number, length: number }}
  */
@@ -114,6 +114,224 @@ export function levelMetrics(samples) {
 export function silenceMetrics(samples, floorDbfs = SILENCE_FLOOR_DBFS) {
   const { peakDbfs } = levelMetrics(samples);
   return { silent: peakDbfs <= floorDbfs, peakDbfs, floorDbfs };
+}
+
+// ─── Loudness (ITU-R BS.1770) ──────────────────────────────────────────
+//
+// VMU-144 — Gabriel's ear says guitar and bass sit quieter than piano in the
+// Dictionary. Peak and RMS above are both physical measures; neither is a
+// perceptual one, and a same-RMS bass and piano note do not sound equally
+// loud (K-weighting rolls off sub-bass and lifts presence). This section adds
+// the perceptual measure BS.1770 defines, so the phase A table can report
+// "how loud does the ear judge this" alongside "how big is this waveform".
+//
+// Sources, cited rather than guessed (VMU-144 brief: "n'invente pas de
+// coefficients ; cite ta source dans le code") —
+//
+// - ITU-R BS.1770-4 (10/2015), "Algorithms to measure audio programme
+//   loudness and true-peak audio level": Annex 1 Table 1 gives the K-weighting
+//   biquad coefficients, but *only* at 48 kHz, with the standard's own
+//   instruction for other rates: "Loudness values for signals sampled at
+//   rates other than 48 kHz should be calculated using coefficients that
+//   provide the same frequency response as that of the 48 kHz filters."
+//   §2.3 / Equation (2) gives the mean-square-to-loudness formula and the
+//   gating-block algorithm (400 ms blocks, 75% overlap, -70 LUFS absolute
+//   gate, -10 LU relative gate) this file implements below.
+//   Recommendation page: https://www.itu.int/rec/R-REC-BS.1770
+// - The filter design formula (below, `designPreFilter`/`designHighPass`) is
+//   not the classic bilinear-transform "Audio EQ Cookbook" shelf/high-pass —
+//   that was tried first here and, checked against the values below, missed
+//   the official 48 kHz table by up to 3.7% on a2 (wrong stopband shape, not
+//   a rounding difference). What actually reproduces the table is the
+//   tangent-prewarped design (`K = tan(pi*f0/Fs)`, an `(A,B)`-shelf variant)
+//   used by libebur128 (https://github.com/jiixyj/libebur128,
+//   `ebur128/ebur128.c`, function `filter_create_hp`/`init_filter`; BSD-2,
+//   widely used — it is what ffmpeg's `ebur128` filter links against, tested
+//   there against the EBU PLOUD conformance streams). Reproduced verbatim
+//   below, hand-verified here (2026-09-22) against ITU-R BS.1770-4 Annex 1
+//   Table 1 at 48 kHz: the pre-filter matches to 9 significant figures
+//   (b0 1.53512486 vs table's 1.53512485958697); the RLB stage's a1/a2 match
+//   to 10 figures, and its numerator is the table's own exact [1, -2, 1] —
+//   libebur128 leaves that numerator un-normalised by a0 rather than
+//   dividing through, which is what the standard's own table does too (its
+//   b0 is exactly 1.0, not division of Table 1). Design constants (f0, gain,
+//   Q for each stage) below are libebur128's, which is where the RBJ attempt
+//   above got its own gain/Q/frequency numbers from in the first place —
+//   they were right, only the biquad formula built from them was wrong.
+
+/**
+ * K-weighting filter design constants (libebur128, cited above): centre
+ * frequency, shelf gain (stage 1 only) and Q for each of the cascade's two
+ * stages. Not directly usable as biquad coefficients — `designPreFilter` and
+ * `designHighPass` below build those, tangent-prewarped for `sampleRate`.
+ */
+export const K_WEIGHTING_STAGES = [
+  // Stage 1 — "pre-filter": head-diffraction high shelf, BS.1770-4 Annex 1.
+  { freq: 1681.974450955533, gainDb: 3.999843853973347, q: 0.7071752369554196 },
+  // Stage 2 — RLB ("Revised Low-frequency B-curve") high-pass, same annex.
+  // gainDb is unused by designHighPass; kept at 0 only so both array entries
+  // share one shape (TS otherwise infers a two-member union and loses track
+  // of which entry is which after destructuring in kWeight below).
+  { freq: 38.13547087602444, gainDb: 0, q: 0.5003270373238773 },
+];
+
+/**
+ * Stage 1: the K-weighting pre-filter, a high shelf built with the
+ * tangent-prewarped two-pole design libebur128 uses (cited above) rather
+ * than a textbook bilinear-transform shelf — that substitution is exactly
+ * what produced the wrong table match this comment block explains.
+ * @param {{freq:number, gainDb:number, q:number}} stage
+ * @param {number} sampleRate
+ * @returns {{b0:number,b1:number,b2:number,a1:number,a2:number}}
+ */
+function designPreFilter(stage, sampleRate) {
+  const K = Math.tan((Math.PI * stage.freq) / sampleRate);
+  const Vh = Math.pow(10, stage.gainDb / 20);
+  const Vb = Math.pow(Vh, 0.4996667741545416); // libebur128's own fitted exponent, not derived here
+  const a0 = 1 + K / stage.q + K * K;
+  return {
+    b0: (Vh + (Vb * K) / stage.q + K * K) / a0,
+    b1: (2 * (K * K - Vh)) / a0,
+    b2: (Vh - (Vb * K) / stage.q + K * K) / a0,
+    a1: (2 * (K * K - 1)) / a0,
+    a2: (1 - K / stage.q + K * K) / a0,
+  };
+}
+
+/**
+ * Stage 2: the RLB high-pass. Numerator is the fixed [1, -2, 1] the official
+ * table itself publishes (a double zero at DC, un-normalised by a0 — see the
+ * module comment above for why that is not a bug); only the denominator
+ * depends on sample rate via the same tangent prewarping as stage 1.
+ * @param {{freq:number, q:number}} stage
+ * @param {number} sampleRate
+ * @returns {{b0:number,b1:number,b2:number,a1:number,a2:number}}
+ */
+function designHighPass(stage, sampleRate) {
+  const K = Math.tan((Math.PI * stage.freq) / sampleRate);
+  const a0 = 1 + K / stage.q + K * K;
+  return {
+    b0: 1,
+    b1: -2,
+    b2: 1,
+    a1: (2 * (K * K - 1)) / a0,
+    a2: (1 - K / stage.q + K * K) / a0,
+  };
+}
+
+/**
+ * Direct Form I biquad, applied sample by sample (block processing would
+ * need overlap bookkeeping this harness has no use for — buffers here are
+ * single offline renders, not a stream).
+ * @param {Float32Array|Float64Array|number[]} samples
+ * @param {{b0:number,b1:number,b2:number,a1:number,a2:number}} c
+ * @returns {Float64Array}
+ */
+function applyBiquad(samples, c) {
+  const out = new Float64Array(samples.length);
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const x0 = samples[i];
+    const y0 = c.b0 * x0 + c.b1 * x1 + c.b2 * x2 - c.a1 * y1 - c.a2 * y2;
+    out[i] = y0;
+    x2 = x1;
+    x1 = x0;
+    y2 = y1;
+    y1 = y0;
+  }
+  return out;
+}
+
+/**
+ * K-weights a mono buffer: BS.1770's two-stage cascade (pre-filter, then RLB
+ * high-pass), designed fresh for `sampleRate` — see K_WEIGHTING_STAGES above.
+ * @param {Float32Array|number[]} samples
+ * @param {number} sampleRate
+ * @returns {Float64Array}
+ */
+export function kWeight(samples, sampleRate) {
+  const [preFilterStage, highPassStage] = K_WEIGHTING_STAGES;
+  const preFiltered = applyBiquad(samples, designPreFilter(preFilterStage, sampleRate));
+  return applyBiquad(preFiltered, designHighPass(highPassStage, sampleRate));
+}
+
+/** Floor used for LUFS when there is no signal to take a log of, matching DB_FLOOR's role for dBFS. */
+const LUFS_FLOOR = DB_FLOOR;
+
+/**
+ * Mean-square power to LUFS. ITU-R BS.1770-4 §2.3, Equation (2):
+ * L_K = -0.691 + 10*log10(z), single-channel weight Gi = 1.0 (mono — VMU-144
+ * brief: "Mono suffit").
+ * @param {number} z mean square of the K-weighted signal
+ * @returns {number} LUFS, floored at LUFS_FLOOR instead of -Infinity
+ */
+export function meanSquareToLufs(z) {
+  if (!(z > 0)) return LUFS_FLOOR;
+  return -0.691 + 10 * Math.log10(z);
+}
+
+/**
+ * Integrated loudness of a mono buffer, ITU-R BS.1770-4 §2.3: 400 ms gating
+ * blocks at 100 ms hop (75% overlap), absolute gate at -70 LUFS, relative
+ * gate at (ungated loudness - 10) LU. The mean at each stage is taken over
+ * the blocks' *power* (z), not over their dB values — averaging loudness
+ * values directly is a different, wrong quantity, since dB is already a log
+ * of power.
+ *
+ * Mono-only per the VMU-144 brief: channel weight Gi = 1.0, no multichannel
+ * sum (BS.1770's L/R/C/Ls/Rs weighting is out of scope here).
+ *
+ * @param {Float32Array|number[]} samples
+ * @param {Object} options
+ * @param {number} options.sampleRate
+ * @param {number} [options.blockSec] gating block length; 0.4 s per the standard
+ * @param {number} [options.hopSec] block hop; 0.1 s (75% overlap) per the standard
+ * @returns {{ lufs: number, ungatedLufs: number, blockCount: number, gatedBlockCount: number }}
+ */
+export function integratedLoudness(samples, options) {
+  const { sampleRate, blockSec = 0.4, hopSec = 0.1 } = options;
+  const weighted = kWeight(samples, sampleRate);
+  const blockSamples = Math.round(blockSec * sampleRate);
+  const hopSamples = Math.round(hopSec * sampleRate);
+
+  /** @type {number[]} */
+  const blockPowers = [];
+  for (let start = 0; start + blockSamples <= weighted.length; start += hopSamples) {
+    let sumSquares = 0;
+    for (let i = start; i < start + blockSamples; i++) sumSquares += weighted[i] * weighted[i];
+    blockPowers.push(sumSquares / blockSamples);
+  }
+
+  if (blockPowers.length === 0) {
+    return { lufs: LUFS_FLOOR, ungatedLufs: LUFS_FLOOR, blockCount: 0, gatedBlockCount: 0 };
+  }
+
+  const ABSOLUTE_GATE_LUFS = -70;
+  const absoluteGated = blockPowers.filter((z) => meanSquareToLufs(z) >= ABSOLUTE_GATE_LUFS);
+  if (absoluteGated.length === 0) {
+    return { lufs: LUFS_FLOOR, ungatedLufs: LUFS_FLOOR, blockCount: blockPowers.length, gatedBlockCount: 0 };
+  }
+
+  const ungatedMean = absoluteGated.reduce((a, b) => a + b, 0) / absoluteGated.length;
+  const ungatedLufs = meanSquareToLufs(ungatedMean);
+  const RELATIVE_GATE_OFFSET_LU = 10;
+  const relativeThreshold = ungatedLufs - RELATIVE_GATE_OFFSET_LU;
+
+  const relativeGated = absoluteGated.filter((z) => meanSquareToLufs(z) >= relativeThreshold);
+  // Guard rather than a spec deviation: with too little material (a single
+  // gating block, e.g. a very short note) the relative gate can legitimately
+  // discard everything only if that one block is quieter than itself minus
+  // 10 LU, which never happens — but fall back to the absolute-gated set
+  // rather than divide by zero if it ever does.
+  const finalPowers = relativeGated.length > 0 ? relativeGated : absoluteGated;
+  const finalMean = finalPowers.reduce((a, b) => a + b, 0) / finalPowers.length;
+
+  return {
+    lufs: meanSquareToLufs(finalMean),
+    ungatedLufs,
+    blockCount: blockPowers.length,
+    gatedBlockCount: finalPowers.length,
+  };
 }
 
 /**
@@ -724,6 +942,11 @@ export function analyzeChannel(samples, options) {
     sampleRate,
     durationSec: samples.length / sampleRate,
     silence,
+    // BS.1770's own -70 LUFS absolute gate (integratedLoudness above) already
+    // excludes a silent lead-in from the result, so this runs over the whole
+    // buffer, the same span levelMetrics/silenceMetrics use — not just the
+    // pitch-detection window.
+    loudness: integratedLoudness(samples, { sampleRate }),
     discontinuity: discontinuityMetrics(samples),
     // Gated on audibility, not on `peak > 0`. A buffer 140 dB down is still
     // perfectly periodic, so the FFT happily returns its pitch — measured
