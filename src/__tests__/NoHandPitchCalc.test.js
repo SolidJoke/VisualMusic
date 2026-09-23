@@ -366,4 +366,25 @@ describe("VMU-147 — checkExceptions is content-keyed, not line-keyed (fixtures
     expect(result.unexcepted).not.toEqual([]);
     expect(result.stale).not.toEqual([]);
   });
+
+  it("VMU-147 follow-up (coordinator QA) — a declared count higher than the actual occurrences is reported: count is exact, not a maximum", () => {
+    // Exception declares count: 2, but the fixture file contains only ONE
+    // real occurrence of that exact line. Before this follow-up,
+    // checkExceptions treated `count` as an upper bound only: the single
+    // occurrence consumed 1 of the pool's 2 allowed slots, leaving the pool
+    // neither empty (not `stale`) nor over budget (not `exceeded`) — so a
+    // declared-but-absent second occurrence went completely unreported.
+    const src = `function m(o) {\n  return (o + 1) * 12;\n}\n`; // exactly one occurrence
+    const code = normalizeLine("  return (o + 1) * 12;");
+    const exceptions = [{ file: "fixture6.js", code, count: 2, reason: "fixture — declares 2 occurrences, only 1 is actually present" }];
+
+    const result = checkExceptions(collectHits("fixture6.js", src), exceptions);
+    expect(result.unexcepted).toEqual([]);
+    expect(result.exceeded).toEqual([]);
+    // The gap itself: 1 of the 2 declared occurrences is missing. Asserted
+    // as an explicit shape check (not `.not.toEqual([])`, which passes
+    // vacuously — and wrongly — when `missing` doesn't exist at all yet).
+    expect(Array.isArray(result.missing)).toBe(true);
+    expect(result.missing.length).toBeGreaterThan(0);
+  });
 });
