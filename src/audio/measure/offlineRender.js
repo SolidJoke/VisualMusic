@@ -125,6 +125,22 @@ export async function runScenario(spec) {
       const engine = await import("../AudioEngine");
       diagnostics.destinationIsOffline = Tone.getDestination().context === Tone.getContext();
 
+      // VMU-144 phase B (coordinator follow-up, 2026-09-23): pianoReverb and
+      // guitarReverb (AudioEngine.js) each generate their impulse response
+      // asynchronously in their own nested OfflineContext (Tone.Reverb's own
+      // `generate()`, node_modules/tone/.../effect/Reverb.js — "the impulse
+      // response generation is async"), started at module import above, a few
+      // lines up. Both draw from the same seeded Math.random (this script's
+      // page.addInitScript) but as two independent async tasks, so *which one
+      // finishes generating its buffer first* was not itself deterministic —
+      // measured: the one scenario that did not already have an incidental
+      // synchronisation point here (guitar-fallback-note, no loadSamplers
+      // call) read 0.02-0.03 LU apart across otherwise-identical runs, while
+      // every scenario that happened to await something else first did not.
+      // Awaiting both `.ready` promises here, once, for every scenario,
+      // removes the race outright rather than relying on that coincidence.
+      await Promise.all([engine.pianoReverb.ready, engine.guitarReverb.ready]);
+
       // Unhook masterLimiter -> Destination, then tap both sides of it.
       engine.masterLimiter.disconnect();
       const merge = new Tone.Merge();
@@ -181,10 +197,16 @@ export async function runScenario(spec) {
 }
 
 /**
- * Waits for every Tone buffer to finish decoding, and reports which piano
- * voice the render will actually use. VMU-102 was the first note playing the
- * fallback synth; a measurement that does not say which voice it heard cannot
- * tell that defect from a bad sample.
+ * Waits for every Tone buffer to finish decoding, and reports which voice
+ * each instrument's render will actually use. VMU-102 was the first note
+ * playing the fallback synth; a measurement that does not say which voice it
+ * heard cannot tell that defect from a bad sample.
+ *
+ * Bass has no sampler and no fallback distinction — `bassSynth` (AudioEngine.js)
+ * is a single `Tone.MonoSynth`, always — but VMU-144's brief asks the voice be
+ * reported "pour la basse aussi", so a reader comparing the three instruments'
+ * loudness sees in one place that bass is a synth while piano/guitar can be
+ * either a sampler or their own fallback synth.
  *
  * @param {Object} args
  * @returns {Promise<void>}
@@ -195,6 +217,7 @@ async function loadSamplers({ Tone: T, engine, diagnostics }) {
   await T.loaded();
   diagnostics.pianoVoice = engine.getPianoSynth().constructor.name;
   diagnostics.guitarVoice = engine.getGuitarSynth().constructor.name;
+  diagnostics.bassVoice = engine.bassSynth.constructor.name;
 }
 
 /**
@@ -235,10 +258,40 @@ export const SCENARIOS = {
     async body(ctx) {
       const { engine, params, diagnostics } = ctx;
       await loadSamplers(ctx);
+      // VMU-144 phase B, bass control: applies a genre preset (Studio's own
+      // trigger, AppDesktop.jsx:288 / useSequencer.js:310 — appMode==="studio"
+      // gated in the app, but the harness has no "mode" to gate on, so this
+      // param calls the same function directly) *before* playing, so the
+      // scenario can prove Dictionary's bass level does not move afterward.
+      if (params.applyGenrePreset) {
+        engine.applyGenrePreset(params.applyGenrePreset);
+        diagnostics.genrePresetApplied = params.applyGenrePreset;
+      }
       const instrument = params.instrument ?? "piano";
       const note = params.note ?? "C4";
       diagnostics.requested = { instrument, notes: [note] };
       engine.playDictionaryNote(instrument, note, params.duration ?? 1.0, LEAD_IN_SEC);
+    },
+  },
+
+  /**
+   * VMU-144 phase B, item 3: the guitar fallback synth (`guitarFallback`,
+   * no `volume` declared before this ticket) forced regardless of sampler
+   * state — `loadSamplers` always awaits full decode, so `getGuitarSynth()`
+   * never picks the fallback in this harness otherwise (the brief names this
+   * gap explicitly: "si le harnais ne sait pas forcer le repli, ajoute-lui ce
+   * moyen"). Triggers `engine.guitarFallback` directly, bypassing the
+   * sampler-or-fallback router entirely — this measures the fallback voice
+   * itself, not a code path a real session would take on its own.
+   */
+  "guitar-fallback-note": {
+    durationSec: 1.6,
+    async body(ctx) {
+      const { engine, params, diagnostics } = ctx;
+      const note = params.note ?? "C3";
+      diagnostics.requested = { instrument: "guitar (forced fallback)", notes: [note] };
+      diagnostics.guitarVoice = engine.guitarFallback.constructor.name;
+      engine.guitarFallback.triggerAttackRelease(note, params.duration ?? 1.0, LEAD_IN_SEC);
     },
   },
 

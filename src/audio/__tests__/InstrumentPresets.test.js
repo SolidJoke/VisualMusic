@@ -5,6 +5,7 @@ import { describe, it, expect } from "vitest";
 import {
   DRUM_PRESETS,
   BASS_PRESETS,
+  BASS_BASE_VOLUME_DB,
   GENRE_GROUPS,
   getPresetsForGroup,
 } from "../InstrumentPresets.js";
@@ -51,7 +52,7 @@ describe("InstrumentPresets", () => {
   it("each bass preset has required fields", () => {
     const requiredFields = [
       "oscillator", "filterFreq", "filterQ", "subOscGain",
-      "attack", "decay", "sustain", "release", "volume",
+      "attack", "decay", "sustain", "release", "volumeOffsetDb",
     ];
 
     GENRE_GROUPS.forEach((group) => {
@@ -59,6 +60,27 @@ describe("InstrumentPresets", () => {
       requiredFields.forEach((field) => {
         expect(preset[field]).toBeDefined();
       });
+    });
+  });
+
+  // VMU-144 phase B: bass's absolute Studio volume per genre must not move —
+  // this ticket restructured `BASS_PRESETS[group].volume` (absolute) into
+  // `volumeOffsetDb` (relative to BASS_BASE_VOLUME_DB) so Dictionary could get
+  // a fixed, genre-independent voice, but explicitly does not touch what
+  // Studio's own mixer/level sounds like (VMU-025, tranche T2). This is the
+  // regression guard: BASS_BASE_VOLUME_DB + offset must equal the exact
+  // absolute dB value each preset used before this ticket.
+  it("BASS_BASE_VOLUME_DB + each preset's volumeOffsetDb reproduces the pre-VMU-144 absolute bass volume", () => {
+    const previousAbsoluteVolumeDb = {
+      electronic: -4,
+      jazz: -6,
+      rock: -4,
+      pop: -5,
+      urban: -2,
+      world: -5,
+    };
+    GENRE_GROUPS.forEach((group) => {
+      expect(BASS_BASE_VOLUME_DB + BASS_PRESETS[group].volumeOffsetDb).toBe(previousAbsoluteVolumeDb[group]);
     });
   });
 

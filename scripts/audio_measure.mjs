@@ -77,6 +77,99 @@ const CEILING_DBFS = -1;
 const CEILING_TOLERANCE_DB = 0.2;
 
 /**
+ * VMU-144 phase B — tolerances the coordinator fixed after reviewing phase A
+ * (brief, "Phase B — cible fixée par la coordinatrice", 2026-09-22).
+ */
+const GUITAR_VS_PIANO_TOLERANCE_LU = 1.5;
+const BASS_GENRE_STABILITY_TOLERANCE_LU = 0.5;
+
+/**
+ * The 13 notes guitar actually has a sample for (`guitarSampler.urls`,
+ * AudioEngine.js:210-215; Do-Mi-Sol from Do2 to Do6). VMU-144 phase B item 1:
+ * "chaque échantillon de guitare joué à sa propre hauteur (13 notes, aucune
+ * transposition), et le piano sur les mêmes 13 notes pour référence" — the
+ * relevé this generates one measurement row per note, per instrument, from.
+ */
+const GUITAR_SAMPLE_NOTES = [
+  "C2", "E2", "G2",
+  "C3", "E3", "G3",
+  "C4", "E4", "G4",
+  "C5", "E5", "G5",
+  "C6",
+];
+
+/**
+ * One row of the phase B relevé: `instrument` played at `note`, its own
+ * pitch, no transposition. Generated rather than written out 26 times —
+ * the 13 notes above, twice (guitar, then piano for reference).
+ */
+const VMU144_RELEVE_ROWS = ["guitar", "piano"].flatMap((instrument) =>
+  GUITAR_SAMPLE_NOTES.map((note) => ({
+    id: `vmu144-releve-${instrument}-${note}`,
+    title: `VMU-144 phase B relevé: ${instrument}, ${note} (its own sample, no transposition)`,
+    // Guitar C2 has no expectedNotes and is expected to render *silent*:
+    // guitar's own note-range filter (playDictionaryNote, AudioEngine.js,
+    // E2-C6 = MIDI 40-84) rejects C2 (MIDI 36) before any synth sees it, even
+    // though guitarSampler.urls does have a C2.mp3 (VMU-144 phase B finding —
+    // that sample can never sound through this app). Asserting a pitch or
+    // "not silent" here would fail on the app's own intended behaviour.
+    spec:
+      instrument === "guitar" && note === "C2"
+        ? { scenario: "single-note", params: { instrument, note } }
+        : { scenario: "single-note", params: { instrument, note }, expectedNotes: [note] },
+    why:
+      instrument === "guitar" && note === "C2"
+        ? `Guitar's own filtered range starts at E2 (playDictionaryNote, AudioEngine.js) — C2 is silence by design, not a level to correct.`
+        : instrument === "guitar"
+          ? `Guitar's own recorded sample at ${note} (AudioEngine.js:210-215) — the relevé the coordinator asked for before any per-note correction.`
+          : `Piano at ${note}, for reference against the guitar row of the same note — piano is not corrected in this ticket.`,
+    expect: (r) =>
+      instrument === "guitar" && note === "C2"
+        ? [check("is silent (outside guitar's playable range)", r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)]
+        : [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  })),
+);
+
+/**
+ * VMU-144 phase B, permanent checks: guitar vs piano at the same note, and
+ * bass's Dictionary level against itself before/after a genre preset. Reads
+ * `results` (closed over below, populated as the plan runs) rather than a
+ * single `r`, because these compare *two* measurements the plan takes
+ * separately — unlike every other `expect` in this file.
+ */
+// Generic despite the name (also used for guitar-fallback-vs-sampler, brief
+// item 3): any two ids compared by loudness within GUITAR_VS_PIANO_TOLERANCE_LU.
+function guitarVsPianoCheck(results, firstId, secondId, label) {
+  const a = results.find((r) => r.id === firstId)?.measurement;
+  const b = results.find((r) => r.id === secondId)?.measurement;
+  if (!a || !b || a.error || b.error) {
+    return check(label, false, `missing measurement (${firstId} or ${secondId})`);
+  }
+  const deltaLu = a.mix.loudness.lufs - b.mix.loudness.lufs;
+  return check(
+    label,
+    Math.abs(deltaLu) <= GUITAR_VS_PIANO_TOLERANCE_LU,
+    `${firstId} ${fmt(a.mix.loudness.lufs)} LUFS, ${secondId} ${fmt(b.mix.loudness.lufs)} LUFS, ` +
+      `Δ ${fmt(deltaLu)} LU (tolerance ±${GUITAR_VS_PIANO_TOLERANCE_LU})`,
+  );
+}
+
+function bassGenreStabilityCheck(results, freshId, afterId, group) {
+  const fresh = results.find((r) => r.id === freshId)?.measurement;
+  const after = results.find((r) => r.id === afterId)?.measurement;
+  if (!fresh || !after || fresh.error || after.error) {
+    return check(`bass Do2 stable after "${group}" preset`, false, `missing measurement (${freshId} or ${afterId})`);
+  }
+  const deltaLu = after.mix.loudness.lufs - fresh.mix.loudness.lufs;
+  return check(
+    `bass Do2 stable after "${group}" preset`,
+    Math.abs(deltaLu) <= BASS_GENRE_STABILITY_TOLERANCE_LU,
+    `fresh ${fmt(fresh.mix.loudness.lufs)} LUFS, after "${group}" ${fmt(after.mix.loudness.lufs)} LUFS, ` +
+      `Δ ${fmt(deltaLu)} LU (tolerance ±${BASS_GENRE_STABILITY_TOLERANCE_LU})`,
+  );
+}
+
+/**
  * The measurements taken, and what each one is for.
  *
  * `expect` runs only under --assert. It returns a list of {label, ok, detail}
@@ -118,6 +211,137 @@ const PLAN = [
       check("sounds C4, E4 and G4 and nothing unaccounted for", r.pitchVerdict.ok, verdictDetail(r)),
     ],
   },
+
+  // ─── VMU-144 phase A: piano vs guitar vs bass, measured ───────────────
+  // Gabriel (2026-09-18): guitar and bass sit notably quieter than piano in
+  // the Dictionary. None of the scenarios above ever played guitar or bass —
+  // this is the harness's first look at either (the ticket's own "angle
+  // mort" finding). Nine rows per the brief: for each instrument, (a) the
+  // same C4, (b) that instrument's own usual register (bass C2, guitar C3,
+  // piano C4 — piano's (a) and (b) therefore render the same note on
+  // purpose, not a copy-paste slip), (c) the C-E-G triad in that register.
+  // `expect` below only confirms each render is audible: phase A measures
+  // and reports, it does not yet judge the gap (no target/tolerance chosen —
+  // that is phase B, on the coordinator's word).
+  {
+    id: "vmu144-c4-piano",
+    title: "VMU-144 (a): piano, C4",
+    spec: { scenario: "single-note", params: { instrument: "piano", note: "C4" }, expectedNotes: ["C4"] },
+    why: "Same note on every instrument, before each one's own usual register below.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-c4-guitar",
+    title: "VMU-144 (a): guitar, C4",
+    spec: { scenario: "single-note", params: { instrument: "guitar", note: "C4" }, expectedNotes: ["C4"] },
+    why: "Same note on every instrument, before each one's own usual register below.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-c4-bass",
+    title: "VMU-144 (a): bass, C4",
+    spec: { scenario: "single-note", params: { instrument: "bass", note: "C4" }, expectedNotes: ["C4"] },
+    why:
+      "Same note on every instrument. C4 (MIDI 60) is inside bass's filtered range but near its top " +
+      "(E1-G4 = MIDI 28-67, AudioEngine.js:408-410) — near the edge of what bass ever plays, on purpose: " +
+      "the brief's registre usuel row below (C2) is where bass actually lives.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-register-piano",
+    title: "VMU-144 (b): piano, its own usual register (C4)",
+    spec: { scenario: "single-note", params: { instrument: "piano", note: "C4" }, expectedNotes: ["C4"] },
+    why: "Piano's usual register is C4 — the same render as (a) above by construction, kept as its own row for the brief's nine-row table.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-register-guitar",
+    title: "VMU-144 (b): guitar, its own usual register (C3)",
+    spec: { scenario: "single-note", params: { instrument: "guitar", note: "C3" }, expectedNotes: ["C3"] },
+    why: "C3 (MIDI 48) sits inside guitar's filtered range (E2-C6 = MIDI 40-84, AudioEngine.js:411-413), a register guitar is actually played in.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-register-bass",
+    title: "VMU-144 (b): bass, its own usual register (C2)",
+    spec: { scenario: "single-note", params: { instrument: "bass", note: "C2" }, expectedNotes: ["C2"] },
+    why: "C2 (MIDI 36) sits inside bass's filtered range (E1-G4 = MIDI 28-67, AudioEngine.js:408-410), a register bass is actually played in.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-chord-piano",
+    title: "VMU-144 (c): piano, C-E-G at C4 (C4 E4 G4)",
+    spec: {
+      scenario: "chord",
+      params: { instrument: "piano", notes: ["C4", "E4", "G4"] },
+      expectedNotes: ["C4", "E4", "G4"],
+    },
+    why: "The C major triad in piano's usual register.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-chord-guitar",
+    title: "VMU-144 (c): guitar, C-E-G at C3 (C3 E3 G3)",
+    spec: {
+      scenario: "chord",
+      params: { instrument: "guitar", notes: ["C3", "E3", "G3"] },
+      expectedNotes: ["C3", "E3", "G3"],
+    },
+    why: "The C major triad in guitar's usual register.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+  {
+    id: "vmu144-chord-bass",
+    title: "VMU-144 (c): bass, C-E-G at C2 (C2 E2 G2)",
+    spec: {
+      scenario: "chord",
+      params: { instrument: "bass", notes: ["C2", "E2", "G2"] },
+      // No expectedNotes: bassSynth is a Tone.MonoSynth (AudioEngine.js:446).
+      // playDictionaryNote (:424-436) sorts the filtered notes by MIDI and
+      // plays only the lowest one — for this chord, just C2. Asserting the
+      // triad here would fail on the app's actual, intentional behaviour,
+      // not a defect; the "voices"/pitch-content row is where this shows up.
+    },
+    why:
+      "The C major triad in bass's usual register — but bass only ever sounds its lowest note of a chord " +
+      "(MonoSynth, AudioEngine.js:424-436): this row measures what actually plays, C2 alone, not C2+E2+G2.",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+
+  // ─── VMU-144 phase B, item 1: the relevé (13 guitar samples + piano ref) ──
+  ...VMU144_RELEVE_ROWS,
+
+  // ─── VMU-144 phase B, item 3: guitar fallback forced ──────────────────
+  {
+    id: "vmu144-guitar-fallback-c3",
+    title: "VMU-144 phase B: guitar fallback (forced), C3",
+    spec: { scenario: "guitar-fallback-note", params: { note: "C3" }, expectedNotes: ["C3"] },
+    why:
+      "guitarFallback had no declared volume before this ticket (AudioEngine.js, phase A finding). " +
+      "Compared against vmu144-register-guitar (the sampler at C3) by the cross-scenario check below, " +
+      "within ±1.5 LU (brief item 3).",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+
+  // ─── VMU-144 phase B, item 4: bass Do2 in Dictionary, after each genre preset ──
+  // `vmu144-register-bass` above is the "fresh" baseline (no preset applied
+  // yet, matching phase A). Each row here applies one genre preset first
+  // (single-note scenario's new `applyGenrePreset` param, offlineRender.js —
+  // the exact function Studio calls, AudioEngine.js:471), then plays bass Do2
+  // through the same Dictionary path (playDictionaryNote). The cross-scenario
+  // check below compares each of these against the fresh baseline.
+  ...["electronic", "jazz", "rock", "pop", "urban", "world"].map((group) => ({
+    id: `vmu144-bass-after-${group}`,
+    title: `VMU-144 phase B: bass, C2, Dictionary path, after applyGenrePreset("${group}")`,
+    spec: {
+      scenario: "single-note",
+      params: { instrument: "bass", note: "C2", applyGenrePreset: group },
+      expectedNotes: ["C2"],
+    },
+    why: `Bass's Dictionary level must not move when a genre preset is applied in Studio (brief item 4, ±${BASS_GENRE_STABILITY_TOLERANCE_LU} LU).`,
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  })),
+
   {
     id: "output-link-probe-quiet",
     title: "Output link characterised: a 220 Hz sine at -40 dBFS, far below the ~-1 dBFS ceiling",
@@ -333,6 +557,43 @@ if (!AS_JSON) {
   console.log(`  dev server : ${ORIGIN}${dev.reused ? " (reused)" : " (started here)"}`);
 }
 
+// VMU-144 phase B, coordinator follow-up (2026-09-23): this harness's own
+// loudness checks were flaky — up to a few LU of run-to-run jitter on a
+// single short note, occasionally past the ±1.5 LU tolerance. Root cause,
+// confirmed by reading the library: `node_modules/tone/build/esm/source/Noise.js`
+// draws its noise buffer with `Math.random()`, and
+// `node_modules/tone/build/esm/effect/Reverb.js` feeds that noise through an
+// exponential-decay envelope to build the impulse response — regenerated
+// from scratch every time `pianoReverb`/`guitarReverb` (AudioEngine.js) are
+// constructed, i.e. every fresh page this loop opens. Even piano, untouched
+// by this ticket, moved (coordinator's 3 runs: C6 at -36.34 / -36.64 /
+// -36.62 LUFS).
+//
+// Fixed here, in the harness only — no change to the app's own code, and
+// Math.random is reseeded on every page rather than patched once, so it
+// cannot leak state between scenarios or between two separate
+// `npm run audio:check` invocations. `installSeededRandom` is a function
+// declaration passed to Playwright's `page.addInitScript`, which evaluates
+// it inside the page *before any other script* (including the dynamically
+// imported AudioEngine.js/Tone modules), on every navigation — so every
+// reverb built by every scenario draws from the same fixed sequence, every
+// run. mulberry32: small, well-known, good-enough statistical quality for
+// "reproducible noise buffer", not cryptographic — https://github.com/bryc/code/blob/master/jshash/PRNGs.md#mulberry32
+function installSeededRandom(seed) {
+  let state = seed >>> 0;
+  Math.random = function seededRandom() {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// Any fixed constant. Chosen once (VMU-144) and never to be changed casually —
+// every measurement this harness has recorded since is drawn against this
+// exact seed; changing it silently re-randomises every reverb tail and moves
+// every LUFS number in every report and every GUITAR_SAMPLE_GAIN_DB entry.
+const HARNESS_RANDOM_SEED = 144;
+
 const browser = await chromium.launch({
   headless: !KEEP_OPEN,
   // The flag that makes audio observable at all in Chromium. The harness does
@@ -355,6 +616,11 @@ try {
     page.on("console", (m) => {
       if (m.type() === "error") pageErrors.push(`console.error: ${m.text()}`);
     });
+    // Before any other script on this page — see installSeededRandom above
+    // for why (Tone.Noise / Tone.Reverb's Math.random-seeded impulse
+    // response was the harness's own source of run-to-run measurement
+    // jitter, VMU-144 phase B).
+    await page.addInitScript(installSeededRandom, HARNESS_RANDOM_SEED);
     await page.route(PROBE_URL, (route) =>
       route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>audio probe</title>" }),
     );
@@ -383,10 +649,68 @@ try {
   if (dev.server) await dev.server.close();
 }
 
+// ─── VMU-144 phase B cross-scenario checks ────────────────────────────
+// These compare two measurements the loop above took *separately* (guitar
+// vs piano on the same note, or bass before/after a genre preset), so they
+// cannot live inside one PLAN entry's own `expect(measurement)` — there is
+// no single `measurement` that holds both sides. Run once here instead.
+// Skipped (not failed) when a required id was not part of this run — e.g.
+// `--scenario=` filtered the plan down to something else.
+const crossChecks = [];
+if (ASSERT) {
+  const has = (id) => results.some((r) => r.id === id && !r.measurement.error);
+  const pairs = [
+    // "Do3" and "Do4" (brief item 6) are the same-note relevé pairs below
+    // (guitar C3 vs piano C3, guitar C4 vs piano C4) — item 2 asks for
+    // "chaque note ... à ±1,5 LU du piano sur la même note", not guitar's
+    // Do3 against piano's own usual register Do4 (a cross-register pair
+    // that was here in an earlier draft, measured -2.09 LU: outside
+    // tolerance, and not what item 2 actually specifies — removed, not
+    // "fixed", once re-read against the brief).
+    ["vmu144-c4-guitar", "vmu144-c4-piano", "guitar C4 vs piano C4"],
+    // The chord *is* explicitly cross-register (brief item 2: "l'accord
+    // Do-Mi-Sol en Do3 à ±1,5 LU de l'accord piano en Do4").
+    ["vmu144-chord-guitar", "vmu144-chord-piano", "guitar C-E-G chord at Do3 vs piano C-E-G chord at Do4"],
+    ["vmu144-guitar-fallback-c3", "vmu144-register-guitar", "guitar fallback (forced) at Do3 vs guitar sampler at Do3"],
+    // C2 excluded: guitar's own note-range filter (playDictionaryNote,
+    // AudioEngine.js, E2-C6 = MIDI 40-84) rejects it before it ever reaches
+    // a synth — guitar C2 is always silence in this app, not a level to
+    // correct or compare (relevé row still runs and reports -200 LUFS,
+    // informational; asserting it against piano here would be asserting the
+    // wrong thing).
+    ...GUITAR_SAMPLE_NOTES.filter((note) => note !== "C2").map((note) => [
+      `vmu144-releve-guitar-${note}`,
+      `vmu144-releve-piano-${note}`,
+      `relevé: guitar ${note} vs piano ${note}`,
+    ]),
+  ];
+  for (const [g, p, label] of pairs) {
+    if (has(g) && has(p)) crossChecks.push(guitarVsPianoCheck(results, g, p, label));
+  }
+  for (const group of ["electronic", "jazz", "rock", "pop", "urban", "world"]) {
+    const afterId = `vmu144-bass-after-${group}`;
+    if (has("vmu144-register-bass") && has(afterId)) {
+      crossChecks.push(bassGenreStabilityCheck(results, "vmu144-register-bass", afterId, group));
+    }
+  }
+}
+failures += crossChecks.filter((c) => (c.knownFail ? c.ok : !c.ok)).length;
+if (!AS_JSON && crossChecks.length > 0) {
+  console.log(`\n${"─".repeat(78)}`);
+  console.log("VMU-144 phase B — cross-scenario checks (guitar vs piano, bass genre stability)");
+  console.log(`${"─".repeat(78)}`);
+  for (const c of crossChecks) {
+    console.log(`  ${c.ok ? "PASS" : "FAIL"}  ${c.label}${c.detail ? `  —  ${c.detail}` : ""}`);
+  }
+}
+
 if (AS_JSON) {
   console.log(
     JSON.stringify(
-      results.map((r) => ({ id: r.id, title: r.title, measurement: r.measurement, checks: r.checks })),
+      {
+        results: results.map((r) => ({ id: r.id, title: r.title, measurement: r.measurement, checks: r.checks })),
+        crossChecks,
+      },
       null,
       2,
     ),
@@ -394,7 +718,7 @@ if (AS_JSON) {
 } else if (ASSERT) {
   // Known-fails are counted out of the asserted total and named separately:
   // folding one into "14/14 passed" would report a measured defect as a pass.
-  const all = results.flatMap((r) => r.checks);
+  const all = results.flatMap((r) => r.checks).concat(crossChecks);
   const known = all.filter((c) => c.knownFail && !c.ok).length;
   const asserted = all.length - known;
   const verdict = failures === 0 ? "PASS" : "FAIL";
@@ -425,6 +749,11 @@ function printMeasurement(item, m, checks, pageErrors) {
   const rows = [
     ["mix peak", `${fmt(m.mix.peakDbfs)} dBFS`, m.mix.clippedSamples > 0 ? `${m.mix.clippedSamples} samples past full scale` : "no clipping"],
     ["mix RMS", `${fmt(m.mix.rmsDbfs)} dBFS`, ""],
+    [
+      "mix loudness",
+      `${fmt(m.mix.loudness.lufs)} LUFS`,
+      `ITU-R BS.1770, ${m.mix.loudness.gatedBlockCount}/${m.mix.loudness.blockCount} 400ms blocks passed gating`,
+    ],
     ["before output link", `${fmt(m.preLimiter.peakDbfs)} dBFS peak`, `${fmt(m.preLimiter.rmsDbfs)} dBFS RMS`],
     [
       "output link",
@@ -459,7 +788,18 @@ function printMeasurement(item, m, checks, pageErrors) {
         (m.pitchVerdict.unexplained.length ? `; unexplained ${m.pitchVerdict.unexplained.join(", ")}` : ""),
     ]);
   }
-  if (m.pianoVoice) rows.push(["voices", `piano: ${m.pianoVoice}`, m.guitarVoice ? `guitar: ${m.guitarVoice}` : ""]);
+  if (m.pianoVoice) {
+    const noteDetail = [m.guitarVoice ? `guitar: ${m.guitarVoice}` : "", m.bassVoice ? `bass: ${m.bassVoice}` : ""]
+      .filter(Boolean)
+      .join(", ");
+    rows.push(["voices", `piano: ${m.pianoVoice}`, noteDetail]);
+  } else if (m.bassVoice) {
+    // Bass-only scenarios still call loadSamplers (piano/guitar samplers are
+    // always loaded), so pianoVoice should be set too — this branch exists
+    // only so a future scenario that reports bass alone is not silently
+    // dropped from the table.
+    rows.push(["voices", `bass: ${m.bassVoice}`, ""]);
+  }
   if (m.style) rows.push(["style", `${m.style.name} — ${m.style.progression.join(" ")}`, `${m.style.bpm} BPM`]);
   if (m.scheduledPitchCount !== undefined) {
     rows.push([

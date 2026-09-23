@@ -30,6 +30,9 @@ import {
   centsFromEqualTemperament,
   analyzeChannel,
   detectOnsets,
+  kWeight,
+  meanSquareToLufs,
+  integratedLoudness,
 } from "../signalMetrics";
 
 const SR = 44100;
@@ -162,6 +165,72 @@ describe("level metrics", () => {
   it("floors dBFS instead of returning -Infinity", () => {
     expect(toDbfs(0)).toBe(-200);
     expect(Number.isFinite(toDbfs(0))).toBe(true);
+  });
+});
+
+describe("loudness (ITU-R BS.1770) — VMU-144", () => {
+  // The control the brief asks for (TDD step 1): a full-scale 997 Hz sine on
+  // one channel is the standard's own widely-quoted calibration point, close
+  // to -3.01 LUFS. 997 Hz rather than exactly 1000 Hz is BS.1770's own
+  // convention (avoids landing on a round analysis-block boundary in other
+  // implementations); irrelevant to this time-domain filter, kept anyway so
+  // the number this test checks against is the one actually documented
+  // elsewhere, not a number invented for this test alone. Coefficient sourcing
+  // is in the module-level comment above K_WEIGHTING_STAGES in signalMetrics.js.
+  it("reads a full-scale 997 Hz sine at approximately -3.01 LUFS", () => {
+    const fullScale997 = sineSum([997], { amplitude: 1.0, seconds: 1.5 });
+    const { lufs } = integratedLoudness(fullScale997, { sampleRate: SR });
+    // Tolerance +-0.05 LUFS. Observed here (2026-09-22, this sample rate):
+    // -3.0075 LUFS, 0.003 LUFS from the standard's own -3.01 reference — a
+    // wrong filter stage does not miss by this little: dropping the -0.691 dB
+    // offset alone moves this by ~0.7 dB, a swapped shelf gain/Q by several dB
+    // (this repo's first, RBJ-cookbook attempt at the same filter missed by
+    // 3.7% on one coefficient and read roughly -3.27 LUFS here before it was
+    // replaced with the libebur128-verified design below).
+    expect(lufs).toBeGreaterThan(-3.06);
+    expect(lufs).toBeLessThan(-2.96);
+  });
+
+  it("is silent-floored for a zero buffer, like toDbfs(0)", () => {
+    const { lufs } = integratedLoudness(new Float32Array(SR), { sampleRate: SR });
+    expect(lufs).toBe(-200);
+  });
+
+  it("tracks amplitude linearly: -6 dBFS reads ~6 LU quieter than 0 dBFS, same tone", () => {
+    const hot = integratedLoudness(sineSum([997], { amplitude: 1.0, seconds: 1.5 }), { sampleRate: SR });
+    const quiet = integratedLoudness(sineSum([997], { amplitude: fromDbfs(-6), seconds: 1.5 }), { sampleRate: SR });
+    expect(hot.lufs - quiet.lufs).toBeCloseTo(6, 0);
+  });
+
+  it("judges a bass-register tone quieter than a mid tone of the same amplitude — K-weighting rolls off sub-bass (VMU-144 hypothesis 3)", () => {
+    // Same peak amplitude, same duration: any difference is the filter's
+    // perceptual weighting, not the signal. 55 Hz sits well inside the bass's
+    // playable range (E1-G4, AudioEngine.js filteredNotes) and below the RLB
+    // high-pass corner (~38 Hz design target, K_WEIGHTING_STAGES); 997 Hz is
+    // the control tone above. This is a property of the standard itself, not
+    // of this app's mix — cited here as a measured fact, not used to draw a
+    // conclusion about VisualMusic's own gain staging (that is hypothesis 1/2/4).
+    const bass55 = integratedLoudness(sineSum([55], { amplitude: 1.0, seconds: 1.5 }), { sampleRate: SR });
+    const mid997 = integratedLoudness(sineSum([997], { amplitude: 1.0, seconds: 1.5 }), { sampleRate: SR });
+    expect(bass55.lufs).toBeLessThan(mid997.lufs - 1);
+  });
+
+  it("kWeight leaves a mid-frequency signal close to unity gain, matching the pre-filter's near-flat region below its shelf", () => {
+    const tone = sineSum([997], { amplitude: 0.5, seconds: 0.2 });
+    const weighted = kWeight(tone, SR);
+    const before = levelMetrics(tone);
+    const after = levelMetrics(weighted);
+    // The 997 Hz control above already confirms the end-to-end number; this
+    // isolates the filter stage itself, in dB, independent of the -0.691 LUFS
+    // offset and the gating-block averaging.
+    expect(after.rmsDbfs - before.rmsDbfs).toBeGreaterThan(-1);
+    expect(after.rmsDbfs - before.rmsDbfs).toBeLessThan(2);
+  });
+
+  it("meanSquareToLufs matches the cited BS.1770-4 Equation (2) directly: L = -0.691 + 10*log10(z)", () => {
+    expect(meanSquareToLufs(1)).toBeCloseTo(-0.691, 6);
+    expect(meanSquareToLufs(0.1)).toBeCloseTo(-10.691, 6);
+    expect(meanSquareToLufs(0)).toBe(-200);
   });
 });
 
