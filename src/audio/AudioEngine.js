@@ -284,8 +284,20 @@ const GUITAR_SAMPLE_GAIN_DB = {
   // change to the range filter does not silently pick up an unvetted value.
   36: 0, // C2 — unreachable via playDictionaryNote, see above
   40: 14.6, // E2
-  43: 15.0, // G2
-  48: 5.1, // C3
+  // G2, C3, G5, C6 below were nudged up from a single-measurement value
+  // (15.0, 5.1, 22.2, 16.9) after a 5-run variance check showed a
+  // consistent negative bias against the ±1.5 LU tolerance — guitarReverb's
+  // noise-seeded impulse response (Tone.Reverb, regenerated fresh per
+  // render, same property SIGNIFICANCE_DB documents in signalMetrics.js for
+  // a different measurement) moves a single short note's measured loudness
+  // by up to roughly ±1 LU run to run. Mean deltas observed across 5 runs
+  // (guitar - piano, post-correction, before this nudge): G2 -1.09 LU
+  // (worst run -1.91, 2 FAILs in 8 total runs), C3 -0.76 LU (worst -1.40),
+  // G5 -0.61 LU, C6 -0.64 LU — all biased the same direction. The nudge
+  // re-centres each nearer 0 LU so the tolerance's margin covers the
+  // measured jitter; it does not remove the jitter itself.
+  43: 16.0, // G2 (was 15.0)
+  48: 5.6, // C3 (was 5.1)
   52: 10.7, // E3
   55: 6.6, // G3
   60: 14.7, // C4
@@ -293,8 +305,8 @@ const GUITAR_SAMPLE_GAIN_DB = {
   67: 18.3, // G4
   72: 7.3, // C5
   76: 18.6, // E5
-  79: 22.2, // G5
-  84: 16.9, // C6
+  79: 22.5, // G5 (was 22.2)
+  84: 17.2, // C6 (was 16.9)
 };
 
 /**

@@ -171,7 +171,7 @@ const EXCEPTIONS = {
   // --- src/audio/measure: the offline render / audio-measurement harness
   // (scripts/audio_measure.mjs's engine). Single-note conversions, not a
   // scale or chord sequence — VMU-140's defect does not apply. ---
-  "audio/measure/offlineRender.js:440": "bass fallback note name — one note, no sequence (line shifted from :433 by VMU-144's bassVoice reporting, added above it)",
+  "audio/measure/offlineRender.js:470": "bass fallback note name — one note, no sequence (line shifted from :440 by VMU-144 phase B's applyGenrePreset param and guitar-fallback-note scenario, added above it)",
   "audio/measure/signalMetrics.js:922": "noteNameToMidi — the harness's own note-name parser, one note at a time (line shifted from :919 by VMU-144's K_WEIGHTING_STAGES comment, added above it)",
 
   // --- useMusicEngine.js: Studio mode, explicitly out of scope (brief
