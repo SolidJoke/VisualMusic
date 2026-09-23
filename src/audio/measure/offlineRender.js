@@ -383,16 +383,14 @@ export const SCENARIOS = {
    * The Studio's default four-chord pop loop, driven through the real synths
    * and the real Transport.
    *
-   * Every musical decision here comes from the application's own exported
-   * functions — `resolveMeasureChord`, `classifyDrumTrack`,
-   * `shouldPlayChordStep`, `getBassNote`, `getLeadingTone`, `midiToNoteName` —
-   * and every voice is the real one. What is reproduced rather than reused is
-   * the ~30-line dispatch inside `useSequencer`'s `repeat` callback, which
-   * lives in a React effect and cannot be called from outside the hook. That
-   * is a real limitation: if someone changes the dispatch (say, which
-   * instrument plays the chords, per VMU-116's C-06 review) this scenario will
-   * not follow until it is updated too. Extracting that callback as a pure
-   * function is the fix, and belongs to VMU-116, not here.
+   * Every musical decision here is the application's own, and every voice is
+   * the real one. Until T1 this scenario carried a hand-kept copy of the
+   * dispatch inside `useSequencer`'s `repeat` callback, which lived in a React
+   * effect and could not be called from outside the hook — so a change to the
+   * dispatch would not have reached the measurement. T1 extracted it: both
+   * the loop and this scenario now call `stepEvents` (dispatch.js) and play
+   * its events with `playStepEvents` (playStep.js), so what is measured is
+   * what the app plays by construction.
    */
   "default-progression": {
     durationSec: 8.7,
@@ -401,11 +399,10 @@ export const SCENARIOS = {
       const { Tone: T, engine, params, diagnostics } = ctx;
       await loadSamplers(ctx);
 
-      const [{ BRICKS }, theory, trackMapping, sequencer] = await Promise.all([
+      const [{ BRICKS }, dispatch, playStep] = await Promise.all([
         import("../../core/bricks"),
-        import("../../core/theory"),
-        import("../trackMapping"),
-        import("../useSequencer"),
+        import("../dispatch"),
+        import("../playStep"),
       ]);
 
       const brickIndex = params.brickIndex ?? STUDIO_DEFAULTS.brickIndex;
@@ -433,65 +430,18 @@ export const SCENARIOS = {
       /** @type {number[]} */
       const scheduledPitches = [];
 
-      // Mirror of useSequencer's `repeat`, using its own exported helpers.
+      /** @type {import("../dispatch").StepState} */
+      const state = { brick, drums, melody: melodies, progression, rhythm, octaveOffset, rootValue: brick.rootValue };
+
+      // T1: this used to be a hand-kept copy of useSequencer's `repeat`
+      // decisions. It now plays what dispatch.stepEvents says plays, through
+      // playStep.playStepEvents — the same two functions the loop calls — on
+      // the AudioEngine built on this offline context. Same calls, same
+      // order, same arguments as before, so the seeded render is unchanged.
       const repeat = (time) => {
-        const relativeStep = stepCounter % 16;
-
-        drums.forEach((/** @type {any} */ track) => {
-          if (!track.activeSteps.includes(relativeStep)) return;
-          const vel = track.lowVelocitySteps?.includes(relativeStep) ? 0.3 : 0.8;
-          const category = trackMapping.classifyDrumTrack(track.name);
-          if (category === "kick") engine.kickSynth.triggerAttackRelease("C1", "8n", time, vel);
-          else if (category === "snare") engine.snareSynth.triggerAttackRelease("16n", time, vel);
-          else engine.hatSynth.triggerAttackRelease("32n", time, vel);
-        });
-
-        const measureChord = sequencer.resolveMeasureChord(stepCounter, progression, brick, octaveOffset);
-        if (measureChord && trackMapping.shouldPlayChordStep(rhythm, stepCounter)) {
-          const notesToPlay = measureChord.absolutePitches.map((p) => theory.midiToNoteName(p));
-          const duration = rhythm.length > 1 ? "16n" : "4n";
-          engine.playDictionaryNote("piano", notesToPlay, duration, time);
-          scheduledPitches.push(...measureChord.absolutePitches);
-        }
-
-        melodies.forEach((/** @type {any} */ track) => {
-          if (!track.activeSteps.includes(relativeStep)) return;
-          const vel = track.lowVelocitySteps?.includes(relativeStep) ? 0.4 : 0.9;
-          const isBass = track.name.toLowerCase().includes("bass");
-          const octave = isBass ? 2 : 4;
-          let finalNoteName;
-          let absNote;
-
-          if (isBass && measureChord) {
-            const intervalLabel = (track.pitchSteps && track.pitchSteps[relativeStep]) || "R";
-            if (relativeStep === 15 && progression.length > 1) {
-              const nextChordIndex = (measureChord.chordIndex + 1) % progression.length;
-              const nextChords = theory.generateChordsFromNNS(brick.rootValue, brick.scaleKey, [
-                progression[nextChordIndex],
-              ]);
-              if (nextChords.length > 0) {
-                const resolved = theory.getLeadingTone(nextChords[0].rootNote.value, octave);
-                finalNoteName = resolved.name;
-                absNote = resolved.midi;
-              }
-            }
-            if (!finalNoteName) {
-              const resolved = theory.getBassNote(measureChord.chord.rootNote.value, intervalLabel, octave);
-              finalNoteName = resolved.name;
-              absNote = resolved.midi;
-            }
-          }
-
-          if (!finalNoteName) {
-            finalNoteName = `${theory.midiToNoteName((brick.rootValue % 12) + (octave + 1) * 12)}`;
-            absNote = theory.getAbsoluteNoteValue(finalNoteName);
-          }
-
-          engine.bassSynth.triggerAttackRelease(finalNoteName, "16n", time, vel);
-          scheduledPitches.push(absNote);
-        });
-
-        stepCounter = (stepCounter + 1) % 64;
+        const events = dispatch.stepEvents(state, stepCounter);
+        scheduledPitches.push(...playStep.playStepEvents(engine, events, time));
+        stepCounter = (stepCounter + 1) % dispatch.LOOP_STEPS;
       };
 
       const measures = params.measures ?? progression.length;

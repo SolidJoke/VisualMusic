@@ -187,33 +187,15 @@ const EXCEPTIONS = [
     reason: "suggestReVoicing — explicit ascending fix-up (`if pitch <= last, += 12`); correct for any root",
   },
 
-  // --- src/audio: MIDI export and the sequencer's own chord resolution.
-  // Both add semitones to the root without ever taking the sum modulo 12,
-  // so — like useMusicEngine.js's fretboardActiveNotes fallback below — they
-  // are already correct for any root; out of this ticket's scope (VMU-115
-  // territory, not the Dictionary). ---
-  {
-    file: "audio/MidiExporter.js",
-    code: "const midiNote = (rootValChord % 12) + s + (baseOctave + 1) * 12;",
-    count: 1,
-    reason: "MIDI export — root+semitone, no modulo before adding; correct for any root, out of Dictionary scope",
-  },
-  {
-    file: "audio/useSequencer.js",
-    code: "const absolutePitches = semitones.map((s) => chord.rootNote.value + s + (baseOctave + 1) * 12);",
-    count: 1,
-    reason: "Studio sequencer chord resolution — same shape, correct for any root, out of Dictionary scope",
-  },
+  // --- src/audio: T1 (VMU-137) removed the three exceptions that lived here
+  // — MidiExporter.js's chord pitches, useSequencer.js's resolveMeasureChord,
+  // offlineRender.js's bass fallback note. All three now go through
+  // dispatch.js, which calls noteEngine's realizeChord / realizeNote; the
+  // export and playback goldens prove the pitches did not move. ---
 
   // --- src/audio/measure: the offline render / audio-measurement harness
   // (scripts/audio_measure.mjs's engine). Single-note conversions, not a
   // scale or chord sequence — VMU-140's defect does not apply. ---
-  {
-    file: "audio/measure/offlineRender.js",
-    code: "finalNoteName = `${theory.midiToNoteName((brick.rootValue % 12) + (octave + 1) * 12)}`;",
-    count: 1,
-    reason: "bass fallback note name — one note, no sequence",
-  },
   {
     file: "audio/measure/signalMetrics.js",
     code: "return semitone + (Number(octave) + 1) * 12;",
@@ -318,7 +300,7 @@ describe("guard — no hand-rolled pitch-class + octave calculation outside core
     expect(flaggedInMigratedFiles).toEqual([]);
   });
 
-  it("VMU-147 — total sites found is unchanged by the exception-key refactor (19 hits, 18 distinct file:line sites pre-refactor)", () => {
+  it("total sites found: 19 after VMU-147, minus the 3 T1 migrated to noteEngine = 16", () => {
     // Ground truth captured by running the pre-refactor, file:line-keyed
     // version of this test (git history: this file before VMU-147) with a
     // one-line console.log instrumentation, reverted before this commit:
@@ -326,7 +308,11 @@ describe("guard — no hand-rolled pitch-class + octave calculation outside core
     // (stripComments, findHandPitchCalcs) is byte-for-byte unchanged by this
     // refactor — only the exception format changed — so this total is
     // expected to hold exactly, not approximately.
-    expect(allHits.length).toBe(19);
+    //
+    // T1 (VMU-137) then removed three sites, one hit each (their exceptions
+    // above were count 1): MidiExporter.js's chord pitches, useSequencer.js's
+    // resolveMeasureChord, offlineRender.js's bass fallback note. 19 - 3 = 16.
+    expect(allHits.length).toBe(16);
   });
 });
 
