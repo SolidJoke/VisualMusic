@@ -93,7 +93,28 @@ export const DRUM_PRESETS = {
 };
 
 /**
+ * Bass's one fixed, genre-independent reference gain (VMU-144 phase B,
+ * brief item 4: "un gain de lecture fixe, indépendant du genre"). Equal to
+ * the `electronic` preset's former absolute `volume` (-4 dB) — the value the
+ * app has shipped with by default since `bassSynth` was first constructed —
+ * so this change does not, by itself, move anything audible; it is the
+ * single owner every genre preset's `volumeOffsetDb` below is now relative
+ * to, and what `AudioEngine.js`'s Dictionary-only bass voice
+ * (`bassSynthDictionary`) is fixed at, forever, regardless of genre.
+ */
+export const BASS_BASE_VOLUME_DB = -4;
+
+/**
  * Bass synth presets by genre group.
+ *
+ * `volumeOffsetDb` (VMU-144 phase B) is relative to BASS_BASE_VOLUME_DB, not
+ * an absolute level — applied only by `applyGenrePreset` (AudioEngine.js),
+ * itself only ever called while `appMode === "studio"` (AppDesktop.jsx,
+ * useSequencer.js). Each value below reproduces exactly the absolute dB this
+ * preset used before this ticket (BASS_BASE_VOLUME_DB + offset === the old
+ * `volume`), checked by InstrumentPresets.test.js so Studio's own bass level
+ * per genre cannot silently drift — this ticket does not touch it
+ * (VMU-025, tranche T2).
  */
 export const BASS_PRESETS = {
   electronic: {
@@ -105,7 +126,7 @@ export const BASS_PRESETS = {
     decay: 0.12,
     sustain: 0.1,
     release: 0.08,
-    volume: -4,
+    volumeOffsetDb: 0, // -4 dB absolute, unchanged
   },
   jazz: {
     oscillator: "sine",
@@ -116,7 +137,7 @@ export const BASS_PRESETS = {
     decay: 0.3,
     sustain: 0.4,
     release: 0.3,
-    volume: -6,
+    volumeOffsetDb: -2, // -6 dB absolute, unchanged
   },
   rock: {
     oscillator: "square",
@@ -127,7 +148,7 @@ export const BASS_PRESETS = {
     decay: 0.15,
     sustain: 0.2,
     release: 0.1,
-    volume: -4,
+    volumeOffsetDb: 0, // -4 dB absolute, unchanged
   },
   pop: {
     oscillator: "triangle",
@@ -138,7 +159,7 @@ export const BASS_PRESETS = {
     decay: 0.2,
     sustain: 0.3,
     release: 0.15,
-    volume: -5,
+    volumeOffsetDb: -1, // -5 dB absolute, unchanged
   },
   urban: {
     oscillator: "sine",
@@ -149,7 +170,7 @@ export const BASS_PRESETS = {
     decay: 0.4,
     sustain: 0.0,
     release: 0.3,
-    volume: -2,
+    volumeOffsetDb: 2, // -2 dB absolute, unchanged
   },
   world: {
     oscillator: "triangle",
@@ -160,7 +181,7 @@ export const BASS_PRESETS = {
     decay: 0.2,
     sustain: 0.3,
     release: 0.2,
-    volume: -5,
+    volumeOffsetDb: -1, // -5 dB absolute, unchanged
   },
 };
 

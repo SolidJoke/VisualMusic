@@ -15,7 +15,7 @@
  * @module AudioEngine
  */
 import * as Tone from "tone";
-import { DRUM_PRESETS, BASS_PRESETS, PIANO_PRESET } from "./InstrumentPresets";
+import { DRUM_PRESETS, BASS_PRESETS, BASS_BASE_VOLUME_DB, PIANO_PRESET } from "./InstrumentPresets";
 import { log } from "../utils/debug";
 
 // ─── Safety & Analysis: Hard Limiter and FFT ──────────────────────────
@@ -166,7 +166,19 @@ guitarChorus.start();
 
 // ─── Guitar ──────────────────────────────────────────────────────────
 
+// VMU-144 phase B: no `volume` here before this ticket (found in phase A) —
+// this synth inherited Tone's own 0 dB default rather than a decided level.
+// GUITAR_FALLBACK_VOLUME_DB is exported so the offline harness's
+// "guitar-fallback-note" scenario (offlineRender.js) can be a permanent
+// check against it, and so its value is documented in exactly one place.
+// Measured (VMU-144 phase B, "guitar-fallback-note" scenario at C3, 0 dB
+// default): -25.21 LUFS, 5.14 LU louder than the sampler's now-corrected C3
+// (-30.35 LUFS, GUITAR_SAMPLE_GAIN_DB above). -5.1 dB brings it within the
+// coordinator's ±1.5 LU of the sampler (brief item 3), not of the fallback's
+// own uncorrected number.
+export const GUITAR_FALLBACK_VOLUME_DB = -5.1;
 const guitarFallback = new Tone.PolySynth(Tone.FMSynth, {
+  volume: GUITAR_FALLBACK_VOLUME_DB,
   harmonicity: 3.0,
   modulationIndex: 10,
   oscillator: { type: "sine" },
@@ -174,6 +186,12 @@ const guitarFallback = new Tone.PolySynth(Tone.FMSynth, {
   modulation: { type: "square" },
   modulationEnvelope: { attack: 0.002, decay: 0.2, sustain: 0, release: 0.2 },
 }).connect(guitarChorus);
+// Exported for the offline measurement harness only (VMU-144 phase B item 3),
+// the same convention `masterLimiter` already uses above: the harness needs
+// to trigger this voice directly, bypassing `getGuitarSynth()`'s
+// sampler-or-fallback choice, to measure the fallback itself regardless of
+// sampler load state. Nothing in the app reads this export.
+export { guitarFallback };
 
 let guitarSampler = null;
 let guitarSamplerReady = false;
@@ -239,6 +257,81 @@ export function getGuitarSynth() {
   return guitarSamplerReady && guitarSampler ? guitarSampler : guitarFallback;
 }
 
+// VMU-144 phase B item 2 — guitar's 13 sampled notes (AudioEngine.js urls
+// above), as MIDI numbers, for guitarSampleVelocity's nearest-neighbour
+// lookup below. C2 E2 G2 C3 E3 G3 C4 E4 G4 C5 E5 G5 C6.
+const GUITAR_SAMPLE_MIDI = [36, 40, 43, 48, 52, 55, 60, 64, 67, 72, 76, 79, 84];
+
+/**
+ * Per-sample gain correction, in dB, keyed by MIDI note (one of the 13
+ * sampled notes above only). VMU-144 phase B item 2: guitar's raw samples
+ * are not equally loud — measured in the phase B relevé
+ * (`npm run audio:measure -- --scenario=vmu144-releve-guitar-<note>`, full
+ * 13-row table and the piano reference it is computed against in the
+ * report). Each value here is pianoLufs(note) - guitarLufs(note): the boost
+ * (positive) or cut (negative) so guitar reads within the coordinator's
+ * ±1.5 LU of piano on the same note. Single owner of guitar's per-note level
+ * (VMU-024) — every other note Tone.Sampler plays (pitch-shifted from one of
+ * these 13) inherits its nearest sample's correction via
+ * guitarSampleVelocity below, not a second table.
+ */
+const GUITAR_SAMPLE_GAIN_DB = {
+  // C2 is guitar's lowest sample but below guitar's own playable range
+  // (E2-C6 = MIDI 40-84, playDictionaryNote's filter above) — MIDI 36 < 40,
+  // so a C2 request is always filtered to silence before it would ever reach
+  // this table. No correction is possible to measure (relevé: -200 LUFS,
+  // filtered) or needed (unreachable). Kept at 0, not omitted, so a future
+  // change to the range filter does not silently pick up an unvetted value.
+  36: 0, // C2 — unreachable via playDictionaryNote, see above
+  40: 14.6, // E2
+  43: 15.0, // G2
+  48: 5.1, // C3
+  52: 10.7, // E3
+  55: 6.6, // G3
+  60: 14.7, // C4
+  64: 14.5, // E4
+  67: 18.3, // G4
+  72: 7.3, // C5
+  76: 18.6, // E5
+  79: 22.2, // G5
+  84: 16.9, // C6
+};
+
+/**
+ * Which of guitar's 13 sampled notes Tone.Sampler will actually use to play
+ * `midi` — the same rule as Tone's own private `Sampler._findClosest`
+ * (node_modules/tone/Tone/instrument/Sampler.ts): expanding search radius,
+ * checking the interval above before below at each step, so an exact tie
+ * (a note exactly between two samples) resolves to the higher one. Not
+ * calling `_findClosest` itself: it is a private method on the sampler
+ * instance, not exported, and this needs to run before the sampler has
+ * necessarily loaded.
+ * @param {number} midi
+ * @returns {number} one of GUITAR_SAMPLE_MIDI
+ */
+function nearestGuitarSampleMidi(midi) {
+  for (let interval = 0; interval < 96; interval++) {
+    if (GUITAR_SAMPLE_MIDI.includes(midi + interval)) return midi + interval;
+    if (GUITAR_SAMPLE_MIDI.includes(midi - interval)) return midi - interval;
+  }
+  return GUITAR_SAMPLE_MIDI[0]; // unreachable for any note in guitar's filtered range (E2-C6, playDictionaryNote)
+}
+
+/**
+ * Linear gain to pass as `triggerAttackRelease`'s velocity for `noteName`,
+ * from its nearest sample's correction (GUITAR_SAMPLE_GAIN_DB above). dB to
+ * linear amplitude: 10^(db/20) — not clamped to <=1 here; see this
+ * function's call site (playDictionaryNote) for why an amplifying velocity
+ * is safe on this path.
+ * @param {string} noteName
+ * @returns {number}
+ */
+function guitarSampleVelocity(noteName) {
+  const midi = Tone.Frequency(noteName).toMidi();
+  const nearest = nearestGuitarSampleMidi(midi);
+  const correctionDb = GUITAR_SAMPLE_GAIN_DB[nearest] ?? 0;
+  return Math.pow(10, correctionDb / 20);
+}
 
 // ─── Piano ───────────────────────────────────────────────────────────
 
@@ -424,14 +517,42 @@ export function playDictionaryNote(instrument, notes, duration, time) {
   if (filteredNotes.length === 0) return; // Physically impossible note = silence
 
   if (instrument === "bass") {
-    // bassSynth is MonoSynth; we only play the root/lowest note of a chord
+    // bassSynthDictionary is MonoSynth; we only play the root/lowest note of a chord
     // Sort array by midi value to find the lowest note
     const lowestNote = filteredNotes.sort((a,b) => Tone.Frequency(a).toMidi() - Tone.Frequency(b).toMidi())[0];
-    bassSynth.triggerAttackRelease(lowestNote, duration, time);
+    // VMU-144 phase B: this used to trigger `bassSynth`, the same instance
+    // Studio's sequencer plays through and `applyGenrePreset` mutates. Phase B
+    // measurement (2026-09-22): after applying the jazz preset, this same C2
+    // note measured ~9 LU *louder* in Dictionary — not from the 2 dB `volume`
+    // difference, but from jazz's much longer envelope sustain/release
+    // changing how loud the held note is throughout its 1 s duration. A
+    // volume-only compensation cannot fix that; only a voice `applyGenrePreset`
+    // never touches can. `bassSynthDictionary` below is built once, fixed,
+    // and is never passed to `applyGenrePreset` — Studio's own `bassSynth`
+    // (useSequencer.js) is untouched, so nothing about the Studio mixer or
+    // its genre-dependent bass timbre changes (VMU-025, tranche T2, out of
+    // scope here).
+    bassSynthDictionary.triggerAttackRelease(lowestNote, duration, time);
   } else if (instrument === "guitar") {
     const gSynth = getGuitarSynth();
     if (!time && gSynth.releaseAll) gSynth.releaseAll();
-    gSynth.triggerAttackRelease(filteredNotes, duration, time);
+    if (gSynth === guitarSampler) {
+      // VMU-144 phase B item 2: guitar's 13 raw samples (AudioEngine.js
+      // urls, initGuitarSampler) are not equally loud — measured in the
+      // phase B relevé, see GUITAR_SAMPLE_GAIN_DB below for the source and
+      // the numbers. Tone.Sampler's `velocity` (triggerAttackRelease's 4th
+      // arg) scales that one voice's output gain directly — a plain
+      // GainNode.gain value, not clamped to <=1 (OneShotSource._startGain,
+      // node_modules/tone/Tone/source/OneShotSource.ts) — so it can boost a
+      // quiet sample as well as cut a loud one. It is a single scalar per
+      // call, not one per note, so a chord's notes are triggered one at a
+      // time here rather than as one array call, each at the same `time`.
+      filteredNotes.forEach((n) => {
+        gSynth.triggerAttackRelease(n, duration, time, guitarSampleVelocity(n));
+      });
+    } else {
+      gSynth.triggerAttackRelease(filteredNotes, duration, time);
+    }
   } else {
     const pSynth = getPianoSynth();
     if (!time && pSynth.releaseAll) pSynth.releaseAll();
@@ -443,23 +564,57 @@ export function playDictionaryNote(instrument, notes, duration, time) {
 
 let currentBassPreset = BASS_PRESETS.electronic;
 
-export const bassSynth = new Tone.MonoSynth({
-  volume: currentBassPreset.volume,
-  oscillator: { type: currentBassPreset.oscillator },
-  envelope: {
-    attack: currentBassPreset.attack,
-    decay: currentBassPreset.decay,
-    sustain: currentBassPreset.sustain,
-    release: currentBassPreset.release,
-  },
-  filterEnvelope: {
-    attack: currentBassPreset.attack,
-    decay: currentBassPreset.decay,
-    sustain: currentBassPreset.sustain,
-    baseFrequency: currentBassPreset.filterFreq,
-    octaves: 4,
-  },
-}).connect(instrumentVols.bass);
+/**
+ * One `Tone.MonoSynth` builder, so Studio's genre-reactive `bassSynth` and
+ * Dictionary's fixed `bassSynthDictionary` (VMU-144 phase B) are built from
+ * identical code and cannot drift apart in shape, only in the `volumeDb`
+ * and `preset` each is given.
+ * @param {number} volumeDb
+ * @param {object} preset one of BASS_PRESETS's entries (timbre only; its
+ *   volumeOffsetDb is not read here — callers pass the resolved volumeDb)
+ */
+function buildMonoBassSynth(volumeDb, preset) {
+  return new Tone.MonoSynth({
+    volume: volumeDb,
+    oscillator: { type: preset.oscillator },
+    envelope: {
+      attack: preset.attack,
+      decay: preset.decay,
+      sustain: preset.sustain,
+      release: preset.release,
+    },
+    filterEnvelope: {
+      attack: preset.attack,
+      decay: preset.decay,
+      sustain: preset.sustain,
+      baseFrequency: preset.filterFreq,
+      octaves: 4,
+    },
+  }).connect(instrumentVols.bass);
+}
+
+// Studio's bass voice (useSequencer.js). `applyGenrePreset` below mutates its
+// volume *and* timbre on every genre change — unchanged by VMU-144, per the
+// brief ("ne touche pas au niveau affiché / appliqué du mixeur du Studio",
+// VMU-025 tranche T2). BASS_BASE_VOLUME_DB === currentBassPreset's own
+// volumeOffsetDb (0) resolved against it, i.e. exactly -4 dB, the same
+// number this synth has always been constructed with.
+export const bassSynth = buildMonoBassSynth(
+  BASS_BASE_VOLUME_DB + currentBassPreset.volumeOffsetDb,
+  currentBassPreset,
+);
+
+// Dictionary's bass voice (playDictionaryNote below). VMU-144 phase B item 4:
+// "un gain de lecture fixe, indépendant du genre" — built once, at
+// BASS_BASE_VOLUME_DB and the `electronic` preset's timbre, and never handed
+// to applyGenrePreset, so nothing about it ever changes after this line runs.
+// A separate instance rather than a runtime volume-compensation on the
+// shared `bassSynth` because compensation would only fix the `volume`
+// parameter: measured 2026-09-22, applying the jazz preset changed this same
+// note's loudness by ~9 LU, almost all of it from jazz's envelope
+// (sustain 0.4 vs electronic's 0.1), which no amount of volume compensation
+// corrects.
+export const bassSynthDictionary = buildMonoBassSynth(BASS_BASE_VOLUME_DB, BASS_PRESETS.electronic);
 
 // ─── Genre Switching ─────────────────────────────────────────────────
 
@@ -500,9 +655,14 @@ export function applyGenrePreset(group) {
     envelope: { decay: drumP.hat.decay },
   });
 
-  // Update bass
+  // Update bass — Studio's bassSynth only (bassSynthDictionary is never
+  // passed to applyGenrePreset, VMU-144 phase B). volumeOffsetDb is relative
+  // to BASS_BASE_VOLUME_DB (InstrumentPresets.js); resolving it here
+  // reproduces exactly the absolute dB each preset used before this ticket
+  // (checked by InstrumentPresets.test.js), so Studio's bass level per genre
+  // is unchanged.
   bassSynth.set({
-    volume: bassP.volume,
+    volume: BASS_BASE_VOLUME_DB + bassP.volumeOffsetDb,
     oscillator: { type: bassP.oscillator },
     envelope: {
       attack: bassP.attack,

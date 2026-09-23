@@ -77,6 +77,99 @@ const CEILING_DBFS = -1;
 const CEILING_TOLERANCE_DB = 0.2;
 
 /**
+ * VMU-144 phase B — tolerances the coordinator fixed after reviewing phase A
+ * (brief, "Phase B — cible fixée par la coordinatrice", 2026-09-22).
+ */
+const GUITAR_VS_PIANO_TOLERANCE_LU = 1.5;
+const BASS_GENRE_STABILITY_TOLERANCE_LU = 0.5;
+
+/**
+ * The 13 notes guitar actually has a sample for (`guitarSampler.urls`,
+ * AudioEngine.js:210-215; Do-Mi-Sol from Do2 to Do6). VMU-144 phase B item 1:
+ * "chaque échantillon de guitare joué à sa propre hauteur (13 notes, aucune
+ * transposition), et le piano sur les mêmes 13 notes pour référence" — the
+ * relevé this generates one measurement row per note, per instrument, from.
+ */
+const GUITAR_SAMPLE_NOTES = [
+  "C2", "E2", "G2",
+  "C3", "E3", "G3",
+  "C4", "E4", "G4",
+  "C5", "E5", "G5",
+  "C6",
+];
+
+/**
+ * One row of the phase B relevé: `instrument` played at `note`, its own
+ * pitch, no transposition. Generated rather than written out 26 times —
+ * the 13 notes above, twice (guitar, then piano for reference).
+ */
+const VMU144_RELEVE_ROWS = ["guitar", "piano"].flatMap((instrument) =>
+  GUITAR_SAMPLE_NOTES.map((note) => ({
+    id: `vmu144-releve-${instrument}-${note}`,
+    title: `VMU-144 phase B relevé: ${instrument}, ${note} (its own sample, no transposition)`,
+    // Guitar C2 has no expectedNotes and is expected to render *silent*:
+    // guitar's own note-range filter (playDictionaryNote, AudioEngine.js,
+    // E2-C6 = MIDI 40-84) rejects C2 (MIDI 36) before any synth sees it, even
+    // though guitarSampler.urls does have a C2.mp3 (VMU-144 phase B finding —
+    // that sample can never sound through this app). Asserting a pitch or
+    // "not silent" here would fail on the app's own intended behaviour.
+    spec:
+      instrument === "guitar" && note === "C2"
+        ? { scenario: "single-note", params: { instrument, note } }
+        : { scenario: "single-note", params: { instrument, note }, expectedNotes: [note] },
+    why:
+      instrument === "guitar" && note === "C2"
+        ? `Guitar's own filtered range starts at E2 (playDictionaryNote, AudioEngine.js) — C2 is silence by design, not a level to correct.`
+        : instrument === "guitar"
+          ? `Guitar's own recorded sample at ${note} (AudioEngine.js:210-215) — the relevé the coordinator asked for before any per-note correction.`
+          : `Piano at ${note}, for reference against the guitar row of the same note — piano is not corrected in this ticket.`,
+    expect: (r) =>
+      instrument === "guitar" && note === "C2"
+        ? [check("is silent (outside guitar's playable range)", r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)]
+        : [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  })),
+);
+
+/**
+ * VMU-144 phase B, permanent checks: guitar vs piano at the same note, and
+ * bass's Dictionary level against itself before/after a genre preset. Reads
+ * `results` (closed over below, populated as the plan runs) rather than a
+ * single `r`, because these compare *two* measurements the plan takes
+ * separately — unlike every other `expect` in this file.
+ */
+// Generic despite the name (also used for guitar-fallback-vs-sampler, brief
+// item 3): any two ids compared by loudness within GUITAR_VS_PIANO_TOLERANCE_LU.
+function guitarVsPianoCheck(results, firstId, secondId, label) {
+  const a = results.find((r) => r.id === firstId)?.measurement;
+  const b = results.find((r) => r.id === secondId)?.measurement;
+  if (!a || !b || a.error || b.error) {
+    return check(label, false, `missing measurement (${firstId} or ${secondId})`);
+  }
+  const deltaLu = a.mix.loudness.lufs - b.mix.loudness.lufs;
+  return check(
+    label,
+    Math.abs(deltaLu) <= GUITAR_VS_PIANO_TOLERANCE_LU,
+    `${firstId} ${fmt(a.mix.loudness.lufs)} LUFS, ${secondId} ${fmt(b.mix.loudness.lufs)} LUFS, ` +
+      `Δ ${fmt(deltaLu)} LU (tolerance ±${GUITAR_VS_PIANO_TOLERANCE_LU})`,
+  );
+}
+
+function bassGenreStabilityCheck(results, freshId, afterId, group) {
+  const fresh = results.find((r) => r.id === freshId)?.measurement;
+  const after = results.find((r) => r.id === afterId)?.measurement;
+  if (!fresh || !after || fresh.error || after.error) {
+    return check(`bass Do2 stable after "${group}" preset`, false, `missing measurement (${freshId} or ${afterId})`);
+  }
+  const deltaLu = after.mix.loudness.lufs - fresh.mix.loudness.lufs;
+  return check(
+    `bass Do2 stable after "${group}" preset`,
+    Math.abs(deltaLu) <= BASS_GENRE_STABILITY_TOLERANCE_LU,
+    `fresh ${fmt(fresh.mix.loudness.lufs)} LUFS, after "${group}" ${fmt(after.mix.loudness.lufs)} LUFS, ` +
+      `Δ ${fmt(deltaLu)} LU (tolerance ±${BASS_GENRE_STABILITY_TOLERANCE_LU})`,
+  );
+}
+
+/**
  * The measurements taken, and what each one is for.
  *
  * `expect` runs only under --assert. It returns a list of {label, ok, detail}
@@ -214,6 +307,41 @@ const PLAN = [
       "(MonoSynth, AudioEngine.js:424-436): this row measures what actually plays, C2 alone, not C2+E2+G2.",
     expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
   },
+
+  // ─── VMU-144 phase B, item 1: the relevé (13 guitar samples + piano ref) ──
+  ...VMU144_RELEVE_ROWS,
+
+  // ─── VMU-144 phase B, item 3: guitar fallback forced ──────────────────
+  {
+    id: "vmu144-guitar-fallback-c3",
+    title: "VMU-144 phase B: guitar fallback (forced), C3",
+    spec: { scenario: "guitar-fallback-note", params: { note: "C3" }, expectedNotes: ["C3"] },
+    why:
+      "guitarFallback had no declared volume before this ticket (AudioEngine.js, phase A finding). " +
+      "Compared against vmu144-register-guitar (the sampler at C3) by the cross-scenario check below, " +
+      "within ±1.5 LU (brief item 3).",
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  },
+
+  // ─── VMU-144 phase B, item 4: bass Do2 in Dictionary, after each genre preset ──
+  // `vmu144-register-bass` above is the "fresh" baseline (no preset applied
+  // yet, matching phase A). Each row here applies one genre preset first
+  // (single-note scenario's new `applyGenrePreset` param, offlineRender.js —
+  // the exact function Studio calls, AudioEngine.js:471), then plays bass Do2
+  // through the same Dictionary path (playDictionaryNote). The cross-scenario
+  // check below compares each of these against the fresh baseline.
+  ...["electronic", "jazz", "rock", "pop", "urban", "world"].map((group) => ({
+    id: `vmu144-bass-after-${group}`,
+    title: `VMU-144 phase B: bass, C2, Dictionary path, after applyGenrePreset("${group}")`,
+    spec: {
+      scenario: "single-note",
+      params: { instrument: "bass", note: "C2", applyGenrePreset: group },
+      expectedNotes: ["C2"],
+    },
+    why: `Bass's Dictionary level must not move when a genre preset is applied in Studio (brief item 4, ±${BASS_GENRE_STABILITY_TOLERANCE_LU} LU).`,
+    expect: (r) => [check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`)],
+  })),
+
   {
     id: "output-link-probe-quiet",
     title: "Output link characterised: a 220 Hz sine at -40 dBFS, far below the ~-1 dBFS ceiling",
@@ -479,10 +607,68 @@ try {
   if (dev.server) await dev.server.close();
 }
 
+// ─── VMU-144 phase B cross-scenario checks ────────────────────────────
+// These compare two measurements the loop above took *separately* (guitar
+// vs piano on the same note, or bass before/after a genre preset), so they
+// cannot live inside one PLAN entry's own `expect(measurement)` — there is
+// no single `measurement` that holds both sides. Run once here instead.
+// Skipped (not failed) when a required id was not part of this run — e.g.
+// `--scenario=` filtered the plan down to something else.
+const crossChecks = [];
+if (ASSERT) {
+  const has = (id) => results.some((r) => r.id === id && !r.measurement.error);
+  const pairs = [
+    // "Do3" and "Do4" (brief item 6) are the same-note relevé pairs below
+    // (guitar C3 vs piano C3, guitar C4 vs piano C4) — item 2 asks for
+    // "chaque note ... à ±1,5 LU du piano sur la même note", not guitar's
+    // Do3 against piano's own usual register Do4 (a cross-register pair
+    // that was here in an earlier draft, measured -2.09 LU: outside
+    // tolerance, and not what item 2 actually specifies — removed, not
+    // "fixed", once re-read against the brief).
+    ["vmu144-c4-guitar", "vmu144-c4-piano", "guitar C4 vs piano C4"],
+    // The chord *is* explicitly cross-register (brief item 2: "l'accord
+    // Do-Mi-Sol en Do3 à ±1,5 LU de l'accord piano en Do4").
+    ["vmu144-chord-guitar", "vmu144-chord-piano", "guitar C-E-G chord at Do3 vs piano C-E-G chord at Do4"],
+    ["vmu144-guitar-fallback-c3", "vmu144-register-guitar", "guitar fallback (forced) at Do3 vs guitar sampler at Do3"],
+    // C2 excluded: guitar's own note-range filter (playDictionaryNote,
+    // AudioEngine.js, E2-C6 = MIDI 40-84) rejects it before it ever reaches
+    // a synth — guitar C2 is always silence in this app, not a level to
+    // correct or compare (relevé row still runs and reports -200 LUFS,
+    // informational; asserting it against piano here would be asserting the
+    // wrong thing).
+    ...GUITAR_SAMPLE_NOTES.filter((note) => note !== "C2").map((note) => [
+      `vmu144-releve-guitar-${note}`,
+      `vmu144-releve-piano-${note}`,
+      `relevé: guitar ${note} vs piano ${note}`,
+    ]),
+  ];
+  for (const [g, p, label] of pairs) {
+    if (has(g) && has(p)) crossChecks.push(guitarVsPianoCheck(results, g, p, label));
+  }
+  for (const group of ["electronic", "jazz", "rock", "pop", "urban", "world"]) {
+    const afterId = `vmu144-bass-after-${group}`;
+    if (has("vmu144-register-bass") && has(afterId)) {
+      crossChecks.push(bassGenreStabilityCheck(results, "vmu144-register-bass", afterId, group));
+    }
+  }
+}
+failures += crossChecks.filter((c) => (c.knownFail ? c.ok : !c.ok)).length;
+if (!AS_JSON && crossChecks.length > 0) {
+  console.log(`\n${"─".repeat(78)}`);
+  console.log("VMU-144 phase B — cross-scenario checks (guitar vs piano, bass genre stability)");
+  console.log(`${"─".repeat(78)}`);
+  for (const c of crossChecks) {
+    console.log(`  ${c.ok ? "PASS" : "FAIL"}  ${c.label}${c.detail ? `  —  ${c.detail}` : ""}`);
+  }
+}
+
 if (AS_JSON) {
   console.log(
     JSON.stringify(
-      results.map((r) => ({ id: r.id, title: r.title, measurement: r.measurement, checks: r.checks })),
+      {
+        results: results.map((r) => ({ id: r.id, title: r.title, measurement: r.measurement, checks: r.checks })),
+        crossChecks,
+      },
       null,
       2,
     ),
@@ -490,7 +676,7 @@ if (AS_JSON) {
 } else if (ASSERT) {
   // Known-fails are counted out of the asserted total and named separately:
   // folding one into "14/14 passed" would report a measured defect as a pass.
-  const all = results.flatMap((r) => r.checks);
+  const all = results.flatMap((r) => r.checks).concat(crossChecks);
   const known = all.filter((c) => c.knownFail && !c.ok).length;
   const asserted = all.length - known;
   const verdict = failures === 0 ? "PASS" : "FAIL";

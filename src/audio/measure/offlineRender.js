@@ -242,10 +242,40 @@ export const SCENARIOS = {
     async body(ctx) {
       const { engine, params, diagnostics } = ctx;
       await loadSamplers(ctx);
+      // VMU-144 phase B, bass control: applies a genre preset (Studio's own
+      // trigger, AppDesktop.jsx:288 / useSequencer.js:310 — appMode==="studio"
+      // gated in the app, but the harness has no "mode" to gate on, so this
+      // param calls the same function directly) *before* playing, so the
+      // scenario can prove Dictionary's bass level does not move afterward.
+      if (params.applyGenrePreset) {
+        engine.applyGenrePreset(params.applyGenrePreset);
+        diagnostics.genrePresetApplied = params.applyGenrePreset;
+      }
       const instrument = params.instrument ?? "piano";
       const note = params.note ?? "C4";
       diagnostics.requested = { instrument, notes: [note] };
       engine.playDictionaryNote(instrument, note, params.duration ?? 1.0, LEAD_IN_SEC);
+    },
+  },
+
+  /**
+   * VMU-144 phase B, item 3: the guitar fallback synth (`guitarFallback`,
+   * no `volume` declared before this ticket) forced regardless of sampler
+   * state — `loadSamplers` always awaits full decode, so `getGuitarSynth()`
+   * never picks the fallback in this harness otherwise (the brief names this
+   * gap explicitly: "si le harnais ne sait pas forcer le repli, ajoute-lui ce
+   * moyen"). Triggers `engine.guitarFallback` directly, bypassing the
+   * sampler-or-fallback router entirely — this measures the fallback voice
+   * itself, not a code path a real session would take on its own.
+   */
+  "guitar-fallback-note": {
+    durationSec: 1.6,
+    async body(ctx) {
+      const { engine, params, diagnostics } = ctx;
+      const note = params.note ?? "C3";
+      diagnostics.requested = { instrument: "guitar (forced fallback)", notes: [note] };
+      diagnostics.guitarVoice = engine.guitarFallback.constructor.name;
+      engine.guitarFallback.triggerAttackRelease(note, params.duration ?? 1.0, LEAD_IN_SEC);
     },
   },
 
