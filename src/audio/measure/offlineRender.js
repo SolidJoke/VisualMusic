@@ -125,6 +125,22 @@ export async function runScenario(spec) {
       const engine = await import("../AudioEngine");
       diagnostics.destinationIsOffline = Tone.getDestination().context === Tone.getContext();
 
+      // VMU-144 phase B (coordinator follow-up, 2026-09-23): pianoReverb and
+      // guitarReverb (AudioEngine.js) each generate their impulse response
+      // asynchronously in their own nested OfflineContext (Tone.Reverb's own
+      // `generate()`, node_modules/tone/.../effect/Reverb.js — "the impulse
+      // response generation is async"), started at module import above, a few
+      // lines up. Both draw from the same seeded Math.random (this script's
+      // page.addInitScript) but as two independent async tasks, so *which one
+      // finishes generating its buffer first* was not itself deterministic —
+      // measured: the one scenario that did not already have an incidental
+      // synchronisation point here (guitar-fallback-note, no loadSamplers
+      // call) read 0.02-0.03 LU apart across otherwise-identical runs, while
+      // every scenario that happened to await something else first did not.
+      // Awaiting both `.ready` promises here, once, for every scenario,
+      // removes the race outright rather than relying on that coincidence.
+      await Promise.all([engine.pianoReverb.ready, engine.guitarReverb.ready]);
+
       // Unhook masterLimiter -> Destination, then tap both sides of it.
       engine.masterLimiter.disconnect();
       const merge = new Tone.Merge();

@@ -156,11 +156,21 @@ export function setMasterVolume(vol) {
 }
 
 // ─── Effects Bus ─────────────────────────────────────────────────────
-const pianoReverb = new Tone.Reverb({ decay: 1.5, wet: 0.15 }).connect(instrumentVols.piano);
+// pianoReverb/guitarReverb exported for the offline measurement harness only
+// (VMU-144 phase B, same convention as masterLimiter/guitarFallback above):
+// Tone.Reverb generates its impulse response asynchronously (its own
+// `.ready` promise), and the harness awaits both before triggering any note,
+// so two reverbs generating concurrently cannot race against each other and
+// produce a non-deterministic tail. Nothing in the app reads these exports —
+// production code never needed to wait on `.ready` because nothing plays a
+// note before the whole module (including these two `new Tone.Reverb(...)`
+// calls) has finished evaluating, by which point generation is already well
+// under way in the background regardless.
+export const pianoReverb = new Tone.Reverb({ decay: 1.5, wet: 0.15 }).connect(instrumentVols.piano);
 // Chorus is disabled for natural piano sound
 const pianoChorus = new Tone.Chorus({ frequency: 0.5, delayTime: 3.5, depth: 0.15, wet: 0.1 }).connect(pianoReverb);
 
-const guitarReverb = new Tone.Reverb({ decay: 2.0, wet: 0.2 }).connect(instrumentVols.guitar);
+export const guitarReverb = new Tone.Reverb({ decay: 2.0, wet: 0.2 }).connect(instrumentVols.guitar);
 const guitarChorus = new Tone.Chorus({ frequency: 2, delayTime: 2.5, depth: 0.3, wet: 0.15 }).connect(guitarReverb);
 guitarChorus.start();
 
@@ -176,6 +186,12 @@ guitarChorus.start();
 // (-30.35 LUFS, GUITAR_SAMPLE_GAIN_DB above). -5.1 dB brings it within the
 // coordinator's ±1.5 LU of the sampler (brief item 3), not of the fallback's
 // own uncorrected number.
+// Recomputed 2026-09-23 (deterministic harness, coordinator follow-up):
+// forced fallback at C3, 0 dB default, reads -24.76 LUFS; the sampler at C3
+// with the recomputed GUITAR_SAMPLE_GAIN_DB above reads -29.83 LUFS.
+// -5.1 dB brings the fallback within the coordinator's ±1.5 LU of the
+// sampler (brief item 3) — coincides with the pre-determinism value to one
+// decimal place, recomputed independently rather than assumed unchanged.
 export const GUITAR_FALLBACK_VOLUME_DB = -5.1;
 const guitarFallback = new Tone.PolySynth(Tone.FMSynth, {
   volume: GUITAR_FALLBACK_VOLUME_DB,
@@ -274,6 +290,16 @@ const GUITAR_SAMPLE_MIDI = [36, 40, 43, 48, 52, 55, 60, 64, 67, 72, 76, 79, 84];
  * (VMU-024) — every other note Tone.Sampler plays (pitch-shifted from one of
  * these 13) inherits its nearest sample's correction via
  * guitarSampleVelocity below, not a second table.
+ *
+ * Recomputed 2026-09-23 (coordinator follow-up) from a fully deterministic
+ * relevé — `scripts/audio_measure.mjs` now seeds `Math.random` before any
+ * module loads (mulberry32, HARNESS_RANDOM_SEED), and `offlineRender.js`
+ * awaits both reverbs' `.ready` before any scenario plays a note, removing
+ * the two sources of run-to-run jitter that affected the first version of
+ * this table (confirmed: 5 consecutive `npm run audio:check` runs now read
+ * identical LUFS on every VMU-144 line, see the report). The earlier
+ * per-note "nudges" (G2, C3, G5, C6, widened for observed variance) are
+ * gone — there is no variance left to widen against.
  */
 const GUITAR_SAMPLE_GAIN_DB = {
   // C2 is guitar's lowest sample but below guitar's own playable range
@@ -283,30 +309,18 @@ const GUITAR_SAMPLE_GAIN_DB = {
   // filtered) or needed (unreachable). Kept at 0, not omitted, so a future
   // change to the range filter does not silently pick up an unvetted value.
   36: 0, // C2 — unreachable via playDictionaryNote, see above
-  40: 14.6, // E2
-  // G2, C3, G5, C6 below were nudged up from a single-measurement value
-  // (15.0, 5.1, 22.2, 16.9) after a 5-run variance check showed a
-  // consistent negative bias against the ±1.5 LU tolerance — guitarReverb's
-  // noise-seeded impulse response (Tone.Reverb, regenerated fresh per
-  // render, same property SIGNIFICANCE_DB documents in signalMetrics.js for
-  // a different measurement) moves a single short note's measured loudness
-  // by up to roughly ±1 LU run to run. Mean deltas observed across 5 runs
-  // (guitar - piano, post-correction, before this nudge): G2 -1.09 LU
-  // (worst run -1.91, 2 FAILs in 8 total runs), C3 -0.76 LU (worst -1.40),
-  // G5 -0.61 LU, C6 -0.64 LU — all biased the same direction. The nudge
-  // re-centres each nearer 0 LU so the tolerance's margin covers the
-  // measured jitter; it does not remove the jitter itself.
-  43: 16.0, // G2 (was 15.0)
-  48: 5.6, // C3 (was 5.1)
-  52: 10.7, // E3
-  55: 6.6, // G3
-  60: 14.7, // C4
-  64: 14.5, // E4
-  67: 18.3, // G4
-  72: 7.3, // C5
-  76: 18.6, // E5
-  79: 22.5, // G5 (was 22.2)
-  84: 17.2, // C6 (was 16.9)
+  40: 15.2, // E2
+  43: 15.6, // G2
+  48: 5.0, // C3
+  52: 10.2, // E3
+  55: 5.7, // G3
+  60: 14.3, // C4
+  64: 15.1, // E4
+  67: 18.0, // G4
+  72: 7.9, // C5
+  76: 18.8, // E5
+  79: 22.6, // G5
+  84: 16.7, // C6
 };
 
 /**

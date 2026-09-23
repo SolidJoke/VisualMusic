@@ -557,6 +557,43 @@ if (!AS_JSON) {
   console.log(`  dev server : ${ORIGIN}${dev.reused ? " (reused)" : " (started here)"}`);
 }
 
+// VMU-144 phase B, coordinator follow-up (2026-09-23): this harness's own
+// loudness checks were flaky — up to a few LU of run-to-run jitter on a
+// single short note, occasionally past the ±1.5 LU tolerance. Root cause,
+// confirmed by reading the library: `node_modules/tone/build/esm/source/Noise.js`
+// draws its noise buffer with `Math.random()`, and
+// `node_modules/tone/build/esm/effect/Reverb.js` feeds that noise through an
+// exponential-decay envelope to build the impulse response — regenerated
+// from scratch every time `pianoReverb`/`guitarReverb` (AudioEngine.js) are
+// constructed, i.e. every fresh page this loop opens. Even piano, untouched
+// by this ticket, moved (coordinator's 3 runs: C6 at -36.34 / -36.64 /
+// -36.62 LUFS).
+//
+// Fixed here, in the harness only — no change to the app's own code, and
+// Math.random is reseeded on every page rather than patched once, so it
+// cannot leak state between scenarios or between two separate
+// `npm run audio:check` invocations. `installSeededRandom` is a function
+// declaration passed to Playwright's `page.addInitScript`, which evaluates
+// it inside the page *before any other script* (including the dynamically
+// imported AudioEngine.js/Tone modules), on every navigation — so every
+// reverb built by every scenario draws from the same fixed sequence, every
+// run. mulberry32: small, well-known, good-enough statistical quality for
+// "reproducible noise buffer", not cryptographic — https://github.com/bryc/code/blob/master/jshash/PRNGs.md#mulberry32
+function installSeededRandom(seed) {
+  let state = seed >>> 0;
+  Math.random = function seededRandom() {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// Any fixed constant. Chosen once (VMU-144) and never to be changed casually —
+// every measurement this harness has recorded since is drawn against this
+// exact seed; changing it silently re-randomises every reverb tail and moves
+// every LUFS number in every report and every GUITAR_SAMPLE_GAIN_DB entry.
+const HARNESS_RANDOM_SEED = 144;
+
 const browser = await chromium.launch({
   headless: !KEEP_OPEN,
   // The flag that makes audio observable at all in Chromium. The harness does
@@ -579,6 +616,11 @@ try {
     page.on("console", (m) => {
       if (m.type() === "error") pageErrors.push(`console.error: ${m.text()}`);
     });
+    // Before any other script on this page — see installSeededRandom above
+    // for why (Tone.Noise / Tone.Reverb's Math.random-seeded impulse
+    // response was the harness's own source of run-to-run measurement
+    // jitter, VMU-144 phase B).
+    await page.addInitScript(installSeededRandom, HARNESS_RANDOM_SEED);
     await page.route(PROBE_URL, (route) =>
       route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>audio probe</title>" }),
     );
