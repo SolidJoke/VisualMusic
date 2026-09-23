@@ -11,10 +11,10 @@
  * scans the app for the formula's recognisable shapes and fails on any
  * occurrence that isn't already accounted for.
  *
- * "Accounted for" means listed in EXCEPTIONS below, each with its file:line
- * and a short reason: a known false positive (a volume, not a pitch), or a
- * genuine hand calculation this ticket's brief left out of scope (decision
- * #3 — useMusicEngine.js and PianoKeyboard.jsx are VMU-115's job) and is
+ * "Accounted for" means listed in EXCEPTIONS below, each with a short reason:
+ * a known false positive (a volume, not a pitch), or a genuine hand
+ * calculation this ticket's brief left out of scope (decision #3 —
+ * useMusicEngine.js and PianoKeyboard.jsx are VMU-115's job) and is
  * inventoried instead of migrated. Three shapes are matched, all named in the
  * brief or found while inventorying the reported bug's structural cause:
  *
@@ -36,11 +36,37 @@
  * octave (`+ 12`) is a different, common and legitimate operation (the
  * engine's own closing-note calculation does it) — including it would drown
  * every real finding in noise.
+ *
+ * VMU-147 — exception keying: exceptions used to be keyed by `file:line`.
+ * An edit that shifted lines *above* an exempted site (a new comment, an
+ * added import — nothing about the exempted line itself) broke the key
+ * without the exempted code changing at all: the exception went stale and
+ * the untouched site reported as a brand-new unexcepted hit. That forced a
+ * pure renumbering PR three times (VMU-131 gave up a refactor over it;
+ * VMU-146 renumbered 10 exceptions across three commits; VMU-144 twice
+ * more). Worse, the same line-number key is *blind* to the opposite case: if
+ * the exempted line's own text changes but happens to land on the same line
+ * number, the old key still matches and nothing flags it for re-review.
+ *
+ * The fix: key each exception on `file` + the exempted line's own
+ * *normalized* text (after stripComments, runs of whitespace collapsed to
+ * one, edges trimmed) + how many occurrences of that exact text are allowed
+ * in that file (`count`, default 1). A pure line shift changes no text, so
+ * the exception survives it. A change to the exempted line's own text still
+ * breaks the exception — that is the point, not a defect: the code that was
+ * reviewed and exempted is gone, so whatever replaced it needs a fresh look.
+ * The scanning and matching logic itself lives in ./pitchCalcGuard.js (not a
+ * test file — sourceFiles() below already excludes __tests__/ from the scan,
+ * which is what makes this an importable module rather than dead code),
+ * exposing checkExceptions as a pure function so it can be driven from a
+ * fixture-based test (below) or from an external verification script without
+ * going through vitest.
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { stripComments, findHandPitchCalcs, normalizeLine, collectHits, checkExceptions } from "./pitchCalcGuard.js";
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -59,154 +85,188 @@ function sourceFiles(dir = SRC, acc = []) {
   return acc;
 }
 
-/** Blank out line and block comments, preserving line structure; strings/template literals pass through untouched. */
-export function stripComments(src) {
-  let out = "";
-  let i = 0;
-  while (i < src.length) {
-    const c = src[i];
-    const c2 = src[i + 1];
-    if (c === '"' || c === "'" || c === "`") {
-      const quote = c;
-      out += c;
-      i++;
-      while (i < src.length) {
-        out += src[i];
-        if (src[i] === "\\" && i + 1 < src.length) {
-          i++;
-          out += src[i];
-        } else if (src[i] === quote) {
-          i++;
-          break;
-        }
-        i++;
-      }
-      continue;
-    }
-    if (c === "/" && c2 === "/") {
-      while (i < src.length && src[i] !== "\n") i++;
-      continue;
-    }
-    if (c === "/" && c2 === "*") {
-      i += 2;
-      while (i < src.length && !(src[i] === "*" && src[i + 1] === "/")) {
-        out += src[i] === "\n" ? "\n" : " ";
-        i++;
-      }
-      i += 2;
-      continue;
-    }
-    out += c;
-    i++;
-  }
-  return out;
+function relFile(file) {
+  return path.relative(SRC, file).replace(/\\/g, "/");
 }
 
-// Deliberately not anchored on the opening paren's content (e.g.
-// `(Number(octave) + 1) * 12` nests a call inside it) — the closing shape
-// `+ 1) * 12` alone is specific enough in practice.
-const OCTAVE_BASE_FORMULA = /\+\s*1\)\s*\*\s*12/g;
-const OCTAVE_BASES = "24|36|48|60|72|84|96"; // C1..C7, theory.js:75-78
-const OCTAVE_LITERAL_ADD = new RegExp(`\\+\\s*(?:${OCTAVE_BASES})\\b`, "g");
-const OCTAVE_LITERAL_TERNARY = new RegExp(`\\?\\s*(?:${OCTAVE_BASES})\\s*:\\s*(?:${OCTAVE_BASES})\\b`, "g");
-
-/**
- * @param {string} src already comment-stripped
- * @returns {Array<{line: number, snippet: string}>}
- */
-export function findHandPitchCalcs(src) {
-  const hits = [];
-  for (const re of [OCTAVE_BASE_FORMULA, OCTAVE_LITERAL_ADD, OCTAVE_LITERAL_TERNARY]) {
-    re.lastIndex = 0;
-    for (const m of src.matchAll(re)) {
-      const line = src.slice(0, m.index).split("\n").length;
-      hits.push({ line, snippet: m[0] });
-    }
-  }
-  return hits.sort((a, b) => a.line - b.line);
-}
-
-// file:line -> reason. Every entry was found by this scanner on the branch
-// this test was written on; a line number drifting when the surrounding
-// file changes is expected to break this test — that is the point (it means
-// the exception needs re-checking, not a silent match against the wrong
-// line forever).
-const EXCEPTIONS = {
+// Every entry below was converted from the file:line-keyed EXCEPTIONS this
+// test used before VMU-147, same 18 original entries, same reasons,
+// unchanged scope (nothing migrated, nothing added or removed — decision #4
+// of the VMU-147 brief). `count` defaults to 1 and is only ever set higher
+// when the exempted line itself produces more than one match:
+//
+//   - components/Audio/MixerStrip.jsx's line 76 has TWO `+ 60` occurrences
+//     (the gradient's CSS template literal repeats the volume-percentage
+//     expression) — count: 2, not a new exception, just an accurate count
+//     for the one that was already there.
+//
+// core/theory.js's getClosestInversionN (line 244 at conversion time) and
+// getChordNotesAbsolute (line 559) independently compute the identical
+// normalized line `const base = (octave + 1) * 12;` as one internal step of
+// two otherwise-different functions. Kept as two separate entries below (two
+// original file:line exceptions, two distinct reasons preserved) rather than
+// merged into one with count: 2 — checkExceptions pools exceptions that
+// share the same (file, code) key, so the two together correctly cover both
+// call sites' hits, count 1 + count 1 = a pool of exactly 2. Coordinator QA
+// on PR #126 initially found this pooling incomplete: since `count` is an
+// EXACT expected number (not a ceiling), a pool matched by only ONE of its
+// two declared occurrences (0 < used < total) is neither `stale` (used
+// === 0) nor `exceeded` (used > total) — it needed its own bucket. Fixed by
+// adding `missing` to checkExceptions's result (see that function's own
+// docstring): if only one of the two functions above is later fixed or
+// removed, the pool now reports both exceptions in `missing`, prompting a
+// re-review of the pair — it still cannot say which ONE of the two is
+// stale on its own (that remains the one thing a shared pool loses versus a
+// per-line key), but the gap itself is no longer silent.
+const EXCEPTIONS = [
   // --- Known false positive (not a pitch) ---
-  "components/Audio/MixerStrip.jsx:75": "volume percentage for a CSS gradient (dB -60..10 -> 0..100%), not a pitch",
-  "components/Audio/MixerStrip.jsx:76": "same volume percentage, repeated in the gradient's background stops",
+  {
+    file: "components/Audio/MixerStrip.jsx",
+    code: "'--value': `${((instrumentVolumes[inst.id] + 60) / 70) * 100}%`,",
+    count: 1,
+    reason: "volume percentage for a CSS gradient (dB -60..10 -> 0..100%), not a pitch",
+  },
+  {
+    file: "components/Audio/MixerStrip.jsx",
+    code: "background: `linear-gradient(to top, var(--led-cyan) 0%, var(--led-cyan) ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, #333 ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, #333 100%)`",
+    count: 2, // the same volume-percentage expression appears twice in this one gradient literal
+    reason: "same volume percentage, repeated in the gradient's background stops",
+  },
 
   // --- core/theory.js: the pre-existing canonical low-level conversions.
   // Not migrated to noteEngine.js by this ticket (VMU-140's brief scopes the
   // migration to useDictionaryMode.js/useDictionaryPlayback.js only); each is
   // either a single note (no scale/chord sequence to fold, so VMU-140's
   // do-crossing defect does not apply) or already ascending by construction. ---
-  "core/theory.js:78": "getAbsoluteNoteValue — parses ONE note name + octave; no sequence to fold",
-  // VMU-146 fix2 shifted the five lines below, 240->244, 555->559,
-  // 787->791, 803->807, 826->830: a 4-line comment was added just above
-  // resolveNnsToChordType's dim7 check, moving that check above the m7
-  // check (a genuine reachability fix — "dim7" always contains "m7" as a
-  // substring, so the old order made the dim7 branch dead code; found while
-  // writing the DegreeRoleDom "clicked dim7 chord" DOM test). The
-  // arithmetic on each exception's own line is untouched.
-  "core/theory.js:244": "getClosestInversionN — explicit ascending fix-up (`if pitch <= last, += 12`); correct for any root",
-  "core/theory.js:559": "getChordNotesAbsolute — root+semitones, no modulo before adding; same shape as realizeChord, still used by useDictionaryPlayback.js's chord fallback-of-fallback",
-  "core/theory.js:791": "getBassNote — one note, no sequence",
-  "core/theory.js:807": "getLeadingTone — one note, no sequence",
-  "core/theory.js:830": "computeAbsoluteNote — the canonical single-note octave-selector helper (realizeNote's pre-existing equivalent); still used directly (useDictionaryPlayback.js, useMusicEngine.js)",
+  {
+    file: "core/theory.js",
+    code: "return noteValue + (octave + 1) * 12;",
+    count: 1,
+    reason: "getAbsoluteNoteValue — parses ONE note name + octave; no sequence to fold",
+  },
+  {
+    file: "core/theory.js",
+    code: "const base = (octave + 1) * 12;",
+    count: 1,
+    reason: "getClosestInversionN — explicit ascending fix-up (`if pitch <= last, += 12`); correct for any root",
+  },
+  {
+    file: "core/theory.js",
+    code: "const base = (octave + 1) * 12;", // identical text to getClosestInversionN's — see module-level note above
+    count: 1,
+    reason:
+      "getChordNotesAbsolute — root+semitones, no modulo before adding; same shape as realizeChord, still used by useDictionaryPlayback.js's chord fallback-of-fallback",
+  },
+  {
+    file: "core/theory.js",
+    code: "const midiNote = (chordRootValue % 12) + semitones + (baseOctave + 1) * 12;",
+    count: 1,
+    reason: "getBassNote — one note, no sequence",
+  },
+  {
+    file: "core/theory.js",
+    code: "const targetMidi = (nextChordRootValue % 12) + (baseOctave + 1) * 12;",
+    count: 1,
+    reason: "getLeadingTone — one note, no sequence",
+  },
+  {
+    file: "core/theory.js",
+    code: "return rootValue + (baseOctave + 1) * 12;",
+    count: 1,
+    reason:
+      "computeAbsoluteNote — the canonical single-note octave-selector helper (realizeNote's pre-existing equivalent); still used directly (useDictionaryPlayback.js, useMusicEngine.js)",
+  },
 
   // --- core/voicingEngine.js: same explicit ascending fix-up as
   // getClosestInversionN, independent implementation, pre-existing, out of
   // this ticket's scope. ---
-  "core/voicingEngine.js:101": "suggestReVoicing — explicit ascending fix-up (`if pitch <= last, += 12`); correct for any root",
+  {
+    file: "core/voicingEngine.js",
+    code: "let pitch = (octave + 1) * 12 + rootValue + intervals[idx];",
+    count: 1,
+    reason: "suggestReVoicing — explicit ascending fix-up (`if pitch <= last, += 12`); correct for any root",
+  },
 
   // --- src/audio: MIDI export and the sequencer's own chord resolution.
   // Both add semitones to the root without ever taking the sum modulo 12,
-  // so — like useMusicEngine.js:135 below — they are already correct for
-  // any root; out of this ticket's scope (VMU-115 territory, not the
-  // Dictionary). ---
-  "audio/MidiExporter.js:160": "MIDI export — root+semitone, no modulo before adding; correct for any root, out of Dictionary scope",
-  "audio/useSequencer.js:64": "Studio sequencer chord resolution — same shape, correct for any root, out of Dictionary scope",
+  // so — like useMusicEngine.js's fretboardActiveNotes fallback below — they
+  // are already correct for any root; out of this ticket's scope (VMU-115
+  // territory, not the Dictionary). ---
+  {
+    file: "audio/MidiExporter.js",
+    code: "const midiNote = (rootValChord % 12) + s + (baseOctave + 1) * 12;",
+    count: 1,
+    reason: "MIDI export — root+semitone, no modulo before adding; correct for any root, out of Dictionary scope",
+  },
+  {
+    file: "audio/useSequencer.js",
+    code: "const absolutePitches = semitones.map((s) => chord.rootNote.value + s + (baseOctave + 1) * 12);",
+    count: 1,
+    reason: "Studio sequencer chord resolution — same shape, correct for any root, out of Dictionary scope",
+  },
 
   // --- src/audio/measure: the offline render / audio-measurement harness
   // (scripts/audio_measure.mjs's engine). Single-note conversions, not a
   // scale or chord sequence — VMU-140's defect does not apply. ---
-  "audio/measure/offlineRender.js:486": "bass fallback note name — one note, no sequence (line shifted from :470 by VMU-144 phase B's reverb-ready determinism fix, added above it)",
-  "audio/measure/signalMetrics.js:922": "noteNameToMidi — the harness's own note-name parser, one note at a time (line shifted from :919 by VMU-144's K_WEIGHTING_STAGES comment, added above it)",
+  {
+    file: "audio/measure/offlineRender.js",
+    code: "finalNoteName = `${theory.midiToNoteName((brick.rootValue % 12) + (octave + 1) * 12)}`;",
+    count: 1,
+    reason: "bass fallback note name — one note, no sequence",
+  },
+  {
+    file: "audio/measure/signalMetrics.js",
+    code: "return semitone + (Number(octave) + 1) * 12;",
+    count: 1,
+    reason: "noteNameToMidi — the harness's own note-name parser, one note at a time",
+  },
 
   // --- useMusicEngine.js: Studio mode, explicitly out of scope (brief
-  // decision #3 — untouched; VMU-123 touches this file in parallel and
-  // VMU-115 migrates the rest). Both sites are correct for any root: :138
-  // never re-derives a pitch class before adding (root+semi+base, like
-  // theory.js's getChordNotesAbsolute); :148-150 is the default-triad
-  // fallback, which explicitly re-checks for the do-crossing case
-  // (`n2 < n1 ? 60 : 48`) and picks the next octave up when it happens —
-  // the "correct" hand calc the ticket's own cause analysis names (there
-  // cited as useMusicEngine.js:141-143; VMU-123 (PR #117, merged onto this
-  // ticket's base) shifted it to :145-147 — see report for the discrepancy).
-  // VMU-146 shifted these four again, 135->138 and 145-147->148-150: a
-  // 3-line comment was added just above (explaining why fretboardActiveNotes
-  // now calls getChordIntervalLabel with index -1, not chordData's own
-  // position `i` — a real producer-side fix, not cosmetic; see the VMU-146
-  // report). The arithmetic on each line is untouched. ---
-  "hooks/useMusicEngine.js:138": "Studio fretboardActiveNotes fallback — root+semi+48, no modulo; correct for any root",
-  "hooks/useMusicEngine.js:148": "Studio default-triad fallback, root note — trivially correct (first note, nothing to cross)",
-  "hooks/useMusicEngine.js:149": "Studio default-triad fallback, 3rd — ternary explicitly picks the octave above when it crosses do",
-  "hooks/useMusicEngine.js:150": "Studio default-triad fallback, 5th — same explicit do-crossing check as :149",
+  // decision #3 — untouched; VMU-115 migrates the rest). Both sites are
+  // correct for any root: the fretboardActiveNotes fallback never re-derives
+  // a pitch class before adding (root+semi+base, like theory.js's
+  // getChordNotesAbsolute); the default-triad fallback explicitly re-checks
+  // for the do-crossing case (`n2 < n1 ? 60 : 48`) and picks the next octave
+  // up when it happens — the "correct" hand calc the ticket's own cause
+  // analysis names. ---
+  {
+    file: "hooks/useMusicEngine.js",
+    code: "absoluteValue: played ? played.absoluteValue : (effectiveChord.rootNote.value + semi + 48)",
+    count: 1,
+    reason: "Studio fretboardActiveNotes fallback — root+semi+48, no modulo; correct for any root",
+  },
+  {
+    file: "hooks/useMusicEngine.js",
+    code: "{ value: n1, order: getChordIntervalLabel(0, 0), absoluteValue: n1 + 48 },",
+    count: 1,
+    reason: "Studio default-triad fallback, root note — trivially correct (first note, nothing to cross)",
+  },
+  {
+    file: "hooks/useMusicEngine.js",
+    code: "{ value: n2, order: getChordIntervalLabel(1, (n2 - n1 + 12) % 12), absoluteValue: n2 + (n2 < n1 ? 60 : 48) },",
+    count: 1,
+    reason: "Studio default-triad fallback, 3rd — ternary explicitly picks the octave above when it crosses do",
+  },
+  {
+    file: "hooks/useMusicEngine.js",
+    code: "{ value: n3, order: getChordIntervalLabel(2, (n3 - n1 + 12) % 12), absoluteValue: n3 + (n3 < n1 ? 60 : 48) },",
+    count: 1,
+    reason: "Studio default-triad fallback, 5th — same explicit do-crossing check as the 3rd",
+  },
 
   // --- PianoKeyboard.jsx: explicitly out of scope (brief decision #3).
   // Single pitch (the harmonic-series overlay's base note) — VMU-140's
   // defect (a note falling below a DIFFERENT note in the same sequence)
   // does not apply to a single note. It does hard-code octave 3, ignoring
   // the Dictionary's octave selector — a real but separate issue, left for
-  // VMU-115 as the brief asks. Line shifted 83 -> 84 (VMU-146 added an
-  // import line above it for getRoleForDegreeLabel); content unchanged. ---
-  "components/Instruments/PianoKeyboard.jsx:84": "harmonic-series overlay base pitch — single note, fixed octave 3 (ignores the octave selector; separate, pre-existing, VMU-115 territory)",
-};
-
-function relKey(file, line) {
-  return `${path.relative(SRC, file).replace(/\\/g, "/")}:${line}`;
-}
+  // VMU-115 as the brief asks. ---
+  {
+    file: "components/Instruments/PianoKeyboard.jsx",
+    code: "const midi = Number(rootValue) + 48;",
+    count: 1,
+    reason: "harmonic-series overlay base pitch — single note, fixed octave 3 (ignores the octave selector; separate, pre-existing, VMU-115 territory)",
+  },
+];
 
 describe("guard — no hand-rolled pitch-class + octave calculation outside core/noteEngine.js (VMU-140)", () => {
   it("the scanner itself finds each named shape (garde-fou du garde-fou)", () => {
@@ -232,29 +292,107 @@ describe("guard — no hand-rolled pitch-class + octave calculation outside core
     expect(files.some((f) => f.endsWith("theory.js"))).toBe(true);
   });
 
-  const allHits = [];
-  for (const file of sourceFiles()) {
-    const src = stripComments(fs.readFileSync(file, "utf-8"));
-    for (const hit of findHandPitchCalcs(src)) {
-      allHits.push({ key: relKey(file, hit.line), snippet: hit.snippet });
-    }
-  }
-  const seenKeys = new Set(allHits.map((h) => h.key));
-  const unexcepted = allHits.filter((h) => !(h.key in EXCEPTIONS));
-  const staleExceptions = Object.keys(EXCEPTIONS).filter((k) => !seenKeys.has(k));
+  const allHits = sourceFiles().flatMap((file) => collectHits(relFile(file), fs.readFileSync(file, "utf-8")));
+  const result = checkExceptions(allHits, EXCEPTIONS);
 
   it("every hand-rolled pitch calculation found in the app is in the exceptions list above", () => {
-    expect(unexcepted.map((h) => `${h.key} -> ${h.snippet}`)).toEqual([]);
+    expect(result.unexcepted.map((h) => `${h.file}:${h.line} -> ${h.snippet}`)).toEqual([]);
   });
 
-  it("every exception still matches something — a fixed or removed site must be removed from the list too", () => {
-    expect(staleExceptions).toEqual([]);
+  it("every exception still matches something — a fixed, removed, or edited site must be re-reviewed and removed from the list too", () => {
+    expect(result.stale.map((e) => `${e.file} -> ${e.reason}`)).toEqual([]);
+  });
+
+  it("no exception is used more times than its declared count — a duplicated occurrence needs its own reviewed exception", () => {
+    expect(result.exceeded.map((h) => `${h.file}:${h.line} -> ${h.snippet}`)).toEqual([]);
+  });
+
+  it("no exception is used fewer times than its declared count — count is exact, a partially-gone duplicate needs re-review too", () => {
+    expect(result.missing.map((e) => `${e.file} -> ${e.reason}`)).toEqual([]);
   });
 
   it("useDictionaryMode.js and useDictionaryPlayback.js — VMU-140's two migrated files — are entirely clean, no exceptions needed", () => {
     const flaggedInMigratedFiles = allHits
-      .map((h) => h.key)
+      .map((h) => `${h.file}:${h.line}`)
       .filter((k) => k.startsWith("hooks/useDictionaryMode.js") || k.startsWith("hooks/useDictionaryPlayback.js"));
     expect(flaggedInMigratedFiles).toEqual([]);
+  });
+
+  it("VMU-147 — total sites found is unchanged by the exception-key refactor (19 hits, 18 distinct file:line sites pre-refactor)", () => {
+    // Ground truth captured by running the pre-refactor, file:line-keyed
+    // version of this test (git history: this file before VMU-147) with a
+    // one-line console.log instrumentation, reverted before this commit:
+    // `VMU147_BEFORE_TOTAL_HITS 19 DISTINCT_KEYS 18`. The scanning logic
+    // (stripComments, findHandPitchCalcs) is byte-for-byte unchanged by this
+    // refactor — only the exception format changed — so this total is
+    // expected to hold exactly, not approximately.
+    expect(allHits.length).toBe(19);
+  });
+});
+
+describe("VMU-147 — checkExceptions is content-keyed, not line-keyed (fixtures only, nothing under src/ touched)", () => {
+  it("a shift (blank lines added above the exempted site) leaves the guard clean — the exempted text did not change", () => {
+    const before = `function f(octave) {\n  return (octave + 1) * 12;\n}\n`;
+    const after = `function f(octave) {\n\n\n\n  return (octave + 1) * 12;\n}\n`; // 3 blank lines added above
+
+    const hitLineBefore = findHandPitchCalcs(stripComments(before))[0].line;
+    const exceptions = [
+      { file: "fixture.js", code: normalizeLine(stripComments(before).split("\n")[hitLineBefore - 1]), count: 1, reason: "fixture" },
+    ];
+
+    const result = checkExceptions(collectHits("fixture.js", after), exceptions);
+    expect(result.unexcepted).toEqual([]);
+    expect(result.stale).toEqual([]);
+    expect(result.exceeded).toEqual([]);
+  });
+
+  it("a genuinely new, unexempted calculation is still reported (positive control — the detector must keep detecting)", () => {
+    const src = `function g(x) {\n  return x + 60;\n}\n`;
+    const result = checkExceptions(collectHits("fixture2.js", src), []);
+    expect(result.unexcepted).not.toEqual([]);
+  });
+
+  it("the same exempted line occurring twice with count:1 reports the second occurrence as exceeded", () => {
+    const src = `function h(o) {\n  return (o + 1) * 12;\n}\nfunction h2(o) {\n  return (o + 1) * 12;\n}\n`;
+    const code = normalizeLine("  return (o + 1) * 12;");
+    const exceptions = [{ file: "fixture3.js", code, count: 1, reason: "fixture" }];
+
+    const result = checkExceptions(collectHits("fixture3.js", src), exceptions);
+    expect(result.exceeded).not.toEqual([]);
+  });
+
+  it("the exempted line's own text changing reports BOTH unexcepted (new text, uncovered) and stale (old text, gone)", () => {
+    const before = `function k(oldName) {\n  return oldName + 48;\n}\n`;
+    const after = `function k(newName) {\n  return newName + 48;\n}\n`; // same line number, same shape, renamed variable
+
+    const hitLineBefore = findHandPitchCalcs(stripComments(before))[0].line;
+    const exceptions = [
+      { file: "fixture4.js", code: normalizeLine(stripComments(before).split("\n")[hitLineBefore - 1]), count: 1, reason: "fixture" },
+    ];
+
+    const result = checkExceptions(collectHits("fixture4.js", after), exceptions);
+    expect(result.unexcepted).not.toEqual([]);
+    expect(result.stale).not.toEqual([]);
+  });
+
+  it("VMU-147 follow-up (coordinator QA) — a declared count higher than the actual occurrences is reported: count is exact, not a maximum", () => {
+    // Exception declares count: 2, but the fixture file contains only ONE
+    // real occurrence of that exact line. Before this follow-up,
+    // checkExceptions treated `count` as an upper bound only: the single
+    // occurrence consumed 1 of the pool's 2 allowed slots, leaving the pool
+    // neither empty (not `stale`) nor over budget (not `exceeded`) — so a
+    // declared-but-absent second occurrence went completely unreported.
+    const src = `function m(o) {\n  return (o + 1) * 12;\n}\n`; // exactly one occurrence
+    const code = normalizeLine("  return (o + 1) * 12;");
+    const exceptions = [{ file: "fixture6.js", code, count: 2, reason: "fixture — declares 2 occurrences, only 1 is actually present" }];
+
+    const result = checkExceptions(collectHits("fixture6.js", src), exceptions);
+    expect(result.unexcepted).toEqual([]);
+    expect(result.exceeded).toEqual([]);
+    // The gap itself: 1 of the 2 declared occurrences is missing. Asserted
+    // as an explicit shape check (not `.not.toEqual([])`, which passes
+    // vacuously — and wrongly — when `missing` doesn't exist at all yet).
+    expect(Array.isArray(result.missing)).toBe(true);
+    expect(result.missing.length).toBeGreaterThan(0);
   });
 });
