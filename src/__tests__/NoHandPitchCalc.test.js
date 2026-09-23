@@ -107,13 +107,17 @@ function relFile(file) {
 // original file:line exceptions, two distinct reasons preserved) rather than
 // merged into one with count: 2 — checkExceptions pools exceptions that
 // share the same (file, code) key, so the two together correctly cover both
-// call sites' hits. The one thing this loses versus the old per-line key: if
-// only ONE of the two functions is later fixed or removed, the pool still
-// shows one hit consumed and nothing stale, so that specific narrowing is
-// not individually flagged — only the case of BOTH disappearing (or one
-// appearing twice) is visible via `exceeded`. Flagged in the ticket's report
-// per decision #4 ("si une exception ne se convertit pas proprement,
-// dis-le") — it is a known, accepted narrowing, not a silent one.
+// call sites' hits, count 1 + count 1 = a pool of exactly 2. Coordinator QA
+// on PR #126 initially found this pooling incomplete: since `count` is an
+// EXACT expected number (not a ceiling), a pool matched by only ONE of its
+// two declared occurrences (0 < used < total) is neither `stale` (used
+// === 0) nor `exceeded` (used > total) — it needed its own bucket. Fixed by
+// adding `missing` to checkExceptions's result (see that function's own
+// docstring): if only one of the two functions above is later fixed or
+// removed, the pool now reports both exceptions in `missing`, prompting a
+// re-review of the pair — it still cannot say which ONE of the two is
+// stale on its own (that remains the one thing a shared pool loses versus a
+// per-line key), but the gap itself is no longer silent.
 const EXCEPTIONS = [
   // --- Known false positive (not a pitch) ---
   {
@@ -301,6 +305,10 @@ describe("guard — no hand-rolled pitch-class + octave calculation outside core
 
   it("no exception is used more times than its declared count — a duplicated occurrence needs its own reviewed exception", () => {
     expect(result.exceeded.map((h) => `${h.file}:${h.line} -> ${h.snippet}`)).toEqual([]);
+  });
+
+  it("no exception is used fewer times than its declared count — count is exact, a partially-gone duplicate needs re-review too", () => {
+    expect(result.missing.map((e) => `${e.file} -> ${e.reason}`)).toEqual([]);
   });
 
   it("useDictionaryMode.js and useDictionaryPlayback.js — VMU-140's two migrated files — are entirely clean, no exceptions needed", () => {

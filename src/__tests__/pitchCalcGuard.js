@@ -124,35 +124,50 @@ export function collectHits(file, rawSrc) {
  * (file, normalized code) — never the line number, which is why this
  * survives an unrelated line shift (VMU-147's whole point).
  *
- * Each exception covers up to `count` (default 1) occurrences of the exact
- * same (file, code) pair, consumed in the order `hits` is given. Two or more
+ * `count` is an EXACT expected number of occurrences, not a ceiling: each
+ * exception covers exactly `count` (default 1) occurrences of the exact same
+ * (file, code) pair, consumed in the order `hits` is given. Two or more
  * exceptions that happen to share the same (file, code) — e.g. two different
  * functions whose exempted line normalizes to identical text — are pooled
- * together: their counts add up, and if the pool goes entirely unused every
- * exception that fed it is reported stale (there is no way to attribute an
- * unused pool to just one of them; this is a known, accepted narrowing
- * versus a per-line key — see NoHandPitchCalc.test.js's EXCEPTIONS comment
- * on core/theory.js's two `const base = (octave + 1) * 12;` entries).
+ * together and their counts add up (see NoHandPitchCalc.test.js's EXCEPTIONS
+ * comment on core/theory.js's two `const base = (octave + 1) * 12;`
+ * entries: the pool's total is 2, matching the two real call sites).
+ *
+ * A pool can land in one of four states once every hit is accounted for:
+ *   - used === 0            -> `stale`    (none of the declared occurrences are there any more)
+ *   - 0 < used < total       -> `missing`  (some, but not all — at least one declared occurrence is gone)
+ *   - used === total         -> clean (nothing reported)
+ *   - used > total            -> `exceeded` (the hits beyond `total`, in encounter order)
+ * `missing` exists precisely because `count` is exact: before it was added, a
+ * pool with 0 < used < total fell into neither `stale` nor `exceeded` and
+ * silently reported nothing, so a partially-fixed or partially-removed
+ * duplicate went unreported. Reported per VMU-147 follow-up (coordinator QA
+ * on PR #126) — `missing` lists every exception that fed a pool in that
+ * state (same "cannot attribute to just one of them" caveat as `stale` when
+ * several exceptions share a pool).
  *
  * @param {Array<{file: string, code: string, line?: number, snippet?: string}>} hits
  * @param {Array<{file: string, code: string, count?: number, reason?: string}>} exceptions
- * @returns {{unexcepted: Array<object>, stale: Array<object>, exceeded: Array<object>}}
+ * @returns {{unexcepted: Array<object>, stale: Array<object>, missing: Array<object>, exceeded: Array<object>}}
  *   unexcepted — hits matching no exception (pool) at all.
  *   stale      — exceptions whose (file, code) pool matched zero hits (the exempted line is gone or changed).
- *   exceeded   — hits matching a pool whose combined allowed count is already used up.
+ *   missing    — exceptions whose (file, code) pool matched more than zero but fewer than its declared total (an occurrence is gone).
+ *   exceeded   — hits matching a pool whose combined declared count is already used up.
  */
 export function checkExceptions(hits, exceptions) {
   const keyOf = (file, code) => `${file}\u0000${code}`;
 
-  const pools = new Map(); // key -> { exceptions: [...], remaining, used }
+  const pools = new Map(); // key -> { exceptions: [...], remaining, used, total }
   for (const exception of exceptions) {
     const key = keyOf(exception.file, exception.code);
     if (!pools.has(key)) {
-      pools.set(key, { exceptions: [], remaining: 0, used: 0 });
+      pools.set(key, { exceptions: [], remaining: 0, used: 0, total: 0 });
     }
     const pool = pools.get(key);
+    const count = exception.count ?? 1;
     pool.exceptions.push(exception);
-    pool.remaining += exception.count ?? 1;
+    pool.remaining += count;
+    pool.total += count;
   }
 
   const unexcepted = [];
@@ -173,9 +188,14 @@ export function checkExceptions(hits, exceptions) {
   }
 
   const stale = [];
+  const missing = [];
   for (const pool of pools.values()) {
-    if (pool.used === 0) stale.push(...pool.exceptions);
+    if (pool.used === 0) {
+      stale.push(...pool.exceptions);
+    } else if (pool.used < pool.total) {
+      missing.push(...pool.exceptions);
+    }
   }
 
-  return { unexcepted, stale, exceeded };
+  return { unexcepted, stale, missing, exceeded };
 }
