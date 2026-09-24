@@ -44,7 +44,7 @@
   border: none;
   background: transparent;
   color: #666;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   cursor: pointer;
   min-height: 24px;
@@ -74,7 +74,7 @@
   border: 1px solid #333;
   background: transparent;
   color: #666;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   cursor: pointer;
 }
@@ -87,7 +87,7 @@
 }
 
 .page-indicator {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
   color: #444;
   margin-left: 4px;
@@ -104,7 +104,7 @@
     min-width: 140px;
     color: var(--text-secondary);
     font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-weight: 500;
     text-align: left;
     padding-bottom: 4px;
@@ -181,7 +181,7 @@
 .step__pitch-label {
     font-size: 10px;
     font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     color: #fff;
     line-height: 1;
 }

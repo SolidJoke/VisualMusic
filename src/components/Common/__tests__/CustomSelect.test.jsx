@@ -30,7 +30,7 @@ const OPTIONS = [
 function renderSelect(props = {}) {
   const onChange = props.onChange || vi.fn();
   const utils = render(
-    <CustomSelect options={OPTIONS} value={props.value ?? "major"} onChange={onChange} theme={props.theme} className={props.className} data-testid={props["data-testid"]} />
+    <CustomSelect options={OPTIONS} value={props.value ?? "major"} onChange={onChange} className={props.className} data-testid={props["data-testid"]} />
   );
   return { ...utils, onChange };
 }
@@ -197,15 +197,6 @@ describe("CustomSelect (VMU-142 — portal)", () => {
       expect(parseFloat(panel.style.width)).toBeLessThanOrEqual(500 - 24); // 2 * VIEWPORT_MARGIN
     });
 
-    it("a long list stays at the floor width in the vintage theme (its grid is forced to a single column)", () => {
-      Object.defineProperty(window, "innerWidth", { configurable: true, value: 2560 });
-      Object.defineProperty(window, "innerHeight", { configurable: true, value: 1440 });
-      mockHeaderRect({ top: 100, bottom: 140, left: 1000, right: 1200, width: 200, height: 40 });
-
-      const panel = openWith(18, { theme: "vintage" });
-      expect(panel.style.width).toBe("400px");
-    });
-
     it("a wide panel is clamped to the viewport's right edge when the field sits near it", () => {
       Object.defineProperty(window, "innerWidth", { configurable: true, value: 1000 });
       Object.defineProperty(window, "innerHeight", { configurable: true, value: 900 });
@@ -350,15 +341,6 @@ describe("CustomSelect (VMU-142 — portal)", () => {
       fireEvent.keyDown(header, { key: "Enter" });
 
       expect(document.body.querySelector('[data-testid="custom-select-dropdown"]')).not.toBeNull();
-    });
-  });
-
-  describe("Theming carried onto the portaled panel", () => {
-    it("passes the vintage theme class to the panel itself, not just the (now unrelated) container", () => {
-      const { container } = renderSelect({ theme: "vintage" });
-      openViaClick(container);
-      const panel = document.body.querySelector('[data-testid="custom-select-dropdown"]');
-      expect(panel.className).toMatch(/\bvintage-select\b/);
     });
   });
 });

@@ -2,7 +2,6 @@ import React from 'react';
 import MixerPanel from './MixerPanel';
 import LcdScreen from '../Common/LcdScreen';
 import CustomSelect from '../Common/CustomSelect';
-import { useAppContext } from '../../context/AppContext';
 
 const PlaybackPanel = ({
   appMode,
@@ -18,8 +17,6 @@ const PlaybackPanel = ({
   setFretboardZone,
   txt
 }) => {
-  const { state } = useAppContext();
-  const { uiTheme } = state;
   return (
     <div className="layout-col layout-right playback-panel-container">
       {/* Mode selector and play button moved to Sidebar fixed header */}
@@ -50,7 +47,6 @@ const PlaybackPanel = ({
         masterVolume={masterVolume}
         setMasterVolume={setMasterVolume}
         txt={txt}
-        uiTheme={uiTheme}
         isPlaying={isPlaying}
       />
 
@@ -90,7 +86,6 @@ const PlaybackPanel = ({
               { value: "mid", label: txt.posMid },
               { value: "high", label: txt.posHigh },
             ]}
-            theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
           />
         </div>
       </div>

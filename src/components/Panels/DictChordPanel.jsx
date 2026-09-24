@@ -10,7 +10,6 @@ export default function DictChordPanel({
   setDictType,
   dictRoot,
   setDictRoot,
-  uiTheme,
   groupedChords,
   emotionText,
   descriptionText,
@@ -64,7 +63,6 @@ export default function DictChordPanel({
             label: txt[CHORD_LABEL_MAP[chordKey]] || CHORDS[chordKey]?.key || chordKey
           }))
         }))}
-        theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
       />
 
       {/* Emotion/description card for chords */}

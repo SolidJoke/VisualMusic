@@ -1,18 +1,5 @@
 /* src/components/Instruments/PianoKeyboard.css */
 
-@keyframes note-playing-overlay {
-    0% {
-        background-color: rgba(255, 255, 255, 0.7);
-        box-shadow: 0 0 15px 5px var(--accent-glow) inset, 0 0 20px var(--accent-glow);
-        transform: scale(1);
-    }
-    100% {
-        background-color: rgba(255, 255, 255, 0);
-        box-shadow: 0 0 0px 0px rgba(255, 255, 255, 0) inset;
-        transform: scale(1.05);
-    }
-}
-
 .piano-key {
     position: relative;
     cursor: pointer;
@@ -21,22 +8,19 @@
     justify-content: center;
     align-items: flex-end;
     padding-bottom: 8px;
-    font-size: 13px;
+    font-family: var(--font-body);
+    font-size: var(--fs-label);
+    font-weight: 600;
     transition: background-color 0.1s ease;
     box-sizing: border-box;
 }
 
-.piano-key::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 50; /* Above colored highlights (25) and black keys (30/40) */
-}
-
-.piano-key.is-playing::after {
-    animation: note-playing-overlay 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+/* F1 (spec usage table "Note jouée"): --select-ring + scale(1.1), no more
+   white fade (was note-playing-overlay, background-color: rgba(255,255,255,0.7)). */
+.piano-key.is-playing {
+    box-shadow: var(--select-ring);
+    transform: scale(1.1);
+    z-index: 60;
 }
 
 .white-key {
@@ -187,39 +171,46 @@
 }
 
 .piano-key.role-root {
-    background: radial-gradient(circle at center, var(--role-root) 0%, rgba(0,0,0,0.3) 100%) !important;
-    color: #fff !important;
-    border: 1px solid rgba(255,255,255,0.4) !important;
+    background: var(--role-root) !important;
+    color: var(--on-role) !important;
+    border: none !important;
+    border-radius: 25% !important; /* fondamentale: carré arrondi (redondance de forme, WCAG 1.4.1) */
+    box-shadow: 0 0 0 2px var(--bg) !important;
 }
 
 .piano-key.role-third {
-    background: radial-gradient(circle at center, var(--role-third) 0%, rgba(0,0,0,0.3) 100%) !important;
-    color: #000 !important;
-    border: 1px solid rgba(0,0,0,0.2) !important;
+    background: var(--role-third) !important;
+    color: var(--on-role) !important;
+    border: none !important;
+    box-shadow: 0 0 0 2px var(--bg) !important;
 }
 
 .piano-key.role-fifth {
-    background: radial-gradient(circle at center, var(--role-fifth) 0%, rgba(0,0,0,0.3) 100%) !important;
-    color: #fff !important;
-    border: 1px solid rgba(255,255,255,0.3) !important;
+    background: var(--role-fifth) !important;
+    color: var(--on-role) !important;
+    border: none !important;
+    box-shadow: 0 0 0 2px var(--bg) !important;
 }
 
 .piano-key.role-extension {
-    background: radial-gradient(circle at center, var(--role-extension) 0%, rgba(0,0,0,0.3) 100%) !important;
-    color: #fff !important;
-    border: 1px solid rgba(255,255,255,0.3) !important;
+    background: var(--role-extension) !important;
+    color: var(--on-role) !important;
+    border: none !important;
+    box-shadow: 0 0 0 2px var(--bg) !important;
 }
 
 .piano-key.role-scale {
-    background-color: var(--role-scale) !important;
-    color: #fff !important;
-    opacity: 0.8;
+    background: none !important;
+    color: var(--text-secondary) !important;
+    border: 2px solid var(--role-scale-edge) !important;
 }
 
 .piano-key.role-target {
-    background: radial-gradient(circle at center, #fff, var(--role-target)) !important;
-    color: #000 !important;
-    box-shadow: 0 0 15px var(--role-target);
+    background: var(--role-target) !important;
+    color: var(--on-role) !important;
+    outline: 2px dashed var(--role-target);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 2px var(--bg) !important;
 }
 
 /* Legend Markers */
@@ -281,16 +272,8 @@
         z-index: 60; /* pop out slightly on touch */
     }
 
-    /* Cyan highlight for active/playing notes */
-    .piano-key.is-playing,
-    .piano-key.role-target.is-playing {
-        background: #00d4ff !important;
-        box-shadow: 0 0 15px #00d4ff inset !important;
-    }
-    
-    .piano-key.is-playing .note-label {
-        color: #000 !important;
-    }
+    /* F1: is-playing already carries --select-ring (see base rule above);
+       no mobile-only color override needed. */
 }
 
 /* Remove hover effects on touch devices */

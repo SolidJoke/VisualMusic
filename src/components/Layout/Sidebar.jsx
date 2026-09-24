@@ -17,7 +17,6 @@ import './Sidebar.css';
  * @param {object} props
  * @param {boolean}  props.isOpen
  * @param {function} props.toggleSidebar
- * @param {string}   props.uiTheme
  * @param {string}   props.appMode        - 'studio' | 'dictionary'
  * @param {function} props.setAppMode
  * @param {boolean}  props.isPlaying
@@ -33,7 +32,6 @@ import './Sidebar.css';
 const Sidebar = ({
   isOpen,
   toggleSidebar,
-  uiTheme,
   appMode,
   setAppMode,
   isPlaying,
@@ -88,7 +86,7 @@ const Sidebar = ({
   };
 
   return (
-    <div className={`app-sidebar ${isOpen ? 'is-open' : 'is-closed'} theme-${uiTheme}`}>
+    <div className={`app-sidebar ${isOpen ? 'is-open' : 'is-closed'}`}>
       <button 
         className="sidebar-toggle" 
         onClick={toggleSidebar} 

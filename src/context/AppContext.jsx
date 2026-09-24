@@ -31,7 +31,6 @@ const initialState = {
   // missing key means expanded, so the default {} is "everything open" —
   // required behaviour (§2.3), and it needs no per-section initialisation.
   collapsedSections: {},
-  uiTheme: 'modern',
   showLegend: false,
   harmonicMode: false,
   // VMU-123 — replaces highlightTargetNotes (a boolean gate on a single

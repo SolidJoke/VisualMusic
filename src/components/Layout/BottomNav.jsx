@@ -10,7 +10,6 @@ export default function BottomNav({
   isPlaying,
   togglePlayback,
   playDictionaryAudio,
-  uiTheme,
   txt,
   children
 }) {
@@ -28,7 +27,7 @@ export default function BottomNav({
 
   return (
     <>
-      <div className={`bottom-nav-container glass theme-${uiTheme}`}>
+      <div className="bottom-nav-container glass">
         <button 
           className={`bottom-nav-btn ${appMode === 'studio' ? 'active' : ''}`}
           onClick={() => setAppMode('studio')}
@@ -68,7 +67,7 @@ export default function BottomNav({
         className={`mobile-drawer-overlay ${isDrawerOpen ? 'is-open' : ''}`}
         onClick={toggleDrawer}
       />
-      <div className={`mobile-drawer theme-${uiTheme} ${isDrawerOpen ? 'is-open' : ''}`}>
+      <div className={`mobile-drawer ${isDrawerOpen ? 'is-open' : ''}`}>
         <div className="drawer-header">
           <h3>Menu</h3>
           <button className="drawer-close-btn" aria-label="Close menu" onClick={toggleDrawer}>×</button>

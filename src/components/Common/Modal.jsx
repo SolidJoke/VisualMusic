@@ -7,7 +7,7 @@ import './Modal.css';
  * Displays a floating window with an overlay.
  * Uses React Portal to append to document.body avoiding z-index stacking issues.
  */
-const Modal = ({ isOpen, onClose, title, children, uiTheme, columns }) => {
+const Modal = ({ isOpen, onClose, title, children, columns }) => {
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose();
@@ -28,7 +28,7 @@ const Modal = ({ isOpen, onClose, title, children, uiTheme, columns }) => {
   const modalContent = (
     <div className="modal-overlay" onClick={onClose} data-testid="modal-overlay">
       <div 
-        className={`modal-container theme-${uiTheme || 'vintage'}`} 
+        className="modal-container theme-modern"
         onClick={(e) => e.stopPropagation()} /* Prevent click through to overlay */
       >
         {/* Mobile Header (Fullscreen Modal) */}

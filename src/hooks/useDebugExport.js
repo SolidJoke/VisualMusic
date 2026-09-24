@@ -25,7 +25,6 @@ export default function useDebugExport({
       const playbackInstrument = appContextState?.playbackInstrument;
       const showFingering = appContextState?.showFingering;
       const showFingerNumbers = appContextState?.showFingerNumbers;
-      const uiTheme = appContextState?.uiTheme;
       // VMU-112: layoutMode no longer exists (replaced by per-section
       // folding). collapsedSections is the closest equivalent — which
       // instrument sections are open — and still useful in a debug
@@ -56,7 +55,6 @@ export default function useDebugExport({
           playbackInstrument,
           showFingering,
           showFingerNumbers,
-          uiTheme,
           collapsedSections,
         },
         musicEngine: {

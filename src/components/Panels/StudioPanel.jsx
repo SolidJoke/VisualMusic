@@ -42,8 +42,7 @@ const StudioPanel = ({
     { id: 'jazz', name: 'Jazz Comp', steps: [0, 3] },
   ];
 
-  const { lang, txt, notation, state } = useAppContext();
-  const { uiTheme } = state;
+  const { lang, txt, notation } = useAppContext();
   // Expanded by default. This panel is rendered inside a modal the user has
   // just opened on purpose; opening it collapsed hid ~1180px of content
   // behind a second click on every screen narrower than 4K.
@@ -105,7 +104,6 @@ const StudioPanel = ({
                 { label: "🎸 Rock & Metal", items: BRICKS.filter(b => b._group === 'rock').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
                 { label: "🎧 Electronic", items: BRICKS.filter(b => b._group === 'electronic').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
               ]}
-              theme="vintage" /* Style selector inside LCD is always vintage style */
             />
           </LcdScreen>
         </div>

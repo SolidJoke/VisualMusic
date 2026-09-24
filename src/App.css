@@ -150,16 +150,14 @@
 
 
 
+/* F1: background/color/font-family are tokens.css's job (body { background:
+   var(--bg); ... }, spec §1) — this rule used to fight it with its own
+   --bg-base fill and a decorative gradient ("pour éviter le noir plat"),
+   which is exactly what F1's noir OLED (§8-3: >=85% #000000 pixels) rules
+   out. Only the reset/transition stay here. */
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg-base);
-  /* Fond dégradé subtil pour éviter le noir plat */
-  background-image: radial-gradient(ellipse at 20% 30%, hsla(258, 40%, 15%, 0.4) 0%, transparent 60%),
-                    radial-gradient(ellipse at 80% 70%, hsla(200, 40%, 12%, 0.3) 0%, transparent 50%);
-  background-attachment: fixed;
-  color: var(--text-primary);
-  font-family: var(--font-body);
   transition: background-color var(--transition-slow);
 }
 
@@ -230,6 +228,8 @@ body {
 
 h1 {
   color: var(--theme-primary);
+  font-family: var(--font-display);
+  font-size: var(--fs-heading);
   margin-bottom: 5px;
   transition: color 0.5s ease;
   text-align: center;
@@ -243,21 +243,25 @@ h1 {
   font-size: 14px;
 }
 
-/* --- MUSICAL ROLES (Functional Coloring) --- */
-.role-root { background-color: var(--role-root) !important; color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.role-third { background-color: var(--role-third) !important; color: #000 !important; }
-.role-fifth { background-color: var(--role-fifth) !important; color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.role-scale { background-color: var(--role-scale) !important; color: var(--text-primary) !important; }
-.role-extension { background-color: var(--role-extension) !important; color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+/* --- MUSICAL ROLES (Functional Coloring) ---
+   F1 (spec usage table): fond --role-*, texte --on-role (#000), pas de
+   dégradé/halo. Le piano et les manches ont leurs propres règles plus
+   spécifiques (PianoKeyboard.css, Fretboard.css) qui l'emportent ; celles-ci
+   restent le repli générique pour tout autre élément .role-*. */
+.role-root { background-color: var(--role-root) !important; color: var(--on-role) !important; }
+.role-third { background-color: var(--role-third) !important; color: var(--on-role) !important; }
+.role-fifth { background-color: var(--role-fifth) !important; color: var(--on-role) !important; }
+.role-scale { background: none !important; border: 2px solid var(--role-scale-edge) !important; color: var(--text-secondary) !important; }
+.role-extension { background-color: var(--role-extension) !important; color: var(--on-role) !important; }
 
 /* Role Z-Index handling is now moved to component-specific CSS */
 
 .role-target, .piano-key.role-target, .note-marker.role-target {
-  background: radial-gradient(circle at center, #fff, var(--role-target)) !important;
-  box-shadow: 0 0 25px var(--role-target), 0 0 40px rgba(255,255,255,0.4) !important;
-  color: #000 !important;
-  font-weight: 900 !important;
-  border: 2px solid #fff !important;
+  background: var(--role-target) !important;
+  outline: 2px dashed var(--role-target);
+  outline-offset: 3px;
+  color: var(--on-role) !important;
+  font-weight: 700 !important;
 }
 
 .magic-progression-container {
@@ -290,12 +294,9 @@ h1 {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.note-marker.active {
-  background: radial-gradient(circle at center, #fff, var(--role-color)) !important;
-  box-shadow: 0 0 15px var(--role-color), 0 0 5px #fff !important;
-  color: #000 !important;
-  border: 1px solid #fff !important;
-}
+/* F1 (VMU-149): .note-marker.active removed — dead rule (no component ever
+   applies an "active" class to .note-marker, only "is-playing"; see
+   Fretboard.jsx) that used the undefined --role-color (spec C11). */
 
 /* --- PREMIUM FADERS (DAW STYLE) --- */
 input[type="range"] {
@@ -344,9 +345,9 @@ input[type="range"]::-webkit-slider-runnable-track {
 
 /* Cleaned up duplicate definition */
 
-/* Fretboard Markers Specifics */
-.note-marker.role-root   { border: 2px solid #fff; }
-.note-marker.role-target { border: 2px solid var(--lg-accent-pink, #ff00ff); }
+/* F1: role-root/role-target border now set in Fretboard.css (box-shadow
+   ring / dashed outline, spec usage table) — this file's own !important
+   rules win over these, which are dropped as dead weight. */
 .subtle-highlight, .subtle-marker { opacity: 0.4 !important; filter: grayscale(0.5); }
 
 /* Transport Button Fix (No double icons) */
@@ -494,6 +495,7 @@ input[type="range"]::-webkit-slider-runnable-track {
 }
 
 .modal-title {
+  font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
