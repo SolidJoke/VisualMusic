@@ -75,8 +75,9 @@ const CHORD_TRACK_ID = "chords";
 /**
  * @typedef {"kick"|"snare"|"hat"|"chordHits"|"bass"|"melody"} TrackRole
  * @typedef {"style"|"math"|"edit"} Provenance who last wrote a measure of a
- *   track: the style that filled it, one of the Studio's generators (the
- *   Math & Rythmes panel, the bass suggestion), or an edit of its cells.
+ *   track: the style that filled it, one of the Studio's overrides over the
+ *   style (the Math & Rythmes panel, the bass suggestion, the rhythm
+ *   selector — `StudioOverrides`), or an edit of its cells.
  */
 
 /**
