@@ -1,57 +1,32 @@
 /**
  * DAWHelper.test.jsx — Tests for DAWHelper component rendering
  *
- * VMU-131 — DAWHelper now imports resolveMeasureChord from useSequencer.js
- * (the single source for "which chord plays this measure", VMU-129) to
- * display the chord-per-measure row. useSequencer.js imports AudioEngine.js
- * at module scope, which constructs real Tone.js audio nodes on import (no
- * AudioContext in jsdom) — mocked below the same way
- * audio/__tests__/SequencerMeasureChord.test.js does, purely so importing
- * DAWHelper.jsx (and therefore this whole file) doesn't throw. This is a
- * cost of reusing resolveMeasureChord directly from a component instead of
- * extracting it to core/ (brief's decision #1's other option) — chosen to
- * avoid touching NoHandPitchCalc.test.js's line-keyed exception for
- * useSequencer.js:64, which a core/ extraction would move and invalidate.
+ * VMU-131 — the chord-per-measure row reads the single source for "which
+ * chord plays here". T3: that source is the timeline document's `chordAt`
+ * (core/timeline.js), shown with its `describeChord`; DAWHelper receives the
+ * document (`timeline`) instead of `progression` + `brick`, and no longer
+ * imports useSequencer.js — so the Tone and AudioEngine mocks this file
+ * needed for that import are gone.
  */
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { render, cleanup } from "@testing-library/react";
 
-vi.mock("tone", () => ({
-  Analyser: vi.fn(() => ({ dispose: vi.fn() })),
-  Destination: { volume: { value: 0 } },
-  Transport: {
-    bpm: { value: 120 },
-    scheduleRepeat: vi.fn(),
-    cancel: vi.fn(),
-    pause: vi.fn(),
-    start: vi.fn(),
-    stop: vi.fn(),
-    clear: vi.fn(),
-  },
-  start: vi.fn(),
-  Draw: { schedule: vi.fn() },
-}));
-
-vi.mock("../../../audio/AudioEngine", () => ({
-  kickSynth: { triggerAttackRelease: vi.fn() },
-  snareSynth: { triggerAttackRelease: vi.fn() },
-  hatSynth: { triggerAttackRelease: vi.fn() },
-  bassSynth: { triggerAttackRelease: vi.fn(), triggerRelease: vi.fn() },
-  initPianoSampler: vi.fn(),
-  initGuitarSampler: vi.fn(),
-  applyGenrePreset: vi.fn(),
-  setInstrumentVolume: vi.fn(),
-  playDictionaryNote: vi.fn(),
-  getPianoSynth: vi.fn(() => ({ releaseAll: vi.fn() })),
-  getGuitarSynth: vi.fn(() => ({ releaseAll: vi.fn() })),
-}));
-
 import DAWHelper from "../DAWHelper.jsx";
-import { resolveMeasureChord } from "../../../audio/useSequencer";
 import { toRoman } from "../../../core/theory";
 import { BRICKS } from "../../../core/bricks";
+import {
+  buildStudioTimeline,
+  chordAt,
+  describeChord,
+  loopSteps,
+  measurePattern,
+  setChords,
+  studioSelection,
+  DRUM_ROLES,
+  MELODIC_ROLES,
+} from "../../../core/timeline";
 
 afterEach(cleanup);
 
@@ -59,9 +34,9 @@ afterEach(cleanup);
 // nnsProgression ["1","5","6-","4"] — I-V-vi-IV in C major. Same fixture
 // audio/__tests__/SequencerMeasureChord.test.js and
 // components/Panels/__tests__/StudioPanel.test.jsx use: do majeur, sol
-// majeur, la mineur, fa majeur, in that order.
-const brick = BRICKS[0];
-const progression = brick.nnsProgression;
+// majeur, la mineur, fa majeur, in that order. `timeline` is the document
+// the Studio builds for it (4 measures).
+const timeline = buildStudioTimeline({ brickIndex: 0 });
 
 describe("DAWHelper", () => {
   const drumTracks = [
@@ -172,8 +147,14 @@ describe("DAWHelper", () => {
  * names at `.daw-helper__chord-name`, degrees at `.daw-helper__chord-degree`.
  * For the default style (BRICKS[0], "Modern Pop (4 Chords)", EU notation):
  * names ["Do","Sol","Lam","Fa"], degrees ["I","V","vi","IV"].
+ *
+ * T3: rewritten for the `timeline` prop, which replaced `progression` +
+ * `brick`. The names and degrees expected are the same. The single-source
+ * test compared the row with resolveMeasureChord for "every step 0..63", the
+ * pre-T3 loop; it now compares it with the document's chordAt for every step
+ * of the window, at 4 and at 8 measures.
  */
-describe("DAWHelper — chord-per-measure row (VMU-131)", () => {
+describe("DAWHelper — chord-per-measure row (VMU-131, T3)", () => {
   function namesAndDegrees(container) {
     const row = container.querySelector('[data-testid="daw-helper-chords"]');
     return {
@@ -186,7 +167,7 @@ describe("DAWHelper — chord-per-measure row (VMU-131)", () => {
   it("DOM probe — displays each measure's chord name in order, EU notation by default", () => {
     const { container } = render(
       <DAWHelper drumTracks={[]} melodyTracks={[]} bpm={120} genreName="Pop" lang="en"
-        progression={progression} brick={brick} notation="eu" />
+        timeline={timeline} notation="eu" />
     );
     const { names } = namesAndDegrees(container);
     expect(names).toEqual(["Do", "Sol", "Lam", "Fa"]);
@@ -195,7 +176,7 @@ describe("DAWHelper — chord-per-measure row (VMU-131)", () => {
   it("displays each measure's chord name in order, US notation", () => {
     const { container } = render(
       <DAWHelper drumTracks={[]} melodyTracks={[]} bpm={120} genreName="Pop" lang="en"
-        progression={progression} brick={brick} notation="us" />
+        timeline={timeline} notation="us" />
     );
     const { names } = namesAndDegrees(container);
     expect(names).toEqual(["C", "G", "Am", "F"]);
@@ -204,49 +185,81 @@ describe("DAWHelper — chord-per-measure row (VMU-131)", () => {
   it("displays each chord's degree — the same NNS-derived Roman numeral the app shows elsewhere (StudioPanel's toRoman)", () => {
     const { container } = render(
       <DAWHelper drumTracks={[]} melodyTracks={[]} bpm={120} genreName="Pop" lang="en"
-        progression={progression} brick={brick} notation="eu" />
+        timeline={timeline} notation="eu" />
     );
     const { degrees } = namesAndDegrees(container);
     expect(degrees).toEqual(["I", "V", "vi", "IV"]);
   });
 
-  it("renders no chord row when progression is empty — rest of the DAW helper unchanged", () => {
+  it("renders no chord row when the document has no chord — rest of the DAW helper unchanged", () => {
     const html = renderToString(
       <DAWHelper drumTracks={[{ name: "Kick", activeSteps: [0, 4, 8, 12] }]} melodyTracks={[]} bpm={120} genreName="X" lang="en"
-        progression={[]} brick={brick} notation="eu" />
+        timeline={setChords(timeline, [])} notation="eu" />
     );
     expect(html).not.toContain("daw-helper__chords");
     // The rest of the helper (drum tracks) still renders.
     expect(html).toContain("Kick");
   });
 
-  it("renders no chord row when no progression prop is passed (default [])", () => {
+  it("renders no chord row when no timeline prop is passed (default null)", () => {
     const html = renderToString(
       <DAWHelper drumTracks={[]} melodyTracks={[]} bpm={120} genreName="X" lang="en" />
     );
     expect(html).not.toContain("daw-helper__chords");
   });
 
-  it("renders no chord row when brick is missing, even with a non-empty progression", () => {
-    const html = renderToString(
-      <DAWHelper drumTracks={[]} melodyTracks={[]} bpm={120} genreName="X" lang="en"
-        progression={progression} notation="eu" />
-    );
-    expect(html).not.toContain("daw-helper__chords");
-  });
+  it.each([4, 8])(
+    "single source — matches the document's chordAt for every step of a %i-measure window; fails if the two ever diverge",
+    (lengthMeasures) => {
+      const doc = buildStudioTimeline({ brickIndex: 0, lengthMeasures });
+      const { container } = render(
+        <DAWHelper drumTracks={[]} melodyTracks={[]} bpm={120} genreName="Pop" lang="en"
+          timeline={doc} notation="eu" />
+      );
+      const { names, degrees } = namesAndDegrees(container);
+      expect(names).toHaveLength(lengthMeasures);
 
-  it("single source (brief decision #1) — matches resolveMeasureChord for every step 0..63; fails if the two ever diverge", () => {
+      for (let step = 0; step < loopSteps(doc); step++) {
+        const { index, chord } = chordAt(doc, step);
+        const expected = describeChord(doc.key, chord);
+        expect(names[index]).toBe(expected.chordNameEU);
+        expect(degrees[index]).toBe(toRoman(expected.nns));
+      }
+    },
+  );
+
+  it("shows the chords the loop plays: a 3-chord progression over 4 measures is ii V I ii", () => {
+    const doc = buildStudioTimeline({ brickIndex: 0, overrides: { customProgression: ["2-", "5", "1"] } });
     const { container } = render(
       <DAWHelper drumTracks={[]} melodyTracks={[]} bpm={120} genreName="Pop" lang="en"
-        progression={progression} brick={brick} notation="eu" />
+        timeline={doc} notation="us" />
     );
     const { names, degrees } = namesAndDegrees(container);
+    expect(names).toEqual(["Dm", "G", "C", "Dm"]);
+    expect(degrees).toEqual(["ii", "V", "I", "ii"]);
+  });
+});
 
-    for (let step = 0; step < 64; step++) {
-      const measureIndex = Math.floor(step / 16) % progression.length;
-      const expected = resolveMeasureChord(step, progression, brick, 0);
-      expect(names[measureIndex]).toBe(expected.chord.chordNameEU);
-      expect(degrees[measureIndex]).toBe(toRoman(expected.chord.nns));
-    }
+/**
+ * T3 — the sequencer panel hands the DAW helper one measure of each row of
+ * the document (measurePattern); the style's own one-measure patterns are
+ * what it received before. For every style and theme the text is the same.
+ */
+describe("DAWHelper — T3: the rows' text is the style's, for every style and theme", () => {
+  const cases = BRICKS.flatMap((brick, index) => ["A", "B"].map((theme) => [index, theme, brick.name.en]));
+
+  it.each(cases)("%i:%s %s", (index, theme) => {
+    const doc = buildStudioTimeline({ brickIndex: index, theme });
+    const selection = studioSelection(BRICKS[index], theme);
+    const fromDocument = renderToString(
+      <DAWHelper
+        drumTracks={doc.tracks.filter((t) => DRUM_ROLES.includes(t.role)).map((t) => measurePattern(t, 0))}
+        melodyTracks={doc.tracks.filter((t) => MELODIC_ROLES.includes(t.role)).map((t) => measurePattern(t, 0))}
+        bpm={120} genreName="X" lang="fr" notation="eu" />
+    );
+    const fromStyle = renderToString(
+      <DAWHelper drumTracks={selection.drums} melodyTracks={selection.melody} bpm={120} genreName="X" lang="fr" notation="eu" />
+    );
+    expect(fromDocument).toBe(fromStyle);
   });
 });

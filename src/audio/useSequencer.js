@@ -21,8 +21,8 @@ import { describeChord, loopSteps, timelineFromSelection } from "../core/timelin
 /** The synths the Studio loop plays a step on (playStep.js). */
 const STUDIO_SYNTHS = { kickSynth, snareSynth, hatSynth, bassSynth, playDictionaryNote };
 
-/** Defaults of the pre-T3 selection options: nothing selected. */
-const NOTHING = Object.freeze([]);
+/** Defaults of the pre-T3 selection options: nothing selected (frozen: shared by every call). */
+const NOTHING = /** @type {any[]} */ (Object.freeze([]));
 
 /**
  * The Studio's playback loop. It plays a timeline document (core/timeline.js)

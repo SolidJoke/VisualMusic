@@ -190,3 +190,194 @@ describe("T3 — timeline document (predicted reds)", () => {
     expect(exportedSteps(m.exportTimelineBass(doc, BPM))).toEqual([0, 8, 14, 16, 24, 30]);
   });
 });
+
+/**
+ * The document itself — what the tests above take for granted. Expected
+ * values come from bricks.json's data and the T3 brief's decisions, not
+ * from the implementation.
+ */
+describe("T3 — timeline document: the model", () => {
+  it("schema v1: every style and theme fills a valid document, at 4 and at 8 measures", async () => {
+    const { buildStudioTimeline, timelineErrors } = await import("../timeline");
+    const { BRICKS } = await import("../bricks");
+    BRICKS.forEach((_, brickIndex) => {
+      ["A", "B"].forEach((theme) => {
+        [4, 8].forEach((lengthMeasures) => {
+          const doc = buildStudioTimeline({ brickIndex, theme, lengthMeasures });
+          expect(timelineErrors(doc), `${brickIndex}:${theme} at ${lengthMeasures}`).toEqual([]);
+        });
+      });
+    });
+  });
+
+  it("the default style's document: key, window, rows, provenance, origin, base", async () => {
+    const m = await load();
+    const doc = m.buildStudioTimeline({ brickIndex: 0 });
+    expect(doc.schemaVersion).toBe(1);
+    expect(doc.key).toEqual({ rootValue: 0, scaleKey: "scale_major" });
+    expect(doc.lengthMeasures).toBe(4);
+    expect(doc.origin).toEqual({ brickIndex: 0, variation: "A" });
+    // bricks.json: Kick, Snare, Hat, then the chord row, then Bass.
+    expect(doc.tracks.map((t) => [t.id, t.name, t.role])).toEqual([
+      ["drum-0", "Kick", "kick"],
+      ["drum-1", "Snare", "snare"],
+      ["drum-2", "Hat", "hat"],
+      ["chords", "Chords", "chordHits"],
+      ["melody-0", "Bass", "bass"],
+    ]);
+    doc.tracks.forEach((t) => {
+      expect(t.steps).toHaveLength(128);
+      expect(t.provenance).toEqual(Array(8).fill("style"));
+    });
+    // The kick of Modern Pop is steps 0 and 8 — in all 8 measures.
+    const kickSteps = trackOf(doc, "kick").steps.flatMap((cell, step) => (cell ? [step] : []));
+    expect(kickSteps).toEqual(Array.from({ length: 8 }, (_, m8) => [m8 * 16, m8 * 16 + 8]).flat());
+    // No override: the base is the document's own chords and rows.
+    expect(doc.base).toEqual({ chords: doc.chords, tracks: doc.tracks });
+  });
+
+  it("roles are computed once, at the fill, by trackMapping.js's rules: Rim is the snare group, Crash a hat, Bass the bass", async () => {
+    const m = await load();
+    const reggae = m.buildStudioTimeline({ brickIndex: 8 }); // Kick, Rim, Hat / Bass
+    expect(reggae.tracks.map((t) => [t.name, t.role])).toEqual([
+      ["Kick", "kick"],
+      ["Rim", "snare"],
+      ["Hat", "hat"],
+      ["Chords", "chordHits"],
+      ["Bass", "bass"],
+    ]);
+    const grooveMetal = m.buildStudioTimeline({ brickIndex: 16 }); // has a Crash
+    expect(grooveMetal.tracks.find((t) => t.name === "Crash").role).toBe("hat");
+    // A melodic track that is not a bass line is a melody.
+    const lead = m.timelineFromSelection({ melody: [{ name: "Lead", activeSteps: [0] }] });
+    expect(lead.tracks.find((t) => t.name === "Lead").role).toBe("melody");
+  });
+
+  it("the chord row plays each rhythm the way the pre-T3 loop did, with the same durations", async () => {
+    const { chordHitCells } = await import("../timeline");
+    const hits = (rhythm) =>
+      chordHitCells(rhythm)
+        .slice(0, 16)
+        .flatMap((cell, step) => (cell ? [[step, cell.len]] : []));
+    // One value <= 3: steps of one beat, on every beat; one hit rings a quarter note.
+    expect(hits([0])).toEqual([[0, 4], [4, 4], [8, 4], [12, 4]]);
+    expect(hits([2])).toEqual([[2, 4], [6, 4], [10, 4], [14, 4]]); // reggae skank
+    // Several hits: a 16th each.
+    expect(hits([0, 2])).toEqual([0, 2, 4, 6, 8, 10, 12, 14].map((s) => [s, 1]));
+    // A value above 3: steps of one measure.
+    expect(hits([0, 6, 10])).toEqual([[0, 1], [6, 1], [10, 1]]);
+    expect(hits([])).toEqual([]);
+    // And the same in every measure.
+    const row = chordHitCells([0, 6, 10]);
+    expect(row.slice(112, 128)).toEqual(row.slice(0, 16));
+  });
+
+  it("a style's progression, repeated to 8 measures, stored absolute; its own notation kept for display only", async () => {
+    const m = await load();
+    const doc = m.buildStudioTimeline({ brickIndex: 0 });
+    // 1 5 6- 4 in C major, twice: C G Am F C G Am F, one measure each.
+    expect(doc.chords.map((c) => [c.rootPc, c.type, c.durationSteps, c.nns])).toEqual(
+      [[0, "chord_major"], [7, "chord_major"], [9, "chord_minor"], [5, "chord_major"]]
+        .concat([[0, "chord_major"], [7, "chord_major"], [9, "chord_minor"], [5, "chord_major"]])
+        .map(([pc, type], i) => [pc, type, 16, ["1", "5", "6-", "4"][i % 4]]),
+    );
+  });
+
+  it("the Studio's overrides replace their rows ('math'), the base stays the style's", async () => {
+    const m = await load();
+    const doc = m.buildStudioTimeline({
+      brickIndex: 0,
+      overrides: {
+        customDrums: { Kick: [0, 4, 8, 12], Clap: [4, 12] },
+        customRhythm: [0, 2],
+        customProgression: ["6-", "4", "1", "5"],
+        suggestedBassTrack: { name: "Bass", activeSteps: [0, 7], pitchSteps: { 0: "R", 7: "5" } },
+      },
+    });
+    const byName = Object.fromEntries(doc.tracks.map((t) => [t.name, t]));
+    expect(byName.Kick.provenance).toEqual(Array(8).fill("math"));
+    expect(byName.Snare.provenance).toEqual(Array(8).fill("style"));
+    expect(byName.Chords.provenance).toEqual(Array(8).fill("math"));
+    expect(byName.Bass.provenance).toEqual(Array(8).fill("math"));
+    // A custom drum the style does not have is appended, after the style's drums.
+    expect(byName.Clap).toMatchObject({ id: "drum-3", role: "snare", provenance: Array(8).fill("math") });
+    expect(doc.tracks.map((t) => t.name)).toEqual(["Kick", "Snare", "Hat", "Clap", "Chords", "Bass"]);
+    expect(byName.Bass.steps[7]).toEqual({ vel: "normal", pitch: "5" });
+    expect(doc.chords[0]).toMatchObject({ rootPc: 9, type: "chord_minor", nns: "6-" });
+
+    // The base: Modern Pop as it fills itself — kick on 0 and 8, its own progression.
+    const baseKick = doc.base.tracks.find((t) => t.name === "Kick");
+    expect(baseKick.steps.slice(0, 16).flatMap((cell, step) => (cell ? [step] : []))).toEqual([0, 8]);
+    expect(doc.base.chords.map((c) => c.nns).slice(0, 4)).toEqual(["1", "5", "6-", "4"]);
+    expect(doc.base.tracks.map((t) => t.name)).toEqual(["Kick", "Snare", "Hat", "Chords", "Bass"]);
+  });
+
+  it("chordAt: chords end to end from step 0, half a measure allowed, none before 0 or past the last", async () => {
+    const m = await load();
+    const doc = m.setChords(m.buildStudioTimeline({ brickIndex: 0 }), [
+      { rootPc: 0, type: "chord_major", durationSteps: 8 },
+      { rootPc: 7, type: "chord_major", durationSteps: 8 },
+      { rootPc: 9, type: "chord_minor", durationSteps: 32 },
+    ]);
+    expect(m.chordAt(doc, 7)).toMatchObject({ index: 0, startStep: 0, endStep: 8 });
+    expect(m.chordAt(doc, 8)).toMatchObject({ index: 1, startStep: 8, endStep: 16 });
+    expect(m.chordAt(doc, 47)).toMatchObject({ index: 2, startStep: 16, endStep: 48 });
+    expect(m.chordAt(doc, 48)).toBeNull();
+    expect(m.chordAt(doc, -1)).toBeNull();
+    expect(m.chordAt(doc, 2.5)).toBeNull();
+    expect(m.chordsInWindow(doc).map((span) => span.index)).toEqual([0, 1, 2]);
+  });
+
+  it("refuses what schema v1 does not allow", async () => {
+    const m = await load();
+    const doc = m.buildStudioTimeline({ brickIndex: 0 });
+    const kick = trackOf(doc, "kick").id;
+    expect(() => m.setLength(doc, 3)).toThrow(RangeError);
+    expect(() => m.setCell(doc, kick, 128, null)).toThrow(RangeError);
+    expect(() => m.setCell(doc, "nope", 0, null)).toThrow(RangeError);
+    expect(() => m.setCell(doc, kick, 0, { vel: "loud" })).toThrow(TypeError);
+    expect(() => m.setChords(doc, [{ rootPc: 0, type: "chord_major", durationSteps: 12 }])).toThrow(TypeError);
+    expect(() => m.setChords(doc, [{ rootPc: 12, type: "chord_major", durationSteps: 16 }])).toThrow(TypeError);
+    expect(() => m.setChords(doc, Array(9).fill({ rootPc: 0, type: "chord_major", durationSteps: 16 }))).toThrow(RangeError);
+    // Nothing above touched the document.
+    expect(m.timelineErrors(doc)).toEqual([]);
+    expect(doc).toEqual(m.buildStudioTimeline({ brickIndex: 0 }));
+  });
+
+  it("describeChord: a style's chord as the style wrote it; any other chord's degree computed from the key", async () => {
+    const m = await load();
+    const { generateChordsFromNNS } = await import("../theory");
+    const cMajor = { rootValue: 0, scaleKey: "scale_major" };
+    // As written: exactly what generateChordsFromNNS gives for that label.
+    const vi = { rootPc: 9, type: "chord_minor", durationSteps: 16, nns: "6-" };
+    expect(m.describeChord(cMajor, vi)).toEqual(generateChordsFromNNS(0, "scale_major", ["6-"])[0]);
+    // No label: A minor in C major is the 6th degree, minor.
+    expect(m.describeChord(cMajor, { rootPc: 9, type: "chord_minor", durationSteps: 16 })).toMatchObject({
+      nns: "6-",
+      chordNameUS: "Am",
+      chordNameEU: "Lam",
+      rootNote: { value: 9 },
+    });
+    // No label, not in the scale: A# (B flat) major is the flat 7th.
+    expect(m.describeChord(cMajor, { rootPc: 10, type: "chord_major", durationSteps: 16 })).toMatchObject({
+      nns: "b7",
+      chordNameUS: "A#",
+    });
+    // A label that is no longer this chord (the root was edited) is not shown.
+    expect(m.describeChord(cMajor, { ...vi, rootPc: 2 })).toMatchObject({ nns: "2-", chordNameUS: "Dm" });
+  });
+
+  it("measurePattern gives back a style's one-measure pattern, for every style and theme", async () => {
+    const m = await load();
+    const { BRICKS } = await import("../bricks");
+    BRICKS.forEach((brick, brickIndex) => {
+      ["A", "B"].forEach((theme) => {
+        const doc = m.buildStudioTimeline({ brickIndex, theme });
+        const selection = m.studioSelection(brick, theme);
+        const patterns = [...selection.drums, ...selection.melody];
+        const rows = doc.tracks.filter((t) => t.role !== "chordHits");
+        expect(rows.map((t) => m.measurePattern(t, 0)), `${brickIndex}:${theme}`).toEqual(patterns);
+      });
+    });
+  });
+});
