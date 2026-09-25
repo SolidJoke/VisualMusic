@@ -5,8 +5,11 @@ import './PianoRoll.css';
  * PianoRoll — Step sequencer display with velocity & pitch indicators
  *
  * Props:
- * - tracks: Array of { name, activeSteps, lowVelocitySteps?, pitchSteps? }
- * - totalSteps: number (default 16)
+ * - tracks: rows of the timeline document (core/timeline.js, T3):
+ *   { name, steps } where `steps[i]` is the cell of absolute step i — null
+ *   (silent) or { vel: "normal"|"ghost", pitch? } — so a measure shows its
+ *   own cells, not measure 1's again
+ * - totalSteps: number (default 16) — the document's window
  * - currentStep: number (-1 = none)
  */
 export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1 }) {
@@ -85,12 +88,12 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                         <div className="steps-container">
                             {Array.from({ length: visibleEnd - visibleStart }).map((_, i) => {
                                 const stepIndex = visibleStart + i;
-                                // Support looping if track data is shorter than totalSteps
-                                const relativeStep = stepIndex % 16;
-                                const isActive = track.activeSteps.includes(relativeStep);
-                                const isLowVel = track.lowVelocitySteps?.includes(relativeStep);
+                                // The cell of this very step: absolute, never folded back onto measure 1.
+                                const cell = track.steps?.[stepIndex] ?? null;
+                                const isActive = cell !== null;
+                                const isLowVel = cell?.vel === 'ghost';
                                 const isCurrent = currentStep === stepIndex;
-                                const pitchLabel = track.pitchSteps?.[relativeStep] || null;
+                                const pitchLabel = cell?.pitch || null;
 
                                 // Build CSS classes
                                 const classes = [

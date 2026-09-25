@@ -1,8 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { studioState, SPECIAL_CASES } from "./goldenCases";
+import { BRICKS, THEMES, studioState, SPECIAL_CASES, JAZZ_251_MAJ } from "./goldenCases";
+import { buildStudioTimeline, setCell, studioSelection, timelineFromSelection } from "../../core/timeline";
 
 /**
  * T1 — the contract of `stepEvents` (src/audio/dispatch.js), the one place
@@ -18,7 +19,21 @@ import { studioState, SPECIAL_CASES } from "./goldenCases";
  *
  * The goldens (ExportGolden.test.js, PlaybackGolden.test.jsx) prove the move
  * changed nothing; this file pins what the new function promises.
+ *
+ * T3: `stepEvents` reads a timeline document (core/timeline.js) —
+ * `stepEvents(doc, step, { octaveOffset, rootValue })` — instead of the
+ * pre-T3 state `{ brick, drums, melody, progression, rhythm, octaveOffset,
+ * rootValue }`. The tests below that were written against that state now
+ * hand it the document the Studio fills from it (`timelineFromSelection`,
+ * through `played` below); what they expect is unchanged.
  */
+
+/** What plays on `step` for a pre-T3 state: its document, with its Studio settings. */
+function played(state, step) {
+  return stepEvents(timelineFromSelection(state), step, { octaveOffset: state.octaveOffset, rootValue: state.rootValue });
+}
+
+let stepEvents;
 
 const AUDIO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.resolve(AUDIO, "..");
@@ -89,11 +104,21 @@ describe("VMU-137 — the exporter reads the dispatch instead of recomputing the
 });
 
 describe("stepEvents — pure", () => {
+  beforeAll(async () => {
+    ({ stepEvents } = await import("../dispatch"));
+  });
+
   it("imports no Tone, directly or through anything it imports", () => {
     const { files, bare } = importClosure(path.join(AUDIO, "dispatch.js"));
     expect(files.length).toBeGreaterThan(1); // positive control: the walk followed imports
     expect(bare.filter((spec) => spec === "tone" || spec.startsWith("tone/"))).toEqual([]);
     expect(files.map((f) => path.relative(SRC, f).replace(/\\/g, "/"))).not.toContain("audio/AudioEngine.js");
+  });
+
+  it("core/timeline.js, the document it reads, imports neither Tone nor React (T3)", () => {
+    const { files, bare } = importClosure(path.join(SRC, "core", "timeline.js"));
+    expect(files.length).toBeGreaterThan(1); // positive control: the walk followed imports
+    expect(bare.filter((spec) => ["tone", "react", "react-dom"].includes(spec.split("/")[0]))).toEqual([]);
   });
 
   it("playStep.js, the shared playback translation, imports no Tone either (the synths are passed in)", () => {
@@ -107,26 +132,30 @@ describe("stepEvents — pure", () => {
     expect(() => toneDuration(3)).toThrow(/3 steps/);
   });
 
-  it("returns the same events for the same input, twice, and does not mutate the input", async () => {
-    const { stepEvents } = await import("../dispatch");
+  it("returns the same events for the same input, twice, and does not mutate the input", () => {
     const states = [studioState(0, "A"), studioState(8, "B"), ...Object.values(SPECIAL_CASES).map((b) => b())];
     states.forEach((state) => {
-      const before = JSON.stringify(state);
+      const doc = timelineFromSelection(state);
+      const options = { octaveOffset: state.octaveOffset, rootValue: state.rootValue };
+      const before = JSON.stringify(doc);
       for (let step = 0; step < 64; step++) {
-        const first = stepEvents(state, step);
-        const second = stepEvents(state, step);
+        const first = stepEvents(doc, step, options);
+        const second = stepEvents(doc, step, options);
         expect(second).toEqual(first);
         expect(second).not.toBe(first);
       }
-      expect(JSON.stringify(state)).toBe(before);
+      expect(JSON.stringify(doc)).toBe(before);
     });
   });
 });
 
 describe("stepEvents — what it says plays (default style, Modern Pop, C major, I-V-vi-IV)", () => {
-  it("step 0: kick and hat, the C major chord for a quarter note, the bass on C2", async () => {
-    const { stepEvents } = await import("../dispatch");
-    const events = stepEvents(studioState(0, "A"), 0);
+  beforeAll(async () => {
+    ({ stepEvents } = await import("../dispatch"));
+  });
+
+  it("step 0: kick and hat, the C major chord for a quarter note, the bass on C2", () => {
+    const events = played(studioState(0, "A"), 0);
     expect(events.map((e) => [e.voice, e.instrument])).toEqual([
       ["drums", "kick"],
       ["drums", "hat"],
@@ -140,19 +169,88 @@ describe("stepEvents — what it says plays (default style, Modern Pop, C major,
     expect(bass).toMatchObject({ midi: [36], durationSteps: 1, velocity: 0.9, track: "Bass", tonicFallback: false });
   });
 
-  it("step 16 is measure 2: the G major chord", async () => {
-    const { stepEvents } = await import("../dispatch");
-    const chord = stepEvents(studioState(0, "A"), 16).find((e) => e.voice === "chords");
+  it("step 16 is measure 2: the G major chord", () => {
+    const chord = played(studioState(0, "A"), 16).find((e) => e.voice === "chords");
     expect(chord.midi).toEqual([67, 71, 74]);
   });
 
-  it("no progression: every melodic track falls back to the sequencer's tonic, flagged", async () => {
-    const { stepEvents } = await import("../dispatch");
+  it("no progression: every melodic track falls back to the sequencer's tonic, flagged", () => {
     const state = studioState(0, "A", { progression: [], rootValue: 3 });
-    const melody = stepEvents(state, 0).filter((e) => e.voice === "melody");
+    const melody = played(state, 0).filter((e) => e.voice === "melody");
     expect(melody).toEqual([
       expect.objectContaining({ instrument: "bass", midi: [39], track: "Bass", tonicFallback: true }),
     ]);
-    expect(stepEvents(state, 0).some((e) => e.voice === "chords")).toBe(false);
+    expect(played(state, 0).some((e) => e.voice === "chords")).toBe(false);
+  });
+
+  it("each event carries the role its row was filled with (trackMapping.js), once", () => {
+    const events = played(studioState(8, "A"), 8); // Joyful Reggae: Kick, Rim (the snare group), Hat, Bass
+    expect(events.map((e) => [e.track, e.role])).toEqual([
+      ["Kick", "kick"],
+      ["Rim", "snare"],
+      ["Hat", "hat"],
+      ["Bass", "bass"],
+    ]);
+  });
+});
+
+/**
+ * The goldens freeze what the pre-T3 entry points produce, and those entry
+ * points (the export's three signatures, useSequencer's selection props) now
+ * fill a document with `timelineFromSelection`. The app fills its own with
+ * `buildStudioTimeline` (useStudioMode; the audio harness too). This pins
+ * that the two are the same document, so the goldens cover what the app
+ * plays.
+ */
+describe("T3 — the Studio's document is the goldens' document", () => {
+  const rowsOf = (doc) => doc.tracks.map(({ id, name, role, steps }) => ({ id, name, role, steps }));
+
+  it.each(BRICKS.flatMap((brick, index) => THEMES.map((theme) => [index, theme, brick.name.en])))(
+    "%i:%s %s — same chords, same rows",
+    (index, theme) => {
+      const studio = buildStudioTimeline({ brickIndex: index, theme });
+      const golden = timelineFromSelection(studioState(index, theme));
+      expect(studio.chords).toEqual(golden.chords);
+      expect(rowsOf(studio)).toEqual(rowsOf(golden));
+      expect(studio.lengthMeasures).toBe(4);
+    },
+  );
+
+  it("with every override, the same rows as the selection the panels show", () => {
+    const overrides = {
+      customDrums: { Kick: [0, 3, 6, 10], Clap: [4, 12] },
+      customRhythm: [0, 6, 10],
+      customProgression: JAZZ_251_MAJ,
+      suggestedBassTrack: { name: "Bass", activeSteps: [0, 7, 15], pitchSteps: { 0: "R", 7: "5", 15: "3" } },
+    };
+    const studio = buildStudioTimeline({ brickIndex: 0, theme: "A", overrides });
+    const selection = timelineFromSelection({ brick: BRICKS[0], ...studioSelection(BRICKS[0], "A", overrides) });
+    expect(studio.chords).toEqual(selection.chords);
+    expect(rowsOf(studio)).toEqual(rowsOf(selection));
+  });
+});
+
+describe("T3 — the bass leads into the chord that follows in the document", () => {
+  beforeAll(async () => {
+    ({ stepEvents } = await import("../dispatch"));
+  });
+
+  const bassAt = (doc, step) => stepEvents(doc, step, { rootValue: 0 }).find((e) => e.track === "Bass")?.midi;
+
+  it("a 3-chord progression over 4 measures: measure 4 (ii again) leads into V, the next degree, as the pre-T3 loop did", () => {
+    // ii V I in C major, repeated: ii V I ii | V I ii V. The loop restarts on
+    // ii after measure 4, but the chord after measure 4 in the progression —
+    // and in the document — is V (G): the bass plays its leading tone, F#2.
+    let doc = buildStudioTimeline({ brickIndex: 0, overrides: { customProgression: JAZZ_251_MAJ } });
+    const bass = doc.tracks.find((t) => t.role === "bass");
+    doc = setCell(doc, bass.id, 63, { vel: "normal" });
+    expect(bassAt(doc, 63)).toEqual([42]);
+  });
+
+  it("a one-chord progression has nothing to lead into: the last step of the measure plays the root", () => {
+    let doc = buildStudioTimeline({ brickIndex: 0, overrides: { customProgression: ["1"] } });
+    const bass = doc.tracks.find((t) => t.role === "bass");
+    doc = setCell(doc, bass.id, 15, { vel: "normal" });
+    expect(bassAt(doc, 15)).toEqual([36]);
   });
 });

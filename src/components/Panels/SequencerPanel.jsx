@@ -1,23 +1,32 @@
 import React from 'react';
 import PianoRoll from "../Sequencer/PianoRoll";
 import DAWHelper from "../Sequencer/DAWHelper";
-import { exportDrums, exportChords, exportBass, triggerMidiDownload } from "../../audio/MidiExporter";
+import { exportTimelineDrums, exportTimelineChords, exportTimelineBass, triggerMidiDownload } from "../../audio/MidiExporter";
+import { DRUM_ROLES, MELODIC_ROLES, loopSteps, measurePattern } from "../../core/timeline";
 import { useAppContext } from '../../context/AppContext';
 import { usePlaybackContext } from '../../context/PlaybackContext';
 
+/**
+ * The Studio's sequencer: the rows of the timeline document (T3) the loop
+ * plays, over its window, and their MIDI export.
+ *
+ * `timeline` is useStudioMode's document (core/timeline.js).
+ */
 const SequencerPanel = ({
-  activeDrums,
-  activeMelody,
-  activeChordTrack,
+  timeline,
   currentStep,
   currentBpm,
   activeBrick,
-  activeProgression,
-  activeRhythm,
   chordOctaveOffset,
 }) => {
   const { lang, txt, notation } = useAppContext();
   const { isPlaying, togglePlayback, handleBpmChange } = usePlaybackContext();
+
+  const rows = timeline ? timeline.tracks : [];
+  const drumRows = rows.filter((track) => DRUM_ROLES.includes(track.role));
+  const chordRows = rows.filter((track) => track.role === "chordHits");
+  const melodicRows = rows.filter((track) => MELODIC_ROLES.includes(track.role));
+  const totalSteps = timeline ? loopSteps(timeline) : 0;
 
   return (
     <div
@@ -56,14 +65,14 @@ const SequencerPanel = ({
       <div className="vintage-header">
         <span>{txt.drumMachine}</span>
         <button className="vintage-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
-          const midiData = exportDrums(activeDrums, currentBpm, activeBrick?.name?.[lang] || "Genre");
+          const midiData = exportTimelineDrums(timeline, currentBpm);
           triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Drums"}_${currentBpm}bpm.mid`);
         }}>⬇️ MIDI</button>
       </div>
       <div className="scrollable-instrument">
         <PianoRoll
-          tracks={activeDrums}
-          totalSteps={64}
+          tracks={drumRows}
+          totalSteps={totalSteps}
           currentStep={currentStep}
         />
       </div>
@@ -71,14 +80,14 @@ const SequencerPanel = ({
       <div className="vintage-header" style={{ marginTop: "30px" }}>
         <span>🎹 {txt.harmonicSeq || "Harmonic Sequencer"}</span>
         <button className="vintage-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
-          const midiData = exportChords(activeBrick, activeProgression, activeRhythm, chordOctaveOffset, currentBpm, activeBrick?.name?.[lang] || "Genre");
+          const midiData = exportTimelineChords(timeline, currentBpm, { octaveOffset: chordOctaveOffset });
           triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Chords"}_${currentBpm}bpm.mid`);
         }}>⬇️ MIDI</button>
       </div>
       <div className="scrollable-instrument">
         <PianoRoll
-          tracks={[activeChordTrack]}
-          totalSteps={64}
+          tracks={chordRows}
+          totalSteps={totalSteps}
           currentStep={currentStep}
         />
       </div>
@@ -86,25 +95,27 @@ const SequencerPanel = ({
       <div className="vintage-header" style={{ marginTop: "30px" }}>
         <span>{txt.melodicSeq}</span>
         <button className="vintage-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
-          const midiData = exportBass(activeMelody, activeBrick, activeProgression, currentBpm);
+          const midiData = exportTimelineBass(timeline, currentBpm);
           triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Bass"}_${currentBpm}bpm.mid`);
         }}>⬇️ MIDI</button>
       </div>
       <div className="scrollable-instrument">
         <PianoRoll
-          tracks={activeMelody}
-          totalSteps={64}
+          tracks={melodicRows}
+          totalSteps={totalSteps}
           currentStep={currentStep}
         />
       </div>
+      {/* The DAW helper still describes each row one measure at a time: the
+          first one. Every row the Studio fills today repeats it (a style or
+          an override copies one measure into all of them). */}
       <DAWHelper
-        drumTracks={activeDrums}
-        melodyTracks={activeMelody}
+        drumTracks={drumRows.map((track) => measurePattern(track, 0))}
+        melodyTracks={melodicRows.map((track) => measurePattern(track, 0))}
         bpm={currentBpm}
         genreName={activeBrick.name?.[lang] || activeBrick.name?.en || ""}
         lang={lang}
-        progression={activeProgression}
-        brick={activeBrick}
+        timeline={timeline}
         notation={notation}
       />
     </div>

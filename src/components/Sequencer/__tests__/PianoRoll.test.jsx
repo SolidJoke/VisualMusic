@@ -1,17 +1,32 @@
 /**
  * PianoRoll.test.jsx — Tests for PianoRoll component rendering
+ *
+ * T3: PianoRoll displays rows of the timeline document — absolute cells,
+ * `steps[i]` for step i — instead of one-measure patterns it folded back with
+ * `% 16`. The fixtures below are still written as one-measure patterns
+ * (bricks.json's shape) and filled into rows by `rows`, the same fill a style
+ * uses (core/timeline.js trackFromPattern); what each test expects is
+ * unchanged. The last test is T3's: a measure that differs shows its own
+ * cells.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import React from "react";
 
 import { renderToString } from "react-dom/server";
+import { render, fireEvent, cleanup } from "@testing-library/react";
 import PianoRoll from "../PianoRoll.jsx";
+import { setCell, timelineFromSelection, trackFromPattern } from "../../../core/timeline";
+
+afterEach(cleanup);
+
+/** One-measure patterns as timeline rows (the role does not change the display). */
+const rows = (patterns) => patterns.map((pattern) => trackFromPattern(pattern, { role: "melody" }));
 
 describe("PianoRoll", () => {
-  const baseTracks = [
+  const baseTracks = rows([
     { name: "Kick", activeSteps: [0, 4, 8, 12] },
     { name: "Snare", activeSteps: [4, 12] },
-  ];
+  ]);
 
   it("renders without crashing", () => {
     const html = renderToString(<PianoRoll tracks={baseTracks} />);
@@ -34,9 +49,9 @@ describe("PianoRoll", () => {
   });
 
   it("renders ghost labels for lowVelocitySteps", () => {
-    const ghostTracks = [
+    const ghostTracks = rows([
       { name: "Hat", activeSteps: [0, 2, 4, 6], lowVelocitySteps: [2, 6] },
-    ];
+    ]);
     const html = renderToString(<PianoRoll tracks={ghostTracks} />);
     expect(html).toContain("step--ghost");
     expect(html).toContain("step__dim-overlay");
@@ -49,13 +64,13 @@ describe("PianoRoll", () => {
   });
 
   it("renders pitch labels when pitchSteps present", () => {
-    const pitchTracks = [
+    const pitchTracks = rows([
       {
         name: "Bass",
         activeSteps: [0, 3, 7],
         pitchSteps: { 0: "R", 3: "5", 7: "b3" },
       },
-    ];
+    ]);
     const html = renderToString(<PianoRoll tracks={pitchTracks} />);
     expect(html).toContain("step__pitch-label");
     expect(html).toContain("R");
@@ -64,9 +79,9 @@ describe("PianoRoll", () => {
   });
 
   it("renders tooltips for active steps", () => {
-    const trackWithGhost = [
+    const trackWithGhost = rows([
       { name: "Kick", activeSteps: [0], lowVelocitySteps: [0] },
-    ];
+    ]);
     const html = renderToString(<PianoRoll tracks={trackWithGhost} />);
     expect(html).toContain("title=");
     expect(html).toContain("Ghost");
@@ -82,5 +97,21 @@ describe("PianoRoll", () => {
   it("renders with empty tracks array", () => {
     const html = renderToString(<PianoRoll tracks={[]} />);
     expect(html).toContain("piano-roll");
+  });
+
+  it("T3 — shows each step's own cell: a measure 2 that differs from measure 1 is shown as it is", () => {
+    // Kick on 0 and 8 in every measure; in measure 2 only, 16 moves to 19.
+    let doc = timelineFromSelection({ drums: [{ name: "Kick", activeSteps: [0, 8] }] });
+    doc = setCell(doc, "drum-0", 16, null);
+    doc = setCell(doc, "drum-0", 19, { vel: "ghost" });
+    const kick = doc.tracks.filter((t) => t.role === "kick");
+    const { container, getByText } = render(<PianoRoll tracks={kick} totalSteps={32} />);
+    fireEvent.click(getByText("32")); // show both measures at once
+
+    const lamps = Array.from(container.querySelectorAll(".step-lamp"));
+    expect(lamps).toHaveLength(32);
+    const active = lamps.flatMap((lamp, step) => (lamp.classList.contains("active") ? [step] : []));
+    expect(active).toEqual([0, 8, 19, 24]);
+    expect(lamps[19].classList.contains("step--ghost")).toBe(true);
   });
 });

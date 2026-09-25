@@ -1,5 +1,5 @@
 // @ts-check
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import * as Tone from "tone";
 import {
   kickSynth,
@@ -14,25 +14,38 @@ import {
   getPianoSynth,
   getGuitarSynth
 } from "./AudioEngine";
-import { resolveMeasureChord, stepEvents, LOOP_STEPS } from "./dispatch";
+import { resolveChordAt, stepEvents } from "./dispatch";
 import { playStepEvents } from "./playStep";
-
-// T1: resolveMeasureChord moved to dispatch.js with the rest of "what plays
-// on this step". Re-exported so its importers — DAWHelper.jsx, the tests,
-// and AppRoot.test.jsx's mock of this module — keep working unchanged.
-export { resolveMeasureChord };
+import { describeChord, loopSteps, timelineFromSelection } from "../core/timeline";
 
 /** The synths the Studio loop plays a step on (playStep.js). */
 const STUDIO_SYNTHS = { kickSynth, snareSynth, hatSynth, bassSynth, playDictionaryNote };
 
+/** Defaults of the pre-T3 selection options: nothing selected (frozen: shared by every call). */
+const NOTHING = /** @type {any[]} */ (Object.freeze([]));
+
 /**
+ * The Studio's playback loop. It plays a timeline document (core/timeline.js)
+ * over the document's own length: `timeline`, which useStudioMode builds.
+ *
+ * Callers that predate T3 pass the style's selection instead —
+ * `activeDrums`, `activeMelody`, `activeProgression`, `activeRhythm`, the
+ * shape useStudioMode handed over before — and the loop fills the document
+ * from it with the function the Studio fills it with
+ * (`timelineFromSelection`). The tests drive the hook that way, among them
+ * PlaybackGolden.test.jsx, which is frozen. `timeline` has no default on
+ * purpose: HookOptionContracts.test.js then requires the app's call site to
+ * pass it, where forgetting it would leave the Studio playing an empty
+ * selection.
+ *
  * @param {Object} options
  * @param {string} options.appMode
- * @param {any} options.activeBrick
- * @param {any[]} options.activeDrums
- * @param {any[]} options.activeMelody
- * @param {any[]} options.activeProgression
- * @param {any} options.activeRhythm
+ * @param {any} options.activeBrick the style; its genre preset is applied on the first play
+ * @param {import("../core/timeline").TimelineDoc} options.timeline what the loop plays
+ * @param {any[]} [options.activeDrums] pre-T3 selection, when there is no `timeline`
+ * @param {any[]} [options.activeMelody] pre-T3 selection, when there is no `timeline`
+ * @param {any[]} [options.activeProgression] pre-T3 selection, when there is no `timeline`
+ * @param {any} [options.activeRhythm] pre-T3 selection, when there is no `timeline`
  * @param {number} options.currentRootValue
  * @param {Function} options.setCurrentlyPlayingNotes
  * @param {number} [options.chordOctaveOffset]
@@ -40,10 +53,11 @@ const STUDIO_SYNTHS = { kickSynth, snareSynth, hatSynth, bassSynth, playDictiona
 export function useSequencer({
   appMode,
   activeBrick,
-  activeDrums,
-  activeMelody,
-  activeProgression,
-  activeRhythm,
+  timeline,
+  activeDrums = NOTHING,
+  activeMelody = NOTHING,
+  activeProgression = NOTHING,
+  activeRhythm = null,
   currentRootValue,
   setCurrentlyPlayingNotes,
   chordOctaveOffset = 0
@@ -69,33 +83,33 @@ export function useSequencer({
     guitar: 0,
   });
 
-  const drumRef = useRef(activeDrums);
-  const melodyRef = useRef(activeMelody);
-  const progressionRef = useRef(activeProgression);
+  // Pre-T3 callers: the document their selection fills (see above). A
+  // missing rhythm plays as [0], as it always has.
+  const selectionTimeline = useMemo(
+    () =>
+      timeline
+        ? null
+        : timelineFromSelection({
+            brick: activeBrick,
+            drums: activeDrums,
+            melody: activeMelody,
+            progression: activeProgression,
+            rhythm: activeRhythm || [0],
+          }),
+    [timeline, activeBrick, activeDrums, activeMelody, activeProgression, activeRhythm],
+  );
+
+  const timelineRef = useRef(timeline || selectionTimeline);
   const rootRef = useRef(currentRootValue);
   const appModeRef = useRef(appMode);
   const brickRef = useRef(activeBrick);
   const octaveRef = useRef(chordOctaveOffset);
-  const rhythmRef = useRef(activeRhythm);
 
-  drumRef.current = activeDrums;
-  melodyRef.current = activeMelody;
-  progressionRef.current = activeProgression;
+  timelineRef.current = timeline || selectionTimeline;
   rootRef.current = currentRootValue;
   appModeRef.current = appMode;
   brickRef.current = activeBrick;
   octaveRef.current = chordOctaveOffset;
-  rhythmRef.current = activeRhythm;
-
-  // Generate a virtual track for chords based on current rhythm
-  const activeChordTrack = {
-    name: "Chords",
-    activeSteps: rhythmRef.current 
-      ? Array.from({ length: 16 }).flatMap((_, beat) => 
-          rhythmRef.current.map(stepInBeat => beat * 4 + stepInBeat)
-        )
-      : [0, 4, 8, 12] // Default 4/4 hits
-  };
 
   const handleInstrumentVolumeChange = (instrument, value) => {
     const val = Number(value);
@@ -109,9 +123,9 @@ export function useSequencer({
 
   useEffect(() => {
     let stepCounter = 0;
-    // VMU-129: chordIndex of the measure last published via
+    // VMU-129: index (in the document) of the chord last published via
     // setCurrentPlayingChord, so the state update (and the Draw-scheduled
-    // callback it costs) only fires at a measure boundary, not every step.
+    // callback it costs) only fires when the chord changes, not every step.
     let lastPublishedChordIndex = null;
 
     const repeat = (time) => {
@@ -123,20 +137,21 @@ export function useSequencer({
           return;
         }
 
-        const progression = progressionRef.current;
-        const brick = brickRef.current;
+        const doc = timelineRef.current;
         const octaveOffset = octaveRef.current;
 
-        // --- Measure chord (VMU-129) ---
-        // The same resolveMeasureChord stepEvents reads below, published
-        // (once per measure, not per step) so the instruments can follow
-        // the chord actually playing instead of the last clicked one.
-        const measureChord = resolveMeasureChord(stepCounter, progression, brick, octaveOffset);
-        const measureChordIndex = measureChord ? measureChord.chordIndex : null;
-        if (measureChordIndex !== lastPublishedChordIndex) {
-          lastPublishedChordIndex = measureChordIndex;
-          const forDisplay = measureChord
-            ? { ...measureChord.chord, absolutePitches: measureChord.absolutePitches }
+        // --- The chord of the moment (VMU-129) ---
+        // The same chord stepEvents plays below (dispatch.js resolveChordAt,
+        // core/timeline.js chordAt), published — once per chord, not per
+        // step — so the instruments can follow the chord actually playing
+        // instead of the last clicked one. Shown the way the app shows a
+        // chord (describeChord), with the pitches the chord row plays.
+        const playing = resolveChordAt(doc, stepCounter, octaveOffset);
+        const playingIndex = playing ? playing.index : null;
+        if (playingIndex !== lastPublishedChordIndex) {
+          lastPublishedChordIndex = playingIndex;
+          const forDisplay = playing
+            ? { ...describeChord(doc.key, playing.chord), absolutePitches: playing.absolutePitches }
             : null;
           Tone.Draw.schedule(() => setCurrentPlayingChord(forDisplay), time);
         }
@@ -144,18 +159,7 @@ export function useSequencer({
         // --- What plays on this step: drums, chord, melodic tracks ---
         // Decided by stepEvents (dispatch.js), the same function the MIDI
         // export and the audio harness read; this loop only plays it.
-        const events = stepEvents(
-          {
-            brick,
-            drums: drumRef.current,
-            melody: melodyRef.current,
-            progression,
-            rhythm: rhythmRef.current || [0],
-            octaveOffset,
-            rootValue: rootRef.current,
-          },
-          stepCounter,
-        );
+        const events = stepEvents(doc, stepCounter, { octaveOffset, rootValue: rootRef.current });
         const frameNotes = playStepEvents(STUDIO_SYNTHS, events, time);
 
         if (frameNotes.length > 0) {
@@ -165,7 +169,8 @@ export function useSequencer({
       } catch (err) {
         console.error("Error in useSequencer repeat loop:", err);
       } finally {
-        stepCounter = (stepCounter + 1) % LOOP_STEPS;
+        // The document's window: 64 steps at 4 measures, 128 at 8.
+        stepCounter = (stepCounter + 1) % loopSteps(timelineRef.current);
       }
     };
 
@@ -256,7 +261,6 @@ export function useSequencer({
     togglePlayback,
     handleBpmChange,
     isPianoReady,
-    activeChordTrack,
     currentPlayingChord
   };
 }

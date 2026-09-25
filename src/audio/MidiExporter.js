@@ -1,5 +1,6 @@
 import { Midi } from "@tonejs/midi";
-import { stepEvents, LOOP_STEPS } from "./dispatch";
+import { stepEvents } from "./dispatch";
+import { loopSteps, timelineFromSelection } from "../core/timeline";
 
 // T1 (VMU-137): what each file holds comes from stepEvents (dispatch.js), the
 // same function the playback loop plays. This module used to recompute each
@@ -7,6 +8,13 @@ import { stepEvents, LOOP_STEPS } from "./dispatch";
 // resolveChordSemitones), a second copy of the rule playback's
 // resolveMeasureChord already held. It now only translates events into MIDI
 // notes.
+//
+// T3: the events are those of a timeline document (core/timeline.js), over
+// its window — 4 measures today, 8 once the timeline screen offers it. The
+// `exportTimeline*` functions take the document the Studio plays; the three
+// pre-T3 functions below them keep their signatures (ExportGolden.test.js
+// calls them, frozen) and export the document the Studio would build from
+// their arguments, through the same path.
 //
 // Where the files differ from what playback plays, it is here, named below.
 // Every one of them predates T1 and is kept as it was (ExportGolden.test.js
@@ -19,14 +27,30 @@ const EXPORT_DRUM_DURATION_STEPS = 1;
 const EXPORT_CHORD_VELOCITY = 0.8;
 
 /**
- * EXPORT-3: only melodic tracks whose name contains "bass" are written to the
- * bass file (playback plays every melodic track on the bass synth).
+ * EXPORT-3: only bass rows — melodic tracks whose name contains "bass"
+ * (trackMapping.js's classifyMelodicTrack, stored as the row's role) — are
+ * written to the bass file (playback plays every melodic track on the bass
+ * synth).
  * EXPORT-4: a tonic-fallback note — no measure chord applies — is not written
  * (playback plays it).
  * @param {import("./dispatch").StepEvent} event
  */
 function isExportedBassNote(event) {
-  return event.track.toLowerCase().includes("bass") && !event.tonicFallback;
+  return event.role === "bass" && !event.tonicFallback;
+}
+
+/**
+ * EXPORT-5: a chord row with no hit at all is written as the style's own
+ * chord row (the document's base), where playback, reading the same empty
+ * row, plays no chord. Before T3 this was the chord rhythm: an empty one fell
+ * back to `brick.chordRhythm || [0]`, which is what the style's own row is.
+ * @param {import("../core/timeline").TimelineDoc} doc
+ */
+function withExportedChordRow(doc) {
+  const hasHit = doc.tracks.some((track) => track.role === "chordHits" && track.steps.some(Boolean));
+  const styleRow = doc.base.tracks.find((track) => track.role === "chordHits");
+  if (hasHit || !styleRow) return doc;
+  return { ...doc, tracks: doc.tracks.map((track) => (track.role === "chordHits" ? styleRow : track)) };
 }
 
 // 1 step (16th note) duration in seconds
@@ -38,29 +62,39 @@ function getStepTime(step, bpm) {
   return step * getStepDuration(bpm);
 }
 
-/** The events of `voice` on every step of the loop, in step order. */
-function loopEvents(state, voice) {
+/** The events of `voice` on every step of the document's window, in step order. */
+function loopEvents(doc, voice, options) {
   const all = [];
-  for (let step = 0; step < LOOP_STEPS; step++) {
-    stepEvents(state, step).forEach((event) => {
+  for (let step = 0; step < loopSteps(doc); step++) {
+    stepEvents(doc, step, options).forEach((event) => {
       if (event.voice === voice) all.push({ step, event });
     });
   }
   return all;
 }
 
-export function exportDrums(drumTracks, bpm, _genreName) {
+/** A file at `bpm` with one empty track named `name`, and that track. */
+function newFile(bpm, name) {
   const midi = new Midi();
   midi.header.setTempo(bpm);
-
   const track = midi.addTrack();
-  track.name = "Drums";
+  track.name = name;
+  return { midi, track };
+}
+
+/**
+ * The drum file of a timeline document: every drum row, over its window.
+ * @param {import("../core/timeline").TimelineDoc} doc
+ * @param {number} bpm
+ */
+export function exportTimelineDrums(doc, bpm) {
+  const { midi, track } = newFile(bpm, "Drums");
   // Channel 10 is standard for drums in GM (0-indexed = 9)
   track.channel = 9;
 
   // The GM key comes with the event (dispatch.js DRUM_GM_KEY), from the same
   // classification playback uses to pick a synth (VMU-128).
-  loopEvents({ brick: null, drums: drumTracks }, "drums").forEach(({ step, event }) => {
+  loopEvents(doc, "drums").forEach(({ step, event }) => {
     track.addNote({
       midi: event.midi[0],
       time: getStepTime(step, bpm),
@@ -72,16 +106,15 @@ export function exportDrums(drumTracks, bpm, _genreName) {
   return midi.toArray();
 }
 
-export function exportBass(melodyTracks, brick, progression, bpm) {
-  const midi = new Midi();
-  midi.header.setTempo(bpm);
+/**
+ * The bass file of a timeline document: its bass rows, over its window.
+ * @param {import("../core/timeline").TimelineDoc} doc
+ * @param {number} bpm
+ */
+export function exportTimelineBass(doc, bpm) {
+  const { midi, track } = newFile(bpm, "Bass");
 
-  const track = midi.addTrack();
-  track.name = "Bass";
-
-  if (!melodyTracks || !brick || !progression) return midi.toArray();
-
-  loopEvents({ brick, melody: melodyTracks, progression }, "melody").forEach(({ step, event }) => {
+  loopEvents(doc, "melody").forEach(({ step, event }) => {
     if (!isExportedBassNote(event)) return;
     track.addNote({
       midi: event.midi[0],
@@ -94,24 +127,17 @@ export function exportBass(melodyTracks, brick, progression, bpm) {
   return midi.toArray();
 }
 
-export function exportChords(brick, progression, rhythm, octaveOffset, bpm, _genreName) {
-  const midi = new Midi();
-  midi.header.setTempo(bpm);
+/**
+ * The chord file of a timeline document: its chords where the chord row
+ * strikes them, over its window.
+ * @param {import("../core/timeline").TimelineDoc} doc
+ * @param {number} bpm
+ * @param {{ octaveOffset?: number }} [options] the Studio "Octave Base" setting
+ */
+export function exportTimelineChords(doc, bpm, { octaveOffset = 0 } = {}) {
+  const { midi, track } = newFile(bpm, "Chords");
 
-  const track = midi.addTrack();
-  track.name = "Chords";
-
-  if (!progression || progression.length === 0 || !brick) return midi.toArray();
-
-  // VMU-125: callers should pass the rhythm actually played (customRhythm ||
-  // activeBrick.chordRhythm || [0], computed in useStudioMode.js). Falling
-  // back to brick.chordRhythm here only covers callers that predate that
-  // parameter; it ignores any per-session override, which is the bug.
-  // EXPORT-5: an empty rhythm also falls back here, where playback, handed
-  // the same empty rhythm, would play no chord at all.
-  const effectiveRhythm = rhythm && rhythm.length > 0 ? rhythm : (brick.chordRhythm || [0]);
-
-  loopEvents({ brick, progression, rhythm: effectiveRhythm, octaveOffset }, "chords").forEach(({ step, event }) => {
+  loopEvents(withExportedChordRow(doc), "chords", { octaveOffset }).forEach(({ step, event }) => {
     event.midi.forEach((note) => {
       track.addNote({
         midi: note,
@@ -123,6 +149,34 @@ export function exportChords(brick, progression, rhythm, octaveOffset, bpm, _gen
   });
 
   return midi.toArray();
+}
+
+// ─── Pre-T3 signatures ───────────────────────────────────────────────
+// A style's selection in, the document the Studio builds from it
+// (timelineFromSelection, 4 measures) exported through the functions above.
+
+export function exportDrums(drumTracks, bpm, _genreName) {
+  return exportTimelineDrums(timelineFromSelection({ drums: drumTracks }), bpm);
+}
+
+export function exportBass(melodyTracks, brick, progression, bpm) {
+  if (!melodyTracks || !brick || !progression) return newFile(bpm, "Bass").midi.toArray();
+  return exportTimelineBass(timelineFromSelection({ brick, melody: melodyTracks, progression }), bpm);
+}
+
+export function exportChords(brick, progression, rhythm, octaveOffset, bpm, _genreName) {
+  if (!progression || progression.length === 0 || !brick) return newFile(bpm, "Chords").midi.toArray();
+
+  // VMU-125: callers should pass the rhythm actually played (customRhythm ||
+  // activeBrick.chordRhythm || [0], computed in useStudioMode.js). Falling
+  // back to brick.chordRhythm here only covers callers that predate that
+  // parameter; it ignores any per-session override, which is the bug.
+  // An empty rhythm is EXPORT-5's case: the document's base is the style's
+  // own chord row, which the export writes instead.
+  const styleRhythm = brick.chordRhythm || [0];
+  const style = timelineFromSelection({ brick, progression, rhythm: styleRhythm });
+  const played = timelineFromSelection({ brick, progression, rhythm: rhythm || styleRhythm }, { base: style.base });
+  return exportTimelineChords(played, bpm, { octaveOffset });
 }
 
 export function triggerMidiDownload(midiArrayBuffer, filename) {

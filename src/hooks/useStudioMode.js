@@ -1,6 +1,7 @@
 // @ts-check
 import { useState, useMemo } from "react";
 import { BRICKS } from "../core/bricks";
+import { buildStudioTimeline, studioSelection, STUDIO_LENGTH_MEASURES } from "../core/timeline";
 
 export function useStudioMode() {
   const [currentBrickIndex, setCurrentBrickIndex] = useState(0);
@@ -21,47 +22,33 @@ export function useStudioMode() {
 
   const activeBrick = useMemo(() => BRICKS.at(Number(currentBrickIndex)), [currentBrickIndex]);
 
-  const activeTracks = useMemo(() => {
-    const isB = currentTheme === "B";
-    const baseMelody = isB && activeBrick.melodyTracksVariation ? activeBrick.melodyTracksVariation : activeBrick.melodyTracks;
-    
-    // If we have a suggested bass, we override the 'Bass' track in the melody tracks
-    let finalMelody = baseMelody;
-    if (suggestedBassTrack) {
-        finalMelody = baseMelody.map(track => 
-            track.name === 'Bass' ? suggestedBassTrack : track
-        );
-    }
+  const overrides = useMemo(
+    () => ({ customDrums, customRhythm, customProgression, suggestedBassTrack }),
+    [customDrums, customRhythm, customProgression, suggestedBassTrack],
+  );
 
-    const baseProgression = isB && activeBrick.nnsProgressionVariation ? activeBrick.nnsProgressionVariation : activeBrick.nnsProgression;
+  // What the panels show and edit: the style's tracks and progression, the
+  // overrides above applied (core/timeline.js studioSelection — the rules
+  // this memo used to hold).
+  const activeTracks = useMemo(
+    () => studioSelection(activeBrick, currentTheme, overrides),
+    [activeBrick, currentTheme, overrides],
+  );
 
-    // Start with base drums
-    let baseDrums = isB && activeBrick.drumTracksVariation ? activeBrick.drumTracksVariation : activeBrick.drumTracks;
-    let finalDrums = baseDrums || [];
-
-    if (customDrums) {
-      finalDrums = baseDrums.map(track => {
-        if (customDrums[track.name] !== undefined) {
-          return { ...track, activeSteps: customDrums[track.name] };
-        }
-        return track;
-      });
-
-      // Also append tracks that might not be in baseDrums but exist in customDrums
-      Object.keys(customDrums).forEach(name => {
-        if (!finalDrums.some(t => t.name === name)) {
-          finalDrums.push({ name, activeSteps: customDrums[name] });
-        }
-      });
-    }
-
-    return {
-      drums: finalDrums,
-      melody: finalMelody,
-      progression: customProgression || baseProgression,
-      rhythm: customRhythm || activeBrick.chordRhythm || [0]
-    };
-  }, [activeBrick, currentTheme, suggestedBassTrack, customProgression, customRhythm, customDrums]);
+  // T3: what plays — the timeline document the same style, theme and
+  // overrides fill. The playback loop, the MIDI export, the piano rolls and
+  // the DAW helper read it. Its length stays at 4 measures until the
+  // timeline screen (V3) offers 4 / 8; the document already holds 8.
+  const timeline = useMemo(
+    () =>
+      buildStudioTimeline({
+        brickIndex: currentBrickIndex,
+        theme: currentTheme,
+        overrides,
+        lengthMeasures: STUDIO_LENGTH_MEASURES,
+      }),
+    [currentBrickIndex, currentTheme, overrides],
+  );
 
   return {
     currentBrickIndex, setCurrentBrickIndex,
@@ -79,6 +66,7 @@ export function useStudioMode() {
     customRhythm, setCustomRhythm,
     customDrums, setCustomDrums,
     activeBrick,
-    activeTracks
+    activeTracks,
+    timeline
   };
 }

@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { Buffer } from "node:buffer";
 import { Midi } from "@tonejs/midi";
-import { exportChords, exportBass, exportDrums } from "../MidiExporter";
+import { exportChords, exportBass, exportDrums, exportTimelineChords, exportTimelineDrums, exportTimelineBass } from "../MidiExporter";
+import { stepEvents } from "../dispatch";
 import { classifyDrumTrack } from "../trackMapping";
+import { buildStudioTimeline, loopSteps, studioSelection } from "../../core/timeline";
 import bricks from "../../data/bricks.json";
 
 // ---------------------------------------------------------------------------
@@ -19,7 +22,7 @@ function stepSeconds(bpm) {
   return 60 / bpm / 4;
 }
 
-/** Absolute time (s) of a given absolute 16th-note step (0..63), from tempo alone. */
+/** Absolute time (s) of a given absolute 16th-note step, from tempo alone. */
 function stepTime(step, bpm) {
   return step * stepSeconds(bpm);
 }
@@ -136,36 +139,94 @@ describe("chord export uses the scale the sequencer plays", () => {
 // 3. VMU-125 — chord export must follow the actually-played rhythm (the one
 //    passed in, mirroring customRhythm || activeBrick.chordRhythm || [0]),
 //    including a custom absolute-step pattern like [0, 6, 10].
+//
+//    T3: rewritten. These tests counted onsets over "4 measures" by
+//    construction (`measure < 4`, 16 and 12 onsets), because the loop was
+//    fixed at 64 steps. The export now covers the timeline document's window,
+//    so the counts are per measure times the document's length, checked at 4
+//    measures (what the Studio plays today: the same 16 and 12) and at 8.
+//    The rhythm reaches the export through the document the Studio builds
+//    from it (buildStudioTimeline, `customRhythm` override).
 // ---------------------------------------------------------------------------
-describe("chord export follows the modified chord rhythm", () => {
-  it("places note onsets at steps 0, 6, 10 of every measure at 120 BPM", () => {
-    const brick = bricks[0];
-    const rhythm = [0, 6, 10];
-    const progression = ["1"]; // single chord throughout, isolates rhythm from harmony
+describe("chord export follows the modified chord rhythm, over the document's length", () => {
+  /** Modern Pop with one chord throughout (isolates rhythm from harmony) and `rhythm`. */
+  const oneChord = (rhythm, lengthMeasures) =>
+    buildStudioTimeline({ brickIndex: 0, overrides: { customProgression: ["1"], customRhythm: rhythm }, lengthMeasures });
 
-    const midi = parseMidi(exportChords(brick, progression, rhythm, 0, 120, "x"));
+  describe.each([4, 8])("%i measures", (measures) => {
+    it("places note onsets at steps 0, 6, 10 of every measure at 120 BPM", () => {
+      const doc = oneChord([0, 6, 10], measures);
+      expect(loopSteps(doc)).toBe(measures * 16);
+      const midi = parseMidi(exportTimelineChords(doc, 120, { octaveOffset: 0 }));
 
-    const expectedOnsets = [];
-    for (let measure = 0; measure < 4; measure++) {
-      rhythm.forEach((step) => expectedOnsets.push(stepTime(measure * 16 + step, 120)));
-    }
+      const expectedOnsets = [];
+      for (let measure = 0; measure < measures; measure++) {
+        [0, 6, 10].forEach((step) => expectedOnsets.push(stepTime(measure * 16 + step, 120)));
+      }
 
-    const actualOnsets = [...new Set(midi.tracks[0].notes.map((n) => n.time))].sort((a, b) => a - b);
-    expect(actualOnsets).toEqual(expectedOnsets.sort((a, b) => a - b));
+      const actualOnsets = [...new Set(midi.tracks[0].notes.map((n) => n.time))].sort((a, b) => a - b);
+      expect(actualOnsets).toEqual(expectedOnsets.sort((a, b) => a - b));
+    });
+
+    it("does not use the default one-hit-per-beat rhythm when a custom one is given", () => {
+      const defaultMidi = parseMidi(exportTimelineChords(oneChord([0], measures), 120));
+      const customMidi = parseMidi(exportTimelineChords(oneChord([0, 6, 10], measures), 120));
+
+      // The default single-hit-per-beat rhythm plays on every quarter note (4
+      // hits per measure); the custom one plays 3 times per measure. If the
+      // export ignored the custom rhythm it would produce 4 per measure.
+      const defaultOnsetCount = new Set(defaultMidi.tracks[0].notes.map((n) => n.time)).size;
+      const customOnsetCount = new Set(customMidi.tracks[0].notes.map((n) => n.time)).size;
+      expect(defaultOnsetCount).toBe(4 * measures);
+      expect(customOnsetCount).toBe(3 * measures);
+    });
   });
 
-  it("does not use the default one-hit-per-beat rhythm when a custom one is given", () => {
-    const brick = bricks[0];
-    const defaultMidi = parseMidi(exportChords(brick, ["1"], [0], 0, 120, "x"));
-    const customMidi = parseMidi(exportChords(brick, ["1"], [0, 6, 10], 0, 120, "x"));
+  // EXPORT-5 (MidiExporter.js), pinned: kept as it was, not aligned.
+  it("EXPORT-5: an empty rhythm is exported as the style's own (Funk's [0, 2]), where playback plays no chord", () => {
+    const funk = bricks[3];
+    expect(funk.chordRhythm).toEqual([0, 2]);
+    const everyOtherStep = Array.from({ length: 32 }, (_, i) => stepTime(i * 2, 120));
+    const onsets = (bytes) => [...new Set(parseMidi(bytes).tracks[0].notes.map((n) => n.time))].sort((a, b) => a - b);
 
-    // The default single-hit-per-beat rhythm plays on every quarter note (16
-    // hits across 4 measures); the custom one plays 3 times per measure (12
-    // hits). If the export ignored the custom rhythm it would produce 16.
-    const defaultOnsetCount = new Set(defaultMidi.tracks[0].notes.map((n) => n.time)).size;
-    const customOnsetCount = new Set(customMidi.tracks[0].notes.map((n) => n.time)).size;
-    expect(defaultOnsetCount).toBe(16);
-    expect(customOnsetCount).toBe(12);
+    const doc = buildStudioTimeline({ brickIndex: 3, overrides: { customRhythm: [] } });
+    expect(onsets(exportTimelineChords(doc, 120))).toEqual(everyOtherStep);
+    // The pre-T3 signature, handed the same empty rhythm, writes the same.
+    expect(onsets(exportChords(funk, funk.nnsProgression, [], 0, 120, "x"))).toEqual(everyOtherStep);
+
+    const chordEvents = Array.from({ length: loopSteps(doc) }, (_, step) => stepEvents(doc, step, {}))
+      .flat()
+      .filter((e) => e.voice === "chords");
+    expect(chordEvents).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3b. T3 — the Studio exports its document (SequencerPanel: exportTimeline*),
+//     the goldens freeze the pre-T3 signatures: at 4 measures they write the
+//     same bytes, for every style and theme, overrides included.
+// ---------------------------------------------------------------------------
+describe("the Studio's document exports the same files as the pre-T3 signatures", () => {
+  const same = (a, b) => expect(Buffer.from(a).equals(Buffer.from(b))).toBe(true);
+  const overrides = {
+    customDrums: { Kick: [0, 3, 6, 10] },
+    customRhythm: [0, 2],
+    customProgression: ["1", "6-", "2-", "5"],
+    suggestedBassTrack: { name: "Bass", activeSteps: [0, 7, 15], pitchSteps: { 0: "R", 7: "5", 15: "3" } },
+  };
+
+  bricks.forEach((brick, index) => {
+    ["A", "B"].forEach((theme) => {
+      [null, overrides].forEach((withOverrides) => {
+        it(`${index}:${theme} ${brick.name.en}${withOverrides ? " + overrides" : ""}`, () => {
+          const doc = buildStudioTimeline({ brickIndex: index, theme, overrides: withOverrides || {} });
+          const selection = studioSelection(brick, theme, withOverrides || {});
+          same(exportTimelineDrums(doc, 120), exportDrums(selection.drums, 120, "x"));
+          same(exportTimelineChords(doc, 120, { octaveOffset: 1 }), exportChords(brick, selection.progression, selection.rhythm, 1, 120, "x"));
+          same(exportTimelineBass(doc, 120), exportBass(selection.melody, brick, selection.progression, 120));
+        });
+      });
+    });
   });
 });
 
