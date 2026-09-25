@@ -1,7 +1,7 @@
 import React from "react";
 import "./Fretboard.css";
 import { getAbsoluteNoteValue } from "../../core/theory";
-import { computeFretMetadata } from "../../core/fretboardUtils";
+import { computeFretMetadata, resolveStringStatus } from "../../core/fretboardUtils";
 import { useFretboard } from "../../hooks/useFretboard";
 import { useMediaQuery, useLandscapeMode } from "../../hooks/useMediaQuery";
 
@@ -159,6 +159,14 @@ function Fretboard({
     const actualMap = fingering?.fingeringMap || fingering;
     if (!actualMap) return null;
 
+    // VMU-154: this used to read stringData.status/fret directly here — a
+    // second, component-local reading of the same data fretboardUtils'
+    // resolveStringStatus already computes for computeFretMetadata below.
+    // The two disagreed for guitar's open chords (this one never recognised
+    // status: 'open', only 'played' + fret === 0), which is exactly why the
+    // guitar's own X/O row could go blank while resolveStringStatus's answer
+    // (used elsewhere) was already correct. One rule now, for both.
+
     return (
       <div
         className="fretboard-status-row"
@@ -175,13 +183,13 @@ function Fretboard({
         }}
       >
         {strings.map((_, stringIndex) => {
-          const stringData = actualMap[stringIndex];
+          const resolvedStatus = resolveStringStatus(fingering, stringIndex);
           let status = "";
           let statusClass = "";
-          if (stringData?.status === 'muted') { status = "X"; statusClass = "is-muted"; }
-          else if (stringData?.status === 'played' && stringData.fret === 0) { status = "O"; statusClass = "is-open"; }
-          else if (stringData?.status === 'played' && stringData.fret > 0) { status = ""; }
-          else if (stringData?.status === 'muffled') { status = "M"; statusClass = "is-muffled"; }
+          if (resolvedStatus === 'muted') { status = "X"; statusClass = "is-muted"; }
+          else if (resolvedStatus === 'open') { status = "O"; statusClass = "is-open"; }
+          else if (resolvedStatus === 'muffled') { status = "M"; statusClass = "is-muffled"; }
+          // resolvedStatus === 'played' (fretted, non-open): nothing — brief decision #2.
 
           return (
             <div

@@ -696,9 +696,14 @@ function shapeToFingeringObj(shape) {
   const result = {};
   for (const [strIdx, data] of Object.entries(shape)) {
     if (data === null) {
-      // Muted string: represent as an empty object or with a special status
-      // Fretboard expects { [fret]: finger }
-      result[strIdx] = { muted: true };
+      // Muted string. VMU-154: this used to be `{ muted: true }`, a marker
+      // nothing downstream actually checked for — useMusicEngine.js's toV2()
+      // only recognises an absent entry or `.X` as "unplayed", so `{ muted:
+      // true }` fell into its "played" branch (no numeric key to read a fret
+      // from) and the string-status row rendered blank instead of "X". `X:
+      // true` is the marker toV2 (and fretboardUtils.resolveStringStatus)
+      // already look for.
+      result[strIdx] = { X: true };
     } else if (data.finger === 'O') {
       // Open string
       result[strIdx] = { 0: 'O' };
