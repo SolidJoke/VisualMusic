@@ -227,12 +227,32 @@ function resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue
   return { roleClass, orderToDisplay, isSubtle, isTargetNote, label };
 }
 
-function resolveStringStatus(fingering, stringIndex) {
+/**
+ * Resolves the single "is this string played, muted, or open" status for one
+ * string of the current fingering — the one rule both Fretboard.jsx's
+ * status row and computeFretMetadata below read, for guitar and bass alike
+ * (VMU-154 decision #1: no second, component-local reading of the same
+ * data).
+ *
+ * `fingering` here is the useMusicEngine "V2" shape (`toV2()`, useMusicEngine.js):
+ * `{ [stringIndex]: { fret, status: 'muted'|'open'|'played', finger? } }`.
+ * Guitar and bass populate it differently — guitar marks an open string
+ * with `status: 'open'`; bass never does (its raw shapes have no open-string
+ * marker), so an open bass string surfaces as `status: 'played', fret: 0`.
+ * Both mean the same thing to a player, so `fret === 0` is treated as open
+ * regardless of which literal status string produced it. Legacy branches
+ * below (X/O keys, numeric fret keys) are kept for any raw V1 map that
+ * reaches this function directly, pre-toV2.
+ */
+export function resolveStringStatus(fingering, stringIndex) {
   const actualFingeringMap = fingering?.fingeringMap || (fingering && !fingering.isScaleBox ? fingering : null);
   if (!actualFingeringMap) return null;
   const stringData = actualFingeringMap[stringIndex];
   if (!stringData) return null;
 
+  if (stringData.status === 'muted') return 'muted';
+  if (stringData.status === 'open') return 'open';
+  if (stringData.status === 'played') return stringData.fret === 0 ? 'open' : 'played';
   if (stringData.status) return stringData.status;
   if (stringData['X'] === true || stringData.finger === 'X') return 'muted';
   if (stringData[0] === 'O' || stringData.finger === 'O') return 'open';
