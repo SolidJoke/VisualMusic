@@ -31,7 +31,7 @@
  */
 import { BRICKS } from "./bricks";
 import { NOTES } from "./constants";
-import { generateChordsFromNNS, getScaleNotes, resolveNnsToChordType } from "./theory";
+import { DIMINISHED_CHORD_TYPES, MINOR_CHORD_TYPES, generateChordsFromNNS, resolveNnsToChordType } from "./theory";
 import { classifyDrumTrack, classifyMelodicTrack } from "../audio/trackMapping";
 
 export const TIMELINE_SCHEMA_VERSION = 1;
@@ -103,9 +103,10 @@ const CHORD_TRACK_ID = "chords";
  * @property {string} [nns] display only: the degree as the style wrote it
  *   ("6-", "b6", "4m", "ii7"). Never read to compute a pitch — rootPc and
  *   type are the chord. Kept because the notation cannot be recovered from
- *   absolute data (Epic Metal's "b6" in E phrygian is the same B major a "5"
- *   would be; "4m" and "4-" are the same chord), and what the app shows of a
- *   style's chord — the degree in the DAW helper, the chord published to the
+ *   absolute data (in a minor key "6" and "b6" are the same chord — Boom
+ *   Bap writes one, Jungle the other; "4m" and "4-" are the same chord),
+ *   and what the app shows of a style's chord — the degree in the DAW
+ *   helper, the chord published to the
  *   instruments during playback — is the style's own notation. A chord
  *   without it has its degree computed from the key (`describeChord`).
  */
@@ -229,7 +230,8 @@ export function chordHitCells(rhythm) {
  * measures: twice). Each degree is resolved once, in `key`, to an absolute
  * root and type, by the same two calls playback made on every step before T3
  * (generateChordsFromNNS, then resolveNnsToChordType on the degree it
- * normalizes) — so the pitches are the ones that played.
+ * normalizes), which the Studio's chord buttons also make — theory.js's
+ * "CHORD SYMBOLS" reading (VMU-157/158).
  *
  * @param {TimelineKey|null} key
  * @param {string[]|null|undefined} progression
@@ -511,8 +513,6 @@ export function measurePattern(track, measure = 0) {
   return pattern;
 }
 
-const MINOR_TYPES = ["chord_minor", "chord_m7", "chord_m9", "chord_m7b5"];
-const DIMINISHED_TYPES = ["chord_dim", "chord_dim7"];
 /** How a degree label marks a chord type — marks resolveNnsToChordType reads back as that type. */
 const TYPE_MARKS = {
   chord_major: "",
@@ -532,19 +532,24 @@ const TYPE_MARKS = {
 };
 
 /**
- * The degree of `rootPc` in the key: "4" for a note of the scale, "b7" for a
- * note just below one, "#4" for a note just above one.
+ * The degree label of `rootPc` in the key, one generateChordsFromNNS reads
+ * back as `rootPc`: "4" for a note of the mode; otherwise a flat, else a
+ * sharp, degree — flats and sharps being read against the tonic's major
+ * scale, whatever the mode (VMU-157): in C minor, "b5" for F#.
+ *
+ * null when no label names the note: the mode's degrees and the major
+ * scale's altered ones leave out, in a minor key, the major sixth (A in C
+ * minor: "6" is A flat, "b6" too, "#6" is A sharp).
  *
  * @param {TimelineKey} key
  * @param {number} rootPc
  */
 function degreeIn(key, rootPc) {
-  const scale = getScaleNotes(key.rootValue, key.scaleKey).map((note) => note.value);
-  const at = (pc) => scale.indexOf(((pc % 12) + 12) % 12);
-  if (at(rootPc) >= 0) return `${at(rootPc) + 1}`;
-  if (at(rootPc + 1) >= 0) return `b${at(rootPc + 1) + 1}`;
-  if (at(rootPc - 1) >= 0) return `#${at(rootPc - 1) + 1}`;
-  return null;
+  const pc = ((rootPc % 12) + 12) % 12;
+  const labels = ["", "b", "#"].flatMap((accidental) => [1, 2, 3, 4, 5, 6, 7].map((degree) => `${accidental}${degree}`));
+  const readBack = generateChordsFromNNS(key.rootValue, key.scaleKey, labels);
+  const at = readBack.findIndex((chord) => chord.rootNote?.value === pc);
+  return at >= 0 ? labels[at] : null;
 }
 
 /**
@@ -572,7 +577,7 @@ export function describeChord(key, chord) {
     }
   }
   const rootNote = NOTES.find((note) => note.value === chord.rootPc);
-  const suffix = MINOR_TYPES.includes(chord.type) ? "m" : DIMINISHED_TYPES.includes(chord.type) ? "dim" : "";
+  const suffix = MINOR_CHORD_TYPES.includes(chord.type) ? "m" : DIMINISHED_CHORD_TYPES.includes(chord.type) ? "dim" : "";
   const degree = key ? degreeIn(key, chord.rootPc) : null;
   return {
     nns: `${degree ?? rootNote.us}${TYPE_MARKS[chord.type] ?? ""}`,
