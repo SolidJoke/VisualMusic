@@ -1,0 +1,188 @@
+/* S1 prototype — layout A′ (?prototype=a). Every rule is scoped to .proto-a.
+   Column widths are the spec's mock-up (Maquette A 4K): rail 96 · centre
+   (the rest: 2784px at 3840) · piano 240 · guitar 384 · bass 272, gaps 16;
+   header 72; assistant drawer 896 over the instruments.
+   Nothing here clips: an overflow must show up as page scroll, where the
+   S1 probe measures it (S1-12), not be hidden by overflow: hidden. */
+
+.proto-a {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 72px auto;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+}
+
+.proto-a__header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px 0 120px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.proto-a__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-heading);
+  color: var(--text-secondary);
+}
+
+.proto-a__subtitle,
+.proto-a__muted {
+  color: var(--text-secondary);
+  font-size: var(--fs-body);
+}
+
+.proto-a__spacer {
+  flex: 1;
+}
+
+.proto-a__grid {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 240px 384px 272px;
+  column-gap: 16px;
+  min-height: 0;
+}
+
+.proto-a__rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 24px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.proto-a .proto-a__rail-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  background: var(--bg);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-label);
+  cursor: pointer;
+}
+
+.proto-a .proto-a__rail-btn.is-active {
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
+}
+
+.proto-a__center {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 24px;
+  min-width: 0;
+}
+
+.proto-a__panel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  padding: 16px 24px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+.proto-a .proto-a__btn {
+  min-height: var(--hit-min);
+  padding: 0 20px;
+  background: var(--bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+  cursor: pointer;
+}
+
+.proto-a .proto-a__btn.is-active {
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
+}
+
+.proto-a .proto-a__btn--primary {
+  min-height: 64px;
+  padding: 0 32px;
+  font-size: var(--fs-emph);
+  font-weight: 600;
+  background: var(--surface-3);
+  border-color: var(--select);
+}
+
+.proto-a .proto-a__btn--square {
+  width: var(--hit-min);
+  padding: 0;
+}
+
+.proto-a__bpm {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-display);
+  min-width: 120px;
+  text-align: center;
+}
+
+.proto-a__sequencer,
+.proto-a__legend {
+  min-width: 0;
+}
+
+.proto-a__instrument {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 24px;
+  min-width: 0;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.proto-a__instrument[data-s1="piano"] {
+  border-left: none;
+  padding-left: 20px;
+}
+
+.proto-a__inst-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 72px;
+}
+
+.proto-a__inst-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-emph);
+}
+
+.proto-a__drawer {
+  position: absolute;
+  right: 0;
+  top: 72px;
+  bottom: 0;
+  width: 896px;
+  box-sizing: border-box;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--surface-1);
+  border-left: 1px solid var(--border-strong);
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.proto-a__drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}

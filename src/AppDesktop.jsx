@@ -37,6 +37,13 @@ import { useMediaQuery } from "./hooks/useMediaQuery";
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import AppHeader, { HeaderActions } from './components/Layout/AppHeader';
 
+// S1 prototype (VMU-135): layout A′ with vertical instruments, reached only
+// through ?prototype=a and linked nowhere. Lazy, so the normal app never
+// downloads it; AppRouter's Suspense covers the load.
+const PrototypeA = React.lazy(() => import("./prototype/PrototypeA"));
+const IS_PROTOTYPE_A =
+  typeof window !== "undefined" && new URLSearchParams(window.location.search).get("prototype") === "a";
+
 function AppDesktop() {
   const { lang, txt, notation, state, dispatch } = useAppContext();
   const { 
@@ -423,6 +430,87 @@ function AppDesktop() {
     notation
   ]);
 
+  // The "Studio & Harmonie" popup's content — also the S1 prototype's drawer,
+  // so both show the very same panel over the very same state.
+  const studioHarmonyPanel = appMode === "studio" ? (
+    <StudioPanel
+      currentBrickIndex={currentBrickIndex}
+      setCurrentBrickIndex={setCurrentBrickIndex}
+      activeBrick={activeBrick}
+      currentTheme={currentTheme}
+      setCurrentTheme={setCurrentTheme}
+      chordOctaveOffset={chordOctaveOffset}
+      setChordOctaveOffset={setChordOctaveOffset}
+      setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
+      activeProgression={activeProgression}
+      clickedChord={clickedChord}
+      setClickedChord={setClickedChord}
+      handleChordClick={handleChordClick}
+      inversionText={inversionText}
+      suggestedBassTrack={suggestedBassTrack}
+      setSuggestedBassTrack={setSuggestedBassTrack}
+      setCustomProgression={setCustomProgression}
+      customRhythm={customRhythm}
+      setCustomRhythm={setCustomRhythm}
+      targetNotesPreset={targetNotesPreset}
+      setTargetNotesPreset={setTargetNotesPreset}
+    />
+  ) : (
+    <DictionaryPanel
+      dictRoot={dictRoot}
+      setDictRoot={setDictRoot}
+      dictType={dictType}
+      setDictType={setDictType}
+      playDictionaryAudio={playDictionaryAudio}
+      isPlaying={isPlaying}
+      guitarFingering={guitarFingering}
+      bassFingering={bassFingering}
+      harmonicMode={harmonicMode}
+      setHarmonicMode={setHarmonicMode}
+      dictOctave={dictOctave}
+      setDictOctave={setDictOctave}
+      selectedVoicingIndexGuitar={selectedVoicingIndexGuitar}
+      setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
+      selectedVoicingIndexBass={selectedVoicingIndexBass}
+      setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
+      dictActiveNotes={dictActiveNotes}
+      targetNotesPreset={targetNotesPreset}
+      setTargetNotesPreset={setTargetNotesPreset}
+    />
+  );
+
+  if (IS_PROTOTYPE_A) {
+    return (
+      <PrototypeA
+        txt={txt}
+        notation={notation}
+        setNotation={setNotation}
+        appMode={appMode}
+        setAppMode={setAppMode}
+        isPlaying={isPlaying}
+        togglePlayback={togglePlayback}
+        playDictionaryAudio={playDictionaryAudio}
+        currentBpm={currentBpm}
+        handleBpmChange={handleBpmChange}
+        metronomeOn={metronomeOn}
+        toggleMetronome={toggleMetronome}
+        showFingerNumbers={showFingerNumbers}
+        setShowFingerNumbers={setShowFingerNumbers}
+        dictRoot={dictRoot}
+        dictType={dictType}
+        setDictRoot={setDictRoot}
+        setDictType={setDictType}
+        timeline={timeline}
+        currentStep={currentStep}
+        activeBrick={activeBrick}
+        chordOctaveOffset={chordOctaveOffset}
+        musicEngineContextValue={musicEngineContextValue}
+        playbackContextValue={playbackContextValue}
+        drawerPanel={studioHarmonyPanel}
+      />
+    );
+  }
+
   return (
     <div className="app-container app-container-inner theme-modern">
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
@@ -506,52 +594,7 @@ function AppDesktop() {
 
           {/* --- MODALS --- */}
           <Modal isOpen={showStudioModal} onClose={() => setShowStudioModal(false)} title="🎭 Studio & Harmonie" columns>
-            {appMode === "studio" ? (
-              <StudioPanel
-                currentBrickIndex={currentBrickIndex}
-                setCurrentBrickIndex={setCurrentBrickIndex}
-                activeBrick={activeBrick}
-                currentTheme={currentTheme}
-                setCurrentTheme={setCurrentTheme}
-                chordOctaveOffset={chordOctaveOffset}
-                setChordOctaveOffset={setChordOctaveOffset}
-                setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
-                activeProgression={activeProgression}
-                clickedChord={clickedChord}
-                setClickedChord={setClickedChord}
-                handleChordClick={handleChordClick}
-                inversionText={inversionText}
-                suggestedBassTrack={suggestedBassTrack}
-                setSuggestedBassTrack={setSuggestedBassTrack}
-                setCustomProgression={setCustomProgression}
-                customRhythm={customRhythm}
-                setCustomRhythm={setCustomRhythm}
-                targetNotesPreset={targetNotesPreset}
-                setTargetNotesPreset={setTargetNotesPreset}
-              />
-            ) : (
-              <DictionaryPanel
-                dictRoot={dictRoot}
-                setDictRoot={setDictRoot}
-                dictType={dictType}
-                setDictType={setDictType}
-                playDictionaryAudio={playDictionaryAudio}
-                isPlaying={isPlaying}
-                guitarFingering={guitarFingering}
-                bassFingering={bassFingering}
-                harmonicMode={harmonicMode}
-                setHarmonicMode={setHarmonicMode}
-                dictOctave={dictOctave}
-                setDictOctave={setDictOctave}
-                selectedVoicingIndexGuitar={selectedVoicingIndexGuitar}
-                setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
-                selectedVoicingIndexBass={selectedVoicingIndexBass}
-                setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
-                dictActiveNotes={dictActiveNotes}
-                targetNotesPreset={targetNotesPreset}
-                setTargetNotesPreset={setTargetNotesPreset}
-              />
-            )}
+            {studioHarmonyPanel}
           </Modal>
 
           <Modal isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`} columns>
