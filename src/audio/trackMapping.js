@@ -1,10 +1,16 @@
 // Shared between playback (useSequencer.js) and MIDI export (MidiExporter.js).
-// Both must resolve a drum track's instrument and a chord rhythm's active
-// steps identically, or the exported file drifts from what the sequencer
-// plays. That drift is exactly what VMU-128 (drums) and VMU-125 (chords)
-// were: two copies of the same rule that had quietly diverged. Putting the
-// rule here once, imported by both sides, makes that divergence impossible
-// instead of merely reminding someone not to introduce it again.
+// Both must resolve a track's instrument identically, or the exported file
+// drifts from what the sequencer plays. That drift is exactly what VMU-128
+// (drums) and VMU-125 (chords) were: two copies of the same rule that had
+// quietly diverged. Putting the rule here once, imported by both sides, makes
+// that divergence impossible instead of merely reminding someone not to
+// introduce it again.
+//
+// T3: the rules below are applied once, when a style fills the timeline
+// document (core/timeline.js), and their answer is stored as the track's
+// `role`; nothing re-derives a role from a name afterwards. The chord rhythm
+// rule that lived here too (`shouldPlayChordStep`) became the chord row of
+// that document: it is applied once, by core/timeline.js's `chordHitCells`.
 
 /**
  * Classifies a drum track by name into the GM percussion role it plays as.
@@ -24,19 +30,15 @@ export function classifyDrumTrack(trackName) {
 }
 
 /**
- * Whether a chord should sound on this absolute 16th-note step (0..63 across
- * the 4-measure loop), given the chord rhythm currently in effect
- * (`customRhythm || activeBrick.chordRhythm || [0]`).
- *
- * A rhythm containing a value above 3 is a custom, absolute-step pattern
- * (e.g. [0, 6, 10]) and is matched against the position within one 16-step
- * measure. Otherwise it's a beat-relative pattern (e.g. [0, 2]) re-applied on
- * every quarter note, and is matched against the position within one beat.
- * @param {number[]} rhythm
- * @param {number} stepCounter
- * @returns {boolean}
+ * Classifies a melodic track by name: a track whose name contains "bass" is
+ * the bass line, which follows the chord of the moment; any other melodic
+ * track is a melody, which playback plays as the tonic. Before T3 this was
+ * written twice — in dispatch.js (which note a track plays) and in
+ * MidiExporter.js (which tracks the bass file keeps, EXPORT-3) — as the same
+ * `name.toLowerCase().includes("bass")`; both now read the role it gives.
+ * @param {string} trackName
+ * @returns {"bass" | "melody"}
  */
-export function shouldPlayChordStep(rhythm, stepCounter) {
-  const isAbsolute16 = rhythm.some((step) => step > 3);
-  return isAbsolute16 ? rhythm.includes(stepCounter % 16) : rhythm.includes(stepCounter % 4);
+export function classifyMelodicTrack(trackName) {
+  return (trackName || "").toLowerCase().includes("bass") ? "bass" : "melody";
 }

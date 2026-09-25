@@ -27,12 +27,8 @@ const InstrumentView = memo(function InstrumentView() {
     collapsedSections = {},
     toggleSection = () => {},
     appMode,
-    activeDrums,
-    activeMelody,
-    activeChordTrack,
+    timeline,
     activeBrick,
-    activeProgression,
-    activeRhythm,
     chordOctaveOffset,
     dictType,
     currentRootValue,
@@ -103,14 +99,10 @@ const InstrumentView = memo(function InstrumentView() {
           collapsedLabel={txt.foldSectionCollapsed}
         >
           <SequencerPanel
-            activeDrums={activeDrums}
-            activeMelody={activeMelody}
-            activeChordTrack={activeChordTrack}
+            timeline={timeline}
             currentStep={currentStep}
             currentBpm={currentBpm}
             activeBrick={activeBrick}
-            activeProgression={activeProgression}
-            activeRhythm={activeRhythm}
             chordOctaveOffset={chordOctaveOffset}
           />
         </FoldSection>

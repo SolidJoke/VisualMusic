@@ -105,7 +105,8 @@ function AppDesktop() {
     customRhythm, setCustomRhythm,
     setCustomDrums,
     activeBrick,
-    activeTracks
+    activeTracks,
+    timeline
   } = useStudioMode();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -114,11 +115,9 @@ function AppDesktop() {
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  const {
-    drums: activeDrums,
-    melody: activeMelody,
-    progression: activeProgression
-  } = activeTracks;
+  // The progression the Studio panel's chord buttons show. What plays is the
+  // timeline document (T3), handed to the loop and the sequencer panel.
+  const { progression: activeProgression } = activeTracks;
 
   const {
     dictRoot, setDictRoot,
@@ -156,15 +155,11 @@ function AppDesktop() {
     currentStep,
     togglePlayback,
     handleBpmChange,
-    activeChordTrack,
     currentPlayingChord
   } = useSequencer({
     appMode,
     activeBrick,
-    activeDrums,
-    activeMelody,
-    activeProgression,
-    activeRhythm: activeTracks.rhythm,
+    timeline,
     currentRootValue: clickedChord ? clickedChord.rootNote.value : activeBrick.rootValue,
     setCurrentlyPlayingNotes,
     chordOctaveOffset,
@@ -343,12 +338,8 @@ function AppDesktop() {
     toggleSection,
     appMode,
     displayMode,
-    activeDrums,
-    activeMelody,
-    activeChordTrack,
+    timeline,
     activeBrick,
-    activeProgression,
-    activeRhythm: activeTracks.rhythm,
     chordOctaveOffset,
     dictType,
     currentRootValue,
@@ -392,12 +383,8 @@ function AppDesktop() {
     toggleSection,
     appMode,
     displayMode,
-    activeDrums,
-    activeMelody,
-    activeChordTrack,
+    timeline,
     activeBrick,
-    activeProgression,
-    activeTracks.rhythm,
     chordOctaveOffset,
     dictType,
     currentRootValue,

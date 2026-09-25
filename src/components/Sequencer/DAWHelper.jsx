@@ -1,7 +1,7 @@
 import React from 'react';
 import './DAWHelper.css';
-import { resolveMeasureChord } from '../../audio/useSequencer';
 import { toRoman } from '../../core/theory';
+import { chordsInWindow, describeChord } from '../../core/timeline';
 
 /**
  * DAWHelper — Textual description of the current pattern for DAW reproduction.
@@ -10,24 +10,23 @@ import { toRoman } from '../../core/theory';
  * that a user can use to recreate the pattern in their DAW.
  *
  * Props:
- * - drumTracks: Array of { name, activeSteps, lowVelocitySteps? }
- * - melodyTracks: Array of { name, activeSteps, lowVelocitySteps?, pitchSteps? }
+ * - drumTracks: Array of { name, activeSteps, lowVelocitySteps? } — one measure of each drum row
+ * - melodyTracks: Array of { name, activeSteps, lowVelocitySteps?, pitchSteps? } — one measure of each melodic row
  * - bpm: number
  * - genreName: string
  * - lang: 'fr' | 'en' | 'pt' | 'zh'
- * - progression: NNS degrees of the active chord progression (e.g. ["1","5","6-","4"])
- * - brick: active style ({ rootValue, scaleKey }) — required to resolve chord names/degrees
+ * - timeline: the timeline document the loop plays (core/timeline.js, T3) — its chords, in its key
  * - notation: 'eu' | 'us' — which chord-name notation to display (AppContext, VMU-100)
  */
-export default function DAWHelper({ drumTracks = [], melodyTracks = [], bpm, genreName, lang = 'fr', progression = [], brick = null, notation = 'eu' }) {
+export default function DAWHelper({ drumTracks = [], melodyTracks = [], bpm, genreName, lang = 'fr', timeline = null, notation = 'eu' }) {
     const labels = LABELS[lang] || LABELS.fr;
 
-    // VMU-131 — one measure per chord of the progression, derived from its
-    // length (never hard-coded). Single source for "which chord plays this
-    // measure": resolveMeasureChord (VMU-129), the same function the chord
-    // and bass tracks follow during playback — never a second calculation.
-    const measureChords = brick
-        ? progression.map((_, i) => resolveMeasureChord(i * 16, progression, brick, 0)).filter(Boolean)
+    // VMU-131 — one entry per chord the loop plays, in order. T3: the chords
+    // of the timeline's window, as the document lays them out — the same
+    // chordAt the chord and bass rows follow during playback (dispatch.js),
+    // shown with the document's describeChord — never a second calculation.
+    const measureChords = timeline
+        ? chordsInWindow(timeline).map(({ chord }) => describeChord(timeline.key, chord))
         : [];
 
     return (
@@ -39,11 +38,11 @@ export default function DAWHelper({ drumTracks = [], melodyTracks = [], bpm, gen
             {/* Chord-per-measure row (VMU-131) */}
             {measureChords.length > 0 && (
                 <div className="daw-helper__chords" data-testid="daw-helper-chords">
-                    {measureChords.map((mc, i) => (
+                    {measureChords.map((chord, i) => (
                         <span key={`c-${i}`} className="daw-helper__chord">
-                            <span className="daw-helper__chord-degree">{toRoman(mc.chord.nns)}</span>{' '}
+                            <span className="daw-helper__chord-degree">{toRoman(chord.nns)}</span>{' '}
                             <span className="daw-helper__chord-name">
-                                {notation === 'us' ? mc.chord.chordNameUS : mc.chord.chordNameEU}
+                                {notation === 'us' ? chord.chordNameUS : chord.chordNameEU}
                             </span>
                         </span>
                     ))}

@@ -66,13 +66,16 @@ describe("useSequencer — plays the timeline document, over its length (T3)", (
     const eight = ["1", "4", "5", "1", "6-", "2-", "5", "1"];
     const timeline = buildStudioTimeline({ brickIndex: 0, overrides: { customProgression: eight }, lengthMeasures: 8 });
 
+    // Created once, outside the render: the loop's effect depends on it, and
+    // a new function on every render would restart the loop on every step.
+    const setCurrentlyPlayingNotes = vi.fn();
     const { result } = renderHook(() =>
       useSequencer({
         appMode: "studio",
         activeBrick: BRICKS[0],
         timeline,
         currentRootValue: 0,
-        setCurrentlyPlayingNotes: vi.fn(),
+        setCurrentlyPlayingNotes,
         chordOctaveOffset: 0,
       }),
     );

@@ -391,6 +391,10 @@ export const SCENARIOS = {
    * the loop and this scenario now call `stepEvents` (dispatch.js) and play
    * its events with `playStepEvents` (playStep.js), so what is measured is
    * what the app plays by construction.
+   *
+   * T3: what they play is a timeline document. This scenario renders the one
+   * the Studio builds on a cold start — `buildStudioTimeline`, the function
+   * useStudioMode calls, for the style, theme A, no override.
    */
   "default-progression": {
     durationSec: 8.7,
@@ -399,8 +403,9 @@ export const SCENARIOS = {
       const { Tone: T, engine, params, diagnostics } = ctx;
       await loadSamplers(ctx);
 
-      const [{ BRICKS }, dispatch, playStep] = await Promise.all([
+      const [{ BRICKS }, timeline, dispatch, playStep] = await Promise.all([
         import("../../core/bricks"),
+        import("../../core/timeline"),
         import("../dispatch"),
         import("../playStep"),
       ]);
@@ -410,9 +415,7 @@ export const SCENARIOS = {
       const bpm = params.bpm ?? brick.bpm ?? STUDIO_DEFAULTS.bpm;
       const octaveOffset = params.chordOctaveOffset ?? STUDIO_DEFAULTS.chordOctaveOffset;
       const progression = brick.nnsProgression;
-      const drums = brick.drumTracks ?? [];
-      const melodies = brick.melodyTracks ?? [];
-      const rhythm = brick.chordRhythm ?? [0];
+      const doc = timeline.buildStudioTimeline({ brickIndex });
 
       const volumes = { ...STUDIO_DEFAULTS.instrumentVolumes, ...(params.instrumentVolumes ?? {}) };
       Object.entries(volumes).forEach(([name, db]) => engine.setInstrumentVolume(name, db));
@@ -430,8 +433,8 @@ export const SCENARIOS = {
       /** @type {number[]} */
       const scheduledPitches = [];
 
-      /** @type {import("../dispatch").StepState} */
-      const state = { brick, drums, melody: melodies, progression, rhythm, octaveOffset, rootValue: brick.rootValue };
+      /** @type {import("../dispatch").PlayOptions} */
+      const playOptions = { octaveOffset, rootValue: brick.rootValue };
 
       // T1: this used to be a hand-kept copy of useSequencer's `repeat`
       // decisions. It now plays what dispatch.stepEvents says plays, through
@@ -439,12 +442,12 @@ export const SCENARIOS = {
       // the AudioEngine built on this offline context. Same calls, same
       // order, same arguments as before, so the seeded render is unchanged.
       const repeat = (time) => {
-        const events = dispatch.stepEvents(state, stepCounter);
+        const events = dispatch.stepEvents(doc, stepCounter, playOptions);
         scheduledPitches.push(...playStep.playStepEvents(engine, events, time));
-        stepCounter = (stepCounter + 1) % dispatch.LOOP_STEPS;
+        stepCounter = (stepCounter + 1) % timeline.loopSteps(doc);
       };
 
-      const measures = params.measures ?? progression.length;
+      const measures = params.measures ?? doc.lengthMeasures;
       transport.scheduleRepeat(repeat, "16n", 0, `${measures}m`);
       transport.start(LEAD_IN_SEC);
 
