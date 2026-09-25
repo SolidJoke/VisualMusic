@@ -608,6 +608,12 @@
 
 .fretboard-container--vertical .note-marker,
 .fretboard-container--vertical .note-marker.open-marker {
+    /* border-box: the theme's 1px marker border (modern-theme.css) and the
+       scale note's 2px edge used to land OUTSIDE the 48px, making pastilles
+       50-52px, enough for a target's dashed ring to touch its neighbour
+       (S1 probe, run 2: G#m7 guitar, Si x Ré#, 1px). The pastille is the
+       designed 48px, edge included. */
+    box-sizing: border-box;
     width: var(--fbv-marker, 48px);
     height: var(--fbv-marker, 48px);
     font-size: var(--fs-label);
@@ -629,4 +635,23 @@
     z-index: 1;
     box-shadow: none;
     backdrop-filter: none;
+}
+
+/* Out of the instrument's range: dimmed like the horizontal neck
+   (.fretboard-container.is-out-of-range .fretboard above). */
+.fretboard-container--vertical.is-out-of-range .fretboard-vertical {
+    opacity: 0.4;
+    filter: grayscale(0.8);
+}
+
+.fretboard-container--vertical .range-warning {
+    top: 50%;
+    font-size: var(--fs-label);
+    white-space: nowrap;
+}
+
+/* F1 §1 "Ombres, halos ... supprimés partout": the vertical neck's warning
+   has none (the horizontal one keeps its pre-F1 shadow, untouched here). */
+.fretboard-container--vertical .range-warning {
+    box-shadow: none;
 }
