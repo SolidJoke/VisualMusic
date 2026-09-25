@@ -40,15 +40,9 @@ function countLeafItems(options) {
   return n;
 }
 
-// `.vintage-select .custom-select-body` (CustomSelect.css) forces a single
-// column (`grid-template-columns: 1fr`) regardless of width — a deliberate,
-// pre-existing choice for the retro/LCD look, not something this ticket
-// touches. Widening a vintage panel could not add columns, only empty
-// space, so it stays at the (viewport-permitting) floor width.
-function computePanelWidth(itemCount, viewportWidth, theme) {
+function computePanelWidth(itemCount, viewportWidth) {
   const cap = Math.max(0, viewportWidth - 2 * VIEWPORT_MARGIN);
   const floor = Math.min(MIN_PANEL_WIDTH, cap); // never force a floor wider than the viewport allows (phone widths)
-  if (theme === 'vintage') return floor;
   const columns = Math.max(1, Math.ceil(itemCount / ITEMS_PER_COLUMN_TARGET));
   const raw = columns * ITEM_MIN_WIDTH + (columns - 1) * GRID_GAP + PANEL_CHROME;
   return Math.min(Math.max(raw, floor), cap);
@@ -66,10 +60,10 @@ function computePanelWidth(itemCount, viewportWidth, theme) {
 // actual left edge (not the field's center point), computed once in JS,
 // rather than relying on a `translateX(-50%)` CSS offset that had no way to
 // know about the viewport edge.
-function computeDropdownPosition(rect, options, theme) {
+function computeDropdownPosition(rect, options) {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const width = computePanelWidth(countLeafItems(options), viewportWidth, theme);
+  const width = computePanelWidth(countLeafItems(options), viewportWidth);
 
   const spaceBelow = viewportHeight - rect.bottom - DROPDOWN_GAP - VIEWPORT_MARGIN;
   const spaceAbove = rect.top - DROPDOWN_GAP - VIEWPORT_MARGIN;
@@ -99,14 +93,12 @@ function computeDropdownPosition(rect, options, theme) {
  * - value: Current value
  * - onChange: Callback function
  * - placeholder: Default text if no value
- * - theme: 'vintage' | 'modern'
  */
 const CustomSelect = ({
   options = [],
   value,
   onChange,
   placeholder = "Sélectionner...",
-  theme = 'modern',
   className = "",
   "data-testid": testId
 }) => {
@@ -185,7 +177,7 @@ const CustomSelect = ({
 
   const openDropdown = () => {
     if (headerRef.current) {
-      setPosition(computeDropdownPosition(headerRef.current.getBoundingClientRect(), options, theme));
+      setPosition(computeDropdownPosition(headerRef.current.getBoundingClientRect(), options));
     }
     setIsOpen(true);
   };
@@ -215,8 +207,8 @@ const CustomSelect = ({
   };
 
   return (
-    <div 
-      className={`custom-select-container ${theme}-select ${isOpen ? 'is-open' : ''} ${className}`} 
+    <div
+      className={`custom-select-container ${isOpen ? 'is-open' : ''} ${className}`}
       ref={containerRef}
     >
       {/* Hidden native select for testing and accessibility */}
@@ -260,7 +252,7 @@ const CustomSelect = ({
       {isOpen && position && createPortal(
         <div
           ref={bodyRef}
-          className={`custom-select-body ${theme}-select`}
+          className="custom-select-body"
           data-testid="custom-select-dropdown"
           data-open-direction={position.openUpward ? 'up' : 'down'}
           style={{

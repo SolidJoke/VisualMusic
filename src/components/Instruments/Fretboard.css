@@ -1,23 +1,5 @@
 /* src/components/Instruments/Fretboard.css */
 
-/* NEW: Animation for a note being played */
-@keyframes note-playing-animation {
-    0% {
-        box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.9);
-        transform: scale(1.3);
-        background-color: #fff !important;
-    }
-    30% {
-        box-shadow: 0 0 0 10px rgba(255, 215, 0, 0.6);
-        transform: scale(1.4);
-        background-color: #ffd700 !important;
-    }
-    100% {
-        box-shadow: 0 0 0 25px rgba(255, 215, 0, 0);
-        transform: scale(1);
-    }
-}
-
 .fretboard-container {
     margin-bottom: 30px;
     width: 100%;
@@ -67,7 +49,7 @@
 }
 
 .fret-range-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   color: #888;
   white-space: nowrap;
@@ -205,63 +187,71 @@
     height: 32px;
     border-radius: 50%;
     background-color: var(--instrument-color, rgba(68, 68, 68, 0.8));
-    backdrop-filter: blur(2px);
     color: #fff;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 16px;
-    font-weight: bold;
+    font-family: var(--font-body);
+    font-size: var(--fs-label);
+    font-weight: 600;
     cursor: default;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
 }
 
-/* NEW: Class to trigger the animation */
+/* F1 (spec usage table "Note jouée"): --select-ring + scale(1.1), no more
+   white flash (was note-playing-animation, background-color: #fff/#ffd700). */
 .note-marker.is-playing {
-    animation: note-playing-animation 0.6s ease-out forwards;
-    opacity: 1 !important;
-    background-color: #ffd700 !important;
-    color: #000 !important;
+    box-shadow: var(--select-ring);
+    transform: scale(1.1);
+    color: var(--text-on-select) !important;
     z-index: 10 !important;
 }
 
-.note-marker.role-root { 
+.note-marker.role-root {
     background-color: var(--role-root) !important;
-    border: 3px solid #fff !important;
-    box-shadow: 0 0 15px var(--role-root);
+    color: var(--on-role) !important;
+    border-radius: 25% !important; /* fondamentale: carré arrondi (redondance de forme, WCAG 1.4.1) */
+    border: none !important;
+    box-shadow: 0 0 0 2px var(--bg);
 }
 
-.note-marker.role-third { 
+.note-marker.role-third {
     background-color: var(--role-third) !important;
+    color: var(--on-role) !important;
+    box-shadow: 0 0 0 2px var(--bg);
 }
 
-.note-marker.role-fifth { 
+.note-marker.role-fifth {
     background-color: var(--role-fifth) !important;
+    color: var(--on-role) !important;
+    box-shadow: 0 0 0 2px var(--bg);
 }
 
-.note-marker.role-extension { 
+.note-marker.role-extension {
     background-color: var(--role-extension) !important;
+    color: var(--on-role) !important;
+    box-shadow: 0 0 0 2px var(--bg);
 }
 
-.note-marker.role-scale { 
-    background-color: var(--role-scale) !important;
+.note-marker.role-scale {
+    background: none !important;
+    border: 2px solid var(--role-scale-edge) !important;
+    color: var(--text-secondary) !important;
 }
 
-.note-marker.role-target { 
+.note-marker.role-target {
     background-color: var(--role-target) !important;
-    border: 2px solid var(--lg-accent-pink, #ff00ff) !important;
+    color: var(--on-role) !important;
+    outline: 2px dashed var(--role-target);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 2px var(--bg);
 }
 
-/* FLASH-12: Improvisation Helper - Target Note Highlight */
-@keyframes target-pulse {
-    0% { box-shadow: 0 0 5px var(--role-target); transform: scale(1); }
-    50% { box-shadow: 0 0 20px var(--role-target), 0 0 30px rgba(255, 255, 255, 0.4); transform: scale(1.1); }
-    100% { box-shadow: 0 0 5px var(--role-target); transform: scale(1); }
-}
-
+/* FLASH-12: Improvisation Helper - Target Note Highlight. F1: no more
+   halo/pulse (spec §1 "Ombres, halos... supprimés partout") — the dashed
+   outline alone carries the redundant shape signal. */
 .note-marker.is-target-note {
-    animation: target-pulse 2s infinite ease-in-out;
-    border: 2px solid #fff !important;
+    outline: 2px dashed var(--role-target);
+    outline-offset: 3px;
     z-index: 5 !important;
 }
 
@@ -313,8 +303,7 @@
 .note-marker.open-marker {
     width: 22px;
     height: 22px;
-    font-size: 11px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    font-size: var(--fs-label);
 }
 
 .status-overlay-layer {
@@ -415,13 +404,13 @@
         min-height: 24px !important;
         width: 24px !important;
         height: 24px !important;
-        font-size: 10px !important;
+        font-size: var(--fs-label) !important;
     }
 
     .note-marker.open-marker {
         width: 26px !important;
         height: 26px !important;
-        font-size: 12px !important;
+        font-size: var(--fs-label) !important;
     }
 
     /* Ensure muting X and open O are visible and adequately sized */
@@ -446,7 +435,7 @@
     .note-marker {
         width: 20px !important;
         height: 20px !important;
-        font-size: 9px !important;
+        font-size: var(--fs-label) !important;
         min-width: 20px !important;
         min-height: 20px !important;
     }
@@ -454,7 +443,7 @@
     .note-marker.open-marker {
         width: 18px !important;
         height: 18px !important;
-        font-size: 9px !important;
+        font-size: var(--fs-label) !important;
     }
 
     /* Smaller fretboard dots */

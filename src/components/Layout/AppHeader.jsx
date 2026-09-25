@@ -15,8 +15,6 @@ import { log } from '../../utils/debug';
  */
 export function HeaderActions({
   txt,
-  uiTheme,
-  setUiTheme,
   lang,
   setLang,
   setShowHelp,
@@ -28,17 +26,6 @@ export function HeaderActions({
 }) {
   return (
     <>
-        <button
-          onClick={() => {
-            const next = uiTheme === 'vintage' ? 'modern' : 'vintage';
-            log("app", `Switching theme to ${next}`);
-            setUiTheme(next);
-          }}
-          className="btn-header-action"
-        >
-          {uiTheme === 'vintage' ? '✨ Neon Monolith' : '🌿 Zen Studio'}
-        </button>
-
         {/*
           VMU-134: the only US/EU notation switch, moved here from
           DictionaryPanel so it is reachable from every screen (Studio
@@ -89,7 +76,6 @@ export function HeaderActions({
           }))}
           value={lang}
           onChange={setLang}
-          theme={uiTheme}
           className="header-lang-select"
         />
 

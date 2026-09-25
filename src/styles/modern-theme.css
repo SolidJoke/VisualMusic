@@ -1,43 +1,11 @@
-/* src/styles/modern-theme.css */
-
-/* ─── NEON MONOLITH STUDIO (Variant 1) ─── */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
-
-.theme-modern {
-  --font-body: 'Orbitron', 'Inter', sans-serif;
-  --lg-bg: #050505; /* Ink black */
-  --color-bg-app: var(--lg-bg);
-  --lg-panel-bg: rgba(15, 15, 20, 0.75); /* Translucent dark */
-  --lg-panel-bg-elevated: rgba(25, 25, 30, 0.85); /* Brighter elevated */
-  --lg-accent: #00f3ff; /* Neon Cyan */
-  --lg-accent-glow: rgba(0, 243, 255, 0.5);
-  
-  --lg-border: 1px solid rgba(255, 255, 255, 0.15); /* Sharper border */
-  --border-default: rgba(255, 255, 255, 0.15);
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --lg-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-
-  --text-primary: #f0f0f0; /* Crisp white */
-  --text-secondary: #00f3ff; /* Cyan text */
-  --text-tertiary: #39ff14; /* Lime */
-
-  /* Role Colors - Neon Monolith */
-  --role-root: #00f3ff; /* Neon cyan */
-  --role-third: #39ff14; /* Lime */
-  --role-fifth: #0044ff; /* Electric blue */
-  --role-scale: #ff007f; /* Hot pink (optional accent) */
-  --role-target: #fdfd96; /* Pale yellow */
-  --role-extension: #b829ea; /* Purple */
-  
-  --active-glow: var(--lg-accent);
-  --active-color: var(--lg-accent);
-}
+/* src/styles/modern-theme.css
+   F1 (VMU-148, VMU-149): un seul thème — toutes les variables sont sur
+   :root (tokens.css). Ce fichier ne porte plus que les règles de
+   composants qui ne sont pas encore passées en jetons directs (F1b
+   balayera le reste des couleurs en dur, spec F1-fondations-visuelles.md
+   §6, hors périmètre F1a). Police chargée par index.html (spec §5). */
 
 .theme-modern {
-  background-color: var(--lg-bg);
-  color: var(--text-primary);
-  font-family: 'Hanken Grotesk', 'Inter', sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Base resets for modern theme */
@@ -69,10 +37,10 @@
 /* Headers */
 .theme-modern .vintage-header {
   color: var(--text-primary);
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-body);
   font-weight: 600;
   text-transform: none;
-  font-size: 14px;
+  font-size: var(--fs-emph);
   border-bottom: var(--lg-border);
   padding-bottom: 8px;
   margin-bottom: 16px;
@@ -84,7 +52,7 @@
 /* ─── SEQUENCER (PianoRoll) ─── */
 .theme-modern .step-lamp {
   border-radius: 4px;
-  background: #201f1f; /* surface-container */
+  background: var(--surface-3); /* surface-container */
   border: var(--lg-border);
   transition: all 0.1s ease;
 }
@@ -106,7 +74,7 @@
 
 /* Beat markers */
 .theme-modern .step-lamp--beat {
-  border-left: 1px solid var(--text-tertiary);
+  border-left: 1px solid var(--border-strong);
 }
 
 .theme-modern .step-lamp--measure {
@@ -114,7 +82,7 @@
 }
 
 .theme-modern .step-lamp--current {
-  outline: 1px solid #fff;
+  outline: 1px solid var(--select);
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
@@ -133,7 +101,7 @@
 }
 
 .theme-modern .fretboard {
-  background: #1c1b1b;
+  background: var(--bg);
   border: var(--lg-border);
   border-radius: 4px;
 }
@@ -147,14 +115,15 @@
 .theme-modern .note-marker {
   box-shadow: none;
   border: 1px solid rgba(255,255,255,0.1);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--fs-label);
 }
 
 /* Active note markers on instruments */
 .theme-modern .note-marker.active {
   background: var(--lg-accent);
-  color: #fff;
+  color: var(--text-on-select);
   border-color: var(--lg-accent);
 }
 
@@ -181,7 +150,7 @@
   color: var(--text-primary);
   border-radius: 4px;
   padding: 8px 16px;
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-body);
   font-weight: 500;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -191,7 +160,7 @@
 .theme-modern .btn-premium.active,
 .theme-modern .vintage-control-btn.active {
   background: var(--lg-accent);
-  color: #fff;
+  color: var(--text-on-select);
   border-color: var(--lg-accent);
 }
 
@@ -224,7 +193,7 @@
   -webkit-appearance: none;
   width: 100%;
   height: 4px;
-  background: #353534 !important; /* surface-variant */
+  background: var(--border-default) !important; /* surface-variant */
   border-radius: 2px;
   outline: none;
   margin: 12px 0;
@@ -242,7 +211,7 @@
   height: 12px;
   width: 12px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--select);
   cursor: pointer;
   margin-top: -4px;
   border: 2px solid var(--lg-accent);

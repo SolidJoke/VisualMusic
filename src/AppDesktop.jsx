@@ -47,7 +47,6 @@ function AppDesktop() {
     showFingerNumbers,
     playbackInstrument,
     collapsedSections,
-    uiTheme,
     targetNotesPreset,
     useShellVoicings
   } = state;
@@ -58,8 +57,8 @@ function AppDesktop() {
   }, [dispatch]);
   
   useEffect(() => {
-    document.body.className = `theme-${uiTheme}`;
-  }, [uiTheme]);
+    document.body.className = 'theme-modern';
+  }, []);
 
   const setLang = useCallback((newLang) => dispatch({ type: 'SET_LANG', payload: newLang }), [dispatch]);
   // VMU-134: the wrapper this comment used to say didn't exist. The US/EU
@@ -86,7 +85,6 @@ function AppDesktop() {
     }),
     [dispatch, collapsedSections]
   );
-  const setUiTheme = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'uiTheme', value: val } }), [dispatch]);
   const setUseShellVoicings = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'useShellVoicings', value: val } }), [dispatch]);
   const setTargetNotesPreset = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'targetNotesPreset', value: val } }), [dispatch]);
 
@@ -286,22 +284,14 @@ function AppDesktop() {
 
   useEffect(() => {
     if (appMode === "studio") {
-      document.documentElement.style.setProperty(
-        "--theme-primary",
-        activeBrick.theme.primary,
-      );
-      document.documentElement.style.setProperty(
-        "--theme-bg",
-        activeBrick.theme.bg,
-      );
+      // F1 (VMU-149, spec C9): --theme-primary / --theme-bg are no longer
+      // written inline here — the style's tint is not applied (a future
+      // --style-tint token could reintroduce it, out of F1's scope).
       if (setCurrentBpm) {
         setCurrentBpm(activeBrick.bpm);
         setBpm(activeBrick.bpm);
       }
       applyGenrePreset(activeBrick._group);
-    } else {
-      document.documentElement.style.setProperty("--theme-primary", "#ffd700");
-      document.documentElement.style.setProperty("--theme-bg", "#1a1a1a");
     }
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
@@ -315,8 +305,8 @@ function AppDesktop() {
 
   // Track sidebar state and theme on body for CSS selectors
   useEffect(() => {
-    document.body.className = `theme-${uiTheme} ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`;
-  }, [uiTheme, sidebarOpen]);
+    document.body.className = `theme-modern ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`;
+  }, [sidebarOpen]);
 
   // Track mouse for Liquid Glass effect
   useEffect(() => {
@@ -342,7 +332,7 @@ function AppDesktop() {
 
   // Shared by the header row and, on a phone, by the drawer that replaces it.
   const headerProps = {
-    txt, uiTheme, setUiTheme, lang, setLang,
+    txt, lang, setLang,
     setShowHelp, setShowAbout, setShowTheory, exportDebugSnapshot,
     notation, setNotation
   };
@@ -447,7 +437,7 @@ function AppDesktop() {
   ]);
 
   return (
-    <div className={`app-container app-container-inner theme-${uiTheme}`}>
+    <div className="app-container app-container-inner theme-modern">
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
 
@@ -491,7 +481,6 @@ function AppDesktop() {
                 isPlaying={isPlaying}
                 togglePlayback={togglePlayback}
                 playDictionaryAudio={playDictionaryAudio}
-                uiTheme={uiTheme}
                 txt={txt}
               >
                 {ctaButtons}
@@ -511,7 +500,6 @@ function AppDesktop() {
                 <Sidebar
                   isOpen={sidebarOpen}
                   toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-                  uiTheme={uiTheme}
                   appMode={appMode}
                   setAppMode={setAppMode}
                   isPlaying={isPlaying}
@@ -530,7 +518,7 @@ function AppDesktop() {
           })()}
 
           {/* --- MODALS --- */}
-          <Modal uiTheme={uiTheme} isOpen={showStudioModal} onClose={() => setShowStudioModal(false)} title="🎭 Studio & Harmonie" columns>
+          <Modal isOpen={showStudioModal} onClose={() => setShowStudioModal(false)} title="🎭 Studio & Harmonie" columns>
             {appMode === "studio" ? (
               <StudioPanel
                 currentBrickIndex={currentBrickIndex}
@@ -564,7 +552,6 @@ function AppDesktop() {
                 isPlaying={isPlaying}
                 guitarFingering={guitarFingering}
                 bassFingering={bassFingering}
-                uiTheme={uiTheme}
                 harmonicMode={harmonicMode}
                 setHarmonicMode={setHarmonicMode}
                 dictOctave={dictOctave}
@@ -580,7 +567,7 @@ function AppDesktop() {
             )}
           </Modal>
 
-          <Modal uiTheme={uiTheme} isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`} columns>
+          <Modal isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`} columns>
             {appMode !== "dictionary" ? (
               <CompositionPanel
                 activeTracks={activeTracks}
@@ -597,7 +584,7 @@ function AppDesktop() {
             )}
           </Modal>
 
-          <Modal uiTheme={uiTheme} isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio" columns>
+          <Modal isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio" columns>
             <ControlPanel
               showFingering={showFingering}
               setShowFingering={setShowFingering}

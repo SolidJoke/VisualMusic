@@ -182,40 +182,6 @@
     box-shadow: 0 0 15px var(--accent);
 }
 
-/* ─── VINTAGE OVERRIDE ─── */
-.vintage-select .custom-select-header {
-    background: #000;
-    border: 2px solid #333;
-    color: var(--led-cyan);
-    font-family: var(--font-mono);
-    text-shadow: 0 0 8px var(--led-cyan);
-}
-
-/* Was `.vintage-select .custom-select-body` (descendant): the panel is now
-   portaled outside `.custom-select-container`, so it can no longer be
-   reached as a descendant of the container's own `.vintage-select` class.
-   CustomSelect.jsx now puts `${theme}-select` directly on the panel too, so
-   this is a same-element compound selector instead — same specificity
-   (0,2,0) as the descendant form it replaces. */
-.custom-select-body.vintage-select {
-    background: #000;
-    border: 2px solid var(--led-cyan);
-    grid-template-columns: 1fr;
-}
-
-.vintage-select .select-item {
-    border-radius: 0;
-    color: var(--led-cyan);
-    background: transparent;
-    border-bottom: 1px solid #222;
-}
-
-.vintage-select .select-item:hover,
-.vintage-select .select-item.selected {
-    background: var(--led-cyan);
-    color: #000;
-}
-
 /* Custom Scrollbar */
 .custom-select-body::-webkit-scrollbar {
     width: 4px;

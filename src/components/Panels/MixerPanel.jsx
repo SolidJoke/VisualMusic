@@ -8,7 +8,6 @@ const MixerPanel = ({
   masterVolume,
   setMasterVolume,
   txt,
-  uiTheme,
   isPlaying
 }) => {
   const context = useAppContext();

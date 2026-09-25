@@ -13,7 +13,6 @@ export default function DictPositionPanel({
   dictActiveNotes,
   guitarFingering,
   bassFingering,
-  uiTheme,
   selectedVoicingIndexGuitar,
   setSelectedVoicingIndexGuitar,
   selectedVoicingIndexBass,
@@ -91,7 +90,6 @@ export default function DictPositionPanel({
                       ...avail.map(p => ({ value: p.id, label: p.label }))
                     ];
                   })()}
-                  theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
                 />
                 {guitarFingering?.isOutOfRange && (
                   <div className="range-warning" style={{ color: "#ff4d4d", fontSize: "0.8em", marginTop: "4px" }}>
@@ -134,7 +132,6 @@ export default function DictPositionPanel({
                       ...avail.map(p => ({ value: p.id, label: p.label }))
                     ];
                   })()}
-                  theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
                 />
                 {bassFingering?.isOutOfRange && (
                   <div className="range-warning" style={{ color: "#ff4d4d", fontSize: "0.8em", marginTop: "4px" }}>

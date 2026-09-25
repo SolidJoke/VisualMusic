@@ -6,8 +6,8 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: var(--vintage-steel-light, rgba(30, 34, 40, 0.7));
-  border: 1px solid var(--vintage-steel-dark, rgba(255, 255, 255, 0.05));
+  background: var(--surface-2, rgba(30, 34, 40, 0.7));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
   border-radius: 4px;
   width: 100%;
   max-width: 320px;
@@ -46,10 +46,6 @@
   stroke-dasharray: 4, 4;
 }
 
-.theme-vintage .euclidean-bg-ring {
-  stroke: rgba(255, 179, 0, 0.12);
-}
-
 /* Active Polygon */
 .euclidean-polygon-active {
   fill: rgba(0, 229, 255, 0.07);
@@ -60,12 +56,6 @@
   transition: all 0.3s ease;
 }
 
-.theme-vintage .euclidean-polygon-active {
-  fill: rgba(255, 179, 0, 0.06);
-  stroke: var(--lcd-amber, #ffb300);
-  filter: drop-shadow(0 0 6px rgba(255, 179, 0, 0.35));
-}
-
 /* Complementary Polygon */
 .euclidean-polygon-complement {
   fill: rgba(255, 255, 255, 0.02);
@@ -74,11 +64,6 @@
   stroke-dasharray: 3, 3;
   stroke-linejoin: round;
   transition: all 0.3s ease;
-}
-
-.theme-vintage .euclidean-polygon-complement {
-  fill: rgba(0, 229, 255, 0.02);
-  stroke: rgba(0, 229, 255, 0.2);
 }
 
 /* Linear connections */
@@ -99,11 +84,6 @@
   text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
 }
 
-.theme-vintage .center-formula {
-  fill: var(--lcd-amber, #ffb300);
-  text-shadow: 0 0 10px rgba(255, 179, 0, 0.6);
-}
-
 .center-sublabel {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.75rem;
@@ -120,24 +100,12 @@
   cursor: pointer;
 }
 
-.theme-vintage .euclidean-node {
-  fill: #0d0e10;
-  stroke: rgba(255, 179, 0, 0.25);
-}
-
 /* Active Node */
 .euclidean-node.is-active {
   fill: var(--led-cyan, #00e5ff);
   stroke: #fff;
   stroke-width: 1px;
   filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
-}
-
-.theme-vintage .euclidean-node.is-active {
-  fill: var(--lcd-amber, #ffb300);
-  stroke: #0d0e10;
-  stroke-width: 1.5px;
-  filter: drop-shadow(0 0 8px rgba(255, 179, 0, 0.6));
 }
 
 /* Playback node current position */
@@ -148,22 +116,12 @@
   filter: drop-shadow(0 0 8px #fff) !important;
 }
 
-.theme-vintage .euclidean-node.is-current {
-  fill: #fff !important;
-  stroke: var(--lcd-amber, #ffb300) !important;
-  stroke-width: 2px !important;
-}
-
 /* Halo on play */
 .euclidean-node-halo {
   fill: none;
   stroke: rgba(0, 229, 255, 0.3);
   stroke-width: 2px;
   animation: pulse-ring 0.6s infinite ease-out;
-}
-
-.theme-vintage .euclidean-node-halo {
-  stroke: rgba(255, 179, 0, 0.45);
 }
 
 /* Node labels (Numbers around circle) */
@@ -173,15 +131,6 @@
   fill: #555;
   user-select: none;
   transition: all 0.2s ease;
-}
-
-.theme-vintage .euclidean-node-label {
-  fill: rgba(255, 179, 0, 0.4);
-}
-
-.theme-vintage .euclidean-node-label.accent-text {
-  fill: #fff !important;
-  text-shadow: 0 0 8px var(--lcd-amber-glow);
 }
 
 /* Pulsing halo ring animation */

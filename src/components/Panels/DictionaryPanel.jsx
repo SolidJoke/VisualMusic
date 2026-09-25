@@ -46,7 +46,6 @@ export default function DictionaryPanel({
   isPlaying,
   guitarFingering,   // { fingeringMap, outOfRange, difficultStretch } from App.jsx
   bassFingering,
-  uiTheme,
   harmonicMode,
   setHarmonicMode,
   dictOctave,
@@ -155,7 +154,6 @@ export default function DictionaryPanel({
               value: n.value,
               label: notation === "us" ? n.us : n.eu
             }))}
-            theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
             data-testid="select-root-note"
           />
         </div>
@@ -252,7 +250,6 @@ export default function DictionaryPanel({
             setDictType={setDictType}
             dictRoot={dictRoot}
             setDictRoot={setDictRoot}
-            uiTheme={uiTheme}
             groupedChords={groupedChords}
             emotionText={emotionText}
             descriptionText={descriptionText}
@@ -275,7 +272,6 @@ export default function DictionaryPanel({
                   label: txt[SCALE_LABEL_MAP[scaleKey]] || scaleKey
                 }))
               }))}
-              theme={uiTheme === 'vintage' ? 'vintage' : 'modern'}
             />
 
             {/* Emotion/description card for scales */}
@@ -326,7 +322,6 @@ export default function DictionaryPanel({
           dictActiveNotes={dictActiveNotes}
           guitarFingering={guitarFingering}
           bassFingering={bassFingering}
-          uiTheme={uiTheme}
           selectedVoicingIndexGuitar={selectedVoicingIndexGuitar}
           setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
           selectedVoicingIndexBass={selectedVoicingIndexBass}

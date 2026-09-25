@@ -1,81 +1,113 @@
 /* =======================================================
    tokens.css — VisualMusic Design System Tokens
    Source unique de vérité pour toutes les variables CSS.
-   Importé en tête de App.css.
-   Les thèmes (vintage-theme.css, modern-theme.css) sur-
-   chargent ces valeurs via sélecteurs .theme-vintage etc.
+   Importé en tête de App.css / main.jsx.
+
+   F1 (VMU-148, VMU-149): un seul thème (modern), toutes les
+   valeurs vivent ici sur :root. modern-theme.css ne redéfinit
+   plus que ce qui diffère (voir sa propre en-tête).
+   Source: F1-fondations-visuelles.md §1.
    ======================================================= */
 
 :root {
-  --glass-shadow:   0 4px 32px hsla(226, 50%, 2%, 0.6);
+  /* Fonds — noir OLED. Les panneaux se distinguent par la bordure, pas par le fond. */
+  --bg:            #000000;  /* page, sidebar, header, instruments */
+  --surface-1:     #0a0a0a;  /* panneau « élevé » (max autorisé pour une grande surface) */
+  --surface-2:     #141414;  /* champ de saisie, liste déroulante, survol */
+  --surface-3:     #1f1f1f;  /* bouton actif, case de pas vide */
+  /* Bordures */
+  --border-subtle:  #1f1f1f; /* séparateur décoratif */
+  --border-default: #333333; /* contour de panneau (décoratif, 1,66:1 — autorisé : non porteur d'information) */
+  --border-strong:  #6b6b6b; /* contour d'un contrôle, frette, bord de champ (≥ 3:1, WCAG 1.4.11) */
+  /* Texte */
+  --text-primary:   #e8e8e8; /* contenu (pas #fff : anti-marquage OLED) */
+  --text-secondary: #a8a8a8; /* chrome statique : sidebar, header, libellés */
+  --text-muted:     #8c8c8c; /* plancher du texte ; jamais plus sombre pour du texte */
+  --text-disabled:  #5c5c5c; /* désactivé uniquement (exempté WCAG) */
+  --text-on-select: #ffffff;
+  --on-role:        #000000; /* texte posé sur une pastille de rôle, toujours */
+  /* Sélection / focus — NEUTRE : aucune couleur de rôle n'est blanche */
+  --select:         #ffffff;
+  --select-ring:    0 0 0 2px var(--bg), 0 0 0 4px var(--select); /* anneau double, lisible sur toute couleur */
+  --focus-ring:     var(--select-ring);
+  /* Rôles musicaux (pastilles et touches). Palette vérifiée en deutéranopie / protanopie, spec §3.2 */
+  --role-root:      #f07878; /* fondamentale */
+  --role-third:     #a0c4ff; /* tierce */
+  --role-fifth:     #80f5c8; /* quinte */
+  --role-extension: #b084dc; /* extension : 7e, 9e, etc. (harmonyEngine.js:265-270) */
+  --role-target:    #e0d840; /* note cible */
+  --role-scale:     transparent;          /* note de gamme : pas de remplissage… */
+  --role-scale-edge: var(--text-muted);   /* …contour 2px #8c8c8c, étiquette --text-secondary */
+  /* États */
+  --color-error:    #ff8a80;
+  --color-warning:  #ffc266;
+  --color-success:  #6fdc8c;
+  --color-info:     var(--text-secondary);
+  /* Pistes du séquenceur = valeurs réellement rendues aujourd'hui (PianoRoll.css:193-230), passées en jetons */
+  --seq-kick:   #f79009;
+  --seq-snare:  #2e90fa;
+  --seq-hat:    #bdc7de;
+  --seq-chords: #ffb782;
+  --seq-bass:   #32d583;
+  --seq-rim:    #f79009;  /* = kick : aucune valeur rendue relevée — non vérifié */
+  --seq-crash:  #bdc7de;  /* = hat — non vérifié */
+  /* Instruments */
+  --key-white:   #cfcfcf; /* touche blanche (pas #fff : 13 % de lumière en moins) */
+  --key-black:   #1a1a1a;
+  --key-edge:    #000000;
+  --fret-wire:   var(--border-strong);
+  --string:      #8c8c8c;
+  --fret-inlay:  #333333;
+  /* Polices (spec §5) */
+  --font-display: 'Orbitron', 'Hanken Grotesk', sans-serif;
+  --font-body:    'Hanken Grotesk', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  /* Échelle typographique (spec §4) */
+  --ui-scale: 1.25;
+  --fs-label:   calc(12px * var(--ui-scale));
+  --fs-body:    calc(14px * var(--ui-scale));
+  --fs-emph:    calc(16px * var(--ui-scale));
+  --fs-title:   calc(20px * var(--ui-scale));
+  --fs-heading: calc(26px * var(--ui-scale));
+  --fs-display: calc(36px * var(--ui-scale));
+  --hit-min: 44px;
+  /* Rayons et transitions : inchangés */
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
+  --transition-fast: 150ms ease; --transition-normal: 220ms ease; --transition-slow: 350ms ease;
 
-  /* ─── BACKGROUNDS ────────────────────────────────────────── */
-  --color-bg-app:   hsl(232, 23%, 8%);   /* Deep dark app background */
-
-  /* ─── APP MODE SELECTOR ─── */
-  --color-mode-active:        #2563eb;
-  --color-mode-active-border: #3b82f6;
-  --color-mode-active-glow:   rgba(37, 99, 235, 0.4);
-
-  /* ─── ACCENT PRINCIPAL ───────────────────────────────────── */
-  /* Lavande électrique : neutre, musical, premium */
-  --accent-hue: 258;
-  --accent:     hsl(258, 70%, 72%);
-  --accent-dim: hsla(258, 70%, 72%, 0.15);
-  --accent-glow:hsla(258, 70%, 72%, 0.25);
-
-  /* Rétro-compatibilité avec l'ancien --theme-primary */
-  --theme-primary:     var(--accent);
-  --theme-primary-dim: var(--accent-dim);
-
-  /* ─── BORDURES ───────────────────────────────────────────── */
-  --border-subtle:  hsla(226, 20%, 100%, 0.05);
-  --border-default: hsla(226, 20%, 100%, 0.10);
-  --border-muted:   hsla(226, 20%, 100%, 0.15);
-  --border-dim:     hsla(226, 20%, 100%, 0.20);
-
-  /* ─── TEXTE ──────────────────────────────────────────────── */
-  --text-primary:   hsl(220, 20%, 90%);
-  --text-secondary: hsl(220, 15%, 75%);
-  --text-muted:     hsl(220, 10%, 55%);
-  --text-faint:     hsl(220, 10%, 40%);
-  --text-dim:       hsl(220, 10%, 30%);
-  --text-bright:    hsl(0, 0%, 100%);
-
-  /* ─── COULEURS RÔLES MUSICAUX ────────────────────────────── */
-  --role-root:      hsl(0, 85%, 65%);           /* Red     */
-  --role-third:     hsl(150, 80%, 60%);          /* Green   */
-  --role-fifth:     hsl(210, 85%, 65%);          /* Blue    */
-  --role-scale:     hsla(220, 15%, 75%, 0.3);    /* Slate   */
-  --role-target:    hsl(45, 100%, 65%);          /* Gold    */
-  --role-extension: hsl(280, 70%, 65%);          /* Purple  */
-
-  /* ─── COULEURS D'ÉTAT ────────────────────────────────────── */
-  --color-error:   hsl(4, 70%, 58%);
-  --color-warning: hsl(36, 90%, 55%);
-  --color-success: hsl(145, 60%, 50%);
-  --color-info:    hsl(210, 80%, 72%);
-
-  /* ─── SÉQUENCEUR ─────────────────────────────────────────── */
-  --seq-kick:  hsl(0,   80%, 62%);
-  --seq-snare: hsl(220, 80%, 62%);
-  --seq-hat:   hsl(47,  90%, 58%);
-  --seq-bass:  hsl(155, 70%, 55%);
-  --seq-rim:   hsl(30,  85%, 58%);
-  --seq-crash: hsl(0, 0%, 85%);
-
-  /* ─── TYPOGRAPHIE ────────────────────────────────────────── */
-  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-
-  /* ─── ESPACEMENTS & RAYONS ─────────────────────────────── */
-  --radius-sm:  4px;
-  --radius-md:  6px;
-  --radius-lg:  8px;
-  --radius-xl:  12px;
-
-  /* ─── TRANSITIONS ────────────────────────────────────────── */
-  --transition-fast:   150ms ease;
-  --transition-normal: 220ms ease;
-  --transition-slow:   350ms ease;
+  /* ── Alias de compatibilité (à supprimer quand plus aucun fichier ne les lit) ── */
+  --color-bg-app: var(--bg);   --lg-bg: var(--bg);
+  --lg-panel-bg: transparent;  --lg-panel-bg-elevated: var(--surface-1);
+  --lg-border: 1px solid var(--border-default);  --border-muted: var(--border-default); --border-dim: var(--border-strong);
+  --lg-accent: var(--select);  --lg-accent-glow: transparent;  --active-color: var(--select); --active-glow: transparent;
+  --accent: var(--select);     --accent-dim: var(--surface-3);  --accent-glow: transparent;
+  --theme-primary: var(--select); --theme-primary-dim: var(--surface-3);
+  --text-tertiary: var(--text-muted); --text-faint: var(--text-muted); --text-dim: var(--text-disabled); --text-bright: var(--text-on-select);
+  --led-cyan: var(--select);   --lcd-amber: var(--color-warning); --lg-accent-pink: var(--role-target);
+  --bg-deep: var(--bg); --bg-base: var(--surface-1); --bg-surface-lighter: var(--surface-2); --surface-sunken: var(--bg);
+  --color-bg-darker: var(--bg); --color-border: var(--border-default); --color-text-muted: var(--text-muted);
+  --color-alert-warning: var(--color-warning); --color-alert-error: var(--color-error);
+  --color-mode-active: var(--surface-3); --color-mode-active-border: var(--select); --color-mode-active-glow: transparent;
+  --glass-shadow: none; --lg-shadow: none;
+  /* VMU-149 follow-up: found undefined beyond spec C11's list (buttons.css,
+     panels.css) — same treatment, flat OLED equivalents, no blur/glow. */
+  --glass-bg: var(--surface-2); --glass-bg-hover: var(--surface-3); --glass-border: var(--border-default); --glass-blur: 0px;
+  --bg-surface: var(--surface-1); --bg-raised: var(--surface-2);
+  --bg-panel: var(--surface-1); --bg-overlay: var(--surface-2); --color-secondary: var(--text-secondary);
+  /* core/theory.js's getIntervalMetadata degree palette — mapped onto the
+     nearest --role-* token rather than inventing new colors (no fabricated
+     values, SI-4/SI-5); it has no piano/fretboard consumer today (out of F1a's
+     item 4 scope) but the variables themselves must resolve (VMU-149). */
+  --root-color: var(--role-root); --minor-color: var(--role-third); --major-color: var(--role-third);
+  --fifth-color: var(--role-fifth); --tension-color: var(--role-extension); --dominant-color: var(--role-extension);
+  --major7-color: var(--role-extension); --ext-color: var(--role-extension);
 }
+@media (min-width: 768px)  { :root { --ui-scale: 1.125; } }
+@media (min-width: 1920px) { :root { --ui-scale: 1.25;  } }
+@media (min-width: 2560px) { :root { --ui-scale: 1.375; } }
+@media (min-width: 3840px) { :root { --ui-scale: 1.5; --hit-min: 48px; } }
+
+/* Règles de base */
+body { background: var(--bg); color: var(--text-primary); font-family: var(--font-body); font-size: var(--fs-body); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); }
