@@ -493,3 +493,140 @@
   opacity: 0.7;
   pointer-events: none;
 }
+
+/* === orientation="vertical" (S1 prototype, ?prototype=a) ===
+   Scoped to .fretboard-container--vertical: the horizontal neck never
+   carries that class. Nut at the top, frets downwards at EQUAL spacing (a
+   realistic taper would fail S1-5 high up the neck), low strings on the
+   left, text always horizontal. */
+.fretboard-container--vertical {
+    --fbv-gutter: 44px;   /* fret numbers (spec §4) */
+    --fbv-string: 56px;   /* string pitch, centre to centre (S1-7: >= 56px) */
+    --fbv-fret: 70px;     /* fret pitch (S1-5: >= 64px, mock-up 70px) */
+    --fbv-head: 36px;     /* open-string names row, status row */
+    --fbv-marker: 48px;   /* note pastille (S1-3: >= 48px) */
+    width: auto;
+    margin: 0;
+}
+
+.fretboard-vertical {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: calc(var(--fbv-gutter, 44px) + var(--fbv-string, 56px) * var(--fbv-strings, 6));
+}
+
+.fbv-row {
+    display: grid;
+    grid-template-columns: var(--fbv-gutter, 44px) repeat(var(--fbv-strings, 6), var(--fbv-string, 56px));
+    position: relative;
+}
+
+.fbv-row > * {
+    grid-row: 1;
+}
+
+.fbv-row--head {
+    height: var(--fbv-head, 36px);
+}
+
+.fbv-fret-row {
+    height: var(--fbv-fret, 70px);
+    border-bottom: 2px solid var(--fret-wire);
+    box-sizing: border-box;
+}
+
+/* The nut: fret 0 sits above it. */
+.fbv-fret-row.fbv-row--open {
+    border-bottom: 6px solid var(--text-secondary);
+}
+
+.fbv-gutter {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+    box-sizing: border-box;
+}
+
+.fbv-fret-number {
+    font-family: var(--font-mono);
+    font-size: var(--fs-label);
+    color: var(--text-muted);
+    line-height: 1.2;
+}
+
+.fbv-fret-number.is-inlay {
+    color: var(--text-primary);
+}
+
+.fbv-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+}
+
+/* Undo the horizontal .fret / .open-string cell rules. */
+.fretboard-container--vertical .fbv-cell.fret {
+    border-right: none;
+    height: 100%;
+    cursor: pointer;
+}
+
+.fretboard-container--vertical .fbv-cell.open-string {
+    background-color: transparent;
+}
+
+.fretboard-container--vertical .fbv-string-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    height: auto;
+    transform: translateX(-50%);
+    background-color: var(--string);
+    z-index: 1;
+}
+
+.fretboard-container--vertical .open-string-name {
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: var(--fs-label);
+    font-weight: 600;
+    text-shadow: none;
+    line-height: 1.2;
+}
+
+.fretboard-container--vertical .string-status-symbol {
+    margin: 0;
+    font-size: var(--fs-label);
+    line-height: 1.2;
+}
+
+.fretboard-container--vertical .note-marker,
+.fretboard-container--vertical .note-marker.open-marker {
+    width: var(--fbv-marker, 48px);
+    height: var(--fbv-marker, 48px);
+    font-size: var(--fs-label);
+    line-height: 1.2;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+/* Barre: a horizontal bar across the strings of its fret, under the pastilles. */
+.fretboard-container--vertical .fbv-barre {
+    position: relative;
+    align-self: center;
+    left: auto;
+    transform: none;
+    width: auto;
+    height: calc(var(--fbv-marker, 48px) * 0.6);
+    margin: 0 8px;
+    z-index: 1;
+    box-shadow: none;
+    backdrop-filter: none;
+}
