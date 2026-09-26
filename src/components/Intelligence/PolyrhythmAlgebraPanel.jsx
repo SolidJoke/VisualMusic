@@ -30,7 +30,9 @@ export default function PolyrhythmAlgebraPanel({
       <div className="poly-ops-editor">
         <span className="input-label">{txt.polyOps || "POLYGON OPERATIONS:"}</span>
         {polyOps.map((op, idx) => {
-          const polyColors = ['#a78bfa', '#f59e0b', '#34d399', '#f87171', '#60a5fa'];
+          // Rhythmic voices, not musical roles - spec F1-fondations-visuelles.md
+          // §6: never --role-* (those are reserved for harmonic-role pastilles).
+          const polyColors = ['var(--seq-kick)', 'var(--seq-snare)', 'var(--seq-hat)', 'var(--seq-chords)', 'var(--seq-bass)'];
           const color = polyColors[idx % polyColors.length];
           return (
             <div key={idx} className="poly-op-row" style={{ borderLeft: `3px solid ${color}` }}>

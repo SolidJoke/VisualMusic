@@ -6,8 +6,8 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: var(--surface-2, rgba(30, 34, 40, 0.7));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   width: 100%;
   max-width: 320px;
@@ -41,25 +41,25 @@
 /* Background Ring */
 .euclidean-bg-ring {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.06);
+  stroke: var(--border-subtle);
   stroke-width: 1.5px;
   stroke-dasharray: 4, 4;
 }
 
 /* Active Polygon */
 .euclidean-polygon-active {
-  fill: rgba(0, 229, 255, 0.07);
-  stroke: var(--led-cyan, #00e5ff);
+  fill: var(--surface-2);
+  stroke: var(--led-cyan);
   stroke-width: 2px;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.4));
+  filter: drop-shadow(0 0 4px var(--lg-accent-glow));
   transition: all 0.3s ease;
 }
 
 /* Complementary Polygon */
 .euclidean-polygon-complement {
-  fill: rgba(255, 255, 255, 0.02);
-  stroke: rgba(255, 255, 255, 0.15);
+  fill: var(--surface-2);
+  stroke: var(--border-subtle);
   stroke-width: 1.5px;
   stroke-dasharray: 3, 3;
   stroke-linejoin: round;
@@ -80,21 +80,21 @@
   font-family: 'Courier New', Courier, monospace;
   font-size: 1.25rem;
   font-weight: bold;
-  fill: var(--led-cyan, #00e5ff);
-  text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+  fill: var(--led-cyan);
+  text-shadow: 0 0 10px var(--lg-accent-glow);
 }
 
 .center-sublabel {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.75rem;
-  fill: #888;
+  fill: var(--text-muted);
   text-transform: uppercase;
 }
 
 /* Node Styling */
 .euclidean-node {
-  fill: #222;
-  stroke: rgba(255, 255, 255, 0.2);
+  fill: var(--surface-2);
+  stroke: var(--border-strong);
   stroke-width: 1.5px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
@@ -102,24 +102,28 @@
 
 /* Active Node */
 .euclidean-node.is-active {
-  fill: var(--led-cyan, #00e5ff);
-  stroke: #fff;
+  fill: var(--led-cyan);
+  stroke: var(--select);
   stroke-width: 1px;
-  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+  filter: drop-shadow(0 0 6px var(--lg-accent-glow));
 }
 
 /* Playback node current position */
 .euclidean-node.is-current {
-  fill: #fff !important;
-  stroke: #fff !important;
+  fill: var(--select) !important;
+  stroke: var(--select) !important;
   transform: scale(1.3);
-  filter: drop-shadow(0 0 8px #fff) !important;
+  filter: drop-shadow(0 0 8px var(--lg-accent-glow)) !important;
 }
 
-/* Halo on play */
+/* Halo on play - kept colored (not neutered to --lg-accent-glow like the
+   drop-shadow glows above): this ring IS the whole visual, not a halo
+   layered on an already-visible element, so removing its color would
+   remove the pulse-on-play cue entirely (brief point 2 restricts
+   decorative removal to 3 named spots, none of which is this file). */
 .euclidean-node-halo {
   fill: none;
-  stroke: rgba(0, 229, 255, 0.3);
+  stroke: var(--select);
   stroke-width: 2px;
   animation: pulse-ring 0.6s infinite ease-out;
 }
@@ -128,7 +132,7 @@
 .euclidean-node-label {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.65rem;
-  fill: #555;
+  fill: var(--text-muted);
   user-select: none;
   transition: all 0.2s ease;
 }
