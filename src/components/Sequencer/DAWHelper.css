@@ -1,19 +1,19 @@
 /* src/components/Sequencer/DAWHelper.css */
 
 .daw-helper {
-    background-color: #111;
-    border: 1px solid #333;
+    background-color: var(--surface-1);
+    border: 1px solid var(--border-default);
     border-radius: 8px;
     padding: 14px 18px;
     margin-top: 12px;
     font-family: 'Courier New', monospace;
     font-size: 12px;
     line-height: 1.7;
-    color: #aaa;
+    color: var(--text-secondary);
 }
 
 .daw-helper__title {
-    color: var(--theme-primary, #ffd700);
+    color: var(--theme-primary);
     font-weight: bold;
     font-size: 13px;
     margin-bottom: 8px;
@@ -38,18 +38,18 @@
     align-items: baseline;
     gap: 4px;
     padding: 2px 8px;
-    border: 1px solid #333;
+    border: 1px solid var(--border-default);
     border-radius: 4px;
 }
 
 .daw-helper__chord-degree {
-    color: var(--theme-primary, #ffd700);
+    color: var(--theme-primary);
     font-weight: bold;
     font-size: 11px;
 }
 
 .daw-helper__chord-name {
-    color: #ccc;
+    color: var(--text-secondary);
 }
 
 .daw-helper__icon {
@@ -57,21 +57,21 @@
 }
 
 .daw-helper__text {
-    color: #ccc;
+    color: var(--text-secondary);
 }
 
 .daw-helper__ghost {
-    color: #888;
+    color: var(--text-muted);
     font-style: italic;
 }
 
 .daw-helper__tip {
     margin-top: 12px;
     padding: 8px;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--surface-2);
     border-radius: 4px;
     font-size: 11px;
-    color: #aaa;
+    color: var(--text-secondary);
     font-style: italic;
     border-left: 2px solid var(--theme-primary);
 }
@@ -79,7 +79,7 @@
 .daw-helper__meta {
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 1px solid #333;
-    color: #777;
+    border-top: 1px solid var(--border-default);
+    color: var(--text-muted);
     font-size: 11px;
 }
