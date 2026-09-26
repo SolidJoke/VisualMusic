@@ -81,31 +81,99 @@ export const getAbsoluteNoteValue = (noteName) => {
 
 // MODES object has been merged into SCALES
 
+// ---------------------------------------------------------
+// CHORD SYMBOLS (VMU-157 / VMU-158)
+// ---------------------------------------------------------
+//
+// A progression symbol ("1", "6-", "b7", "4m", "ii7", "IMaj7") is a degree
+// followed by what says the chord's type. It is read one way, here:
+//
+// 1. A degree without an accidental is the mode's own degree: "6" in a minor
+//    key is its (minor) sixth, "4" in lydian its raised fourth.
+// 2. A degree with an accidental is read against the major scale of the
+//    tonic (Nashville): "b2" is a semitone above the tonic, "b7" ten,
+//    whatever the mode. It used to be applied on top of the mode's degree, so
+//    in E phrygian "b2" (F) played E and "b6" (C) played B (VMU-157).
+// 3. The type comes from what follows the degree, never from the degree: the
+//    whole symbol used to be searched, so the degree 7 ("7", "b7") made a
+//    dominant seventh (VMU-158). A lower-case roman numeral is a minor
+//    degree, and so is a degree marked "-"; a "7" after a minor degree is m7.
+//    Nothing after the degree: a major triad (minor after a minor degree).
+
+/** Semitones above the tonic of the major scale's degrees: what an altered degree alters. */
+const MAJOR_SCALE_DEGREES = [0, 2, 4, 5, 7, 9, 11];
+const ROMAN_DEGREES = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6, VII: 7 };
+
 /**
- * Resolves an NNS string to a chord type dictionary key.
+ * What may follow the degree, and the chord type it names:
+ * [after a major degree, after a minor degree].
+ */
+const SUFFIX_TYPES = {
+    '': ['chord_major', 'chord_minor'],
+    'm': ['chord_minor', 'chord_minor'],
+    '°': ['chord_dim', 'chord_dim'],
+    'dim': ['chord_dim', 'chord_dim'],
+    '+': ['chord_aug', 'chord_aug'],
+    'aug': ['chord_aug', 'chord_aug'],
+    '7': ['chord_7', 'chord_m7'],
+    'alt': ['chord_7', 'chord_7'],
+    '7alt': ['chord_7', 'chord_7'],
+    'm7': ['chord_m7', 'chord_m7'],
+    'maj7': ['chord_maj7', 'chord_maj7'],
+    'Maj7': ['chord_maj7', 'chord_maj7'],
+    'm7b5': ['chord_m7b5', 'chord_m7b5'],
+    'dim7': ['chord_dim7', 'chord_dim7'],
+    '9': ['chord_9', 'chord_m9'],
+    'm9': ['chord_m9', 'chord_m9'],
+    'add9': ['chord_add9', 'chord_add9'],
+    'sus2': ['chord_sus2', 'chord_sus2'],
+    'sus4': ['chord_sus4', 'chord_sus4'],
+};
+
+/** Chord types named with an "m" (Am, Am7…) and with "dim". */
+export const MINOR_CHORD_TYPES = ['chord_minor', 'chord_m7', 'chord_m9', 'chord_m7b5'];
+export const DIMINISHED_CHORD_TYPES = ['chord_dim', 'chord_dim7'];
+
+/**
+ * Splits a chord symbol into its degree and what follows it.
+ * A note name may stand in place of the degree ("A-": what the timeline shows
+ * for a root no degree of the key names), or nothing ("m7"); neither has a
+ * degree.
+ *
+ * @param {string} symbol e.g. "b7m", "ii7", "2-7", "IMaj7", "A-"
+ * @returns {{ accidental: string, degree: number|null, roman: boolean, lowerCase: boolean, suffix: string, type: string|null }|null}
+ *   `suffix` is everything after the degree, as written; `type` is null when
+ *   the suffix is not one this reading knows. null for a roman numeral that
+ *   is no degree ("IIII").
+ */
+export function parseChordSymbol(symbol) {
+    const match = /^(?:([#b]?)([1-7]|[IiVv]+)|[A-G][#b]?)?(.*)$/.exec(symbol || '');
+    const [, accidental = '', written, suffix] = match;
+    let degree = null;
+    let roman = false;
+    let lowerCase = false;
+    if (written) {
+        roman = !/^[1-7]$/.test(written);
+        degree = roman ? (ROMAN_DEGREES[written.toUpperCase()] ?? null) : Number(written);
+        if (degree === null) return null;
+        lowerCase = roman && written === written.toLowerCase();
+    }
+    const minorMark = suffix.startsWith('-');
+    const types = SUFFIX_TYPES[minorMark ? suffix.slice(1) : suffix];
+    const type = types ? types[lowerCase || minorMark ? 1 : 0] : null;
+    return { accidental, degree, roman, lowerCase, suffix, type };
+}
+
+/**
+ * Resolves an NNS string to a chord type dictionary key, from what follows
+ * its degree (see "CHORD SYMBOLS" above).
  * @param {string} nns - Nashville Number System string
  * @returns {string} Chord type dictionary key
  */
 export const resolveNnsToChordType = (nns) => {
-    if (!nns) return 'chord_major';
-    if (nns.includes('maj7')) return 'chord_maj7';
-    if (nns.includes('m7b5')) return 'chord_m7b5';
-    // VMU-146 fix2: dim7 must be checked before the plain m7 check below —
-    // the substring "dim7" always contains "m7" ("di" + "m7"), so with m7
-    // checked first no nns could ever reach this branch (found while writing
-    // a DOM test that clicks a dim7 chord; see src/core/__tests__/chords.test.js).
-    if (nns.includes('dim7')) return 'chord_dim7';
-    if (nns.includes('m7')) return 'chord_m7';
-    if (nns.includes('m9')) return 'chord_m9';
-    if (nns.includes('dim') || nns.includes('°')) return 'chord_dim';
-    if (nns.includes('add9')) return 'chord_add9';
-    if (nns.includes('9')) return 'chord_9';
-    if (nns.includes('7')) return 'chord_7';
-    if (nns.includes('m') || nns.includes('-')) return 'chord_minor';
-    if (nns.includes('+') || nns.includes('aug')) return 'chord_aug';
-    if (nns.includes('sus2')) return 'chord_sus2';
-    if (nns.includes('sus4')) return 'chord_sus4';
-    return 'chord_major';
+    const symbol = parseChordSymbol(nns);
+    if (!symbol) return 'chord_major';
+    return symbol.type ?? (symbol.lowerCase || symbol.suffix.startsWith('-') ? 'chord_minor' : 'chord_major');
 };
 
 // ---------------------------------------------------------
@@ -156,51 +224,42 @@ export function getScaleNotes(rootValue, scaleKey) {
 export function generateChordsFromNNS(rootValue, scaleKey, nnsArray) {
     const scaleNotes = getScaleNotes(rootValue, scaleKey);
     return nnsArray.map(nnsStr => {
-        // NNS Notation: 1, 2-, 3-, 4, 5, 6-, 7°
-        // Also support Roman: I, ii, iii, IV, V, vi, vii°
-        
-        let normalizedStr = nnsStr;
-        const romanMap = { "I": "1", "II": "2", "III": "3", "IV": "4", "V": "5", "VI": "6", "VII": "7" };
-        
-        // Match Roman Numeral (case-insensitive for initial match)
-        const romanMatch = nnsStr.match(/([#b]?)([iIivV]+)/);
-        if (romanMatch) {
-            const prefix = romanMatch[1];
-            const romanUpper = romanMatch[2].toUpperCase();
-            const baseDegree = romanMap[romanUpper] || "1";
-            const isMinorRoman = romanMatch[2] === romanMatch[2].toLowerCase();
-            const suffix = isMinorRoman ? "-" : "";
-            // Reconstruct as NNS
-            normalizedStr = prefix + baseDegree + suffix + nnsStr.replace(/^[#b]?[iIivV]+/i, '');
-        }
+        // NNS Notation: 1, 2-, 3-, 4, 5, 6-, 7°, b7, 4m
+        // Also support Roman: I, ii, iii, IV, V, vi, vii°, ii7, IMaj7
+        // Read as "CHORD SYMBOLS" above says (VMU-157/158).
+        const symbol = parseChordSymbol(nnsStr);
+        const degree = symbol?.degree ?? 1;
 
-        const isMinor = normalizedStr.includes('-') || normalizedStr.includes('m');
-        const isDim = normalizedStr.includes('°') || normalizedStr.includes('dim');
-        
-        const degreeMatch = normalizedStr.match(/[1-7]/);
-        let degree = degreeMatch ? parseInt(degreeMatch[0]) - 1 : 0; 
-        let chordRootNote = scaleNotes[degree] || scaleNotes[0];
+        // A roman numeral is shown as NNS: "ii7" → "2-7", "IMaj7" → "1Maj7".
+        const normalizedStr = symbol?.roman
+            ? `${symbol.accidental}${degree}${symbol.lowerCase ? '-' : ''}${symbol.suffix}`
+            : nnsStr;
 
-        // Handle flat degrees (e.g., b2, b7)
-        if (normalizedStr.includes('b') && !normalizedStr.includes('b5')) {
-            // Find chromatic distance from root
-            let semitonesFromRoot = 0;
-            const modeIntervals = SCALES[scaleKey]?.intervals || [2,2,1,2,2,2,1];
-            for(let i=0; i<degree; i++) semitonesFromRoot += modeIntervals[i];
-            
-            let alteredValue = (rootValue + semitonesFromRoot - 1 + 12) % 12;
+        let chordRootNote;
+        if (symbol?.accidental) {
+            // Against the tonic's major scale, whatever the mode.
+            const shift = symbol.accidental === '#' ? 1 : -1;
+            const alteredValue = (rootValue + MAJOR_SCALE_DEGREES[degree - 1] + shift + 12) % 12;
             chordRootNote = NOTES.find(n => n.value === alteredValue);
+        } else {
+            // The mode's own degree.
+            chordRootNote = scaleNotes[degree - 1] || scaleNotes[0];
         }
 
+        const chordType = resolveNnsToChordType(normalizedStr);
+        const isMinor = MINOR_CHORD_TYPES.includes(chordType);
+        const isDim = DIMINISHED_CHORD_TYPES.includes(chordType);
         let suffix = isMinor ? 'm' : isDim ? 'dim' : '';
-        
-        // Define Harmonic Role
+
+        // Define Harmonic Role — of the mode's own degrees only: a flat or
+        // sharp degree ("b5", "b6") is not the mode's dominant or sixth.
         let role = "";
-        const roleDegree = degree + 1;
-        if (roleDegree === 1) role = "Tonic (Repos, Maison)";
-        else if (roleDegree === 4) role = "Subdominant (Départ, Aventure)";
-        else if (roleDegree === 5) role = "Dominant (Tension maximale)";
-        else if (roleDegree === 6 && isMinor) role = "Relative Minor (Profondeur)";
+        if (!symbol?.accidental) {
+            if (degree === 1) role = "Tonic (Repos, Maison)";
+            else if (degree === 4) role = "Subdominant (Départ, Aventure)";
+            else if (degree === 5) role = "Dominant (Tension maximale)";
+            else if (degree === 6 && isMinor) role = "Relative Minor (Profondeur)";
+        }
 
         return {
             nns: normalizedStr,
