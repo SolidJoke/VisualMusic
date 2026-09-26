@@ -21,15 +21,15 @@ const TheoryLegend = () => {
       </div>
       <div className="panel__content" style={{ width: "100%" }}>
 
-      <div 
-        className="theory-legend-panel vintage-module" 
-        style={{ 
-          marginTop: "15px", 
-          padding: "20px", 
-          background: "rgba(0,0,0,0.4)",
+      <div
+        className="theory-legend-panel module-body"
+        style={{
+          marginTop: "15px",
+          padding: "20px",
+          background: "var(--surface-1)",
           backdropFilter: "blur(10px)",
           borderRadius: "12px",
-          border: "1px solid rgba(255,255,255,0.1)",
+          border: "1px solid var(--border-subtle)",
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           gap: "20px",

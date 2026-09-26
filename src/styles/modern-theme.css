@@ -9,23 +9,23 @@
 }
 
 /* Base resets for modern theme */
-.theme-modern .vintage-chassis {
+.theme-modern .module-chassis {
   background: var(--lg-panel-bg);
   border: var(--lg-border);
   border-radius: 8px; /* Strict 8px grid */
   position: relative;
-  overflow: visible; 
+  overflow: visible;
   z-index: 2;
   box-shadow: none; /* Flat design */
 }
 
-.theme-modern .vintage-chassis::before,
-.theme-modern .vintage-chassis::after {
+.theme-modern .module-chassis::before,
+.theme-modern .module-chassis::after {
   display: none !important;
 }
 
 /* Module containers (formerly vintage modules) */
-.theme-modern .vintage-module {
+.theme-modern .module-body {
   background: var(--lg-panel-bg-elevated);
   border: var(--lg-border);
   border-radius: 8px;
@@ -35,7 +35,7 @@
 }
 
 /* Headers */
-.theme-modern .vintage-header {
+.theme-modern .module-header {
   color: var(--text-primary);
   font-family: var(--font-body);
   font-weight: 600;
@@ -144,7 +144,7 @@
 /* ─── UI CONTROLS (Buttons, Sliders, Tabs) ─── */
 .theme-modern .btn-toggle,
 .theme-modern .btn-premium,
-.theme-modern .vintage-control-btn {
+.theme-modern .module-control-btn {
   background: var(--lg-panel-bg);
   border: var(--lg-border);
   color: var(--text-primary);
@@ -158,7 +158,7 @@
 
 .theme-modern .btn-toggle--active,
 .theme-modern .btn-premium.active,
-.theme-modern .vintage-control-btn.active {
+.theme-modern .module-control-btn.active {
   background: var(--lg-accent);
   color: var(--text-on-select);
   border-color: var(--lg-accent);
@@ -166,7 +166,7 @@
 
 .theme-modern .btn-toggle:hover:not(.active),
 .theme-modern .btn-premium:hover:not(.active),
-.theme-modern .vintage-control-btn:hover:not(.active) {
+.theme-modern .module-control-btn:hover:not(.active) {
   background: var(--lg-panel-bg-elevated);
   border-color: var(--text-tertiary);
 }
@@ -236,7 +236,7 @@
     padding-bottom: 80px; /* Space for bottom nav */
   }
   
-  .theme-modern .vintage-module {
+  .theme-modern .module-body {
     padding: 12px;
   }
 }

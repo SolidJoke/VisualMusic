@@ -4,15 +4,16 @@
  * `uiTheme`/`setUiTheme` identifier, no `theme-vintage` class, no
  * `vintage-theme.css`, no `theme === 'vintage'` / `theme="vintage"` branch.
  *
- * Deliberately NOT flagged: class names that happen to contain the
- * substring "vintage" but are not part of the theme-toggle mechanism —
+ * F1a deliberately did NOT flag class names that happened to contain the
+ * substring "vintage" but were not part of the theme-toggle mechanism —
  * `.vintage-module` / `.vintage-header` / `.vintage-chassis` /
- * `.vintage-control-btn` are a pre-existing, still-used naming convention
- * for the shared "chassis" component look (SequencerPanel.jsx,
- * TheoryLegend.jsx, PlaybackPanel.jsx, modern-theme.css). Renaming them is
- * a separate refactor the brief does not ask for and this ticket does not
- * touch — see the F1a report for the explicit list this test targets
- * instead.
+ * `.vintage-control-btn`, the shared "chassis" component look
+ * (SequencerPanel.jsx, TheoryLegend.jsx, PlaybackPanel.jsx,
+ * modern-theme.css). F1b (brief point 3b) renamed those four to neutral
+ * names — `.module-body` / `.module-header` / `.module-chassis` /
+ * `.module-control-btn` — so the substring "vintage" is now gone from the
+ * app entirely; this test still targets only the theme-toggle-mechanism
+ * patterns below, not a bare "vintage" grep.
  */
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";

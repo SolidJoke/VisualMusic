@@ -21,7 +21,7 @@ const PlaybackPanel = ({
     <div className="layout-col layout-right playback-panel-container">
       {/* Mode selector and play button moved to Sidebar fixed header */}
 
-      <div className={`vintage-module playback-controls${isPlaying ? " is-playing" : ""}`}>
+      <div className={`module-body playback-controls${isPlaying ? " is-playing" : ""}`}>
 
         <div className="sliders-group">
           <div className="slider-item">

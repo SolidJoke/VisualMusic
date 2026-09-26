@@ -30,7 +30,7 @@ const SequencerPanel = ({
 
   return (
     <div
-      className="vintage-module"
+      className="module-body"
       style={{
         width: "100%",
         marginBottom: "30px",
@@ -62,9 +62,9 @@ const SequencerPanel = ({
         </div>
       </div>
 
-      <div className="vintage-header">
+      <div className="module-header">
         <span>{txt.drumMachine}</span>
-        <button className="vintage-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
+        <button className="module-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
           const midiData = exportTimelineDrums(timeline, currentBpm);
           triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Drums"}_${currentBpm}bpm.mid`);
         }}>⬇️ MIDI</button>
@@ -77,9 +77,9 @@ const SequencerPanel = ({
         />
       </div>
 
-      <div className="vintage-header" style={{ marginTop: "30px" }}>
+      <div className="module-header" style={{ marginTop: "30px" }}>
         <span>🎹 {txt.harmonicSeq || "Harmonic Sequencer"}</span>
-        <button className="vintage-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
+        <button className="module-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
           const midiData = exportTimelineChords(timeline, currentBpm, { octaveOffset: chordOctaveOffset });
           triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Chords"}_${currentBpm}bpm.mid`);
         }}>⬇️ MIDI</button>
@@ -92,9 +92,9 @@ const SequencerPanel = ({
         />
       </div>
 
-      <div className="vintage-header" style={{ marginTop: "30px" }}>
+      <div className="module-header" style={{ marginTop: "30px" }}>
         <span>{txt.melodicSeq}</span>
-        <button className="vintage-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
+        <button className="module-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
           const midiData = exportTimelineBass(timeline, currentBpm);
           triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Bass"}_${currentBpm}bpm.mid`);
         }}>⬇️ MIDI</button>
