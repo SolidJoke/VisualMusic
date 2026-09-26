@@ -196,9 +196,22 @@ export async function runScenario(spec) {
   // the accent pitch vs. the off-beat pitch. `diagnostics.accentNote` /
   // `.offbeatNote` are set by the scenario body from metronome.js's own
   // exported constants, so this file names no note itself.
+  //
+  // Prefers `diagnostics.clickTimes` (VMU-163-fix2's spyOnScheduleRepeat:
+  // exactly when each click was *scheduled*) over generic onset-detected
+  // times when a scenario provides them — a scenario that also plays the
+  // default progression's drums has onsets from the kick/snare/hat mixed
+  // into `onsets.onsets`, which `classifyClickPitches` would otherwise have
+  // to tell apart from the click by ear (frequency alone), the exact
+  // ambiguity the brief's measure 1 says to avoid ("sans détection
+  // d'attaques brouillée par la batterie"). The classification itself still
+  // reads the rendered audio (which pitch is actually present at that exact,
+  // precisely-known instant) — only *which instants to check* comes from the
+  // schedule instead of from onset detection on the full mix.
+  const clickOnsetTimes = diagnostics.clickTimes ?? onsets?.onsets;
   const clickPitches =
-    params.classifyClickPitch && onsets && diagnostics.accentNote && diagnostics.offbeatNote
-      ? classifyClickPitches(post, onsets.onsets, {
+    params.classifyClickPitch && clickOnsetTimes && diagnostics.accentNote && diagnostics.offbeatNote
+      ? classifyClickPitches(post, clickOnsetTimes, {
           sampleRate,
           accentHz: midiToFreq(noteNameToMidi(diagnostics.accentNote)),
           offbeatHz: midiToFreq(noteNameToMidi(diagnostics.offbeatNote)),
@@ -292,6 +305,69 @@ function classifyClickPitches(samples, onsetTimesSec, options) {
 
     return { timeSec: t, isAccent: toAccentCents < toOffbeatCents, freq };
   });
+}
+
+/**
+ * Wraps `transport.scheduleRepeat` so every registration's exact `time`
+ * argument is recorded, tagged by its own `interval` literal — "4n" is
+ * metronome.js's own click interval, "16n" is useSequencer.js's own step
+ * interval (both stable, documented constants). VMU-163-fix2 measure 1: "au
+ * niveau de la planification... sans détection d'attaques brouillée par la
+ * batterie" — recording the scheduling-time argument directly is exact and
+ * does not depend on telling a click apart from a kick drum in the rendered
+ * mix, the way onset detection on the full mix would.
+ *
+ * A thin wrapper around a public Tone method on the transport *instance*
+ * (not its prototype, and not a private field of metronome.js or
+ * useSequencer.js) — every real call site (metronome.js, transportOwner.js,
+ * this scenario's own step registration) resolves `Tone.getTransport()` to
+ * the same instance, so all of them observe the wrapped version once it is
+ * installed.
+ *
+ * @param {import("tone").Transport} transport
+ * @returns {{ clickTimes: number[], stepTimes: number[] }}
+ */
+function spyOnScheduleRepeat(transport) {
+  const clickTimes = [];
+  const stepTimes = [];
+  const original = transport.scheduleRepeat.bind(transport);
+  transport.scheduleRepeat = (callback, interval, startTime, duration) => {
+    const wrapped = (time) => {
+      if (interval === "4n") clickTimes.push(time);
+      if (interval === "16n") stepTimes.push(time);
+      return callback(time);
+    };
+    return original(wrapped, interval, startTime, duration);
+  };
+  return { clickTimes, stepTimes };
+}
+
+/**
+ * The default Studio progression's own step registration — the same
+ * dispatch.stepEvents + playStep.playStepEvents pair "default-progression"
+ * below uses, factored out so the three VMU-163-fix2 scenarios can hand it
+ * to transportOwner.playMusic() unchanged. Reused rather than reinvented so
+ * these scenarios exercise the real dispatch, not a simplified stand-in —
+ * "en gardant la progression par défaut qui joue" (brief, measure 1).
+ *
+ * @param {Object} ctx
+ * @returns {(transport: import("tone").Transport) => number} registers the
+ *   repeat and returns the id `scheduleRepeat` hands back, so a caller that
+ *   needs to `transport.clear(id)` it later (Stop) can track it.
+ */
+function makeDefaultProgressionRegistrar(ctx) {
+  const { engine, dispatch, playStep, timeline, doc, playOptions } = ctx;
+  let stepCounter = 0;
+  return (transport) =>
+    transport.scheduleRepeat(
+      (time) => {
+        const events = dispatch.stepEvents(doc, stepCounter, playOptions);
+        playStep.playStepEvents(engine, events, time);
+        stepCounter = (stepCounter + 1) % timeline.loopSteps(doc);
+      },
+      "16n",
+      0,
+    );
 }
 
 /**
@@ -493,6 +569,239 @@ export const SCENARIOS = {
       diagnostics.restartAtSec = restartAtSec;
       diagnostics.note =
         "metronome running, then a Play-style transport stop+start restart 2 beats in (not a multiple of 4) — VMU-163";
+    },
+  },
+
+  /**
+   * VMU-163-fix2 measure 1a: the metronome running alone, then a Studio-style
+   * Play restart mid-bar — `transportOwner.playMusic()`, the module the brief's
+   * decision 4 makes the sole owner of Play/Stop, not a hand-rolled stop/start.
+   * Every click after the restart must coincide with a step (≤ 1 ms), the
+   * accent with step 0 of each measure.
+   *
+   * Measured, not assumed (the brief's own caveat: "si ton émulation de la
+   * latence ne reproduit pas l'échec de a, dis-le et explique pourquoi"):
+   * this construction does not reproduce a red here on the pre-fix tree —
+   * see the ticket report for the exact numbers from both trees. The pre-fix
+   * defect this sequence caused in the running app came from React's render
+   * lag between the Studio's synchronous `Tone.Transport.stop(); start();`
+   * and the *next* render's effect registering the step repeat (measured
+   * 9.6 ms in the app); the metronome, started first against a transport
+   * that had never ticked, anchored at tick 0 by coincidence even pre-fix
+   * (no explicit start needed when "now" already equals zero). `playMusic()`
+   * is a synchronous function call, not a React effect one render later, so
+   * it cannot carry that specific lag on either tree — a harness cannot
+   * invoke a React hook's effect the way a real render does, which is
+   * exactly the limitation the brief's own "causes" section names. See
+   * "play-then-metronome-offbeat" below for the sequence that does reproduce
+   * a defect purely from metronome.js's own missing anchor.
+   */
+  "metronome-then-play-midbar": {
+    durationSec: 6.0,
+    async body(ctx) {
+      const { Tone: T, engine, params, diagnostics } = ctx;
+      await loadSamplers(ctx);
+      const bpm = params.bpm ?? 120;
+      const transport = T.getTransport();
+      transport.bpm.value = bpm;
+
+      const { clickTimes, stepTimes } = spyOnScheduleRepeat(transport);
+
+      const metronomeMod = await import("../metronome");
+      const transportOwnerMod = await import("../transportOwner");
+      const [{ BRICKS }, timeline, dispatch, playStep] = await Promise.all([
+        import("../../core/bricks"),
+        import("../../core/timeline"),
+        import("../dispatch"),
+        import("../playStep"),
+      ]);
+
+      metronomeMod.startMetronome();
+      diagnostics.accentNote = metronomeMod.ACCENT_NOTE;
+      diagnostics.offbeatNote = metronomeMod.OFFBEAT_NOTE;
+
+      const brickIndex = params.brickIndex ?? STUDIO_DEFAULTS.brickIndex;
+      const brick = BRICKS[brickIndex];
+      const doc = timeline.buildStudioTimeline({ brickIndex });
+      const playOptions = { octaveOffset: STUDIO_DEFAULTS.chordOctaveOffset, rootValue: brick.rootValue };
+      const registerSteps = makeDefaultProgressionRegistrar({ engine, dispatch, playStep, timeline, doc, playOptions });
+
+      // Mid-bar: 2.5 beats is not a multiple of 4, so a correctly-anchored
+      // restart must not coincide with where an unanchored one would happen
+      // to land either.
+      const beatsBeforeRestart = params.beatsBeforeRestart ?? 2.5;
+      const restartAtSec = (60 / bpm) * beatsBeforeRestart;
+      // Scheduled with an explicit time rather than called bare: this body
+      // runs entirely before Tone.Offline renders, so there is no live "now"
+      // to press Play at — only a point on the offline timeline (same
+      // reasoning as "metronome-phase-restart" above).
+      const offlineContext = T.getContext();
+      transport.scheduleOnce(() => {
+        // Harness-only: see "play-then-metronome-offbeat" below for why this
+        // is needed before calling anything that itself calls
+        // Tone.getTransport() from inside a callback that fires during
+        // rendering rather than during Tone.Offline's own synchronous setup.
+        T.setContext(offlineContext);
+        transportOwnerMod.playMusic(registerSteps);
+      }, restartAtSec);
+
+      diagnostics.bpm = bpm;
+      diagnostics.restartAtSec = restartAtSec;
+      diagnostics.clickTimes = clickTimes;
+      diagnostics.stepTimes = stepTimes;
+      diagnostics.note =
+        "metronome running, then transportOwner.playMusic() restarts the default progression mid-bar — VMU-163-fix2 measure 1a";
+    },
+  },
+
+  /**
+   * VMU-163-fix2 measure 1b: Play first (`transportOwner.playMusic()`, so
+   * the default progression's steps are already running, anchored at tick 0
+   * per decision 2), then the metronome switched on later, at a deliberately
+   * off-grid instant (`transport.scheduleOnce`, same reasoning as above — no
+   * live "now" to click a button at inside an offline render). Every click
+   * must land on a step where `stepIndex % 4 === 0`, the accent where
+   * `stepIndex % 16 === 0` (both within 1 ms).
+   *
+   * Unlike "metronome-then-play-midbar" above, this sequence *does*
+   * reproduce a defect from metronome.js's own pre-fix code alone,
+   * independent of any React timing: registering a `scheduleRepeat` with no
+   * explicit start time anchors it to whatever transport position is
+   * current at the moment of the call (`TransportTime`'s `_now()` reads
+   * `transport.seconds`, confirmed in node_modules/tone/build/esm/core/
+   * type/TransportTime.js:18-19) — here, a transport already several steps
+   * into playback, not tick 0. See the ticket report for the measured
+   * numbers on both trees.
+   */
+  "play-then-metronome-offbeat": {
+    durationSec: 6.0,
+    async body(ctx) {
+      const { Tone: T, engine, params, diagnostics } = ctx;
+      await loadSamplers(ctx);
+      const bpm = params.bpm ?? 120;
+      const transport = T.getTransport();
+      transport.bpm.value = bpm;
+
+      const { clickTimes, stepTimes } = spyOnScheduleRepeat(transport);
+
+      const metronomeMod = await import("../metronome");
+      const transportOwnerMod = await import("../transportOwner");
+      const [{ BRICKS }, timeline, dispatch, playStep] = await Promise.all([
+        import("../../core/bricks"),
+        import("../../core/timeline"),
+        import("../dispatch"),
+        import("../playStep"),
+      ]);
+      diagnostics.accentNote = metronomeMod.ACCENT_NOTE;
+      diagnostics.offbeatNote = metronomeMod.OFFBEAT_NOTE;
+
+      const brickIndex = params.brickIndex ?? STUDIO_DEFAULTS.brickIndex;
+      const brick = BRICKS[brickIndex];
+      const doc = timeline.buildStudioTimeline({ brickIndex });
+      const playOptions = { octaveOffset: STUDIO_DEFAULTS.chordOctaveOffset, rootValue: brick.rootValue };
+      const registerSteps = makeDefaultProgressionRegistrar({ engine, dispatch, playStep, timeline, doc, playOptions });
+
+      transportOwnerMod.playMusic(registerSteps);
+
+      // Off-grid: not a multiple of a 16th note at 120 BPM (0.125 s), and
+      // not a multiple of a quarter note either (0.5 s) — the metronome
+      // joins mid-step, mid-beat.
+      const metronomeOnAtSec = params.metronomeOnAtSec ?? 1.37;
+      const offlineContext = T.getContext();
+      transport.scheduleOnce(() => {
+        // Harness-only: Tone.getContext() (and everything built on it,
+        // including startMetronome()'s own Tone.getTransport() call) no
+        // longer resolves to this render's OfflineAudioContext once we are
+        // inside a callback that fires *during* rendering rather than during
+        // Tone.Offline's own synchronous setup — confirmed empirically
+        // (measured a *different* Transport instance without this call, and
+        // zero steps/clicks reaching the render). Re-asserting it is a
+        // harness concern only: the real app has exactly one context for its
+        // whole life, so production code never needs this.
+        T.setContext(offlineContext);
+        metronomeMod.startMetronome();
+      }, metronomeOnAtSec);
+
+      diagnostics.bpm = bpm;
+      diagnostics.metronomeOnAtSec = metronomeOnAtSec;
+      diagnostics.clickTimes = clickTimes;
+      diagnostics.stepTimes = stepTimes;
+      diagnostics.note =
+        "the default progression already playing, then the metronome switched on off-grid — VMU-163-fix2 measure 1b";
+    },
+  },
+
+  /**
+   * VMU-163-fix2 measure 1c: metronome on, Play, then Stop — the clicks must
+   * continue after Stop (VMU-056: the metronome runs during playback *and*
+   * alone), evenly spaced at the tempo's own quarter note.
+   *
+   * Reproduces the "Stop silences a still-on metronome" defect independent
+   * of React timing too: `transportOwner.stopMusic()` (real code, present on
+   * both trees once this ticket's first commit lands) stops the transport
+   * unconditionally whenever it does not know the metronome wants it kept
+   * alive. Pre-fix, metronome.js tracks "did *I* start this transport"
+   * entirely on its own — via its own start()/stop() calls, never through
+   * transportOwner — so transportOwner never finds out and stops it anyway.
+   */
+  "metronome-play-stop-continues": {
+    durationSec: 4.0,
+    async body(ctx) {
+      const { Tone: T, engine, params, diagnostics } = ctx;
+      await loadSamplers(ctx);
+      const bpm = params.bpm ?? 120;
+      const transport = T.getTransport();
+      transport.bpm.value = bpm;
+
+      const { clickTimes } = spyOnScheduleRepeat(transport);
+
+      const metronomeMod = await import("../metronome");
+      const transportOwnerMod = await import("../transportOwner");
+      const [{ BRICKS }, timeline, dispatch, playStep] = await Promise.all([
+        import("../../core/bricks"),
+        import("../../core/timeline"),
+        import("../dispatch"),
+        import("../playStep"),
+      ]);
+
+      metronomeMod.startMetronome();
+      diagnostics.accentNote = metronomeMod.ACCENT_NOTE;
+      diagnostics.offbeatNote = metronomeMod.OFFBEAT_NOTE;
+
+      const brickIndex = params.brickIndex ?? STUDIO_DEFAULTS.brickIndex;
+      const brick = BRICKS[brickIndex];
+      const doc = timeline.buildStudioTimeline({ brickIndex });
+      const playOptions = { octaveOffset: STUDIO_DEFAULTS.chordOctaveOffset, rootValue: brick.rootValue };
+      const registerSteps = makeDefaultProgressionRegistrar({ engine, dispatch, playStep, timeline, doc, playOptions });
+      /** @type {number | null} the id registerSteps' own scheduleRepeat returns, cleared on Stop. */
+      let repeatId = null;
+      const registerAndTrack = (t) => {
+        repeatId = registerSteps(t);
+      };
+
+      transportOwnerMod.playMusic(registerAndTrack);
+
+      const stopAtSec = params.stopAtSec ?? 1.6;
+      const offlineContext = T.getContext();
+      transport.scheduleOnce(() => {
+        // Harness-only: see "play-then-metronome-offbeat" for why — needed
+        // before calling anything that itself calls Tone.getTransport() from
+        // a callback firing during rendering rather than during Tone.
+        // Offline's own synchronous setup.
+        T.setContext(offlineContext);
+        transportOwnerMod.stopMusic((t) => {
+          if (repeatId !== null) {
+            t.clear(repeatId);
+            repeatId = null;
+          }
+        });
+      }, stopAtSec);
+
+      diagnostics.bpm = bpm;
+      diagnostics.stopAtSec = stopAtSec;
+      diagnostics.clickTimes = clickTimes;
+      diagnostics.note =
+        "metronome on, Play, then Stop — the clicks must continue (VMU-056) — VMU-163-fix2 measure 1c";
     },
   },
 

@@ -154,6 +154,38 @@ function guitarVsPianoCheck(results, firstId, secondId, label) {
   );
 }
 
+/**
+ * VMU-163-fix2 measure 1: for each `clickTimes` entry at or after `fromSec`,
+ * the distance (seconds) to the nearest `stepTimes` entry — both captured at
+ * the scheduling level by `spyOnScheduleRepeat` in offlineRender.js, not by
+ * onset detection on the rendered mix (brief: "sans détection d'attaques
+ * brouillée par la batterie"). `stepTimes`/`clickTimes` are sorted ascending
+ * by construction (pushed in the order Tone invokes the callbacks), so a
+ * single forward-advancing pointer finds the nearest step in one pass rather
+ * than a search per click.
+ */
+function alignmentStats(clickTimes, stepTimes, fromSec = 0) {
+  const clicks = (clickTimes ?? []).filter((t) => t >= fromSec - 0.001);
+  const steps = stepTimes ?? [];
+  if (clicks.length === 0 || steps.length === 0) {
+    return { count: 0, maxDeviationSec: null, allWithinMs: null, detail: "no clicks or no steps captured" };
+  }
+  let stepIdx = 0;
+  let maxDeviation = 0;
+  for (const click of clicks) {
+    while (stepIdx + 1 < steps.length && Math.abs(steps[stepIdx + 1] - click) <= Math.abs(steps[stepIdx] - click)) {
+      stepIdx++;
+    }
+    maxDeviation = Math.max(maxDeviation, Math.abs(steps[stepIdx] - click));
+  }
+  return {
+    count: clicks.length,
+    maxDeviationSec: maxDeviation,
+    allWithinMs: (ms) => maxDeviation * 1000 <= ms,
+    detail: `${clicks.length} clicks from ${fmt(fromSec, 3)}s, worst click-to-step distance ${fmt(maxDeviation * 1000, 2)} ms`,
+  };
+}
+
 function bassGenreStabilityCheck(results, freshId, afterId, group) {
   const fresh = results.find((r) => r.id === freshId)?.measurement;
   const after = results.find((r) => r.id === afterId)?.measurement;
@@ -475,6 +507,107 @@ const PLAN = [
           afterRestart.length >= 5 &&
             afterRestart.every((p, i) => p.isAccent === (i % 4 === 0)),
           `pattern after restart: ${pattern}`,
+        ),
+      ];
+    },
+  },
+  {
+    id: "metronome-then-play-midbar",
+    title: "VMU-163-fix2 measure 1a: metronome running, then Play restarts the default progression mid-bar",
+    spec: {
+      scenario: "metronome-then-play-midbar",
+      params: { bpm: 120, beatsBeforeRestart: 2.5, detectOnsets: true, classifyClickPitch: true },
+    },
+    why:
+      "Decision 1 (one grid) + decision 2 (steps anchored at tick 0, registered before the transport " +
+      "restarts): every click after Play must coincide with a music step within 1 ms, the accent with " +
+      "step 0 of a measure. Measured at the scheduling level (offlineRender.js's spyOnScheduleRepeat), " +
+      "not by onset detection on the mix. NOT expected to distinguish the pre-fix tree from this one — " +
+      "see the scenario's own docstring in offlineRender.js and the ticket report for why (React's render " +
+      "lag, which this exact sequence's pre-fix defect came from, cannot be reproduced by a synchronous " +
+      "harness call).",
+    expect: (r) => {
+      const stats = alignmentStats(r.clickTimes, r.stepTimes, r.restartAtSec ?? 0);
+      const pitches = (r.clickPitches ?? []).filter((p) => p.timeSec >= (r.restartAtSec ?? 0) - 0.005);
+      const firstAccent = pitches[0];
+      return [
+        check(
+          "every click from the restart onward lands within 1ms of a music step",
+          stats.count > 0 && stats.allWithinMs(1),
+          stats.detail,
+        ),
+        check(
+          "the first click after the restart is the accent (heard, cross-checked against the schedule)",
+          !!firstAccent?.isAccent,
+          firstAccent ? `${firstAccent.isAccent ? "accent" : "off-beat"} at ${fmt(firstAccent.timeSec, 3)}s` : "no click found",
+        ),
+      ];
+    },
+  },
+  {
+    id: "play-then-metronome-offbeat",
+    title: "VMU-163-fix2 measure 1b: default progression already playing, metronome switched on off-grid",
+    spec: {
+      scenario: "play-then-metronome-offbeat",
+      params: { bpm: 120, metronomeOnAtSec: 1.37, detectOnsets: true, classifyClickPitch: true },
+    },
+    why:
+      "Decision 1 (one grid): a scheduleRepeat with no explicit start anchors to whatever transport " +
+      "position is current when it is called — here, mid-playback, not tick 0. Every click from the " +
+      "moment the metronome turns on must land on a step where stepIndex % 4 === 0 (accent on " +
+      "stepIndex % 16 === 0), within 1 ms. Unlike measure 1a, this sequence reproduces a defect from " +
+      "metronome.js's own missing anchor alone, independent of React timing — predicted red on the " +
+      "pre-fix tree.",
+    expect: (r) => {
+      const stats = alignmentStats(r.clickTimes, r.stepTimes, r.metronomeOnAtSec ?? 0);
+      const pitches = (r.clickPitches ?? []).filter((p) => p.timeSec >= (r.metronomeOnAtSec ?? 0) - 0.05);
+      const pattern = pitches.map((p) => (p.isAccent ? "A" : ".")).join("");
+      return [
+        check(
+          "every click from the metronome switching on lands within 1ms of a music step",
+          stats.count > 0 && stats.allWithinMs(1),
+          stats.detail,
+        ),
+        check(
+          "at least 4 clicks were captured after the metronome switched on",
+          pitches.length >= 4,
+          `${pitches.length} onsets, pattern ${pattern || "(none)"}`,
+        ),
+      ];
+    },
+  },
+  {
+    id: "metronome-play-stop-continues",
+    title: "VMU-163-fix2 measure 1c: metronome on, Play, then Stop — clicks must continue",
+    spec: {
+      scenario: "metronome-play-stop-continues",
+      params: { bpm: 120, stopAtSec: 1.6, detectOnsets: true },
+    },
+    why:
+      "VMU-056: the metronome runs during playback and alone. Decision 4: transportOwner.stopMusic() " +
+      "must stop the transport itself only if the metronome is not on — predicted red on the pre-fix " +
+      "tree (metronome.js's start/stop never told transportOwner it was running, so stopMusic stopped " +
+      "the transport unconditionally and killed the metronome too).",
+    expect: (r) => {
+      const stopAt = r.stopAtSec ?? 0;
+      // clickTimes (scheduling-level, tagged "4n" — only ever the metronome,
+      // never the default progression's drums) rather than generic onset
+      // detection: the drums' own trailing onsets right after Stop would
+      // otherwise pollute "clicks after Stop" with non-click hits.
+      const clicks = r.clickTimes ?? [];
+      const afterStop = clicks.filter((t) => t >= stopAt + 0.05); // 50ms: past the stop instant itself
+      const intervals = afterStop.slice(1).map((t, i) => t - afterStop[i]);
+      const meanIntervalMs = intervals.length ? (intervals.reduce((a, b) => a + b, 0) / intervals.length) * 1000 : null;
+      return [
+        check(
+          "at least 3 clicks scheduled after Stop",
+          afterStop.length >= 3,
+          `${afterStop.length} clicks after ${fmt(stopAt, 2)}s: ${afterStop.map((t) => fmt(t, 3)).join(", ") || "none"}`,
+        ),
+        check(
+          "those clicks are still spaced at 120 BPM (500ms) within 20ms",
+          meanIntervalMs != null && Math.abs(meanIntervalMs - 500) <= 20,
+          meanIntervalMs != null ? `mean interval ${fmt(meanIntervalMs, 1)} ms` : "fewer than 2 clicks after Stop",
         ),
       ];
     },
