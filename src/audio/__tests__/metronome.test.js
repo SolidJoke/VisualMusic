@@ -171,6 +171,9 @@ describe("metronome (VMU-056)", () => {
     const { startMetronome, stopMetronome } = await import("../metronome");
     const { playMusic } = await import("../transportOwner");
     playMusic(() => {}); // the sequencer's own togglePlayback, reporting Play
+    // playMusic's own internal stop()+start() (its position reset) is setup
+    // noise here — cleared so the assertion below is only about stopMetronome.
+    mockTransport.stop.mockClear();
 
     startMetronome(); // transport was already running (music playing) — this module did not start it
 
@@ -186,6 +189,7 @@ describe("metronome (VMU-056)", () => {
     const { playMusic } = await import("../transportOwner");
     playMusic(() => {}); // simulate the sequencer already having started it
     mockTransport.start.mockClear();
+    mockTransport.stop.mockClear();
 
     const { startMetronome, stopMetronome } = await import("../metronome");
     startMetronome();

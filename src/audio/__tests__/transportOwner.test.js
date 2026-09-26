@@ -77,11 +77,22 @@ describe("transportOwner (VMU-163-fix2 §4)", () => {
   it("Play does not start the transport again if the metronome already has it running", async () => {
     const { playMusic, enableMetronome } = await import("../transportOwner");
     enableMetronome(() => {});
+    mockTransport._ticks = 500; // metronome ran a while before Play
     mockTransport.start.mockClear();
+    mockTransport.stop.mockClear();
 
     playMusic(() => {});
 
-    expect(mockTransport.start).not.toHaveBeenCalled();
+    // Both calls happen — this is what actually resets position synchronously
+    // (see transportOwner.js's own docstring: setting `ticks = 0` directly
+    // does *not* take effect synchronously when the transport was already
+    // started, confirmed empirically against real Tone.js by the offline
+    // harness; a plain mock's `ticks` setter cannot catch that on its own,
+    // which is why this is asserted here against stop()/start() call counts
+    // rather than only against the mock's own `ticks` value).
+    expect(mockTransport.stop).toHaveBeenCalledTimes(1);
+    expect(mockTransport.start).toHaveBeenCalledTimes(1);
+    expect(mockTransport._ticks).toBe(0);
     expect(mockTransport.state).toBe("started");
   });
 
@@ -90,7 +101,11 @@ describe("transportOwner (VMU-163-fix2 §4)", () => {
   it("Stop clears the caller's steps and stops the transport when the metronome is off", async () => {
     const { playMusic, stopMusic } = await import("../transportOwner");
     playMusic(() => {});
+    // playMusic's own internal stop()+start() (part of its own position
+    // reset, see transportOwner.js) is setup noise here — cleared so this
+    // test's assertion is only about stopMusic's own call.
     mockTransport.start.mockClear();
+    mockTransport.stop.mockClear();
 
     const unregister = vi.fn();
     stopMusic(unregister);
@@ -103,6 +118,8 @@ describe("transportOwner (VMU-163-fix2 §4)", () => {
     const { playMusic, stopMusic, enableMetronome } = await import("../transportOwner");
     enableMetronome(() => {});
     playMusic(() => {});
+    // Same setup noise as above — playMusic's own stop()/start() already ran.
+    mockTransport.stop.mockClear();
 
     const unregister = vi.fn();
     stopMusic(unregister);
@@ -155,6 +172,8 @@ describe("transportOwner (VMU-163-fix2 §4)", () => {
     const { playMusic, enableMetronome, disableMetronome } = await import("../transportOwner");
     playMusic(() => {});
     enableMetronome(() => {});
+    // playMusic's own internal stop()/start() (setup noise) already ran.
+    mockTransport.stop.mockClear();
 
     disableMetronome(() => {});
 
@@ -177,13 +196,13 @@ describe("transportOwner (VMU-163-fix2 §4)", () => {
     expect(mockTransport.start).toHaveBeenCalledTimes(1);
   });
 
-  it("calling playMusic twice in a row starts the transport once but resets position and re-registers each time", async () => {
+  it("calling playMusic twice in a row resets position, restarts the transport and re-registers each time (a second Play always restarts the song)", async () => {
     const { playMusic } = await import("../transportOwner");
     const register = vi.fn();
     playMusic(register);
     playMusic(register);
 
-    expect(mockTransport.start).toHaveBeenCalledTimes(1);
+    expect(mockTransport.start).toHaveBeenCalledTimes(2);
     expect(register).toHaveBeenCalledTimes(2);
   });
 });

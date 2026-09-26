@@ -17,19 +17,17 @@
  * keeps it that way.
  *
  * - Play (`playMusic`) always restarts the song from its own beginning: it
- *   resets the transport to tick 0 *before* the caller's own repeat is
- *   registered, so step 0 of the music sounds at tick 0, not at the next
- *   16th-note boundary after the click (decision 2). The metronome (already
- *   running or not) re-anchors to that same zero for free — no code here
- *   touches it — because both `metronome.js` and `useSequencer.js` now
- *   register their repeats with an explicit start of `0` (decision 1, "one
- *   grid"), and Tone recomputes every repeat event's next fire time whenever
- *   the transport emits "ticks" or "start"
- *   (`TransportRepeatEvent._restart`, confirmed by reading
- *   node_modules/tone/build/esm/core/clock/TransportRepeatEvent.js:83-99 —
- *   `_restart` runs on `transport.on("start"|"loopStart"|"ticks", ...)` and
- *   recomputes `_nextTick` from `this.floatTime` (the event's own fixed
- *   anchor) against the transport's *current* ticks).
+ *   stops the transport (which resets its tick position to 0 — confirmed
+ *   below), then registers the caller's own repeat, then starts it again —
+ *   so step 0 of the music sounds at tick 0, not at the next 16th-note
+ *   boundary after the click (decision 2). The metronome (already running or
+ *   not) re-anchors to that same zero for free — no code here touches it —
+ *   because both `metronome.js` and `useSequencer.js` now register their
+ *   repeats with an explicit start of `0` (decision 1, "one grid"), and Tone
+ *   recomputes every repeat event's next fire time whenever the transport
+ *   emits "ticks" or "start" (`TransportRepeatEvent._restart`, confirmed by
+ *   reading node_modules/tone/build/esm/core/clock/TransportRepeatEvent.js:
+ *   83-99).
  * - Stop (`stopMusic`) stops the transport only if the metronome is off —
  *   turning the music off must never silence a metronome that is still on
  *   (VMU-056: it runs during playback *and* alone).
@@ -39,20 +37,31 @@
  * - Turning the metronome off (`disableMetronome`) stops the transport only
  *   if the music is not playing.
  *
- * ## Why `transport.ticks = 0` and not `stop(); start();`
+ * ## Why `stop(); register(); start();` and not `transport.ticks = 0`
  *
- * `Transport.js`'s `ticks` setter (node_modules/tone/build/esm/core/clock/
- * Transport.js:449-467): if the transport is already started, it emits
- * "stop" then "start" at the next tick boundary and repositions the clock —
- * exactly the re-anchoring every live repeat event needs — *without* the
- * caller having to decide whether the transport was already running (the
- * metronome might have started it long before Play). If the transport is
- * stopped, the setter just moves the tick pointer and emits "ticks" (same
- * `_restart` trigger). Calling `stop()` unconditionally, as the pre-fix
- * `togglePlayback` did, would work too when nothing else is running, but it
- * also collapses "is anything else allowed to keep this transport alive"
- * into a single blunt call — the exact bug measured in VMU-163-fix2 (Stop
- * silenced a metronome that was still marked "on").
+ * The first version of this function set `transport.ticks = 0` before
+ * registering, on the reasoning that `Transport.js`'s `ticks` setter
+ * (node_modules/tone/build/esm/core/clock/Transport.js:449-467) re-anchors
+ * every live repeat event by emitting "stop"/"start". **That reasoning was
+ * wrong in one case, caught by the offline harness, not by the mocked unit
+ * tests below** (VMU-163-fix2, own regression during this ticket): when the
+ * transport is already started (the metronome had it running before Play),
+ * that setter's own code schedules the reset for "the next tick boundary"
+ * (`time = now + remainingTick`) instead of applying it immediately — so a
+ * repeat registered right after still saw the *pre-reset* tick count at
+ * construction (confirmed with `metronome-then-play-midbar`'s debug
+ * instrumentation: `transport.ticks` read the old value, and zero step
+ * events were ever captured for the whole render). `transport.stop()`, by
+ * contrast, resets the tick position synchronously and unconditionally
+ * (confirmed the same way: `transport.ticks` reads `0` immediately after)
+ * regardless of whether the transport was running — which is also exactly
+ * what the pre-fix `Tone.Transport.stop(); Tone.Transport.start();` in
+ * `useSequencer.js`'s old `togglePlayback` did, and what the already-proven
+ * `metronome-phase-restart` scenario (this ticket's predecessor) relies on.
+ * The bug this ticket fixes was never in stopping-then-starting itself — it
+ * was in the *ordering* (registering before the restart, not after) and in
+ * the *anchor* (no explicit `0`); reusing the same primitive the app was
+ * already calling, just correctly ordered and anchored, is the fix.
  *
  * @module audio/transportOwner
  */
@@ -70,26 +79,26 @@ function transport() {
 /**
  * Play: the music always starts from its own beginning.
  *
- * `registerSteps(transport)` must synchronously register the caller's own
- * step repeat (with an explicit start of `0`, decision 1) — called here,
- * *after* the position reset and *before* the transport is (re)started, so
- * the first step is scheduled for the same tick the position was just reset
- * to (decision 2). Doing it in the other order — starting first, registering
- * later — is exactly the pre-fix bug: by the time a deferred registration
- * ran (a React effect, one render after `Tone.Transport.start()`), the
- * transport had already ticked forward by however long the render took
- * (measured 9.6 ms in the app), so the music's own grid anchored late
- * relative to the metronome's.
+ * `stop()` first — synchronously resets the tick position to 0, whether or
+ * not the transport was already running (see the module docstring's "why
+ * stop(); register(); start();" for what was tried and measured wrong).
+ * `registerSteps(transport)` then synchronously registers the caller's own
+ * step repeat (with an explicit start of `0`, decision 1), *before* the
+ * transport is started again, so the first step is scheduled for the same
+ * tick the position was just reset to (decision 2). Doing it in the other
+ * order — starting first, registering later — is the pre-fix bug: by the
+ * time a deferred registration ran (a React effect, one render after
+ * `Tone.Transport.start()`), the transport had already ticked forward by
+ * however long the render took (measured 9.6 ms in the app), so the music's
+ * own grid anchored late relative to the metronome's.
  *
  * @param {(transport: import("tone").Transport) => void} registerSteps
  */
 export function playMusic(registerSteps) {
-  transport().ticks = 0;
-  musicPlaying = true;
+  transport().stop();
   registerSteps(transport());
-  if (transport().state !== "started") {
-    transport().start();
-  }
+  musicPlaying = true;
+  transport().start();
 }
 
 /**
