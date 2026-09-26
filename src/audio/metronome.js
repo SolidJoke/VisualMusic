@@ -50,8 +50,6 @@ let clickSynth = null;
 let repeatId = null;
 /** True only when *this module* called `transport.start()` — the fact `stopMetronome` needs. */
 let startedTransportBySelf = false;
-/** 0..3, which beat of the bar the next scheduled click accents. */
-let beatIndex = 0;
 
 /**
  * Builds the click synth on first use and connects it to `masterAnalyser` —
@@ -86,23 +84,41 @@ export function isMetronomeScheduled() {
  * metronome works standalone, sequencer stopped — not only during playback.
  * `stopMetronome` is the matching teardown: it only stops what this function
  * started.
+ *
+ * The beat-in-bar is read from the transport's own position at the moment
+ * each click fires (`transport.getTicksAtTime(time)` against `transport.PPQ`
+ * and `transport.timeSignature`), not from a free-running counter (VMU-163).
+ * A module-level counter only ever resets when `startMetronome` itself is
+ * called again, so it silently drifted out of phase whenever something else
+ * reset the transport — `useSequencer.js`'s Play button does exactly that
+ * (`Tone.Transport.stop()` then `start()`) without touching this module at
+ * all. Deriving the beat from the transport's position instead means the
+ * click is locked to the music's own downbeat whatever restarted it.
  */
 export function startMetronome() {
   if (repeatId !== null) return;
 
-  beatIndex = 0;
   const synth = getClickSynth();
   const transport = Tone.getTransport();
 
   repeatId = transport.scheduleRepeat((time) => {
-    const isAccent = beatIndex % 4 === 0;
+    const ticks = transport.getTicksAtTime(time);
+    // `timeSignature` is typed `number | number[]` (Tone.js's own setter
+    // reduces an [n, d] pair to n/d*4 — replicated here since the getter's
+    // static type keeps both, even though this app never sets anything but
+    // the default 4/4).
+    const rawTimeSignature = transport.timeSignature;
+    const beatsPerBar = Array.isArray(rawTimeSignature)
+      ? (rawTimeSignature[0] / rawTimeSignature[1]) * 4
+      : rawTimeSignature;
+    const beatInBar = Math.round(ticks / transport.PPQ) % beatsPerBar;
+    const isAccent = beatInBar === 0;
     synth.triggerAttackRelease(
       isAccent ? ACCENT_NOTE : OFFBEAT_NOTE,
       CLICK_DURATION,
       time,
       CLICK_VELOCITY,
     );
-    beatIndex = (beatIndex + 1) % 4;
   }, BEAT_INTERVAL);
 
   if (transport.state !== "started") {
