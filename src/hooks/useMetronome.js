@@ -1,5 +1,5 @@
 // @ts-check
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { startMetronome, stopMetronome } from "../audio/metronome";
 
 /**
@@ -7,36 +7,26 @@ import { startMetronome, stopMetronome } from "../audio/metronome";
  *
  * Owns only the on/off UI state (no persistence — VMU-050 is a separate
  * ticket, so this always mounts off). All scheduling state (the transport
- * event id, whether this module started the transport) lives in the module
- * itself, which is what keeps `startMetronome`/`stopMetronome` idempotent
- * regardless of how many times this hook re-renders.
+ * event id) lives in metronome.js itself, and whether the transport is
+ * allowed to stop lives in `transportOwner.js` (VMU-163-fix2, decision 4) —
+ * which is what let this hook drop the `isPlaying` it used to thread through
+ * to `stopMetronome` just to answer "is it safe to stop the transport": the
+ * owner already knows, because useSequencer.js reports Play/Stop to that same
+ * module. `startMetronome`/`stopMetronome` stay idempotent regardless of how
+ * many times this hook re-renders.
  *
  * @param {Object} options
- * @param {boolean} options.isPlaying the sequencer's own isPlaying (useSequencer),
- *   read here only to tell stopMetronome whether an extinction is allowed to
- *   stop the transport — never used to start or stop playback itself.
  * @param {() => Promise<void>} options.ensureAudioReady the same audio-context
  *   unlock every other click-triggered sound in the app goes through
  *   (useAudioScheduler, via usePlaybackHandlers) — turning the metronome on
  *   before Play has ever been pressed needs it too.
  */
-export function useMetronome({ isPlaying, ensureAudioReady }) {
+export function useMetronome({ ensureAudioReady }) {
   const [metronomeOn, setMetronomeOn] = useState(false);
-
-  // Read, not depended-on: stopMetronome must see the *current* isPlaying at
-  // the moment it runs (toggle click, or unmount), not the value from
-  // whichever render created the callback. Synced via an effect, not written
-  // directly in the render body — a ref mutation during render is only safe
-  // for the narrow "nothing else reads it until after this render" case, and
-  // eslint-plugin-react-hooks (v7, React Compiler-based rules) flags it here.
-  const isPlayingRef = useRef(isPlaying);
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
 
   const toggleMetronome = useCallback(async () => {
     if (metronomeOn) {
-      stopMetronome({ isSequencerPlaying: isPlayingRef.current });
+      stopMetronome();
       setMetronomeOn(false);
     } else {
       await ensureAudioReady();
@@ -51,7 +41,7 @@ export function useMetronome({ isPlaying, ensureAudioReady }) {
   // scheduled — metronome.js guards both checks internally.
   useEffect(() => {
     return () => {
-      stopMetronome({ isSequencerPlaying: isPlayingRef.current });
+      stopMetronome();
     };
   }, []);
 

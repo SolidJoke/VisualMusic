@@ -13,13 +13,27 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * The module did not exist before this ticket, so every one of these was
  * red by construction (module not found) before the file below existed.
  *
- * VMU-163 adds: the accent is read from the transport's own tick position at
+ * VMU-163 added: the accent is read from the transport's own tick position at
  * the scheduled click time (`transport.getTicksAtTime(time)` / `transport.PPQ`
  * / `transport.timeSignature`), not from a module-level counter that only
- * resets when `startMetronome` itself (re)runs. The mock transport below
- * grows a settable `_ticks` and a `getTicksAtTime` that reads it, so a test
- * can simulate "the Studio's Play button stopped and restarted the transport
- * while the metronome kept running" without a real Tone.Transport.
+ * resets when `startMetronome` itself (re)runs.
+ *
+ * VMU-163-fix2 (decision 4): whether the transport itself starts or stops is
+ * no longer this module's decision — it delegates to `transportOwner.js`
+ * (real module, not mocked here: it is pure logic on top of the same mocked
+ * `Tone.getTransport()`, so exercising it through metronome.js's own public
+ * API is exactly what the four-transitions test in transportOwner.test.js
+ * does not cover — the *wiring*, not the rule itself). `stopMetronome()` no
+ * longer takes `{isSequencerPlaying}`: transportOwner already knows whether
+ * the music is playing, because useSequencer.js reports Play/Stop to it
+ * directly. Tests that used to simulate "the sequencer plays" by passing
+ * that option now do it by calling transportOwner.playMusic() directly, the
+ * same way useSequencer.js's togglePlayback does.
+ *
+ * The mock transport below grows a settable `_ticks` and a `getTicksAtTime`
+ * that reads it, plus a real `ticks` setter/getter and a mutable `state`, so
+ * a test can simulate "the Studio's Play button reset the transport to tick
+ * 0 while the metronome kept running" without a real Tone.Transport.
  *
  * Tone is mocked wholesale, same strategy as src/__tests__/BpmControls.test.jsx:
  * jsdom has no Web Audio (confirmed by AudioEngine.test.js — a real Tone.Synth
@@ -29,14 +43,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /** @type {{value: number} & {}} tracks every write to transport.bpm.value */
 let bpmWrites;
-let transportState;
 let scheduledCallback;
 let mockTransport;
 let synthInstances;
 
 function makeMockTransport() {
   bpmWrites = [];
-  transportState = "stopped";
   scheduledCallback = null;
 
   const bpmObj = {};
@@ -53,23 +65,31 @@ function makeMockTransport() {
     // "4n" scheduleRepeat lands on an exact multiple of PPQ every time.
     PPQ: 192,
     timeSignature: 4,
-    // Tests set this directly to simulate the transport's position at the
-    // moment a scheduled click fires — including a reset to 0 mid-run, which
-    // is what `Tone.Transport.stop(); start();` does on the Studio's Play.
     _ticks: 0,
-    get state() {
-      return transportState;
+    _state: "stopped",
+    get ticks() {
+      return transport._ticks;
     },
+    set ticks(t) {
+      transport._ticks = t;
+    },
+    get state() {
+      return transport._state;
+    },
+    // Tests set `_ticks` directly to simulate the transport's position at
+    // the moment a scheduled click fires — including a reset to 0 mid-run,
+    // which is what transportOwner.playMusic() does on the Studio's Play.
     scheduleRepeat: vi.fn((fn) => {
       scheduledCallback = fn;
       return "metronome-repeat-id";
     }),
     clear: vi.fn(),
     start: vi.fn(() => {
-      transportState = "started";
+      transport._state = "started";
     }),
     stop: vi.fn(() => {
-      transportState = "stopped";
+      transport._state = "stopped";
+      transport._ticks = 0;
     }),
     getTicksAtTime: vi.fn(() => transport._ticks),
   };
@@ -102,12 +122,14 @@ describe("metronome (VMU-056)", () => {
     mockTransport = makeMockTransport();
   });
 
-  it("starting schedules a repeating event at a quarter note (4n)", async () => {
+  it("starting schedules a repeating event at a quarter note (4n), anchored at tick 0 (VMU-163-fix2)", async () => {
     const { startMetronome } = await import("../metronome");
     startMetronome();
 
     expect(mockTransport.scheduleRepeat).toHaveBeenCalledTimes(1);
-    expect(mockTransport.scheduleRepeat.mock.calls[0][1]).toBe("4n");
+    const [, interval, startTime] = mockTransport.scheduleRepeat.mock.calls[0];
+    expect(interval).toBe("4n");
+    expect(startTime).toBe(0);
   });
 
   it("stopping clears the scheduled event", async () => {
@@ -140,16 +162,19 @@ describe("metronome (VMU-056)", () => {
     const { startMetronome, stopMetronome } = await import("../metronome");
     startMetronome();
 
-    stopMetronome({ isSequencerPlaying: false });
+    stopMetronome();
 
     expect(mockTransport.stop).toHaveBeenCalledTimes(1);
   });
 
-  it("stopping while the sequencer plays never stops the transport", async () => {
+  it("stopping while the sequencer plays never stops the transport (VMU-163-fix2: via transportOwner, not a passed flag)", async () => {
     const { startMetronome, stopMetronome } = await import("../metronome");
-    startMetronome(); // transport was stopped, so the module started it itself
+    const { playMusic } = await import("../transportOwner");
+    playMusic(() => {}); // the sequencer's own togglePlayback, reporting Play
 
-    stopMetronome({ isSequencerPlaying: true });
+    startMetronome(); // transport was already running (music playing) — this module did not start it
+
+    stopMetronome();
 
     expect(mockTransport.stop).not.toHaveBeenCalled();
     // The click itself is still torn down even though the transport is left running.
@@ -158,7 +183,8 @@ describe("metronome (VMU-056)", () => {
 
   it("does not start the transport again if it is already running (sequencer already playing)", async () => {
     mockTransport = makeMockTransport();
-    mockTransport.start(); // simulate the sequencer already having started it
+    const { playMusic } = await import("../transportOwner");
+    playMusic(() => {}); // simulate the sequencer already having started it
     mockTransport.start.mockClear();
 
     const { startMetronome, stopMetronome } = await import("../metronome");
@@ -166,8 +192,8 @@ describe("metronome (VMU-056)", () => {
     expect(mockTransport.start).not.toHaveBeenCalled();
 
     // And since this module never started it, turning the metronome back off
-    // must not stop it — even if the caller (wrongly) reports isSequencerPlaying: false.
-    stopMetronome({ isSequencerPlaying: false });
+    // must not stop it — the sequencer is still (per transportOwner) playing.
+    stopMetronome();
     expect(mockTransport.stop).not.toHaveBeenCalled();
   });
 
@@ -207,11 +233,11 @@ describe("metronome (VMU-056)", () => {
     mockTransport._ticks = mockTransport.PPQ;
     scheduledCallback(0.5);
 
-    // The Studio's Play button now does `Tone.Transport.stop(); start();`
-    // (useSequencer.js togglePlayback) — the transport's position resets to
-    // 0, but nothing tells metronome.js's own counter to reset. Before
-    // VMU-163, the next click was beat 2 of the module's free-running count
-    // (off-beat); the fix must read the transport itself and see tick 0.
+    // The Studio's Play button now resets the transport to tick 0 via
+    // transportOwner.playMusic() (useSequencer.js togglePlayback) — nothing
+    // tells metronome.js's own counter to reset. Before VMU-163, the next
+    // click was beat 2 of the module's free-running count (off-beat); the
+    // fix must read the transport itself and see tick 0.
     mockTransport._ticks = 0;
     scheduledCallback(1.0);
 
@@ -225,7 +251,7 @@ describe("metronome (VMU-056)", () => {
     startMetronome();
     // Simulate several ticks.
     for (let i = 0; i < 4; i++) scheduledCallback(i * 0.5);
-    stopMetronome({ isSequencerPlaying: true });
+    stopMetronome();
 
     expect(bpmWrites).toEqual([]);
   });

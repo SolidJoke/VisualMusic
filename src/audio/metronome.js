@@ -5,11 +5,17 @@
  * Owns exactly one piece of state: the id Tone.Transport hands back from
  * `scheduleRepeat`, `null` when nothing is scheduled. It never writes the
  * tempo — three call sites already do that (VMU-025 debt: AudioEngine.setBpm,
- * useSequencer.js:307 and :351) — it only reads whatever `Tone.getTransport()`
- * currently reports and schedules against it. Scheduling at a musical
- * interval ("4n") rather than a fixed number of seconds is what makes the
- * click follow tempo changes made elsewhere without this module doing
- * anything at all when the BPM badge is used.
+ * useSequencer.js's handleBpmChange and togglePlayback) — it only reads
+ * whatever `Tone.getTransport()` currently reports and schedules against it.
+ * Scheduling at a musical interval ("4n") rather than a fixed number of
+ * seconds is what makes the click follow tempo changes made elsewhere
+ * without this module doing anything at all when the BPM badge is used.
+ *
+ * Whether the transport itself is started or stopped is no longer this
+ * module's call (VMU-163-fix2, decision 4): `transportOwner.js` is the sole
+ * owner of that decision now, so a metronome running during playback and a
+ * Stop that must not silence a standalone metronome (VMU-056) are handled in
+ * one place instead of two modules each guessing at the other's state.
  *
  * `Tone.getTransport()` is used throughout, never the deprecated `Tone.Transport`
  * export. `Tone.Transport` is `getContext().transport` evaluated exactly once,
@@ -28,6 +34,7 @@
  */
 import * as Tone from "tone";
 import { masterAnalyser } from "./AudioEngine";
+import { enableMetronome, disableMetronome } from "./transportOwner";
 
 /** One metronome beat = one quarter note, so the click follows the transport's own 4/4 pulse. */
 const BEAT_INTERVAL = "4n";
@@ -48,8 +55,6 @@ const CLICK_VELOCITY = 0.8;
 let clickSynth = null;
 /** @type {number | null} the id `Tone.Transport.scheduleRepeat` returned, or null. */
 let repeatId = null;
-/** True only when *this module* called `transport.start()` — the fact `stopMetronome` needs. */
-let startedTransportBySelf = false;
 
 /**
  * Builds the click synth on first use and connects it to `masterAnalyser` —
@@ -80,75 +85,67 @@ export function isMetronomeScheduled() {
  * is what keeps React StrictMode's double-invoke (or a fast double click)
  * from producing two `scheduleRepeat` registrations and a doubled click.
  *
- * Starts the transport itself only if it is not already running, so the
- * metronome works standalone, sequencer stopped — not only during playback.
- * `stopMetronome` is the matching teardown: it only stops what this function
- * started.
+ * Registered with an explicit start of `0` (VMU-163-fix2, decision 1 — "one
+ * grid"): every repeating event the app puts on the transport is anchored to
+ * absolute tick 0, so a "4n" click and the sequencer's "16n" steps (also
+ * anchored at 0, see useSequencer.js) always share the same grid, whatever
+ * transport position was current when each was registered. Before this, no
+ * start time was passed, which defaults to "now" (`TransportTime`'s `_now()`
+ * reads `transport.seconds` at the moment of the call) — anchoring the click
+ * to wherever the transport happened to be instead of to true zero, which is
+ * exactly the ~237 ms drift measured when the metronome was switched on
+ * mid-playback (VMU-163-fix2 brief, sequence 2).
+ *
+ * Delegates whether the transport itself starts to `transportOwner.js`
+ * (VMU-163-fix2, decision 4): it runs if and only if the music is playing or
+ * the metronome is on, decided in one place instead of this module and
+ * useSequencer.js each keeping (and sometimes losing track of) their own
+ * flag.
  *
  * The beat-in-bar is read from the transport's own position at the moment
  * each click fires (`transport.getTicksAtTime(time)` against `transport.PPQ`
  * and `transport.timeSignature`), not from a free-running counter (VMU-163).
- * A module-level counter only ever resets when `startMetronome` itself is
- * called again, so it silently drifted out of phase whenever something else
- * reset the transport — `useSequencer.js`'s Play button does exactly that
- * (`Tone.Transport.stop()` then `start()`) without touching this module at
- * all. Deriving the beat from the transport's position instead means the
- * click is locked to the music's own downbeat whatever restarted it.
  */
 export function startMetronome() {
   if (repeatId !== null) return;
 
   const synth = getClickSynth();
-  const transport = Tone.getTransport();
 
-  repeatId = transport.scheduleRepeat((time) => {
-    const ticks = transport.getTicksAtTime(time);
-    // `timeSignature` is typed `number | number[]` (Tone.js's own setter
-    // reduces an [n, d] pair to n/d*4 — replicated here since the getter's
-    // static type keeps both, even though this app never sets anything but
-    // the default 4/4).
-    const rawTimeSignature = transport.timeSignature;
-    const beatsPerBar = Array.isArray(rawTimeSignature)
-      ? (rawTimeSignature[0] / rawTimeSignature[1]) * 4
-      : rawTimeSignature;
-    const beatInBar = Math.round(ticks / transport.PPQ) % beatsPerBar;
-    const isAccent = beatInBar === 0;
-    synth.triggerAttackRelease(
-      isAccent ? ACCENT_NOTE : OFFBEAT_NOTE,
-      CLICK_DURATION,
-      time,
-      CLICK_VELOCITY,
-    );
-  }, BEAT_INTERVAL);
-
-  if (transport.state !== "started") {
-    transport.start();
-    startedTransportBySelf = true;
-  } else {
-    startedTransportBySelf = false;
-  }
+  enableMetronome((transport) => {
+    repeatId = transport.scheduleRepeat((time) => {
+      const ticks = transport.getTicksAtTime(time);
+      // `timeSignature` is typed `number | number[]` (Tone.js's own setter
+      // reduces an [n, d] pair to n/d*4 — replicated here since the getter's
+      // static type keeps both, even though this app never sets anything but
+      // the default 4/4).
+      const rawTimeSignature = transport.timeSignature;
+      const beatsPerBar = Array.isArray(rawTimeSignature)
+        ? (rawTimeSignature[0] / rawTimeSignature[1]) * 4
+        : rawTimeSignature;
+      const beatInBar = Math.round(ticks / transport.PPQ) % beatsPerBar;
+      const isAccent = beatInBar === 0;
+      synth.triggerAttackRelease(
+        isAccent ? ACCENT_NOTE : OFFBEAT_NOTE,
+        CLICK_DURATION,
+        time,
+        CLICK_VELOCITY,
+      );
+    }, BEAT_INTERVAL, 0);
+  });
 }
 
 /**
- * Clears the click. Stops the transport only if this module started it *and*
- * the sequencer is not currently playing — turning the metronome off must
- * never cut playback already under way.
- *
- * @param {Object} [options]
- * @param {boolean} [options.isSequencerPlaying] the caller's `isPlaying`, read
- *   (never written) so this function can tell "I started this transport and
- *   nothing else needs it" from "I started it, but the sequencer took over".
+ * Clears the click. Whether the transport itself stops is
+ * `transportOwner.js`'s call (it stops only if the music is not playing) —
+ * this function no longer needs to be told (`isSequencerPlaying` is gone,
+ * VMU-163-fix2): the owner already knows, because `useSequencer.js` reports
+ * Play/Stop to the same module.
  */
-export function stopMetronome({ isSequencerPlaying = false } = {}) {
-  const transport = Tone.getTransport();
-
-  if (repeatId !== null) {
-    transport.clear(repeatId);
-    repeatId = null;
-  }
-
-  if (startedTransportBySelf && !isSequencerPlaying) {
-    transport.stop();
-  }
-  startedTransportBySelf = false;
+export function stopMetronome() {
+  disableMetronome((transport) => {
+    if (repeatId !== null) {
+      transport.clear(repeatId);
+      repeatId = null;
+    }
+  });
 }
