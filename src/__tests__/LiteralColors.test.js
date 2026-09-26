@@ -61,6 +61,10 @@ const SCOPE_FILES = [
 const EXPECTED_REMAINING = {
   "components/Common/Modal.css": ["rgba(0, 0, 0, 0.7)"],
   "components/Modals/HelpModal.css": ["rgba(0, 0, 0, 0.7)"],
+  // Mobile drawer's own full-screen scrim — same veil pattern as the modal
+  // overlay above (no token exists for a translucent backdrop), aligned to
+  // the same 0.7 alpha instead of leaving a second, slightly different one.
+  "components/Layout/BottomNav.css": ["rgba(0, 0, 0, 0.7)"],
   "components/Panels/StudioPanel.jsx": [
     "rgba(0,0,0,0.4)", // Playability gauge background — playability.color's block (brief point 4).
     "#ccc", // Same gauge block, "Score de Jouabilité" header label.

@@ -7,8 +7,8 @@
   left: 0;
   width: 100%;
   height: 64px;
-  background: var(--color-bg-app, #131313);
-  border-top: 1px solid var(--border-default, #262626);
+  background: var(--color-bg-app);
+  border-top: 1px solid var(--border-default);
   z-index: 3000;
   flex-direction: row;
   justify-content: space-evenly; /* était space-around */
@@ -20,7 +20,7 @@
 
 /* Glassmorphism mobile effect */
 .bottom-nav-container.glass {
-  background: rgba(19, 19, 19, 0.85);
+  background: var(--bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -35,7 +35,7 @@
   height: 100%;
   background: transparent;
   border: none;
-  color: #8a919e;
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: var(--font-body, "Hanken Grotesk", sans-serif);
@@ -51,19 +51,19 @@
 }
 
 .bottom-nav-btn:hover, .bottom-nav-btn:active {
-  color: #e5e2e1;
+  color: var(--text-primary);
 }
 
 .bottom-nav-btn.active {
-  color: #a6c8ff;
+  color: var(--select);
 }
 
 /* Special styling for play button */
 .bottom-nav-btn.btn-play.is-playing {
-  color: #32D583;
+  color: var(--color-success);
 }
 .bottom-nav-btn.btn-play:not(.is-playing) {
-  color: #e5e2e1;
+  color: var(--text-primary);
 }
 
 /* Drawer styles */
@@ -71,7 +71,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7); /* same veil as Modal.css/HelpModal.css/App.css - no token for a translucent scrim */
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index: 2900;
@@ -91,17 +91,17 @@
   bottom: 64px; /* Above BottomNav */
   left: 0;
   width: 100%;
-  background: var(--color-bg-app, #131313);
+  background: var(--color-bg-app);
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
-  border-top: 1px solid var(--border-default, #262626);
+  border-top: 1px solid var(--border-default);
   z-index: 2950;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: flex;
   flex-direction: column;
   max-height: 80vh;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+  box-shadow: var(--lg-shadow);
 }
 
 .mobile-drawer.is-open {
@@ -113,19 +113,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid var(--border-default, #262626);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .drawer-header h3 {
   margin: 0;
   font-size: 16px;
-  color: #e5e2e1;
+  color: var(--text-primary);
 }
 
 .drawer-close-btn {
-  background: #2a2a2a;
+  background: var(--surface-3);
   border: none;
-  color: #8a919e;
+  color: var(--text-muted);
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -147,10 +147,10 @@
 .drawer-content .sidebar-cta-btn {
   width: 100%;
   padding: 16px;
-  background: #1c1b1b;
-  border: 1px solid #262626;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
-  color: #e5e2e1;
+  color: var(--text-primary);
   font-size: 16px;
   font-weight: 600;
   text-align: left;
@@ -165,6 +165,6 @@
 
 @media (hover: none) {
   .bottom-nav-btn:hover {
-    color: #8a919e;
+    color: var(--text-muted);
   }
 }
