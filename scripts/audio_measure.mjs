@@ -438,6 +438,48 @@ const PLAN = [
     ],
   },
   {
+    id: "metronome-phase-restart",
+    title: "Metronome running, then a Studio-style Play restart mid-bar (VMU-163)",
+    spec: {
+      scenario: "metronome-phase-restart",
+      params: { bpm: 120, beatsBeforeRestart: 2, detectOnsets: true, classifyClickPitch: true },
+    },
+    why:
+      "VMU-163 decision 1: the accent must be read from the transport's own position, not a " +
+      "free-running counter that only resets when the metronome itself (re)starts. The metronome " +
+      "runs for 2 beats (not a multiple of 4), then a Play-style transport stop+start restart " +
+      "(useSequencer.js togglePlayback) happens mid-bar — the coordinator's decision 2: the accent " +
+      "must land exactly on the first click after Play, at beat 0.",
+    expect: (r) => {
+      const pitches = r.clickPitches ?? [];
+      const restartAt = r.restartAtSec ?? 0;
+      const afterRestart = pitches.filter((p) => p.timeSec >= restartAt - 0.005);
+      const first = afterRestart[0];
+      const pattern = afterRestart.map((p) => (p.isAccent ? "A" : ".")).join("");
+      return [
+        check("clicks detected before and after the restart", pitches.length >= 6, `${pitches.length} onsets`),
+        check(
+          "the first click after the Play restart is the accent",
+          !!first?.isAccent,
+          first
+            ? `at ${fmt(first.timeSec, 3)}s (restart at ${fmt(restartAt, 3)}s), ${first.isAccent ? "accent" : "off-beat"} (${fmt(first.freq, 1)} Hz)`
+            : "no click found after the restart",
+        ),
+        check(
+          "that first click lands within 5ms of the restart — beat 0, not an offset carried over from before Play",
+          !!first && Math.abs(first.timeSec - restartAt) < 0.005,
+          first ? `${fmt(Math.abs(first.timeSec - restartAt) * 1000, 1)} ms from the restart` : "no click found after the restart",
+        ),
+        check(
+          "the accent then recurs every 4 beats, off-beats in between",
+          afterRestart.length >= 5 &&
+            afterRestart.every((p, i) => p.isAccent === (i % 4 === 0)),
+          `pattern after restart: ${pattern}`,
+        ),
+      ];
+    },
+  },
+  {
     id: "default-progression",
     title: "The Studio's default four-chord pop loop, 120 BPM, default mixer",
     spec: { scenario: "default-progression" },

@@ -31,10 +31,15 @@ import { masterAnalyser } from "./AudioEngine";
 
 /** One metronome beat = one quarter note, so the click follows the transport's own 4/4 pulse. */
 const BEAT_INTERVAL = "4n";
-/** Beat 1 of the bar: higher pitch, per the coordinator's decision (pitch over level). */
-const ACCENT_NOTE = "C6";
+/**
+ * Beat 1 of the bar: higher pitch, per the coordinator's decision (pitch over
+ * level). Exported (VMU-163) so the audio harness can tell an accent click
+ * from an off-beat one by ear without duplicating the note name — see
+ * `src/audio/measure/offlineRender.js`'s "metronome-phase-restart" scenario.
+ */
+export const ACCENT_NOTE = "C6";
 /** Beats 2-4: same velocity, lower pitch — the only thing that distinguishes them. */
-const OFFBEAT_NOTE = "C5";
+export const OFFBEAT_NOTE = "C5";
 /** Short enough to read as a click, not a tone. */
 const CLICK_DURATION = 0.03;
 const CLICK_VELOCITY = 0.8;

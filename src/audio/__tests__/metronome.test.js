@@ -13,6 +13,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * The module did not exist before this ticket, so every one of these was
  * red by construction (module not found) before the file below existed.
  *
+ * VMU-163 adds: the accent is read from the transport's own tick position at
+ * the scheduled click time (`transport.getTicksAtTime(time)` / `transport.PPQ`
+ * / `transport.timeSignature`), not from a module-level counter that only
+ * resets when `startMetronome` itself (re)runs. The mock transport below
+ * grows a settable `_ticks` and a `getTicksAtTime` that reads it, so a test
+ * can simulate "the Studio's Play button stopped and restarted the transport
+ * while the metronome kept running" without a real Tone.Transport.
+ *
  * Tone is mocked wholesale, same strategy as src/__tests__/BpmControls.test.jsx:
  * jsdom has no Web Audio (confirmed by AudioEngine.test.js — a real Tone.Synth
  * cannot be constructed here), so the transport and the synth are both fakes
@@ -39,8 +47,16 @@ function makeMockTransport() {
     },
   });
 
-  return {
+  const transport = {
     bpm: bpmObj,
+    // VMU-163: 4/4, 192 ticks per quarter note — Tone's own defaults, so a
+    // "4n" scheduleRepeat lands on an exact multiple of PPQ every time.
+    PPQ: 192,
+    timeSignature: 4,
+    // Tests set this directly to simulate the transport's position at the
+    // moment a scheduled click fires — including a reset to 0 mid-run, which
+    // is what `Tone.Transport.stop(); start();` does on the Studio's Play.
+    _ticks: 0,
     get state() {
       return transportState;
     },
@@ -55,7 +71,9 @@ function makeMockTransport() {
     stop: vi.fn(() => {
       transportState = "stopped";
     }),
+    getTicksAtTime: vi.fn(() => transport._ticks),
   };
+  return transport;
 }
 
 vi.mock("tone", () => {
@@ -161,16 +179,45 @@ describe("metronome (VMU-056)", () => {
     expect(scheduledCallback).toBeTypeOf("function");
 
     const notesPlayed = [];
+    // 8 quarter-note ticks = two bars of 4, transport position advancing
+    // normally (no restart): ticks 0, 192, 384, ... — beats 0 and 4 accent.
     for (let i = 0; i < 8; i++) {
+      mockTransport._ticks = i * mockTransport.PPQ;
       scheduledCallback(i * 0.5);
     }
     synth.triggerAttackRelease.mock.calls.forEach((call) => notesPlayed.push(call[0]));
 
-    // 8 ticks = two bars of 4: beats 0 and 4 are the accent.
     expect(notesPlayed[0]).toBe(notesPlayed[4]); // both accents, same note
     expect(notesPlayed[1]).toBe(notesPlayed[2]);
     expect(notesPlayed[2]).toBe(notesPlayed[3]); // the three off-beats agree
     expect(notesPlayed[0]).not.toBe(notesPlayed[1]); // accent differs from off-beat
+  });
+
+  it("VMU-163: the accent is read from the transport's own position, not a free-running counter — a transport reset mid-run re-accents at tick 0", async () => {
+    const { startMetronome } = await import("../metronome");
+    startMetronome();
+
+    const synth = synthInstances[0];
+    expect(scheduledCallback).toBeTypeOf("function");
+
+    // Two clicks land normally: beat 0 (accent), beat 1 (off-beat) — same as
+    // the Studio's metronome running on its own before anyone hits Play.
+    mockTransport._ticks = 0;
+    scheduledCallback(0);
+    mockTransport._ticks = mockTransport.PPQ;
+    scheduledCallback(0.5);
+
+    // The Studio's Play button now does `Tone.Transport.stop(); start();`
+    // (useSequencer.js togglePlayback) — the transport's position resets to
+    // 0, but nothing tells metronome.js's own counter to reset. Before
+    // VMU-163, the next click was beat 2 of the module's free-running count
+    // (off-beat); the fix must read the transport itself and see tick 0.
+    mockTransport._ticks = 0;
+    scheduledCallback(1.0);
+
+    const notesPlayed = synth.triggerAttackRelease.mock.calls.map((call) => call[0]);
+    expect(notesPlayed[0]).not.toBe(notesPlayed[1]); // beat 0 accent, beat 1 off-beat, as before
+    expect(notesPlayed[2]).toBe(notesPlayed[0]); // post-reset tick 0 is the accent again
   });
 
   it("never writes the transport tempo — starting, ticking and stopping touch transport.bpm zero times", async () => {

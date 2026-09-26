@@ -48,7 +48,17 @@
  * @module audio/measure/offlineRender
  */
 import * as Tone from "tone";
-import { analyzeChannel, comparePitchContent, detectOnsets, gainReductionMetrics, levelMetrics } from "./signalMetrics";
+import {
+  analyzeChannel,
+  comparePitchContent,
+  detectOnsets,
+  gainReductionMetrics,
+  levelMetrics,
+  magnitudeSpectrum,
+  midiToFreq,
+  noteNameToMidi,
+  refinePeakBin,
+} from "./signalMetrics";
 
 /** Sample rate every measurement is taken at. */
 export const DEFAULT_SAMPLE_RATE = 44100;
@@ -182,6 +192,19 @@ export async function runScenario(spec) {
       })
     : null;
 
+  // Opt-in (VMU-163's "metronome-phase-restart" scenario): which onsets carry
+  // the accent pitch vs. the off-beat pitch. `diagnostics.accentNote` /
+  // `.offbeatNote` are set by the scenario body from metronome.js's own
+  // exported constants, so this file names no note itself.
+  const clickPitches =
+    params.classifyClickPitch && onsets && diagnostics.accentNote && diagnostics.offbeatNote
+      ? classifyClickPitches(post, onsets.onsets, {
+          sampleRate,
+          accentHz: midiToFreq(noteNameToMidi(diagnostics.accentNote)),
+          offbeatHz: midiToFreq(noteNameToMidi(diagnostics.offbeatNote)),
+        })
+      : null;
+
   return {
     ...diagnostics,
     renderedSamples: pre.length,
@@ -193,6 +216,7 @@ export async function runScenario(spec) {
     pitchVerdict: expectedNotes ? comparePitchContent(mix.pitches, expectedNotes) : null,
     expectedNotes,
     onsets,
+    clickPitches,
   };
 }
 
@@ -218,6 +242,56 @@ async function loadSamplers({ Tone: T, engine, diagnostics }) {
   diagnostics.pianoVoice = engine.getPianoSynth().constructor.name;
   diagnostics.guitarVoice = engine.getGuitarSynth().constructor.name;
   diagnostics.bassVoice = engine.bassSynth.constructor.name;
+}
+
+/**
+ * Classifies each detected onset as one of two known pitches, by finding the
+ * strongest spectral peak in a short window right after the onset (skipping
+ * the attack transient) and comparing it in cents to both candidates.
+ *
+ * VMU-163: the "metronome-phase-restart" scenario needs to say *which* click
+ * carries the accent, not just where the clicks fall — `detectOnsets` alone
+ * cannot tell an `ACCENT_NOTE` click from an `OFFBEAT_NOTE` one. The search
+ * band is clamped to the two candidate pitches themselves (¬20 %), so a
+ * harmonic of the lower note cannot be mistaken for the higher one.
+ *
+ * @param {Float32Array} samples the post-limiter mix (channel the click is heard in)
+ * @param {number[]} onsetTimesSec from `detectOnsets`
+ * @param {Object} options
+ * @param {number} options.sampleRate
+ * @param {number} options.accentHz
+ * @param {number} options.offbeatHz
+ * @param {number} [options.skipMs] time after the onset to start the analysis
+ *   window, to skip the attack transient (envelope attack is 1 ms — VMU-056)
+ * @param {number} [options.fftSize]
+ * @returns {Array<{ timeSec: number, isAccent: boolean, freq: number }>}
+ */
+function classifyClickPitches(samples, onsetTimesSec, options) {
+  const { sampleRate, accentHz, offbeatHz, skipMs = 4, fftSize = 1024 } = options;
+  const skipSamples = Math.round((skipMs / 1000) * sampleRate);
+  const loHz = Math.min(accentHz, offbeatHz) * 0.8;
+  const hiHz = Math.max(accentHz, offbeatHz) * 1.2;
+
+  return onsetTimesSec.map((t) => {
+    const offset = Math.round(t * sampleRate) + skipSamples;
+    const { magnitudes, binHz } = magnitudeSpectrum(samples, { sampleRate, fftSize, offset });
+    const loBin = Math.max(1, Math.floor(loHz / binHz));
+    const hiBin = Math.min(magnitudes.length - 2, Math.ceil(hiHz / binHz));
+
+    let peakBin = loBin;
+    let peakMag = -Infinity;
+    for (let k = loBin; k <= hiBin; k++) {
+      if (magnitudes[k] > peakMag) {
+        peakMag = magnitudes[k];
+        peakBin = k;
+      }
+    }
+    const freq = refinePeakBin(magnitudes, peakBin) * binHz;
+    const toAccentCents = Math.abs(1200 * Math.log2(freq / accentHz));
+    const toOffbeatCents = Math.abs(1200 * Math.log2(freq / offbeatHz));
+
+    return { timeSec: t, isAccent: toAccentCents < toOffbeatCents, freq };
+  });
 }
 
 /**
@@ -376,6 +450,49 @@ export const SCENARIOS = {
       diagnostics.bpm = bpm;
       diagnostics.note =
         "metronome alone, sequencer not playing (VMU-056); transport started by the module itself, not by this scenario";
+    },
+  },
+
+  /**
+   * VMU-163: the metronome already running, then a Studio-style Play restart
+   * (`Tone.Transport.stop(); start();`, exactly `useSequencer.js`'s
+   * `togglePlayback`) a non-multiple-of-4 number of beats later. Proves
+   * decision 1 of the brief — the accent is read from the transport's own
+   * tick position at click time, not from a free-running counter that only
+   * resets when the metronome itself (re)starts — by classifying which pitch
+   * each click carries (`classifyClickPitches` above, wired through
+   * `runScenario`'s `clickPitches`). Before the fix the module's own
+   * `beatIndex` keeps counting through the restart, so the first click after
+   * Play lands on the wrong beat of the bar.
+   *
+   * The restart is scheduled with an explicit `time` on `stop`/`start` rather
+   * than called bare: this body runs entirely before `Tone.Offline` renders,
+   * so there is no live "now" to press Play at — only a point on the offline
+   * timeline to schedule the same two calls the real Play button makes.
+   */
+  "metronome-phase-restart": {
+    durationSec: 5.6,
+    async body(ctx) {
+      const { Tone: T, params, diagnostics } = ctx;
+      const bpm = params.bpm ?? 120;
+      const transport = T.getTransport();
+      transport.bpm.value = bpm;
+
+      const metronomeMod = await import("../metronome");
+      metronomeMod.startMetronome();
+      diagnostics.accentNote = metronomeMod.ACCENT_NOTE;
+      diagnostics.offbeatNote = metronomeMod.OFFBEAT_NOTE;
+
+      const beatsBeforeRestart = params.beatsBeforeRestart ?? 2;
+      const restartAtSec = (60 / bpm) * beatsBeforeRestart;
+      transport.stop(restartAtSec);
+      transport.start(restartAtSec);
+
+      diagnostics.bpm = bpm;
+      diagnostics.beatsBeforeRestart = beatsBeforeRestart;
+      diagnostics.restartAtSec = restartAtSec;
+      diagnostics.note =
+        "metronome running, then a Play-style transport stop+start restart 2 beats in (not a multiple of 4) — VMU-163";
     },
   },
 
