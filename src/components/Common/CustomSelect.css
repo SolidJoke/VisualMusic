@@ -20,11 +20,11 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: 44px;
     box-sizing: border-box;
-    background: rgba(20, 25, 35, 0.7); /* More opaque */
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
     backdrop-filter: blur(12px);
     color: var(--text-primary);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: var(--lg-shadow);
 }
 
 .custom-select-header:hover {
@@ -91,7 +91,7 @@
        482px budget, a 32px padding+border overshoot). */
     box-sizing: border-box;
     width: min(400px, 90vw);
-    background: rgba(15, 20, 30, 0.95);
+    background: var(--surface-2);
     backdrop-filter: blur(30px);
     border: 1px solid var(--accent);
     border-radius: 16px;
@@ -100,7 +100,7 @@
        explicit rather than relying on DOM insertion order between this
        portal and Modal's own portal, both of which target document.body. */
     z-index: 10000;
-    box-shadow: 0 25px 80px rgba(0,0,0,0.9), 0 0 30px var(--accent-glow);
+    box-shadow: var(--lg-shadow), 0 0 30px var(--accent-glow);
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 10px;
@@ -148,7 +148,7 @@
     letter-spacing: 0.1em;
     margin-bottom: 8px;
     padding-left: 5px;
-    border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+    border-bottom: 1px solid var(--select);
     padding-bottom: 4px;
 }
 
@@ -156,8 +156,8 @@
     padding: 12px;
     cursor: pointer;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--surface-3);
+    border: 1px solid var(--border-subtle);
     color: var(--text-secondary);
     font-size: 0.95rem;
     transition: all 0.2s ease;
@@ -177,7 +177,7 @@
 
 .select-item.selected {
     background: var(--accent);
-    color: #000;
+    color: var(--on-role);
     font-weight: 700;
     box-shadow: 0 0 15px var(--accent);
 }

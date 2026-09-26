@@ -43,31 +43,31 @@ const TheoryLegend = () => {
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "var(--role-root)", boxShadow: "0 0 10px var(--role-root)" }}></div>
-            <span style={{ fontWeight: "bold", color: "#fff" }}>{txt.rootLegend || "Fondamentale (1)"}</span>
+            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "var(--role-root)" }}></div>
+            <span style={{ fontWeight: "bold", color: "var(--text-primary)" }}>{txt.rootLegend || "Fondamentale (1)"}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "var(--role-third)", boxShadow: "0 0 10px var(--role-third)" }}></div>
-            <span style={{ fontWeight: "bold", color: "#fff" }}>{txt.thirdLegend || "Tierce (3)"}</span>
+            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "var(--role-third)" }}></div>
+            <span style={{ fontWeight: "bold", color: "var(--text-primary)" }}>{txt.thirdLegend || "Tierce (3)"}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "var(--role-fifth)", boxShadow: "0 0 10px var(--role-fifth)" }}></div>
-            <span style={{ fontWeight: "bold", color: "#fff" }}>{txt.fifthLegend || "Quinte (5)"}</span>
+            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "var(--role-fifth)" }}></div>
+            <span style={{ fontWeight: "bold", color: "var(--text-primary)" }}>{txt.fifthLegend || "Quinte (5)"}</span>
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "2px solid rgba(255,255,255,0.4)" }}></div>
+            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "var(--role-scale)", border: "2px solid var(--role-scale-edge)" }}></div>
             <span style={{ fontWeight: "bold", color: "var(--text-secondary)" }}>{txt.scaleLegend || "Note de la Gamme"}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "var(--role-target)", boxShadow: "0 0 12px var(--role-target)" }}></div>
+            <div className="legend-dot" style={{ width: "14px", height: "14px", borderRadius: "50%", background: "var(--role-target)" }}></div>
             <span style={{ fontWeight: "bold", color: "var(--role-target)" }}>{txt.targetLegend || "Note Magique (Target)"}</span>
           </div>
         </div>
 
-        <div style={{ gridColumn: "1 / -1", paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.1)", fontSize: "12px", color: "var(--text-dim)", fontStyle: "italic", opacity: 0.8 }}>
+        <div style={{ gridColumn: "1 / -1", paddingTop: "12px", borderTop: "1px solid var(--border-subtle)", fontSize: "12px", color: "var(--text-dim)", fontStyle: "italic", opacity: 0.8 }}>
           {txt.numbersExplanation1} {txt.numbersExplanation2}
         </div>
       </div>
