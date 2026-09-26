@@ -5,23 +5,36 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // single step can be run by hand.
 const loop = vi.hoisted(() => ({ repeat: null }));
 
-vi.mock("tone", () => ({
-  start: vi.fn(() => Promise.resolve()),
-  now: vi.fn(() => 0),
-  context: { lookAhead: 0.1 },
-  Transport: {
+vi.mock("tone", () => {
+  // transportOwner.js (VMU-163-fix2) reads Tone.getTransport(), never the
+  // deprecated Tone.Transport — same object either way.
+  const transport = {
     bpm: { value: 120 },
+    state: "stopped",
+    ticks: 0,
     scheduleRepeat: vi.fn((cb) => {
       loop.repeat = cb;
       return 1;
     }),
     clear: vi.fn(),
-    start: vi.fn(),
-    stop: vi.fn(),
-  },
-  Draw: { schedule: (fn) => fn() },
-  Destination: { volume: { value: 0, rampTo: vi.fn() } },
-}));
+    start: vi.fn(function () {
+      this.state = "started";
+    }),
+    stop: vi.fn(function () {
+      this.state = "stopped";
+      this.ticks = 0;
+    }),
+  };
+  return {
+    start: vi.fn(() => Promise.resolve()),
+    now: vi.fn(() => 0),
+    context: { lookAhead: 0.1 },
+    Transport: transport,
+    getTransport: () => transport,
+    Draw: { schedule: (fn) => fn() },
+    Destination: { volume: { value: 0, rampTo: vi.fn() } },
+  };
+});
 
 vi.mock("../AudioEngine", () => ({
   kickSynth: { triggerAttackRelease: vi.fn() },
