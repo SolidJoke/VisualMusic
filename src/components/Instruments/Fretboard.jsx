@@ -9,8 +9,23 @@ import { useMediaQuery, useLandscapeMode } from "../../hooks/useMediaQuery";
 // Do NOT compute from window dimensions (no SSR safety, breaks on resize).
 const STRING_HEIGHT = 36;
 
+// orientation="vertical" (S1 prototype): fret-number colour for the frets
+// that carry an inlay on a real neck (spec §4). The vertical neck draws no
+// inlay dots: the number in the gutter carries that landmark instead.
+const VERTICAL_INLAY_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
+
+/**
+ * @param {object} props
+ * @param {"guitar"|"bass"} [props.instrument]
+ * @param {"horizontal"|"vertical"} [props.orientation] - S1 prototype
+ *   (`?prototype=a`) only. Default "horizontal": the app never passes it, and
+ *   the horizontal render is unchanged. "vertical" turns the geometry, never
+ *   the text: nut at the top, frets downwards at equal spacing, low strings
+ *   on the left, every fret 0..numFrets shown.
+ */
 function Fretboard({
-  instrument = "guitar"
+  instrument = "guitar",
+  orientation = "horizontal",
 }) {
   const {
     strings,
@@ -239,6 +254,124 @@ function Fretboard({
       </div>
     );
   };
+
+  if (orientation === "vertical") {
+    // Columns left to right = low string to high string. `strings` is in
+    // display order for the horizontal neck (high string first), and every
+    // fingering map is keyed by that index: keep the index, reverse the order.
+    const columns = strings.map((raw, stringIndex) => ({ raw, stringIndex })).reverse();
+    const outOfRange = fingering?.isOutOfRange || isOutOfRange;
+    const barre = barreData[0];
+    const frets = Array.from({ length: numFrets + 1 }, (_, fret) => fret);
+
+    const metaFor = (stringIndex, fret, openStringAbsValue) =>
+      computeFretMetadata({
+        stringIndex, fret, openStringAbsValue, activeNotes,
+        currentlyPlayingNotes, contextualScaleAbsoluteValues,
+        activePath, dictType, fingering, instrument,
+        rootValue, targetValues, showFingering, showFingerNumbers,
+        singlePlayContext, notation, scaleAnchor, appMode
+      });
+
+    return (
+      <div
+        className={`fretboard-container fretboard-container--vertical instrument-${instrument} ${outOfRange ? "is-out-of-range" : ""}`}
+        data-orientation="vertical"
+        style={{ "--fbv-strings": columns.length }}
+        title={fingering?.isOutOfRange ? "⚠️ Accord hors tessiture instrument" : ""}
+      >
+        <div className={`fretboard-vertical ${outOfRange ? "fretboard--out-of-range" : ""}`}>
+          {outOfRange && <div className="range-warning">🚫 Out of Range</div>}
+
+          {/* Open-string names, then the X / O / M status row. */}
+          <div className="fbv-row fbv-row--head">
+            <div className="fbv-gutter" />
+            {columns.map(({ raw, stringIndex }, col) => (
+              <div key={`name-${stringIndex}`} className="fbv-cell" data-string-index={stringIndex} style={{ gridColumn: col + 2 }}>
+                <span className="open-string-name">
+                  {metaFor(stringIndex, 0, getAbsoluteNoteValue(raw)).noteName}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="fbv-row fbv-row--head">
+            <div className="fbv-gutter" />
+            {columns.map(({ stringIndex }, col) => {
+              const resolvedStatus = resolveStringStatus(fingering, stringIndex);
+              let status = "";
+              let statusClass = "";
+              if (resolvedStatus === "muted") { status = "X"; statusClass = "is-muted"; }
+              else if (resolvedStatus === "open") { status = "O"; statusClass = "is-open"; }
+              else if (resolvedStatus === "muffled") { status = "M"; statusClass = "is-muffled"; }
+              return (
+                <div key={`status-${stringIndex}`} className="fbv-cell" style={{ gridColumn: col + 2 }}>
+                  {status && <span className={`string-status-symbol ${statusClass}`}>{status}</span>}
+                </div>
+              );
+            })}
+          </div>
+
+          {frets.map((fret) => {
+            const inZone = fretboardZone === "all" ||
+              (fretboardZone === "open" && fret <= 4) ||
+              (fretboardZone === "mid" && fret >= 5 && fret <= 9) ||
+              (fretboardZone === "high" && fret >= 10 && fret <= 14);
+            const hasBarre = barre && barre.fret === fret;
+            return (
+              <div
+                key={`fret-row-${fret}`}
+                className={`fbv-row fbv-fret-row ${fret === 0 ? "fbv-row--open" : ""}`}
+                data-fret={fret}
+              >
+                <div className="fbv-gutter">
+                  <span className={`fbv-fret-number ${VERTICAL_INLAY_FRETS.includes(fret) ? "is-inlay" : ""}`}>{fret}</span>
+                </div>
+                {hasBarre && (
+                  <div
+                    className="fretboard-barre-indicator fbv-barre"
+                    style={{
+                      // Grid lines: gutter is line 1..2, column c spans c+2..c+3.
+                      gridColumn: `${columns.length - 1 - barre.maxVisual + 2} / ${columns.length - 1 - barre.minVisual + 3}`,
+                    }}
+                  />
+                )}
+                {columns.map(({ raw, stringIndex }, col) => {
+                  const meta = metaFor(stringIndex, fret, getAbsoluteNoteValue(raw));
+                  const showMarker = meta.isActive || meta.isPlaying;
+                  return (
+                    <div
+                      key={`cell-${stringIndex}-${fret}`}
+                      className={`fbv-cell fret ${fret === 0 ? "open-string" : ""}`}
+                      data-string-index={stringIndex}
+                      data-abs={meta.absoluteValue}
+                      style={{ gridColumn: col + 2 }}
+                      onClick={() => onNoteClick && onNoteClick(`${meta.noteInfo.us}${Math.floor(meta.absoluteValue / 12) - 1}`, {
+                        instrument, stringIndex, fret
+                      })}
+                    >
+                      <div
+                        className="string-line fbv-string-line"
+                        style={{ width: `${(instrument === "bass" ? 5 : 4) - col * 0.5}px` }}
+                      />
+                      {showMarker && (
+                        <div
+                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""} ${fret === 0 ? "open-marker" : ""}`}
+                          title={`${meta.noteInfo.us} / ${meta.noteInfo.eu}`}
+                          style={{ opacity: inZone ? 1 : 0.25 }}
+                        >
+                          {meta.label}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

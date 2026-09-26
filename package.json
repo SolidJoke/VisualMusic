@@ -16,7 +16,8 @@
     "audio:measure": "node scripts/audio_measure.mjs",
     "audio:check": "node scripts/audio_measure.mjs --assert",
     "layout:probe": "node scripts/layout_probe.mjs",
-    "style:probe": "node scripts/style_probe.mjs"
+    "style:probe": "node scripts/style_probe.mjs",
+    "s1:probe": "node scripts/s1_probe.mjs"
   },
   "dependencies": {
     "@tonaljs/tonal": "^4.10.0",

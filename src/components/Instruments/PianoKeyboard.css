@@ -323,3 +323,87 @@
   opacity: 0.7;
   pointer-events: none;
 }
+
+/* === orientation="vertical" (S1 prototype, ?prototype=a) ===
+   Everything below is scoped to .piano-vertical: the horizontal keyboard
+   never carries that class, so none of these rules can reach it.
+   Geometry turns, text never does: high notes at the top, black keys on the
+   left (the horizontal keyboard turned a quarter-turn to the left). */
+.piano-wrapper--vertical {
+    --piano-v-key: 62px;     /* white-key thickness (spec S1-8: >= 52px, mock-up 62px) */
+    --piano-v-black: 36px;   /* black-key thickness (S1-8: >= 30px) */
+    --piano-v-width: 200px;  /* white-key length */
+    --piano-v-black-len: 120px;
+    align-items: flex-start;
+    gap: 0;
+}
+
+.piano-vertical {
+    position: relative;
+    width: var(--piano-v-width, 200px);
+    height: calc(var(--piano-v-key, 62px) * var(--piano-v-count, 29));
+    flex-shrink: 0;
+}
+
+.piano-vertical .piano-key {
+    position: absolute;
+    left: 0;
+    padding: 0;
+    align-items: center;
+    font-size: var(--fs-label);
+}
+
+.piano-vertical .white-key {
+    width: var(--piano-v-width, 200px);
+    height: var(--piano-v-key, 62px);
+    background-color: var(--key-white);
+    color: var(--on-role);
+    border: 1px solid var(--key-edge);
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+    /* Label on the front of the key, right of the black keys. */
+    justify-content: flex-end;
+    padding-right: 10px;
+}
+
+.piano-vertical .white-key:hover {
+    background-color: var(--key-white);
+    filter: brightness(1.05);
+}
+
+.piano-vertical .black-key {
+    width: var(--piano-v-black-len, 120px);
+    height: var(--piano-v-black, 36px);
+    background-color: var(--key-black);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    z-index: 30;
+    justify-content: flex-end;
+    padding-right: 8px;
+}
+
+.piano-vertical .note-label {
+    /* One line: name, flat equivalent, degree side by side. */
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-shadow: none;
+    font-size: var(--fs-label);
+}
+
+/* Every part of a label at the label size (spec S1-1, >= 18px at 3840):
+   the horizontal keyboard shrinks the flat name and the degree (0.85em /
+   0.8em), and the harmonic ranks are inline 10px / 9px. */
+.piano-vertical .note-label * {
+    font-size: inherit !important;
+}
+
+.piano-vertical .piano-octave-name {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    color: var(--on-role);
+}
