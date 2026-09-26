@@ -153,8 +153,8 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
       labelContent = (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1.2 }}>
           <span>{noteInfo[notation]}</span>
-          <span style={{ fontSize: "10px", color: "#ffb74d", fontWeight: "bold" }}>H{rank}</span>
-          <span style={{ fontSize: "9px", color: "#90caf9" }}>{devStr}¢</span>
+          <span style={{ fontSize: "10px", color: "var(--color-warning)", fontWeight: "bold" }}>H{rank}</span>
+          <span style={{ fontSize: "9px", color: "var(--text-secondary)" }}>{devStr}¢</span>
         </div>
       );
     }
