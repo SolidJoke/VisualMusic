@@ -71,6 +71,13 @@ const EXPECTED_REMAINING = {
     "rgba(255,255,255,0.1)", // Same gauge block, score-bar track.
     "#aaa", // Same gauge block, per-detail text.
   ],
+  // spec §6 names this exact line (AudioVisualizer.jsx:34) for a
+  // getComputedStyle read of --bg instead of a literal: Canvas 2D's
+  // fillStyle cannot read a CSS custom property directly, so the rgba()
+  // string here is built at runtime from --bg's *resolved* r/g/b, not a
+  // hardcoded color — the regex just can't tell a template literal's
+  // interpolations from a literal number.
+  "components/Visualizer/AudioVisualizer.jsx": ["rgba(${bgR}, ${bgG}, ${bgB}, 0.4)"],
 };
 // App.css's own modal-veil rgba(0, 0, 0, 0.7) — file is outside src/components
 // so it is asserted separately below, not through EXPECTED_REMAINING.
