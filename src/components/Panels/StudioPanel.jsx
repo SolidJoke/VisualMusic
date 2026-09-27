@@ -75,6 +75,15 @@ const StudioPanel = ({
   ) : [];
 
   const playability = calculatePlayabilityScore(currentChords);
+  // VMU-162 (spec F1 §6): calculatePlayabilityScore returns a `level`
+  // ('ok'|'warn'|'hard') instead of a color — this is the one color->state
+  // mapping this ticket touches in this file. The rest of the file's
+  // hard-coded colors (F1b) are a separate emplacement, untouched here.
+  const playabilityColor = {
+    ok: 'var(--color-success)',
+    warn: 'var(--color-warning)',
+    hard: 'var(--color-error)',
+  }[playability.level] || 'var(--color-success)';
 
   return (
     <div
@@ -420,7 +429,7 @@ const StudioPanel = ({
             padding: "15px",
             background: "rgba(0,0,0,0.4)",
             borderRadius: "12px",
-            border: `1px solid ${playability.color}40`,
+            border: `1px solid ${playabilityColor}`,
             textAlign: "center"
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", color: "#ccc", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>
@@ -428,23 +437,23 @@ const StudioPanel = ({
               <InfoTooltip text={txt.tooltip?.playabilityScore} />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "15px", justifyContent: "center" }}>
-              <div style={{ 
-                fontSize: "24px", 
-                fontWeight: "bold", 
-                color: playability.color,
-                textShadow: `0 0 10px ${playability.color}80` 
+              <div style={{
+                fontSize: "24px",
+                fontWeight: "bold",
+                color: playabilityColor,
+                textShadow: `0 0 10px ${playabilityColor}`
               }}>
                 {playability.score}/100
               </div>
-              <div style={{ fontSize: "14px", color: playability.color }}>
+              <div style={{ fontSize: "14px", color: playabilityColor }}>
                 {playability.label}
               </div>
             </div>
-            
-            <div style={{ 
-              width: "100%", 
-              height: "6px", 
-              background: "rgba(255,255,255,0.1)", 
+
+            <div style={{
+              width: "100%",
+              height: "6px",
+              background: "rgba(255,255,255,0.1)",
               borderRadius: "3px",
               marginTop: "10px",
               overflow: "hidden"
@@ -452,7 +461,7 @@ const StudioPanel = ({
               <div style={{
                 width: `${playability.score}%`,
                 height: "100%",
-                background: playability.color,
+                background: playabilityColor,
                 transition: "width 0.5s ease-in-out"
               }} />
             </div>
