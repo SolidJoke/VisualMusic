@@ -83,7 +83,7 @@
 
 .theme-modern .step-lamp--current {
   outline: 1px solid var(--select);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px var(--lg-accent-glow);
 }
 
 /* Zoomed state */
@@ -114,7 +114,7 @@
 
 .theme-modern .note-marker {
   box-shadow: none;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--border-subtle);
   font-family: var(--font-body);
   font-weight: 600;
   font-size: var(--fs-label);
