@@ -2,8 +2,9 @@ import { describe, it, expect } from "vitest";
 import { BRICKS } from "../bricks";
 import extendedTheoryData from "../extendedTheoryData.json";
 import { chordsFromProgression } from "../timeline";
-import { getScaleNotes } from "../theory";
+import { getChordShortName, getScaleNotes } from "../theory";
 import { realizeChordFromType } from "../noteEngine";
+import { isQuickStartLoaded, quickStartPatterns, quickStartProgression as adapt } from "../quickStart";
 
 /**
  * VMU-161 — in the Studio, a Quick Start adapts to the style the way a
@@ -33,18 +34,12 @@ import { realizeChordFromType } from "../noteEngine";
  * degrees the Studio hands to `customProgression`. The test goes through the
  * app's own `chordsFromProgression`, not through the module's internals.
  *
- * Predicted red (before the module exists, so the Quick Start's own degrees
- * are what plays: the app today): "style chords" 111 couples / 385 notes of
+ * Predicted red (run before the module existed, so the Quick Start's own
+ * degrees were what played: the app today): "style chords" 111 couples / 385 notes of
  * 1728 (the coordinator's measure, to be reproduced by this run); "classic
  * cadence" fails on the couples whose wrong notes are not only the V's. The
  * controls and the data-shape checks are green before and after.
  */
-
-// The module does not exist yet at the red commit; a glob over its path
-// resolves to nothing then (an import would fail on resolution instead of on
-// the property). Replaced by a plain import in the commit that adds it.
-const modules = import.meta.glob("../quickStart.js", { eager: true });
-const adapt = Object.values(modules)[0]?.quickStartProgression ?? ((quickStart) => quickStart.degrees);
 
 const QUICK_STARTS = extendedTheoryData.axiomRules.progressions;
 
@@ -138,5 +133,75 @@ describe("VMU-161 — a Quick Start adapts to the style (predicted red: 111 coup
   it("classic cadence: only the V chord may leave the scale, on the 135 couples", () => {
     const { couples, outsideCount } = measure(true);
     expect({ couples: couples.length, outsideNotes: outsideCount }).toEqual({ couples: 0, outsideNotes: 0 });
+  });
+});
+
+// The chords a musician would name, written out by hand from the scales:
+// E phrygian E F G A B C D, E dorian E F# G A B C# D, G mixolydian G A B C D E F.
+describe("VMU-161 — what it plays (expected chords written from the scales)", () => {
+  const byId = (id) => QUICK_STARTS.find((q) => q.id === id);
+  const E_PHRYGIAN = { rootValue: 4, scaleKey: "scale_phrygian" };
+  const E_DORIAN = { rootValue: 4, scaleKey: "scale_dorian" };
+  const G_MIXOLYDIAN = { rootValue: 7, scaleKey: "scale_mixolydian" };
+  const named = (key, quickStart, options) => {
+    const progression = adapt(byId(quickStart), key, options);
+    return resolved(key, progression).map((c) => getChordShortName(c.rootPc, c.type));
+  };
+
+  it("II-V-I on E phrygian: Fmaj7, Bm7b5, Em7 — and with the classic cadence, B7 for the V", () => {
+    expect(named(E_PHRYGIAN, "jazz_251_maj", {})).toEqual(["Fmaj7", "Bm7b5", "Em7"]);
+    expect(named(E_PHRYGIAN, "jazz_251_maj", { classicCadence: true })).toEqual(["Fmaj7", "B7", "Em7"]);
+  });
+
+  it("II-V-I on E dorian: F#m7, Bm7, Em7; with the cadence B7", () => {
+    expect(named(E_DORIAN, "jazz_251_maj", {})).toEqual(["F#m7", "Bm7", "Em7"]);
+    expect(named(E_DORIAN, "jazz_251_maj", { classicCadence: true })).toEqual(["F#m7", "B7", "Em7"]);
+  });
+
+  it("II-V-I on G mixolydian: Am7, Dm7, G7; with the cadence D7", () => {
+    expect(named(G_MIXOLYDIAN, "jazz_251_maj", {})).toEqual(["Am7", "Dm7", "G7"]);
+    expect(named(G_MIXOLYDIAN, "jazz_251_maj", { classicCadence: true })).toEqual(["Am7", "D7", "G7"]);
+  });
+
+  it("a Quick Start of triads stays triads (Pop I-V-vi-IV on G mixolydian: G, Dm, Em, C; cadence: D major)", () => {
+    expect(named(G_MIXOLYDIAN, "pop_1564", {})).toEqual(["G", "Dm", "Em", "C"]);
+    expect(named(G_MIXOLYDIAN, "pop_1564", { classicCadence: true })).toEqual(["G", "D", "Em", "C"]);
+  });
+
+  it("on a major style the Quick Start is what the major scale gives (C: Dm7, G7, Cmaj7)", () => {
+    expect(named({ rootValue: 0, scaleKey: "scale_major" }, "jazz_251_maj", {})).toEqual(["Dm7", "G7", "Cmaj7"]);
+  });
+
+  it("the classic cadence has no effect on a Quick Start without a V (R&B IV-iii-vi)", () => {
+    [E_PHRYGIAN, E_DORIAN, G_MIXOLYDIAN].forEach((key) => {
+      expect(adapt(byId("rnb_436"), key, { classicCadence: true })).toEqual(adapt(byId("rnb_436"), key, {}));
+    });
+  });
+
+  it("Major II-V-I and Minor ii-V-i are one pattern: the same degrees on every style, whichever is loaded", () => {
+    BRICKS.forEach((brick) => {
+      const key = { rootValue: brick.rootValue, scaleKey: brick.scaleKey };
+      expect(adapt(byId("jazz_251_min"), key, {})).toEqual(adapt(byId("jazz_251_maj"), key, {}));
+      expect(adapt(byId("jazz_251_min"), key, { classicCadence: true })).toEqual(
+        adapt(byId("jazz_251_maj"), key, { classicCadence: true }),
+      );
+    });
+  });
+
+  it("the Studio offers four patterns, the II-V-I once", () => {
+    expect(quickStartPatterns(QUICK_STARTS).map((q) => q.id)).toEqual([
+      "jazz_251_maj",
+      "pop_1564",
+      "jazz_turnaround",
+      "rnb_436",
+    ]);
+  });
+
+  it("tells which Quick Start is loaded, and with which option", () => {
+    const quickStart = byId("jazz_251_maj");
+    const loaded = adapt(quickStart, E_PHRYGIAN, { classicCadence: true });
+    expect(isQuickStartLoaded(loaded, quickStart, E_PHRYGIAN, { classicCadence: true })).toBe(true);
+    expect(isQuickStartLoaded(loaded, quickStart, E_PHRYGIAN, { classicCadence: false })).toBe(false);
+    expect(isQuickStartLoaded(["1", "5", "6-", "4"], quickStart, E_PHRYGIAN, {})).toBe(false);
   });
 });
