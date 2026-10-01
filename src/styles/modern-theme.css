@@ -122,9 +122,10 @@
 
 /* Active note markers on instruments */
 .theme-modern .note-marker.active {
-  background: var(--lg-accent);
+  /* F1 / VMU-168: active = --surface-3 fill, --text-on-select text, 1px --select border; never a solid fill */
+  background: var(--surface-3);
   color: var(--text-on-select);
-  border-color: var(--lg-accent);
+  border-color: var(--select);
 }
 
 /* Ensure instruments stack cleanly */
@@ -159,9 +160,11 @@
 .theme-modern .btn-toggle--active,
 .theme-modern .btn-premium.active,
 .theme-modern .vintage-control-btn.active {
-  background: var(--lg-accent);
+  /* F1 / VMU-168: active = --surface-3 fill, --text-on-select text, 1px --select border; never a solid fill
+     (the old --lg-accent fill was #fff under #fff text: the label disappeared) */
+  background: var(--surface-3);
   color: var(--text-on-select);
-  border-color: var(--lg-accent);
+  border-color: var(--select);
 }
 
 .theme-modern .btn-toggle:hover:not(.active),

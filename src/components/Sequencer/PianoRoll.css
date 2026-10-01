@@ -143,7 +143,7 @@
 .step-lamp.active {
     background: var(--lg-accent);
     border-color: var(--lg-accent);
-    color: #fff;
+    color: var(--on-role); /* VMU-168: was #fff on the #fff --lg-accent fill; --on-role is the text posed on a filled pastille */
 }
 
 /* High Velocity (Solid) */
