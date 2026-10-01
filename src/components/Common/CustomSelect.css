@@ -176,10 +176,11 @@
 }
 
 .select-item.selected {
-    background: var(--accent);
-    color: var(--on-role);
+    /* F1 / VMU-168: chosen item = --surface-3 fill, --text-on-select text, 1px --select border; no solid fill, no glow */
+    background: var(--surface-3);
+    color: var(--text-on-select);
+    border-color: var(--select);
     font-weight: 700;
-    box-shadow: 0 0 15px var(--accent);
 }
 
 /* Custom Scrollbar */

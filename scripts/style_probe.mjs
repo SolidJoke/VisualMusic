@@ -208,6 +208,119 @@ async function runState(browser, viewport, mode, { blockFonts = null } = {}) {
   }
 }
 
+// ─── active-state contrast (VMU-168) ────────────────────────────────────────
+//
+// An active button / chosen list item must stay readable: computed text vs
+// background contrast >= 4.5:1 (WCAG 1.4.3), measured on the rendered page —
+// jsdom resolves no custom properties, and the static scan in
+// src/__tests__/ActiveStateContrast.test.js cannot see a cascade split across
+// rules. Measured in the "Studio & Harmonie" popup at 1920x1080.
+
+const CONTRAST_FLOOR = 4.5;
+
+/** Runs inside the page: computed colours + contrast of the element matched by `selector`. */
+function measureColors({ selector, text }) {
+  const parse = (c) => {
+    const m = /rgba?\(([^)]+)\)/.exec(c);
+    if (!m) return null;
+    const p = m[1].split(/[,/ ]+/).filter(Boolean).map(Number);
+    return { r: p[0], g: p[1], b: p[2], a: p[3] === undefined ? 1 : p[3] };
+  };
+  const lum = ({ r, g, b }) => {
+    const f = (v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const candidates = [...document.querySelectorAll(selector)].filter(
+    (e) => e.offsetParent !== null && (!text || new RegExp(text, "i").test(e.textContent || ""))
+  );
+  const el = candidates[0];
+  if (!el) return { found: false, selector };
+  // Effective background: first ancestor-or-self with a non-transparent colour.
+  let bgEl = el;
+  let bg = parse(getComputedStyle(bgEl).backgroundColor);
+  while (bg && bg.a === 0 && bgEl.parentElement) {
+    bgEl = bgEl.parentElement;
+    bg = parse(getComputedStyle(bgEl).backgroundColor);
+  }
+  const cs = getComputedStyle(el);
+  const fg = parse(cs.color);
+  const l1 = lum(fg);
+  const l2 = lum(bg);
+  const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  return {
+    found: true,
+    selector,
+    label: (el.textContent || "").trim().slice(0, 30),
+    color: cs.color,
+    background: getComputedStyle(bgEl).backgroundColor,
+    border: cs.borderTopColor,
+    ratio: Math.round(ratio * 100) / 100,
+  };
+}
+
+async function runActiveStates(browser) {
+  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  const out = {};
+  try {
+    await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+    await page.locator(".sidebar-cta-btn").first().waitFor({ state: "visible", timeout: 15_000 });
+    const openPopup = async () => {
+      await page.locator(".sidebar-cta-btn").first().click(); // "Studio & Harmonie"
+      await page.locator(".modal-container").first().waitFor({ state: "visible", timeout: 5_000 });
+    };
+    // Buttons transition `all 0.2s`: park the pointer away (no :hover) and wait
+    // past the transition, or a mid-fade colour is measured instead of the rest state.
+    const measure = async (arg) => {
+      await page.mouse.move(2, 2);
+      await page.waitForTimeout(500);
+      return page.evaluate(measureColors, arg);
+    };
+    const closePopup = async () => {
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(150);
+    };
+
+    // 1. Studio: "Variation A" is the active theme variant by default.
+    await openPopup();
+    out["Variation A (Studio)"] = await measure({ selector: ".btn-premium.active", text: "Variation A|Variante A" });
+
+    // 2. A CustomSelect list, opened inside the popup: the chosen item.
+    await page.locator(".modal-container .custom-select-header").first().click();
+    await page.locator('[data-testid="custom-select-dropdown"]').first().waitFor({ state: "visible", timeout: 5_000 });
+    out["chosen list item (CustomSelect)"] = await measure({ selector: ".select-item.selected" });
+    await page.keyboard.press("Escape");
+    await closePopup();
+
+    // 3. Dictionnaire: harmonic mode toggled on.
+    await page.locator('[data-testid="btn-mode-dictionary"]').click();
+    await page.waitForTimeout(100);
+    await openPopup();
+    const toggle = page.locator(".modal-container .btn-toggle", { hasText: /Harmonic|Harmonique/i }).first();
+    await toggle.click();
+    await page.waitForTimeout(100);
+    out["harmonic mode (Dictionnaire)"] = await measure({ selector: ".btn-toggle--active", text: "Harmonic|Harmonique" });
+  } catch (err) {
+    out.error = String(err && err.message ? err.message : err);
+  } finally {
+    await page.close();
+  }
+  return out;
+}
+
+function verifyActiveStates(r) {
+  const problems = [];
+  if (r.error) problems.push(`error: ${r.error}`);
+  for (const [name, m] of Object.entries(r)) {
+    if (name === "error") continue;
+    if (!m.found) problems.push(`${name}: element not found (${m.selector})`);
+    else if (m.ratio < CONTRAST_FLOOR) problems.push(`${name}: contrast ${m.ratio}:1 < ${CONTRAST_FLOOR}:1 (${m.color} on ${m.background})`);
+  }
+  return problems;
+}
+
 /** axe-core `color-contrast` on one state (1920x1080): which popup is open,
  *  and whether the app is switched to Dictionnaire first. Returns the
  *  violating nodes (target, ratio, colors) — the rule's own computation,
@@ -360,6 +473,21 @@ try {
       results.push({ viewport: viewport.label, mode, ...r, problems });
       if (!AS_JSON) printRow(viewport, mode, r, problems);
     }
+  }
+  // VMU-168 — active buttons / chosen list items stay readable.
+  const active = await runActiveStates(browser);
+  const activeProblems = verifyActiveStates(active);
+  results.push({ viewport: "1920x1080", mode: "active-states", active, problems: activeProblems });
+  if (!AS_JSON) {
+    for (const [name, m] of Object.entries(active)) {
+      if (name === "error") continue;
+      console.log(
+        m.found
+          ? `1920x1080   active     ${name.padEnd(32)} text=${m.color}  bg=${m.background}  border=${m.border}  contrast=${m.ratio}:1`
+          : `1920x1080   active     ${name.padEnd(32)} NOT FOUND (${m.selector})`
+      );
+    }
+    console.log(`1920x1080   active     ${activeProblems.length ? "FAIL: " + activeProblems.join(" | ") : "PASS"}`);
   }
 
   // §8-5 positive control: with the fonts blocked the criterion MUST go red
