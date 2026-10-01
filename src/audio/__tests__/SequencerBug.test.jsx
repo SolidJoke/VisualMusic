@@ -8,17 +8,28 @@ vi.mock("tone", () => {
     // we want to test if cb is called multiple times when it shouldn't be
     return 123;
   });
+  // transportOwner.js (VMU-163-fix2) reads Tone.getTransport(), never the
+  // deprecated Tone.Transport — same object either way.
+  const transport = {
+    bpm: { value: 120 },
+    state: "stopped",
+    ticks: 0,
+    scheduleRepeat,
+    cancel: vi.fn(),
+    clear: vi.fn(),
+    pause: vi.fn(),
+    stop: vi.fn(function () {
+      this.state = "stopped";
+      this.ticks = 0;
+    }),
+    start: vi.fn(function () {
+      this.state = "started";
+    }),
+  };
   return {
     context: { lookAhead: 0 },
-    Transport: {
-      bpm: { value: 120 },
-      scheduleRepeat,
-      cancel: vi.fn(),
-      clear: vi.fn(),
-      pause: vi.fn(),
-      stop: vi.fn(),
-      start: vi.fn(),
-    },
+    Transport: transport,
+    getTransport: () => transport,
     Draw: { schedule: vi.fn((cb) => cb()) },
     start: vi.fn().mockResolvedValue(),
     Destination: { volume: { value: 0, rampTo: vi.fn() } },

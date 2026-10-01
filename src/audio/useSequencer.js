@@ -17,6 +17,7 @@ import {
 import { resolveChordAt, stepEvents } from "./dispatch";
 import { playStepEvents } from "./playStep";
 import { describeChord, loopSteps, timelineFromSelection } from "../core/timeline";
+import { playMusic, stopMusic } from "./transportOwner";
 
 /** The synths the Studio loop plays a step on (playStep.js). */
 const STUDIO_SYNTHS = { kickSynth, snareSynth, hatSynth, bassSynth, playDictionaryNote };
@@ -104,12 +105,30 @@ export function useSequencer({
   const appModeRef = useRef(appMode);
   const brickRef = useRef(activeBrick);
   const octaveRef = useRef(chordOctaveOffset);
+  // The loop's own progress, kept in refs (not local effect variables) so
+  // `repeat` below can be registered directly from togglePlayback instead of
+  // from an effect (VMU-163-fix2, decision 2 — see that function).
+  const stepCounterRef = useRef(0);
+  // VMU-129: index (in the document) of the chord last published via
+  // setCurrentPlayingChord, so the state update (and the Draw-scheduled
+  // callback it costs) only fires when the chord changes, not every step.
+  const lastPublishedChordIndexRef = useRef(null);
+  // The transport repeat id `playMusic` hands back, so Stop (and the unmount
+  // safety net below) can clear exactly this registration.
+  const repeatIdRef = useRef(null);
+  // Read at call time inside `repeat` (registered once per Play, potentially
+  // long-lived) rather than closed over directly, so a later render's new
+  // `setCurrentlyPlayingNotes` identity is still the one used — the old
+  // effect achieved the same by re-registering on that dependency changing;
+  // this hook no longer re-registers on every render.
+  const setCurrentlyPlayingNotesRef = useRef(setCurrentlyPlayingNotes);
 
   timelineRef.current = timeline || selectionTimeline;
   rootRef.current = currentRootValue;
   appModeRef.current = appMode;
   brickRef.current = activeBrick;
   octaveRef.current = chordOctaveOffset;
+  setCurrentlyPlayingNotesRef.current = setCurrentlyPlayingNotes;
 
   const handleInstrumentVolumeChange = (instrument, value) => {
     const val = Number(value);
@@ -121,76 +140,79 @@ export function useSequencer({
     Tone.Destination.volume.rampTo(masterVolume, 0.05);
   }, [masterVolume]);
 
+  /**
+   * The Studio's playback loop callback. Registered on the transport by
+   * `togglePlayback` below, not by an effect (VMU-163-fix2, decision 2): it
+   * must be scheduled — anchored at tick 0 — *before* the transport
+   * (re)starts, in the same synchronous call, so step 0 of the music sounds
+   * at tick 0 instead of at the next 16th-note boundary. The pre-fix version
+   * lived inside a `useEffect` keyed on `isPlaying`, so the registration
+   * happened one render *after* `Tone.Transport.start()` — measured 9.6 ms
+   * late in the running app, which is what put the music's own grid out of
+   * phase with the metronome's (VMU-163-fix2 brief, sequence 1).
+   */
+  const repeat = (time) => {
+    Tone.Draw.schedule(() => setCurrentStep(stepCounterRef.current), time);
+
+    try {
+      if (appModeRef.current === "dictionary") {
+        stepCounterRef.current = (stepCounterRef.current + 1) % 16;
+        return;
+      }
+
+      const doc = timelineRef.current;
+      const octaveOffset = octaveRef.current;
+      const stepCounter = stepCounterRef.current;
+
+      // --- The chord of the moment (VMU-129) ---
+      // The same chord stepEvents plays below (dispatch.js resolveChordAt,
+      // core/timeline.js chordAt), published — once per chord, not per
+      // step — so the instruments can follow the chord actually playing
+      // instead of the last clicked one. Shown the way the app shows a
+      // chord (describeChord), with the pitches the chord row plays.
+      const playing = resolveChordAt(doc, stepCounter, octaveOffset);
+      const playingIndex = playing ? playing.index : null;
+      if (playingIndex !== lastPublishedChordIndexRef.current) {
+        lastPublishedChordIndexRef.current = playingIndex;
+        const forDisplay = playing
+          ? { ...describeChord(doc.key, playing.chord), absolutePitches: playing.absolutePitches }
+          : null;
+        Tone.Draw.schedule(() => setCurrentPlayingChord(forDisplay), time);
+      }
+
+      // --- What plays on this step: drums, chord, melodic tracks ---
+      // Decided by stepEvents (dispatch.js), the same function the MIDI
+      // export and the audio harness read; this loop only plays it.
+      const events = stepEvents(doc, stepCounter, { octaveOffset, rootValue: rootRef.current });
+      const frameNotes = playStepEvents(STUDIO_SYNTHS, events, time);
+
+      if (frameNotes.length > 0) {
+        const publish = setCurrentlyPlayingNotesRef.current;
+        Tone.Draw.schedule(() => publish(frameNotes), time);
+        Tone.Draw.schedule(() => publish([]), time + 0.15);
+      }
+    } catch (err) {
+      console.error("Error in useSequencer repeat loop:", err);
+    } finally {
+      // The document's window: 64 steps at 4 measures, 128 at 8.
+      stepCounterRef.current = (stepCounterRef.current + 1) % loopSteps(timelineRef.current);
+    }
+  };
+
+  // Safety net, not the source of truth (same pattern as useMetronome.js's
+  // own unmount cleanup): if whatever renders this hook unmounts while
+  // playing, do not leave a dangling schedule behind. Harmless no-op when
+  // nothing is scheduled.
   useEffect(() => {
-    let stepCounter = 0;
-    // VMU-129: index (in the document) of the chord last published via
-    // setCurrentPlayingChord, so the state update (and the Draw-scheduled
-    // callback it costs) only fires when the chord changes, not every step.
-    let lastPublishedChordIndex = null;
-
-    const repeat = (time) => {
-      Tone.Draw.schedule(() => setCurrentStep(stepCounter), time);
-
-      try {
-        if (appModeRef.current === "dictionary") {
-          stepCounter = (stepCounter + 1) % 16;
-          return;
-        }
-
-        const doc = timelineRef.current;
-        const octaveOffset = octaveRef.current;
-
-        // --- The chord of the moment (VMU-129) ---
-        // The same chord stepEvents plays below (dispatch.js resolveChordAt,
-        // core/timeline.js chordAt), published — once per chord, not per
-        // step — so the instruments can follow the chord actually playing
-        // instead of the last clicked one. Shown the way the app shows a
-        // chord (describeChord), with the pitches the chord row plays.
-        const playing = resolveChordAt(doc, stepCounter, octaveOffset);
-        const playingIndex = playing ? playing.index : null;
-        if (playingIndex !== lastPublishedChordIndex) {
-          lastPublishedChordIndex = playingIndex;
-          const forDisplay = playing
-            ? { ...describeChord(doc.key, playing.chord), absolutePitches: playing.absolutePitches }
-            : null;
-          Tone.Draw.schedule(() => setCurrentPlayingChord(forDisplay), time);
-        }
-
-        // --- What plays on this step: drums, chord, melodic tracks ---
-        // Decided by stepEvents (dispatch.js), the same function the MIDI
-        // export and the audio harness read; this loop only plays it.
-        const events = stepEvents(doc, stepCounter, { octaveOffset, rootValue: rootRef.current });
-        const frameNotes = playStepEvents(STUDIO_SYNTHS, events, time);
-
-        if (frameNotes.length > 0) {
-          Tone.Draw.schedule(() => setCurrentlyPlayingNotes(frameNotes), time);
-          Tone.Draw.schedule(() => setCurrentlyPlayingNotes([]), time + 0.15);
-        }
-      } catch (err) {
-        console.error("Error in useSequencer repeat loop:", err);
-      } finally {
-        // The document's window: 64 steps at 4 measures, 128 at 8.
-        stepCounter = (stepCounter + 1) % loopSteps(timelineRef.current);
+    return () => {
+      if (repeatIdRef.current !== null) {
+        stopMusic((transport) => {
+          transport.clear(repeatIdRef.current);
+          repeatIdRef.current = null;
+        });
       }
     };
-
-    let repeatId = null;
-
-    if (isPlaying) {
-      repeatId = Tone.Transport.scheduleRepeat(repeat, "16n");
-    } else {
-      if (repeatId !== null) Tone.Transport.clear(repeatId);
-      setCurrentStep(-1);
-      stepCounter = 0;
-      // At rest, useMusicEngine falls back to clickedChord on its own
-      // (isPlaying is false) — this reset is hygiene, not a behavior gate.
-      setCurrentPlayingChord(null);
-    }
-
-    return () => {
-      if (repeatId !== null) Tone.Transport.clear(repeatId);
-    };
-  }, [isPlaying, setCurrentlyPlayingNotes]);
+  }, []);
 
   const togglePlayback = async () => {
     if (!isAudioReady) {
@@ -210,8 +232,24 @@ export function useSequencer({
     }
 
     if (isPlaying) {
-      Tone.Transport.stop();
+      // transportOwner.stopMusic (VMU-163-fix2, decision 4) stops the
+      // transport itself only if the metronome is not keeping it alive
+      // (VMU-056) — this used to be an unconditional `Tone.Transport.stop()`,
+      // which is exactly what silenced a metronome the button still showed
+      // as "on" (VMU-163-fix2 brief, sequence 3).
+      stopMusic((transport) => {
+        if (repeatIdRef.current !== null) {
+          transport.clear(repeatIdRef.current);
+          repeatIdRef.current = null;
+        }
+      });
       setIsPlaying(false);
+      setCurrentStep(-1);
+      stepCounterRef.current = 0;
+      lastPublishedChordIndexRef.current = null;
+      // At rest, useMusicEngine falls back to clickedChord on its own
+      // (isPlaying is false) — this reset is hygiene, not a behavior gate.
+      setCurrentPlayingChord(null);
       try {
         bassSynth.triggerRelease();
         const piano = getPianoSynth();
@@ -222,8 +260,15 @@ export function useSequencer({
         // synth may not be initialized yet
       }
     } else {
-      Tone.Transport.stop();
-      Tone.Transport.start();
+      stepCounterRef.current = 0;
+      lastPublishedChordIndexRef.current = null;
+      // transportOwner.playMusic (VMU-163-fix2, decisions 1+2) resets the
+      // transport to tick 0, then — synchronously, before it (re)starts —
+      // registers this loop's own repeat with an explicit start of `0`, so
+      // step 0 sounds at tick 0 on the same grid the metronome uses.
+      playMusic((transport) => {
+        repeatIdRef.current = transport.scheduleRepeat(repeat, "16n", 0);
+      });
       setIsPlaying(true);
     }
   };

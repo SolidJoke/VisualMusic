@@ -255,10 +255,12 @@ function AppDesktop() {
   });
 
   // --- Metronome (VMU-056) ---
-  // Own on/off state; own scheduling lives in audio/metronome.js. isPlaying is
-  // passed through only so an extinction never cuts playback already under way.
+  // Own on/off state; own scheduling lives in audio/metronome.js. Whether an
+  // extinction is allowed to cut the transport is transportOwner.js's call
+  // now (VMU-163-fix2, decision 4) — it already knows isPlaying because
+  // useSequencer.js's togglePlayback reports Play/Stop to it directly, so
+  // this hook no longer needs isPlaying threaded through it.
   const { metronomeOn, toggleMetronome } = useMetronome({
-    isPlaying,
     ensureAudioReady,
   });
 
