@@ -5,6 +5,18 @@
 // Provides chord function identification, theory mode management,
 // and Set Theory primitives (invisible to the user).
 
+// VMU-162 — the single rule for reading a chord symbol (theory.js,
+// PR #132, VMU-157/158): every function below that needs a chord's type
+// resolves it through these, never by a hand-rolled substring check on
+// the raw symbol string.
+import {
+  parseChordSymbol,
+  resolveNnsToChordType,
+  resolveChordSemitones,
+  MINOR_CHORD_TYPES,
+  DIMINISHED_CHORD_TYPES,
+} from './theory';
+
 // ---------------------------------------------------------------------------
 // Theory Modes (Classique vs Moderne)
 // ---------------------------------------------------------------------------
@@ -186,11 +198,26 @@ function _extractDegree(nns) {
  */
 export function getInversionType(bassNoteAbsolute, rootValue, nns) {
   const bassNoteClass = bassNoteAbsolute % 12;
-  const isMinor = nns.includes('-') || nns.includes('m');
-  const isDim   = nns.includes('°') || nns.includes('b5') || nns.includes('dim');
 
-  const thirdVal = (rootValue + (isMinor || isDim ? 3 : 4)) % 12;
-  const fifthVal  = (rootValue + (isDim ? 6 : 7)) % 12;
+  // Single rule (VMU-162): the chord's own semitones (theory.js's CHORDS
+  // catalog — the same source of truth core/realization.js and
+  // getChordIntervalLabel already use) decide the third and fifth
+  // intervals, not a hand-rolled read of the symbol string. The old check
+  // — an `.includes('-')` or `.includes('m')` on the raw symbol — matched
+  // the "m" inside "maj7": a major seventh written in lowercase NNS
+  // notation ("1maj7") read as minor. A second old check, `.includes('b5')`
+  // on the raw symbol, matched a bare "b5" degree symbol (a plain major
+  // triad on the flat-5th scale degree, e.g. "Metal Épique B" / "Groove
+  // Metal" — see NnsResolution.test.js) and misread it as diminished. A
+  // half-diminished chord (m7b5) still reads correctly here:
+  // its own semitones include both 3 (minor third) and 6 (flat fifth).
+  const type = resolveNnsToChordType(nns);
+  const semitones = resolveChordSemitones(type)?.semitones ?? [0, 4, 7];
+  const isMinorThird = semitones.includes(3);
+  const isFlatFifth = semitones.includes(6);
+
+  const thirdVal = (rootValue + (isMinorThird || isFlatFifth ? 3 : 4)) % 12;
+  const fifthVal  = (rootValue + (isFlatFifth ? 6 : 7)) % 12;
 
   if (bassNoteClass === rootValue) return 'root';
   if (bassNoteClass === thirdVal)  return 'first';
@@ -279,10 +306,12 @@ export function getRoleForDegreeLabel(label) {
  * large harmonic leaps, and intrinsic dissonance.
  * 
  * @param {Array} progression - Array of chord objects (e.g. { nns, rootValue, dictType })
- * @returns {Object} { score, label, color, details }
+ * @returns {Object} { score, label, level, details } — `level` is
+ *   'ok'|'warn'|'hard' (VMU-162, spec F1 §6: color -> state). The caller
+ *   maps it to a color; this module never hard-codes one.
  */
 export function calculatePlayabilityScore(progression) {
-  if (!progression || progression.length === 0) return { score: 100, label: "Vide", color: "#888", details: [] };
+  if (!progression || progression.length === 0) return { score: 100, label: "Vide", level: "ok", details: [] };
 
   let score = 100;
   let nonDiatonicCount = 0;
@@ -301,15 +330,16 @@ export function calculatePlayabilityScore(progression) {
     const nns = chord.nns || "";
 
     if (!type) {
-      if (nns.includes('maj7')) type = 'chord_maj7';
-      else if (nns.includes('m7b5')) type = 'chord_m7b5';
-      else if (nns.includes('dim7')) type = 'chord_dim7';
-      else if (nns.includes('m7') || nns.includes('-7')) type = 'chord_m7';
-      else if (nns.includes('7')) type = 'chord_7';
-      else if (nns.includes('dim') || nns.includes('°')) type = 'chord_dim';
-      else if (nns.includes('aug') || nns.includes('+')) type = 'chord_aug';
-      else if (nns.includes('m') || nns.includes('-')) type = 'chord_minor';
-      else type = 'chord_major';
+      // Single rule (VMU-162): same reading as getInversionType above and
+      // useMusicEngine.js's own chordType resolution, instead of an ad hoc
+      // chain of `.includes(...)` checks on the raw symbol. That chain was
+      // case sensitive and matched substrings out of order: "1Maj7"
+      // (capital M, VMU-157/158's roman-numeral normalization of "IMaj7")
+      // failed the 'maj7' check and fell through to the bare `.includes('7')`
+      // one, scoring as a dominant seventh; the bare degree "7" (a major
+      // triad on the mode's 7th degree, same convention as "1"/"4"/"5") hit
+      // the same check and was scored as a dominant seventh too.
+      type = resolveNnsToChordType(nns);
     }
 
     // 1. Extensions penalty
@@ -326,13 +356,30 @@ export function calculatePlayabilityScore(progression) {
     }
 
     // 2. Diatonicity penalty
-    const isNonDiatonic = nns.includes('b') || nns.includes('#') || 
-                          (nns.startsWith('2') && !nns.includes('-') && !nns.includes('dim')) ||
-                          (nns.startsWith('3') && !nns.includes('-') && !nns.includes('dim')) ||
-                          (nns.startsWith('6') && !nns.includes('-') && !nns.includes('dim')) ||
-                          (nns.startsWith('1') && nns.includes('-')) ||
-                          (nns.startsWith('4') && nns.includes('-')) ||
-                          (nns.startsWith('5') && nns.includes('-'));
+    // Single rule (VMU-162): parseChordSymbol's accidental/degree fields,
+    // instead of hand-rolled substring checks on the raw symbol
+    // (`.includes('b')`, `.startsWith('2')`...). A degree with an
+    // accidental (b2, b6...) is always non-diatonic; otherwise a degree
+    // that is normally minor (2, 3, 6) but was not, or one that is
+    // normally major (1, 4, 5) but was minor, is non-diatonic. Degree 7
+    // is excluded, as it was before (the old chain never checked it
+    // either). Equivalent to the old chain on every symbol the app's
+    // styles and Quick Starts use (verified by
+    // inversionAndPlayability_symbolReading.test.js's sibling coverage
+    // and the full existing test suite here).
+    const symbol = parseChordSymbol(nns);
+    let isNonDiatonic = false;
+    if (symbol?.accidental) {
+      isNonDiatonic = true;
+    } else if (symbol?.degree) {
+      const symbolType = resolveNnsToChordType(nns);
+      const isMinorQuality = MINOR_CHORD_TYPES.includes(symbolType);
+      const isDimQuality = DIMINISHED_CHORD_TYPES.includes(symbolType);
+      const expectsMinor = [2, 3, 6].includes(symbol.degree);
+      const expectsMajor = [1, 4, 5].includes(symbol.degree);
+      if (expectsMinor && !isMinorQuality && !isDimQuality) isNonDiatonic = true;
+      if (expectsMajor && isMinorQuality) isNonDiatonic = true;
+    }
     if (isNonDiatonic) {
       score -= 5;
       nonDiatonicCount++;
@@ -380,17 +427,17 @@ export function calculatePlayabilityScore(progression) {
   if (totalDissonance > 0) details.push(`Tension interne (dissonance) : -${totalDissonance} pts`);
   if (details.length === 0) details.push("Progression très standard.");
 
-  // Determine Label and Color
+  // Determine Label and Level (VMU-162, spec F1 §6: color -> state)
   let label = "Facile / Pop";
-  let color = "#4ade80"; // green
+  let level = "ok";
 
   if (score < 50) {
     label = "Complexe / Expérimental";
-    color = "#f87171"; // red
+    level = "hard";
   } else if (score < 80) {
     label = "Modéré / Jazz";
-    color = "#fbbf24"; // amber
+    level = "warn";
   }
 
-  return { score, label, color, details };
+  return { score, label, level, details };
 }

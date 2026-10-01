@@ -43,11 +43,14 @@ describe('calculatePlayabilityScore — contract', () => {
     });
   });
 
-  it('should return label, color, and details in the result', () => {
+  it('should return label, level, and details in the result', () => {
+    // VMU-162 (spec F1 §6): color -> state. calculatePlayabilityScore
+    // returns `level` ('ok'|'warn'|'hard'); StudioPanel.jsx maps it to a
+    // CSS variable — this module no longer hard-codes a color.
     const result = calculatePlayabilityScore([nnsChord('1')]);
     expect(result).toHaveProperty('score');
     expect(result).toHaveProperty('label');
-    expect(result).toHaveProperty('color');
+    expect(result).toHaveProperty('level');
     expect(result).toHaveProperty('details');
     expect(Array.isArray(result.details)).toBe(true);
   });
@@ -163,7 +166,7 @@ describe('calculatePlayabilityScore — penalty ordering makes musical sense', (
     const result = calculatePlayabilityScore([nnsChord('1'), nnsChord('4'), nnsChord('5')]);
     expect(result.score).toBeGreaterThanOrEqual(80);
     expect(result.label).toBe('Facile / Pop');
-    expect(result.color).toBe('#4ade80');
+    expect(result.level).toBe('ok');
   });
 
   it('Complexe / Expérimental label for scores < 50', () => {
@@ -185,7 +188,7 @@ describe('calculatePlayabilityScore — penalty ordering makes musical sense', (
     const result = calculatePlayabilityScore(prog);
     expect(result.score).toBeLessThan(50);
     expect(result.label).toBe('Complexe / Expérimental');
-    expect(result.color).toBe('#f87171');
+    expect(result.level).toBe('hard');
   });
 
   it('details array should not be empty for a penalized progression', () => {
