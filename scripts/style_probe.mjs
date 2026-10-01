@@ -26,7 +26,13 @@
  *   - `body`'s computed background-color is rgb(0, 0, 0).
  *   - no theme-toggle button in the header (VMU-148: single theme).
  *
+ *   - §8-6 (F1b, opt-in): `--axe` runs axe-core's `color-contrast` rule at
+ *     1920x1080 on Studio and Dictionnaire with the popups open and lists
+ *     the violating nodes. Informational: it never changes the exit code
+ *     (spec §8-6 asks for 0 violations; F1b reports the count instead).
+ *
  *   npm run style:probe                  # human-readable table
+ *   npm run style:probe -- --axe         # plus the axe color-contrast listing
  *   npm run style:probe -- --json        # JSON array, one entry per (viewport, state)
  *
  * Why a browser: jsdom resolves neither CSS custom properties nor media
@@ -38,6 +44,7 @@
  */
 import path from "node:path";
 import process from "node:process";
+import { createRequire } from "node:module";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1"), "..");
 
@@ -201,6 +208,49 @@ async function runState(browser, viewport, mode, { blockFonts = null } = {}) {
   }
 }
 
+/** axe-core `color-contrast` on one state (1920x1080): which popup is open,
+ *  and whether the app is switched to Dictionnaire first. Returns the
+ *  violating nodes (target, ratio, colors) — the rule's own computation,
+ *  not ours. */
+async function runAxeState(browser, { label, dictionary, modal, injectControl }) {
+  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  try {
+    await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+    await page.locator(".sidebar-cta-btn").first().waitFor({ state: "visible", timeout: 15_000 });
+    if (dictionary) await page.locator('[data-testid="btn-mode-dictionary"]').click();
+    if (modal) {
+      await page.locator(".sidebar-cta-btn", { hasText: modal }).first().click();
+      await page.locator(".modal-container").waitFor({ state: "visible" });
+    }
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(500); // modal slideUp animation (Modal.css)
+    if (injectControl) {
+      // Positive control: #444 on #000 is 2.09:1 (spec §3.1's own "actuel"
+      // example). axe must flag it, or "0 violations" above means nothing.
+      await page.evaluate(() => {
+        const p = document.createElement("p");
+        p.textContent = "axe control — unreadable on purpose";
+        p.style.cssText = "position:fixed;top:4px;left:4px;z-index:99999;margin:0;color:#444;background:#000;font-size:18px";
+        document.body.appendChild(p);
+      });
+    }
+    await page.addScriptTag({ path: createRequire(import.meta.url).resolve("axe-core/axe.min.js") });
+    const res = await page.evaluate(async () => {
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(document, { runOnly: { type: "rule", values: ["color-contrast"] } });
+      return r.violations.flatMap((v) =>
+        v.nodes.map((n) => {
+          const d = n.any[0]?.data || {};
+          return { target: n.target.join(" "), ratio: d.contrastRatio, fg: d.fgColor, bg: d.bgColor, size: d.fontSize };
+        })
+      );
+    });
+    return { label, count: res.length, nodes: res };
+  } finally {
+    await page.close();
+  }
+}
+
 /** Fraction of pixels that are exactly rgb(0,0,0) in one 3840x2160 capture of
  *  Studio. Animations are disabled and the caret hidden by the screenshot
  *  call itself; the PNG is decoded by Chromium (a canvas in a second page),
@@ -300,6 +350,7 @@ const browser = await chromium.launch({ headless: !KEEP_OPEN });
 const results = [];
 const controls = [];
 const blackCaptures = [];
+const axeResults = [];
 
 try {
   for (const viewport of VIEWPORTS) {
@@ -324,6 +375,19 @@ try {
 
   // §8-3: two independent captures, same number expected.
   for (let i = 0; i < 2; i++) blackCaptures.push(await captureBlackRatio(browser));
+
+  // §8-6 (opt-in, informational).
+  if (flag("axe")) {
+    axeResults.push(await runAxeState(browser, { label: "CONTROL (injected #444 on #000, must be flagged)", dictionary: false, modal: null, injectControl: true }));
+    for (const s of [
+      { label: "studio, popup Studio & Harmonie", dictionary: false, modal: "Studio & Harmonie" },
+      { label: "studio, popup Math & Rythmes", dictionary: false, modal: "Math & Rythmes" },
+      { label: "studio, popup Instruments & Audio", dictionary: false, modal: "Instruments & Audio" },
+      { label: "dictionary, popup Studio & Harmonie", dictionary: true, modal: "Studio & Harmonie" },
+    ]) {
+      axeResults.push(await runAxeState(browser, s));
+    }
+  }
 } finally {
   await browser.close();
   if (dev.server) await dev.server.close();
@@ -350,7 +414,7 @@ if (blackBelowFloor && flag("require-black")) {
 }
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, controls, blackCaptures }, null, 2));
+  console.log(JSON.stringify({ results, controls, blackCaptures, axeResults }, null, 2));
 } else {
   console.log("\nFont criterion positive control (fonts blocked, 1920x1080 studio):");
   for (const c of controls) {
@@ -369,6 +433,15 @@ if (AS_JSON) {
       ? `  §8-3 BELOW the ${BLACK_RATIO_FLOOR * 100} % floor — informational (not blocking); run with --require-black to enforce`
       : `  §8-3 at or above the ${BLACK_RATIO_FLOOR * 100} % floor`
   );
+  if (axeResults.length) {
+    console.log("\n§8-6 axe-core color-contrast, 1920x1080 (informational):");
+    for (const a of axeResults) {
+      console.log(`  ${a.label}: ${a.count} violating node(s)`);
+      for (const n of a.nodes.slice(0, 40)) {
+        console.log(`    ${String(n.ratio).padEnd(5)} ${n.fg} on ${n.bg} (${n.size})  ${n.target.slice(0, 110)}`);
+      }
+    }
+  }
 }
 
 const failed = results.some((r) => r.problems.length > 0) || controlProblems.length > 0 || blackProblems.length > 0;
