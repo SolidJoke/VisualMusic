@@ -7,7 +7,7 @@ import { NOTES } from "./theory";
 import { FINGER_LABELS } from "./fingeringLogic";
 import { logPlayingMismatch } from "./debugScale";
 import { TUNINGS } from "./tunings";
-import { getRoleForDegreeLabel } from "./harmonyEngine";
+import { getRoleForDegreeLabel, getChordIntervalLabel } from "./harmonyEngine";
 
 /**
  * Calculates the width of each fret in a logarithmic progression (Rule of 18).
@@ -198,7 +198,27 @@ function resolveRoleAndLabel(params, stringIndex, fret, noteValue, absoluteValue
     } else if (orderToDisplay) {
       // Degree label ("1", "b3", "3", "5"...) -> role, single rule (VMU-146)
       roleClass = `role-${getRoleForDegreeLabel(orderToDisplay)}`;
+    } else if (!isScaleMode) {
+      // VMU-160: no order was found — e.g. a guitar/bass fingering fretted
+      // in a register the theoretical realization never named, so its
+      // absolute pitch never matched an activeNote above (resolveActiveState
+      // only falls back to a pitch-class match for a chord WITHOUT a
+      // fingering; with one, every note here goes through strict absolute
+      // matching). Read the degree from the raw interval with the SAME rule
+      // the "order found" branch above uses (getChordIntervalLabel +
+      // getRoleForDegreeLabel), instead of the separate root/third/fifth-
+      // only check this used to fall back to — that check had no notion of
+      // a seventh or a ninth, so it read any of them as "role-scale" while
+      // a peer that DID find an order read "role-extension" for the exact
+      // same degree (Sol#m7's b7, this ticket).
+      const interval = (noteValue - rootValue + 12) % 12;
+      const label = getChordIntervalLabel(-1, interval);
+      roleClass = `role-${getRoleForDegreeLabel(label)}`;
     } else {
+      // Scale mode, non-root degree: unchanged — a scale note that isn't
+      // the root/third/fifth interval stays "role-scale" (the hollow scale
+      // dot), not the chord "role-extension" violet. Out of VMU-160's scope
+      // (display only, "rien d'autre... ni la mise en page").
       const interval = (noteValue - rootValue + 12) % 12;
       if (interval === 0) roleClass = "role-root";
       else if (interval === 3 || interval === 4) roleClass = "role-third";

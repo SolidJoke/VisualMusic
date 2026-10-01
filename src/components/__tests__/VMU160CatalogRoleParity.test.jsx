@@ -128,9 +128,9 @@ describe("VMU-160 — catalog property: guitar and piano give each pitch class t
         divergences.push(...r.divergences);
       }
     }
-    // eslint-disable-next-line no-console
+
     console.log(`VMU-160 catalog: ${cases} chord/root cases, ${compared} pitch classes compared, ${divergences.length} divergences`);
-    if (divergences.length) console.log(divergences.join("\n")); // eslint-disable-line no-console
+    if (divergences.length) console.log(divergences.join("\n"));
     expect(cases).toBe(Object.keys(CHORDS).length * 12);
     expect(compared).toBeGreaterThan(cases); // non-trivial comparison
     expect(divergences).toEqual([]);
