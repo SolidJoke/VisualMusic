@@ -307,7 +307,9 @@ export default function CompositionPanel({
               highlightIndex={activeStep}
               showComplement={showComplement && !showPolyrhythm}
               extraPolygons={showPolyrhythm && polyrhythmResult ? polyrhythmResult.polygons.map((poly, idx) => {
-                const polyColors = ['#a78bfa', '#f59e0b', '#34d399', '#f87171', '#60a5fa'];
+                // Rhythmic voices, not musical roles - spec F1-fondations-visuelles.md
+                // §6: never --role-* (same rule as PolyrhythmAlgebraPanel.jsx's polyColors).
+                const polyColors = ['var(--seq-kick)', 'var(--seq-snare)', 'var(--seq-hat)', 'var(--seq-chords)', 'var(--seq-bass)'];
                 return { ...poly, color: polyColors[idx % polyColors.length] };
               }) : []}
             />

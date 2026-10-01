@@ -12,15 +12,15 @@
 }
 
 .help-modal-container {
-  background: var(--bg-deep, #151515);
-  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+  background: var(--bg-deep);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-lg, 16px);
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--lg-shadow);
   overflow: hidden;
   font-family: var(--font-body, 'Hanken Grotesk', sans-serif);
 }
@@ -39,7 +39,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
@@ -47,13 +47,13 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text-primary, #f5f5f5);
+  color: var(--text-primary);
 }
 
 .help-modal-close-icon {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #8a919e);
+  color: var(--text-secondary);
   font-size: 1.2rem;
   cursor: pointer;
   padding: 8px;
@@ -65,15 +65,15 @@
 }
 
 .help-modal-close-icon:hover {
-  color: var(--text-primary, #ffffff);
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  background: var(--surface-3);
 }
 
 .help-modal-tabs {
   display: flex;
   padding: 0 24px;
-  border-bottom: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
-  background: var(--bg-base, #1c1c1c);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-base);
   flex-shrink: 0;
   overflow-x: auto;
   gap: 24px;
@@ -84,7 +84,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   padding: 16px 4px;
-  color: var(--text-secondary, #8a919e);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -96,13 +96,13 @@
 }
 
 .help-tab:hover {
-  color: var(--text-primary, #ffffff);
-  border-bottom-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  border-bottom-color: var(--border-strong);
 }
 
 .help-tab.active {
-  color: var(--accent, #a6c8ff);
-  border-bottom-color: var(--accent, #a6c8ff);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .help-tab-icon {
@@ -127,20 +127,20 @@
   align-items: flex-start;
   padding: 16px;
   border-radius: var(--radius-md, 8px);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
   transition: all 0.2s ease;
 }
 
 .help-step-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--border-default, rgba(255, 255, 255, 0.1));
+  background: var(--surface-3);
+  border-color: var(--border-default);
 }
 
 .help-step-icon {
   font-size: 1.25rem;
-  background: var(--accent-dim, rgba(166, 200, 255, 0.1));
-  color: var(--accent, #a6c8ff);
+  background: var(--accent-dim);
+  color: var(--accent);
   width: 40px;
   height: 40px;
   display: flex;
@@ -159,13 +159,13 @@
   margin: 0 0 4px 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-primary, #ffffff);
+  color: var(--text-primary);
 }
 
 .help-step-text p {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--text-secondary, #bbbbbb);
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -181,7 +181,7 @@
 .help-about-logo {
   font-size: 3rem;
   margin-bottom: 16px;
-  background: var(--accent-dim, rgba(166, 200, 255, 0.1));
+  background: var(--accent-dim);
   width: 80px;
   height: 80px;
   display: flex;
@@ -191,20 +191,20 @@
 }
 
 .help-about-section h3 {
-  color: var(--text-primary, #ffffff);
+  color: var(--text-primary);
   font-size: 1.2rem;
   margin: 0 0 8px 0;
 }
 
 .help-about-version {
-  color: var(--accent, #a6c8ff);
+  color: var(--accent);
   font-size: 0.85rem;
   margin: 0 0 16px 0;
   font-weight: 500;
 }
 
 .help-about-desc {
-  color: var(--text-secondary, #bbbbbb);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   line-height: 1.5;
   max-width: 80%;
@@ -213,16 +213,19 @@
 
 .help-modal-footer {
   padding: 16px 24px;
-  border-top: 1px solid var(--border-default, rgba(255, 255, 255, 0.1));
+  border-top: 1px solid var(--border-default);
   display: flex;
   justify-content: flex-end;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--surface-1);
   flex-shrink: 0;
 }
 
+/* spec §6's own instruction for this file: "225 #111 -> --text-on-select
+   sur --surface-3" - the Regles d'usage active-button recipe (fond
+   --surface-3, texte --text-on-select), not a literal color swap. */
 .help-modal-close-btn {
-  background: var(--accent, #a6c8ff);
-  color: #111;
+  background: var(--surface-3);
+  color: var(--text-on-select);
   border: none;
   padding: 8px 24px;
   border-radius: var(--radius-md, 8px);
@@ -233,6 +236,6 @@
 }
 
 .help-modal-close-btn:hover {
-  background: #c2daff;
+  background: var(--surface-3);
   transform: translateY(-1px);
 }

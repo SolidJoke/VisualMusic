@@ -24,17 +24,17 @@
   gap: 8px;
   padding: 6px 12px 6px 6px;
   border-radius: var(--radius-sm, 4px);
-  background: var(--lg-panel-bg, rgba(15, 15, 20, 0.75));
-  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.15));
+  background: var(--lg-panel-bg);
+  border: 1px solid var(--border-default);
   transition: background var(--transition-fast, 150ms ease),
     border-color var(--transition-fast, 150ms ease),
     box-shadow var(--transition-fast, 150ms ease);
 }
 
 .instrument-bar__tile.is-selected {
-  background: var(--lg-panel-bg-elevated, rgba(25, 25, 30, 0.85));
-  border-color: rgba(255, 255, 255, 0.55);
-  box-shadow: var(--lg-shadow, 0 8px 32px rgba(0, 0, 0, 0.5));
+  background: var(--lg-panel-bg-elevated);
+  border-color: var(--select);
+  box-shadow: var(--lg-shadow);
 }
 
 .instrument-bar__select {
@@ -65,7 +65,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-muted, #8a8a96);
+  color: var(--text-muted);
 }
 
 .instrument-bar__icon {
@@ -75,7 +75,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
 }
 
 .instrument-bar__range {
@@ -83,7 +83,7 @@
   font-size: 18px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: var(--text-faint, #5a5a66);
+  color: var(--text-faint);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -92,11 +92,11 @@
 
 .is-selected .instrument-bar__name,
 .is-selected .instrument-bar__range {
-  color: var(--text-primary, #f0f0f0);
+  color: var(--text-primary);
 }
 
 .is-selected .instrument-bar__icon {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-3);
 }
 
 .instrument-bar__play {
@@ -107,28 +107,28 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.15));
-  color: var(--text-muted, #8a8a96);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
   cursor: pointer;
   transition: border-color var(--transition-fast, 150ms ease),
     color var(--transition-fast, 150ms ease);
 }
 
 .is-selected .instrument-bar__play {
-  color: var(--text-primary, #f0f0f0);
+  color: var(--text-primary);
 }
 
 .instrument-bar__play:hover,
 .instrument-bar__play-selected:hover {
-  border-color: var(--lg-accent, var(--accent));
-  color: var(--lg-accent, var(--accent));
+  border-color: var(--lg-accent);
+  color: var(--lg-accent);
 }
 
 .instrument-bar__select:focus-visible,
 .instrument-bar__play:focus-visible,
 .instrument-bar__play-selected:focus-visible {
-  outline: 2px solid var(--text-primary, #f0f0f0);
+  outline: 2px solid var(--text-primary);
   outline-offset: 2px;
 }
 
@@ -171,9 +171,9 @@
   gap: 10px;
   min-height: 52px;
   border-radius: var(--radius-sm, 4px);
-  background: var(--lg-panel-bg, rgba(15, 15, 20, 0.75));
-  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.15));
-  color: var(--text-primary, #f0f0f0);
+  background: var(--lg-panel-bg);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;

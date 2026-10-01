@@ -117,7 +117,7 @@ export function EuclideanCircle({
                 return `${x.toFixed(1)},${y.toFixed(1)}`;
               })
               .join(' ');
-            const strokeColor = poly.color || '#a78bfa';
+            const strokeColor = poly.color || 'var(--select)';
             const isDash = poly.op === '-';
             return poly.indices.length >= 3 ? (
               <polygon

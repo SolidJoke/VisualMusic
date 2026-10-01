@@ -1,7 +1,7 @@
 .btn-header-action {
   min-width: var(--header-btn-width);
   height: 42px;
-  background: rgba(20, 20, 20, 0.7);
+  background: var(--surface-2);
   border: 1px solid var(--border-default);
   color: var(--text-secondary);
   border-radius: var(--radius-md);
@@ -25,7 +25,7 @@
 }
 
 .btn-header-action, .btn-toggle, .btn-tab, .btn-segment {
-  border: 1px solid hsla(0, 0%, 100%, 0.2);
+  border: 1px solid var(--border-strong);
   position: relative;
 }
 
@@ -44,7 +44,7 @@
 }
 
 .btn-header-action, .btn-toggle, .btn-premium {
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border: 1.5px solid var(--border-strong);
 }
 
 .btn-header-action.active, .btn-toggle--active, .btn-premium.active {
@@ -54,10 +54,10 @@
 .btn-header-action {
   min-width: 160px; /* Uniform width for better alignment */
   padding: 8px 16px;
-  background: var(--bg-surface-lighter, #2a2a2a);
-  border: 1px solid var(--border-default, #444);
+  background: var(--bg-surface-lighter);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
-  color: #ccc;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -70,9 +70,9 @@
 }
 
 .btn-header-action:hover {
-  background: var(--theme-primary);
-  color: #000;
-  border-color: #fff;
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
 }
 
 .btn-premium {
@@ -112,10 +112,10 @@
 
 .app-mode-selector .btn-premium.active {
   background: var(--color-mode-active) !important;
-  color: #ffffff !important;
+  color: var(--text-on-select) !important;
   border-color: var(--color-mode-active-border) !important;
   box-shadow: 0 0 15px var(--color-mode-active-glow);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 2px var(--bg);
 }
 
 .btn-premium--full {
@@ -139,7 +139,7 @@
   padding: 8px 16px;
   cursor: pointer;
   border-radius: var(--radius-xl);
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border: 1.5px solid var(--border-strong);
   font-weight: bold;
   font-size: 13px;
   background: var(--glass-bg);
@@ -148,9 +148,9 @@
   backdrop-filter: var(--glass-blur);
 }
 .btn-toggle--active {
-  background-color: var(--theme-primary);
-  color: #000;
-  border-color: var(--theme-primary);
+  background-color: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
   box-shadow: 0 0 15px var(--accent-glow);
 }
 .btn-toggle:hover:not(.btn-toggle--active) {
@@ -163,7 +163,7 @@
   padding: 10px 20px;
   cursor: pointer;
   border-radius: var(--radius-xl);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border: 1.5px solid var(--border-subtle);
   font-weight: bold;
   font-size: 13px;
   background: var(--glass-bg);
@@ -171,9 +171,9 @@
   transition: all var(--transition-normal);
 }
 .btn-tab--active {
-  background-color: var(--theme-primary);
-  color: #000;
-  border-color: var(--theme-primary);
+  background-color: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
   box-shadow: 0 0 15px var(--accent-glow);
 }
 
@@ -184,7 +184,7 @@
   font-size: 14px;
   font-weight: normal;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-subtle);
   background: var(--glass-bg);
   color: var(--text-secondary);
   transition: all var(--transition-fast);
@@ -193,9 +193,9 @@
 }
 .btn-segment--active {
   font-weight: bold;
-  background-color: var(--theme-primary);
-  color: #000;
-  border-color: var(--theme-primary);
+  background-color: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
   box-shadow: 0 0 15px var(--accent-glow);
 }
 
@@ -232,7 +232,7 @@
 .btn-segment--active {
   background: var(--accent);
   color: var(--bg-base);
-  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 15px var(--accent-glow), inset 0 0 5px var(--lg-accent-glow);
   border-radius: var(--radius-md);
   position: relative;
   z-index: 1;

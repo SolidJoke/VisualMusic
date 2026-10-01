@@ -1,5 +1,14 @@
 import React, { useEffect, useRef, memo } from "react";
 
+// spec F1-fondations-visuelles.md §6 (AudioVisualizer.jsx:34): Canvas 2D's
+// fillStyle can't read a CSS custom property directly, so --bg (tokens.css)
+// is resolved once via getComputedStyle instead of hardcoding its value.
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
+  if (!m) return { r: 0, g: 0, b: 0 };
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+
 const AudioVisualizer = memo(function AudioVisualizer({ analyser, width = "100%", height = "60px" }) {
   const canvasRef = useRef(null);
   const requestRef = useRef();
@@ -21,6 +30,11 @@ const AudioVisualizer = memo(function AudioVisualizer({ analyser, width = "100%"
     const W = rect.width;
     const H = rect.height;
 
+    // hexToRgb already falls back to {0,0,0} if --bg is somehow unset.
+    const bgHex = getComputedStyle(document.documentElement).getPropertyValue("--bg");
+    const { r: bgR, g: bgG, b: bgB } = hexToRgb(bgHex);
+    const fadeColor = `rgba(${bgR}, ${bgG}, ${bgB}, 0.4)`;
+
     const draw = () => {
       requestRef.current = requestAnimationFrame(draw);
 
@@ -29,9 +43,9 @@ const AudioVisualizer = memo(function AudioVisualizer({ analyser, width = "100%"
 
       // analyser.getValue() returns Float32Array of dB values (usually -100 to 0)
       const values = analyser.getValue();
-      
+
       // Clear canvas with a very slight fade effect for sleekness
-      ctx.fillStyle = "rgba(18, 18, 18, 0.4)";
+      ctx.fillStyle = fadeColor;
       ctx.fillRect(0, 0, W, H);
 
       // The FFT array size is analyser.size (e.g. 64)

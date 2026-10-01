@@ -92,7 +92,7 @@ export default function DictPositionPanel({
                   })()}
                 />
                 {guitarFingering?.isOutOfRange && (
-                  <div className="range-warning" style={{ color: "#ff4d4d", fontSize: "0.8em", marginTop: "4px" }}>
+                  <div className="range-warning" style={{ color: "var(--color-error)", fontSize: "0.8em", marginTop: "4px" }}>
                     ⚠️ {txt.outOfRangeGuitar || "Guitar range exceeded"}
                   </div>
                 )}
@@ -134,7 +134,7 @@ export default function DictPositionPanel({
                   })()}
                 />
                 {bassFingering?.isOutOfRange && (
-                  <div className="range-warning" style={{ color: "#ff4d4d", fontSize: "0.8em", marginTop: "4px" }}>
+                  <div className="range-warning" style={{ color: "var(--color-error)", fontSize: "0.8em", marginTop: "4px" }}>
                     ⚠️ {txt.outOfRangeBass || "Bass range exceeded"}
                   </div>
                 )}

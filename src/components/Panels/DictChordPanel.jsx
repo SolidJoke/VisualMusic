@@ -23,16 +23,16 @@ export default function DictChordPanel({
     if (!moodProfile) return null;
 
     // Tension Color
-    let tensionColor = "#4ade80"; // green
-    if (moodProfile.tension >= 4) tensionColor = "#facc15"; // yellow
-    if (moodProfile.tension >= 7) tensionColor = "#ef4444"; // red
+    let tensionColor = "var(--color-success)";
+    if (moodProfile.tension >= 4) tensionColor = "var(--color-warning)";
+    if (moodProfile.tension >= 7) tensionColor = "var(--color-error)";
 
     return (
-      <div className="dict-panel__mood-profile" style={{ marginTop: "10px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "8px" }}>
+      <div className="dict-panel__mood-profile" style={{ marginTop: "10px", borderTop: "1px solid var(--border-subtle)", paddingTop: "8px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
           <span style={{ fontSize: "11px", opacity: 0.7 }}>Tension</span>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: "60px", height: "4px", background: "rgba(255,255,255,0.1)", borderRadius: "2px", overflow: "hidden" }}>
+            <div style={{ width: "60px", height: "4px", background: "var(--surface-2)", borderRadius: "2px", overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${(moodProfile.tension / 10) * 100}%`, background: tensionColor }}></div>
             </div>
             <span style={{ fontSize: "11px", color: tensionColor, fontWeight: "bold", width: "16px", textAlign: "right" }}>{moodProfile.tension}</span>
@@ -44,7 +44,7 @@ export default function DictChordPanel({
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "6px" }}>
           {moodProfile.genres.map((g, i) => (
-            <span key={i} style={{ fontSize: "10px", padding: "2px 6px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px" }}>{g}</span>
+            <span key={i} style={{ fontSize: "10px", padding: "2px 6px", background: "var(--surface-2)", border: "1px solid var(--border-subtle)", borderRadius: "10px" }}>{g}</span>
           ))}
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function DictChordPanel({
 
       {/* Substitutions */}
       <div className="dict-panel__substitutions" style={{ marginTop: '1.2rem' }}>
-        <div className="field-label" style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+        <div className="field-label" style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.6rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '4px' }}>
           🔄 {txt.substitutions || "Substitutions"}
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -124,7 +124,7 @@ export default function DictChordPanel({
                 key={sub.type}
                 onClick={() => applySubstitution(sub.name)}
                 className="tag-btn"
-                style={{ fontSize: '0.75rem', padding: '6px 10px', borderRadius: '8px', background: 'rgba(212, 196, 168, 0.08)', border: '1px solid rgba(212, 196, 168, 0.15)' }}
+                style={{ fontSize: '0.75rem', padding: '6px 10px', borderRadius: '8px', background: 'var(--surface-2)', border: '1px solid var(--border-subtle)' }}
               >
                 <span style={{ opacity: 0.6, marginRight: '4px', textTransform: 'uppercase', fontSize: '0.65rem' }}>{sub.type}:</span>
                 <span style={{ fontWeight: 'bold', color: 'var(--theme-primary)' }}>{sub.name}</span>
@@ -141,7 +141,7 @@ export default function DictChordPanel({
 
         return (
           <div className="dict-panel__substitutions" style={{ marginTop: '1.2rem' }}>
-            <div className="field-label" style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+            <div className="field-label" style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.6rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '4px' }}>
               💡 {txt.suggestedNextChords || "Accords Suivants Suggérés"}
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -158,9 +158,9 @@ export default function DictChordPanel({
                     }}
                     className="tag-btn"
                     title={s.reason}
-                    style={{ fontSize: '0.75rem', padding: '6px 10px', borderRadius: '8px', background: 'rgba(250, 204, 21, 0.1)', border: '1px solid rgba(250, 204, 21, 0.3)' }}
+                    style={{ fontSize: '0.75rem', padding: '6px 10px', borderRadius: '8px', background: 'var(--surface-2)', border: '1px solid var(--color-warning)' }}
                   >
-                    <span style={{ fontWeight: 'bold', color: '#facc15' }}>{noteStr} {chordStr}</span>
+                    <span style={{ fontWeight: 'bold', color: 'var(--color-warning)' }}>{noteStr} {chordStr}</span>
                   </button>
                 );
               })}

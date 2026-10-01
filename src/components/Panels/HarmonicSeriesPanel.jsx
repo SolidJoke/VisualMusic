@@ -28,9 +28,9 @@ export default function HarmonicSeriesPanel({ dictRoot, dictOctave }) {
     <div className={`harmonic-series-container panel ${isCollapsed ? 'panel--collapsed' : ''}`} style={{
       marginTop: "1.5rem",
       padding: "15px",
-      background: "rgba(0,0,0,0.3)",
+      background: "var(--surface-1)",
       borderRadius: "12px",
-      border: "1px solid rgba(212, 196, 168, 0.1)",
+      border: "1px solid var(--border-subtle)",
       textAlign: "left"
     }}>
       <div className="panel__header" onClick={() => setIsCollapsed(!isCollapsed)}>
@@ -48,14 +48,14 @@ export default function HarmonicSeriesPanel({ dictRoot, dictOctave }) {
                 title={`${h.frequency.toFixed(1)} Hz (${h.centsOffset > 0 ? '+' : ''}${h.centsOffset} cents)`}
                 style={{
                   padding: "6px 4px",
-                  background: "rgba(255,255,255,0.05)",
+                  background: "var(--surface-2)",
                   borderRadius: "6px",
                   fontSize: "0.75rem",
                   textAlign: "center",
-                  border: "1px solid rgba(255,255,255,0.05)",
+                  border: "1px solid var(--border-subtle)",
                   color: Math.abs(h.centsOffset) > 15
-                    ? "#ff9999"
-                    : (Math.abs(h.centsOffset) < 5 ? "var(--theme-primary)" : "#ccc")
+                    ? "var(--color-error)"
+                    : (Math.abs(h.centsOffset) < 5 ? "var(--theme-primary)" : "var(--text-secondary)")
                 }}
               >
                 <div style={{ fontSize: "0.6rem", opacity: 0.5, marginBottom: "2px" }}>#{h.order}</div>
@@ -67,7 +67,7 @@ export default function HarmonicSeriesPanel({ dictRoot, dictOctave }) {
             ))}
           </div>
 
-          <div style={{ marginTop: "12px", fontSize: "0.7rem", color: "#888", fontStyle: "italic" }}>
+          <div style={{ marginTop: "12px", fontSize: "0.7rem", color: "var(--text-muted)", fontStyle: "italic" }}>
             💡 {txt.harmonicTip || "Les notes en rouge sont naturellement \"fausses\" par rapport au tempérament égal."}
           </div>
         </div>

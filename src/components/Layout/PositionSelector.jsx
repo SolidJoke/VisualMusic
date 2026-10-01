@@ -62,7 +62,7 @@ const PositionSelector = ({
   return (
     <div style={{ marginBottom: "15px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
       {!isScaleMode && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "rgba(0,0,0,0.3)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)", alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "var(--surface-2)", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-subtle)", alignItems: "center" }}>
           <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: "bold", textAlign: "center" }}>
              {instrumentType === "guitar" ? txt.guitarLabel : txt.bassLabel} : {txt.rootStringLabel || "Root on string"}
           </div>
@@ -112,10 +112,10 @@ const PositionSelector = ({
 
       {/* Voicing Selector UI */}
       <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "center", marginLeft: "-35px" }}>
-        <span style={{ color: "#d4c4a8", fontSize: "14px", fontWeight: "bold" }}>
+        <span style={{ color: "var(--text-secondary)", fontSize: "14px", fontWeight: "bold" }}>
           {txt.voicingSelector}
         </span>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px", background: "rgba(0,0,0,0.2)", padding: "2px 8px", borderRadius: "20px", border: "1px solid rgba(212, 196, 168, 0.2)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "5px", background: "var(--surface-2)", padding: "2px 8px", borderRadius: "20px", border: "1px solid var(--border-subtle)" }}>
           <button 
             className="btn-premium" 
             onClick={handlePrevVoicing}
@@ -124,7 +124,7 @@ const PositionSelector = ({
             ‹
           </button>
           
-          <span style={{ color: "#fff", fontSize: "12px", minWidth: "120px", textAlign: "center", fontWeight: "500" }}>
+          <span style={{ color: "var(--text-primary)", fontSize: "12px", minWidth: "120px", textAlign: "center", fontWeight: "500" }}>
             {selectedVoicingIndex === null 
               ? (isScaleMode ? txt.fullNeck : txt.voicingAllNotes) 
               : ((availableVoicings?.find(v => v.id === selectedVoicingIndex)?.label || "Position")
@@ -142,14 +142,14 @@ const PositionSelector = ({
       </div>
 
       {instrumentType === "guitar" && fingering?.outOfRange && (
-        <div style={{ color: "#e74c3c", fontSize: "13px", fontWeight: "bold" }}>{txt.warningOutOfRange}</div>
+        <div style={{ color: "var(--color-error)", fontSize: "13px", fontWeight: "bold" }}>{txt.warningOutOfRange}</div>
       )}
       {instrumentType === "guitar" && fingering?.difficultStretch && !fingering?.outOfRange && (
-        <div style={{ color: "#f39c12", fontSize: "13px", fontWeight: "bold" }}>{txt.warningDifficultStretch}</div>
+        <div style={{ color: "var(--color-warning)", fontSize: "13px", fontWeight: "bold" }}>{txt.warningDifficultStretch}</div>
       )}
       {instrumentType === "guitar" && (
         <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
-          <div style={{ width: "20px", height: "10px", backgroundColor: "rgba(96, 165, 250, 0.3)", border: "2px solid rgba(96, 165, 250, 0.85)", borderRadius: "4px" }}></div>
+          <div style={{ width: "20px", height: "10px", backgroundColor: "var(--select)", border: "2px solid var(--border-strong)", borderRadius: "4px" }}></div>
           <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{txt.barreLegend}</span>
         </div>
       )}

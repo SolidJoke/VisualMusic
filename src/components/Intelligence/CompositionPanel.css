@@ -1,30 +1,35 @@
-/* Eurorack Metallic Composition Module Styling */
+/* Eurorack Metallic Composition Module Styling
+   F1b (spec F1-fondations-visuelles.md §6, brief point 2): this file is
+   named without qualification for decorative removal, unlike most of the
+   batch - every gradient, glow/halo box-shadow and text-shadow below was
+   stripped (not just recolored), flattening the "premium hardware" bezel
+   look to the same flat-black design as the rest of the app. Each removal
+   is called out in the F1b report. */
 .composition-panel {
-  background: radial-gradient(circle at 50% 0%, #2a2c30, #141517);
-  border: 3px solid #3c3f45;
+  background: var(--surface-1);
+  border: 3px solid var(--border-default);
   border-radius: 8px;
   padding: 18px;
   position: relative;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    0 10px 25px rgba(0, 0, 0, 0.5),
-    0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--lg-shadow);
   font-family: 'Inter', system-ui, sans-serif;
-  color: #e0e6ed;
+  color: var(--text-primary);
   overflow: hidden;
   user-select: none;
   flex-shrink: 0;
 }
 
-/* Eurorack Panel Screws for Realism */
+/* Eurorack Panel Screws for Realism - flattened to a plain dot: the fake-
+   bezel shine (radial-gradient) and drop shadow were pure "premium
+   hardware" decoration with no informational value. */
 .eurorack-screw {
   position: absolute;
   width: 10px;
   height: 10px;
-  background: radial-gradient(circle at 35% 35%, #888, #444);
+  background: var(--surface-3);
   border-radius: 50%;
-  border: 1px solid #222;
-  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-default);
+  box-shadow: none;
 }
 .eurorack-screw::after {
   content: '';
@@ -33,7 +38,7 @@
   left: 1px;
   width: 8px;
   height: 1px;
-  background-color: #222;
+  background-color: var(--border-default);
   transform: rotate(35deg);
 }
 .eurorack-screw.top-left { top: 6px; left: 6px; }
@@ -46,7 +51,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 2px solid #3c3f45;
+  border-bottom: 2px solid var(--border-default);
   padding-bottom: 12px;
   margin-bottom: 16px;
 }
@@ -54,9 +59,9 @@
   font-size: 0.85rem;
   letter-spacing: 2px;
   font-weight: 700;
-  color: #a0aec0;
+  color: var(--text-secondary);
   margin: 0;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
 }
 
 /* LED Indicators */
@@ -64,8 +69,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--led-cyan, #00f0ff);
-  box-shadow: 0 0 10px var(--led-cyan, #00f0ff), inset 0 1px 1px rgba(255,255,255,0.5);
+  background-color: var(--led-cyan);
+  box-shadow: none;
 }
 
 .panel-led-indicator.pulse-slow {
@@ -79,12 +84,12 @@
 
 /* Sections of the Eurorack unit */
 .panel-section {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid #232529;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 14px;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
 }
 
 .section-label {
@@ -92,7 +97,7 @@
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 1.5px;
-  color: #718096;
+  color: var(--text-muted);
   margin-bottom: 10px;
   text-transform: uppercase;
 }
@@ -100,21 +105,21 @@
 /* Vintage Select Inputs */
 .retro-select {
   width: 100%;
-  background: #1b1d21;
-  border: 1px solid #3c3f45;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   padding: 8px 12px;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.85rem;
   outline: none;
   cursor: pointer;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+  box-shadow: none;
   transition: all 0.2s ease;
 }
 .retro-select:focus {
-  border-color: var(--led-cyan, #00f0ff);
-  box-shadow: 0 0 6px rgba(0, 240, 255, 0.2);
+  border-color: var(--led-cyan);
+  box-shadow: none;
 }
 
 /* Potentiometers / Range Sliders */
@@ -129,23 +134,23 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.72rem;
-  color: #a0aec0;
+  color: var(--text-secondary);
   margin-bottom: 4px;
   font-weight: 600;
 }
 
 /* LCD Value Screen */
 .lcd-value {
-  background-color: #1a0e00;
-  border: 1px solid #3a2200;
+  background-color: var(--bg);
+  border: 1px solid var(--border-default);
   border-radius: 3px;
   padding: 2px 6px;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.8rem;
-  color: var(--lcd-amber, #ff9d00);
+  color: var(--lcd-amber);
   font-weight: bold;
-  text-shadow: 0 0 4px var(--lcd-amber, #ff9d00);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+  text-shadow: none;
+  box-shadow: none;
   min-width: 24px;
   text-align: center;
 }
@@ -155,11 +160,11 @@
   -webkit-appearance: none;
   width: 100%;
   height: 6px;
-  background: #15171a;
+  background: var(--surface-1);
   border-radius: 3px;
   outline: none;
-  border: 1px solid #2d3139;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
 }
 .retro-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -167,15 +172,15 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #6b7280, #374151);
-  border: 1px solid #1f2937;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+  box-shadow: none;
 }
 .retro-slider::-webkit-slider-thumb:active {
-  background: radial-gradient(circle at 35% 35%, #00f0ff, #007799);
-  border-color: #004466;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+  background: var(--select);
+  border-color: var(--select);
+  box-shadow: none;
 }
 
 /* SVG Visualization Container */
@@ -189,10 +194,10 @@
   width: 100%;
   display: flex;
   justify-content: center;
-  background: #111215;
+  background: var(--surface-1);
   border-radius: 8px;
   padding: 10px;
-  border: 1px solid #232529;
+  border: 1px solid var(--border-subtle);
 }
 
 /* Switch & Metadata group */
@@ -249,11 +254,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #1a1c20;
-  border: 1px solid #3c3f45;
+  background-color: var(--surface-2);
+  border: 1px solid var(--border-default);
   transition: .2s;
   border-radius: 20px;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+  box-shadow: none;
 }
 .switch-slider:before {
   position: absolute;
@@ -262,26 +267,26 @@
   width: 12px;
   left: 3px;
   bottom: 3px;
-  background: radial-gradient(circle at 35% 35%, #a0aec0, #4a5568);
-  border: 1px solid #2d3748;
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
   transition: .2s;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  box-shadow: none;
 }
 .retro-switch input:checked + .switch-slider {
-  background-color: #2d3748;
-  border-color: var(--led-cyan, #00f0ff);
+  background-color: var(--surface-3);
+  border-color: var(--led-cyan);
 }
 .retro-switch input:checked + .switch-slider:before {
   transform: translateX(18px);
-  background: radial-gradient(circle at 35% 35%, #00f0ff, #0088cc);
-  border-color: #005580;
-  box-shadow: 0 0 6px var(--led-cyan, #00f0ff);
+  background: var(--select);
+  border-color: var(--select);
+  box-shadow: none;
 }
 .switch-label {
   font-size: 0.65rem;
   font-weight: 700;
-  color: #a0aec0;
+  color: var(--text-secondary);
   letter-spacing: 0.5px;
 }
 
@@ -290,25 +295,25 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #18191c;
-  border: 1px solid #232529;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   padding: 4px 8px;
 }
 .badge-title {
   font-size: 0.58rem;
-  color: #718096;
+  color: var(--text-muted);
   font-weight: 700;
 }
 .badge-value {
   font-size: 0.62rem;
   font-family: 'Courier New', Courier, monospace;
-  color: #a0aec0;
+  color: var(--text-secondary);
   font-weight: 700;
 }
 .badge-value.self-comp {
-  color: var(--led-cyan, #00f0ff);
-  text-shadow: 0 0 5px rgba(0, 240, 255, 0.4);
+  color: var(--led-cyan);
+  text-shadow: none;
 }
 
 /* Binary grid and glowing LEDs */
@@ -330,33 +335,29 @@
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  background: #1a1c20;
-  border: 1px solid #32353c;
-  box-shadow: inset 0 2px 2px rgba(0,0,0,0.8);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  box-shadow: none;
   transition: all 0.15s ease;
 }
 .grid-led.led-active {
-  background: radial-gradient(circle at 35% 35%, #d5f7ff, var(--led-cyan, #00f0ff));
-  border-color: #00c3d9;
-  box-shadow: 
-    0 0 8px var(--led-cyan, #00f0ff),
-    0 1px 1px rgba(255,255,255,0.4);
+  background: var(--led-cyan);
+  border-color: var(--select);
+  box-shadow: none;
 }
 .grid-led.led-complement {
-  background: radial-gradient(circle at 35% 35%, #fff1d5, var(--lcd-amber, #ff9d00));
-  border-color: #d98500;
-  box-shadow: 
-    0 0 6px var(--lcd-amber, #ff9d00),
-    0 1px 1px rgba(255,255,255,0.4);
+  background: var(--lcd-amber);
+  border-color: var(--lcd-amber);
+  box-shadow: none;
 }
 .grid-led.led-cursor-active {
   transform: scale(1.15);
-  box-shadow: 0 0 12px #ffffff !important;
-  border-color: #ffffff !important;
+  box-shadow: none !important;
+  border-color: var(--select) !important;
 }
 .grid-index {
   font-size: 0.55rem;
-  color: #4a5568;
+  color: var(--text-muted);
   font-family: monospace;
 }
 
@@ -374,7 +375,7 @@
   gap: 8px;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #718096;
+  color: var(--text-muted);
 }
 .retro-select.mini {
   width: auto;
@@ -382,68 +383,68 @@
   font-size: 0.75rem;
 }
 
-/* Luminscent tactile buttons */
+/* Luminscent tactile buttons - "keycap" 3-layer bevel shadow and gradient
+   fill removed (decorative, F1b brief point 2); the surface tier change on
+   hover is the only remaining feedback besides the existing translateY. */
 .retro-btn {
-  background: linear-gradient(180deg, #3c424d, #252930);
-  border: 1px solid #1a1c20;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
   border-radius: 5px;
   padding: 8px 16px;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 1px;
   cursor: pointer;
-  box-shadow: 
-    0 3px 0 #15171b,
-    0 4px 6px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255,255,255,0.1);
+  box-shadow: none;
   transition: all 0.1s ease;
   outline: none;
 }
 .retro-btn:hover {
-  background: linear-gradient(180deg, #464d5a, #2a2e37);
-  color: #ffffff;
+  background: var(--surface-3);
+  color: var(--text-on-select);
 }
 .retro-btn:active {
   transform: translateY(3px);
-  box-shadow: 
-    0 0px 0 #15171b,
-    0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
 }
 
 .export-btn {
-  color: #00f0ff;
-  border-color: rgba(0, 240, 255, 0.3);
-  text-shadow: 0 0 4px rgba(0, 240, 255, 0.5);
+  color: var(--select);
+  border-color: var(--select);
+  text-shadow: none;
   flex-grow: 1;
 }
+/* .success is a real state name (not a generic "active" toggle), so it
+   gets --color-success rather than the neutral surface-3 recipe used for
+   plain active/hover toggles elsewhere in this batch. */
 .export-btn:active, .export-btn.success {
-  background: radial-gradient(circle, #00f0ff, #004466);
-  color: #ffffff;
-  border-color: #00a2cc;
-  text-shadow: 0 0 6px #ffffff;
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+  background: var(--surface-3);
+  color: var(--color-success);
+  border-color: var(--color-success);
+  text-shadow: none;
+  box-shadow: none;
 }
 
 .clear-container {
   display: flex;
   justify-content: center;
   margin-top: 10px;
-  border-top: 1px dashed #2d3139;
+  border-top: 1px dashed var(--border-subtle);
   padding-top: 10px;
 }
 .clear-btn {
   background: transparent;
-  border: 1px dashed #4a5568;
-  color: #718096;
+  border: 1px dashed var(--border-default);
+  color: var(--text-muted);
   box-shadow: none;
   font-size: 0.65rem;
   padding: 4px 10px;
 }
 .clear-btn:hover {
-  border-color: #e53e3e;
-  color: #e53e3e;
-  background: rgba(229, 62, 62, 0.05);
+  border-color: var(--color-error);
+  color: var(--color-error);
+  background: var(--surface-2);
 }
 .clear-btn:active {
   transform: scale(0.98);
@@ -452,7 +453,7 @@
 
 /* Isorythmie Module Premium Styles */
 .isorhythm-section {
-  border-left: 2px solid var(--led-cyan, #00f0ff);
+  border-left: 2px solid var(--led-cyan);
 }
 .retro-input-container {
   display: flex;
@@ -463,30 +464,30 @@
 .retro-input-container .input-label {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #a0aec0;
+  color: var(--text-secondary);
   letter-spacing: 1px;
 }
 .retro-input-text {
-  background: #111215;
-  border: 1px solid #3c3f45;
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   padding: 8px 12px;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.85rem;
   outline: none;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+  box-shadow: none;
   transition: all 0.2s ease;
 }
 .retro-input-text:focus {
-  border-color: var(--led-cyan, #00f0ff);
-  box-shadow: 0 0 8px rgba(0, 240, 255, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.6);
+  border-color: var(--led-cyan);
+  box-shadow: none;
 }
 .isorhythm-display {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: rgba(0,0,0,0.15);
+  background: var(--surface-1);
   border-radius: 4px;
   padding: 8px;
 }
@@ -498,15 +499,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #16171a;
-  border: 1px solid #232529;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   padding: 4px 8px;
 }
 .lcd-label {
   font-size: 0.58rem;
   font-weight: 700;
-  color: #718096;
+  color: var(--text-muted);
 }
 
 /* Isorhythm Steps Grid */
@@ -517,9 +518,9 @@
   max-height: 120px;
   overflow-y: auto;
   padding: 4px;
-  background: #111215;
+  background: var(--surface-1);
   border-radius: 4px;
-  border: 1px solid #232529;
+  border: 1px solid var(--border-subtle);
 }
 .isorhythm-step-cell {
   display: flex;
@@ -529,29 +530,29 @@
   min-width: 38px;
   height: 38px;
   border-radius: 4px;
-  border: 1px solid #2d3139;
+  border: 1px solid var(--border-subtle);
   font-family: monospace;
   transition: all 0.15s ease;
 }
 .isorhythm-step-cell.is-rest {
-  background: #1a1c20;
-  color: #4a5568;
+  background: var(--surface-2);
+  color: var(--text-muted);
 }
 .isorhythm-step-cell.has-note {
-  background: radial-gradient(circle at 35% 35%, #1b2e3c, #0a1720);
-  border-color: rgba(0, 240, 255, 0.4);
-  color: var(--led-cyan, #00f0ff);
-  box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.1);
+  background: var(--surface-3);
+  border-color: var(--select);
+  color: var(--led-cyan);
+  box-shadow: none;
 }
 .isorhythm-step-cell.active-step {
   transform: scale(1.08);
-  border-color: #ffffff;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  border-color: var(--select);
+  box-shadow: none;
   z-index: 2;
 }
 .step-idx {
   font-size: 0.55rem;
-  color: #718096;
+  color: var(--text-muted);
 }
 .step-note {
   font-size: 0.72rem;
@@ -560,20 +561,20 @@
 
 /* Realignment Module Premium Styles */
 .realignment-section {
-  border-left: 2px solid var(--lcd-amber, #ff9d00);
+  border-left: 2px solid var(--lcd-amber);
 }
 .realignment-display {
-  background: #111215;
+  background: var(--surface-1);
   border-radius: 4px;
   padding: 10px;
-  border: 1px solid #232529;
+  border: 1px solid var(--border-subtle);
 }
 
 /* ===================================================
    COMP-08 - Polyrhythm Algebra (Andrew Milne)
    =================================================== */
 .polyrhythm-section {
-  border-left: 2px solid #a78bfa;
+  border-left: 2px solid var(--select);
 }
 
 .balance-indicator {
@@ -586,29 +587,29 @@
   font-size: 0.78rem;
   font-family: 'Courier New', monospace;
   letter-spacing: 0.05em;
-  border: 1px solid rgba(167, 139, 250, 0.3);
-  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
   transition: all 0.3s ease;
 }
 
 .balance-indicator.balanced {
-  border-color: rgba(52, 211, 153, 0.5);
-  background: rgba(52, 211, 153, 0.08);
+  border-color: var(--color-success);
+  background: var(--surface-2);
 }
 
 .balance-indicator.unbalanced {
-  border-color: rgba(248, 113, 113, 0.5);
-  background: rgba(248, 113, 113, 0.08);
+  border-color: var(--color-error);
+  background: var(--surface-2);
 }
 
 .balance-indicator.balanced .balance-status {
-  color: #34d399;
-  text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+  color: var(--color-success);
+  text-shadow: none;
 }
 
 .balance-indicator.unbalanced .balance-status {
-  color: #f87171;
-  text-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+  color: var(--color-error);
+  text-shadow: none;
 }
 
 .poly-ops-editor {
@@ -623,7 +624,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--surface-2);
   border-radius: 5px;
   padding-left: 8px;
   flex-wrap: wrap;
@@ -647,7 +648,7 @@
 
 .poly-op-field > span:first-child {
   font-size: 0.75rem;
-  color: #8893a0;
+  color: var(--text-muted);
   min-width: 14px;
 }
 
@@ -666,28 +667,28 @@
   padding: 2px 7px;
   font-size: 0.75rem;
   min-width: 24px;
-  background: rgba(248, 113, 113, 0.15);
-  border-color: rgba(248, 113, 113, 0.4);
-  color: #f87171;
+  background: var(--surface-2);
+  border-color: var(--color-error);
+  color: var(--color-error);
 }
 
 .poly-remove-btn:hover {
-  background: rgba(248, 113, 113, 0.3);
+  background: var(--surface-3);
 }
 
 .poly-add-btn {
   font-size: 0.72rem;
   padding: 5px 10px;
   align-self: flex-start;
-  background: rgba(167, 139, 250, 0.12);
-  border-color: rgba(167, 139, 250, 0.4);
-  color: #a78bfa;
+  background: var(--surface-2);
+  border-color: var(--select);
+  color: var(--select);
   margin-top: 2px;
 }
 
 .poly-add-btn:hover {
-  background: rgba(167, 139, 250, 0.25);
-  box-shadow: 0 0 10px rgba(167, 139, 250, 0.3);
+  background: var(--surface-3);
+  box-shadow: none;
 }
 
 .polyrhythm-result {
@@ -697,6 +698,6 @@
 .polyrhythm-result .input-label {
   display: block;
   margin-bottom: 8px;
-  color: #a78bfa;
+  color: var(--select);
   font-size: 0.72rem;
 }

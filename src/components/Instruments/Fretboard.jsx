@@ -379,7 +379,7 @@ function Fretboard({
       style={{ "--fretboard-grid": activeGridTemplate }}
       title={fingering?.isOutOfRange ? "⚠️ Accord hors tessiture instrument" : ""}
     >
-      <h3 style={{ color: "#ccc", marginBottom: "10px" }}>
+      <h3 style={{ color: "var(--text-secondary)", marginBottom: "10px" }}>
         {instrument === "bass" ? "🎸 Basse (4 cordes)" : "🎸 Guitare (6 cordes)"}
       </h3>
       <div className="fretboard-wrapper">

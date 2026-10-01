@@ -118,10 +118,10 @@ const StudioPanel = ({
         </div>
 
         <div style={{ marginTop: "15px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px" }}>
-          <span className="info-badge" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #444' }}>
+          <span className="info-badge" style={{ background: 'var(--surface-2)', border: '1px solid var(--border-default)' }}>
             🎵 {SCALES[activeBrick.scaleKey]?.modeKey || activeBrick.scaleKey}
           </span>
-          <span className="info-badge" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid #444' }}>
+          <span className="info-badge" style={{ background: 'var(--surface-2)', border: '1px solid var(--border-default)' }}>
             🎸 {activeBrick.tuning || "Standard"}
           </span>
         </div>
@@ -132,14 +132,14 @@ const StudioPanel = ({
           </div>
         )}
         {activeBrick.inspiration?.[lang] && (
-          <div style={{ color: '#888', fontSize: '13px', marginTop: '6px', fontStyle: 'italic', paddingLeft: '12px' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '6px', fontStyle: 'italic', paddingLeft: '12px' }}>
             {activeBrick.inspiration[lang]}
           </div>
         )}
         {activeBrick.examples?.[lang] && (
           <div
             style={{
-              color: "#aaa",
+              color: "var(--text-secondary)",
               fontSize: "13px",
               marginTop: "5px",
               fontStyle: "italic",
@@ -334,7 +334,7 @@ const StudioPanel = ({
                   </div>
                 )}
                 {/* DEGREE ANALYSIS (G.2.1) */}
-                <span style={{ fontSize: "14px", color: "#90caf9", fontWeight: "bold", marginBottom: "2px" }}>
+                <span style={{ fontSize: "14px", color: "var(--text-secondary)", fontWeight: "bold", marginBottom: "2px" }}>
                   {toRoman(c.nns)}
                 </span>
                 <button
@@ -352,7 +352,7 @@ const StudioPanel = ({
                 </button>
                 <span style={{
                   fontSize: "10px",
-                  color: isSelected ? "var(--theme-primary)" : "#888",
+                  color: isSelected ? "var(--theme-primary)" : "var(--text-muted)",
                   fontStyle: "italic",
                   letterSpacing: "0.03em",
                   transition: "color 0.2s",
@@ -385,12 +385,12 @@ const StudioPanel = ({
                   className="dict-panel__emotion-card" 
                   style={{ fontSize: "12px", width: "100%", textAlign: "center" }}
                 >
-                  <div style={{ color: "#facc15", fontWeight: "bold", marginBottom: "8px" }}>💡 Accords Suivants Suggérés</div>
+                  <div style={{ color: "var(--color-warning)", fontWeight: "bold", marginBottom: "8px" }}>💡 Accords Suivants Suggérés</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     {suggestions.map((s, idx) => (
-                      <div key={idx} style={{ background: "rgba(0,0,0,0.2)", padding: "4px", borderRadius: "4px" }}>
+                      <div key={idx} style={{ background: "var(--surface-2)", padding: "4px", borderRadius: "4px" }}>
                         <strong>{toRoman(s.chord)}</strong> <br/>
-                        <span style={{ fontSize: "10px", color: "#ccc" }}>{s.reason}</span>
+                        <span style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{s.reason}</span>
                       </div>
                     ))}
                   </div>
@@ -410,7 +410,7 @@ const StudioPanel = ({
             style={{
               marginTop: "15px",
               fontSize: "14px",
-              color: "#90caf9",
+              color: "var(--text-secondary)",
               fontStyle: "italic",
               display: "flex",
               alignItems: "center",
