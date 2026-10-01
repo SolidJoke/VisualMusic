@@ -79,9 +79,12 @@ const EXPECTED_REMAINING = {
   // interpolations from a literal number.
   "components/Visualizer/AudioVisualizer.jsx": ["rgba(${bgR}, ${bgG}, ${bgB}, 0.4)"],
 };
-// App.css's own modal-veil rgba(0, 0, 0, 0.7) — file is outside src/components
-// so it is asserted separately below, not through EXPECTED_REMAINING.
-const APP_CSS_EXPECTED = ["rgba(0, 0, 0, 0.7)"];
+// App.css's own modal-veil rgba(0, 0, 0, 0.7) (.modal-overlay) plus the
+// mobile sidebar-backdrop scrim, aligned to the same alpha for the same
+// "no token for a translucent scrim" reason as BottomNav.css's drawer
+// overlay — file is outside src/components so it is asserted separately
+// below, not through EXPECTED_REMAINING.
+const APP_CSS_EXPECTED = ["rgba(0, 0, 0, 0.7)", "rgba(0, 0, 0, 0.7)"];
 
 function findLiterals(absPath) {
   const raw = fs.readFileSync(absPath, "utf8");

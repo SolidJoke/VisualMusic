@@ -128,7 +128,7 @@ const EXCEPTIONS = [
   },
   {
     file: "components/Audio/MixerStrip.jsx",
-    code: "background: `linear-gradient(to top, var(--led-cyan) 0%, var(--led-cyan) ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, #333 ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, #333 100%)`",
+    code: "background: `linear-gradient(to top, var(--led-cyan) 0%, var(--led-cyan) ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, var(--border-default) ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, var(--border-default) 100%)`",
     count: 2, // the same volume-percentage expression appears twice in this one gradient literal
     reason: "same volume percentage, repeated in the gradient's background stops",
   },
