@@ -10,6 +10,7 @@ import { log } from '../../utils/debug';
 import extendedTheoryData from '../../core/extendedTheoryData.json';
 import InfoTooltip from '../Common/InfoTooltip';
 import TargetNotesSelector from '../Common/TargetNotesSelector';
+import { isQuickStartLoaded, quickStartPatterns, quickStartProgression } from '../../core/quickStart';
 
 const StudioPanel = ({
   currentBrickIndex,
@@ -47,8 +48,28 @@ const StudioPanel = ({
   // just opened on purpose; opening it collapsed hid ~1180px of content
   // behind a second click on every screen narrower than 4K.
   const [isCollapsed, setIsCollapsed] = useState(false);
-  
+  // VMU-161: how a Quick Start reads in the style. Off: the chords of the
+  // style's scale. On: the same, with the chord on the 5 made a dominant.
+  // Not kept across a reload (that is VMU-050).
+  const [classicCadence, setClassicCadence] = useState(false);
+
   if (!activeBrick) return null;
+
+  const styleKey = { rootValue: activeBrick.rootValue, scaleKey: activeBrick.scaleKey };
+  const quickStarts = quickStartPatterns(extendedTheoryData.axiomRules.progressions);
+  const loadQuickStart = (quickStart) => {
+    log("studio", `Loading quick progression: ${quickStart.name}`);
+    setCustomProgression(quickStartProgression(quickStart, styleKey, { classicCadence }));
+  };
+  // Changing the option re-reads the Quick Start that is loaded, if one is.
+  const chooseCadence = (next) => {
+    if (next === classicCadence) return;
+    const loaded = quickStarts.find((quickStart) =>
+      isQuickStartLoaded(activeProgression || [], quickStart, styleKey, { classicCadence }),
+    );
+    setClassicCadence(next);
+    if (loaded) setCustomProgression(quickStartProgression(loaded, styleKey, { classicCadence: next }));
+  };
 
   const handleSuggestBass = () => {
     import('../../core/bassEngine').then(({ suggestBassPattern }) => {
@@ -207,18 +228,15 @@ const StudioPanel = ({
              <InfoTooltip text={txt.tooltip?.quickProgressions} />
            </div>
            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", marginTop: "10px" }}>
-             {extendedTheoryData.axiomRules.progressions.map(p => (
+             {quickStarts.map(p => (
                <button
                  key={p.id}
-                 onClick={() => {
-                   log("studio", `Loading quick progression: ${p.name}`);
-                   setCustomProgression(p.degrees);
-                 }}
-                 className="btn-premium"
+                 onClick={() => loadQuickStart(p)}
+                 className={`btn-premium${isQuickStartLoaded(activeProgression || [], p, styleKey, { classicCadence }) ? " active" : ""}`}
                  style={{ fontSize: "0.7rem", padding: "4px 8px", borderRadius: "12px" }}
                  title={p.degrees.join(" - ")}
                >
-                 {p.name}
+                 {txt.quickStart?.names?.[p.id] ?? p.name}
                </button>
              ))}
              <button
@@ -228,6 +246,23 @@ const StudioPanel = ({
              >
                ↺ Reset
              </button>
+           </div>
+           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: "8px", marginTop: "10px" }}>
+             {[
+               [false, txt.quickStart?.styleChords || "Style chords"],
+               [true, txt.quickStart?.classicCadence || "Classic cadence (the 5 pulls toward the 1)"],
+             ].map(([value, label]) => (
+               <button
+                 key={String(value)}
+                 onClick={() => chooseCadence(value)}
+                 aria-pressed={classicCadence === value}
+                 className={`btn-premium${classicCadence === value ? " active" : ""}`}
+                 style={{ fontSize: "0.7rem", padding: "4px 8px", borderRadius: "12px" }}
+               >
+                 {label}
+               </button>
+             ))}
+             <InfoTooltip text={txt.quickStart?.tooltip} />
            </div>
         </div>
 
