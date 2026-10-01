@@ -28,8 +28,8 @@ import './VoicingAlert.css';
 
 function IssueTag({ issue, txt }) {
   const severityColor = issue.severity === 'error'
-    ? 'var(--color-alert-error, #ff6b6b)'
-    : 'var(--color-alert-warning, #ffd166)';
+    ? 'var(--color-alert-error)'
+    : 'var(--color-alert-warning)';
 
   const voicingTxt = txt?.voicing || {};
   const issueDef = voicingTxt.issues?.[issue.type];

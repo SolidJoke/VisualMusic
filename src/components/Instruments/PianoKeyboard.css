@@ -3,7 +3,7 @@
 .piano-key {
     position: relative;
     cursor: pointer;
-    border: 1px solid #333;
+    border: 1px solid var(--border-default);
     display: flex;
     justify-content: center;
     align-items: flex-end;
@@ -26,13 +26,14 @@
 .white-key {
     width: 50px;
     height: 200px;
-    background-color: #fff;
-    color: #333;
-    border-left: 1px solid #ddd;
+    background-color: var(--key-white);
+    color: var(--on-role);
+    border-left: 1px solid var(--border-subtle);
 }
 
 .white-key:hover {
-    background-color: #f0f0f0;
+    background-color: var(--key-white);
+    filter: brightness(1.05);
 }
 
 .piano-wrapper {
@@ -48,10 +49,10 @@
     flex-wrap: nowrap !important;
     position: relative;
     padding: 12px;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--surface-1);
     border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: var(--lg-shadow);
+    border: 1px solid var(--border-subtle);
 }
 
 .explanations-toggle-container {
@@ -64,9 +65,9 @@
 
 .toggle-explanations-btn {
     padding: 8px 16px;
-    background-color: #333;
-    color: white;
-    border: 1px solid #555;
+    background-color: var(--surface-2);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
@@ -74,18 +75,18 @@
 }
 
 .toggle-explanations-btn:hover {
-    background-color: #555;
+    background-color: var(--surface-3);
 }
 
 .numbers-explanation {
-    background-color: #222;
-    color: #ddd;
+    background-color: var(--surface-2);
+    color: var(--text-primary);
     padding: 10px 15px;
     border-radius: 4px;
     font-size: 13px;
     max-width: 600px;
     text-align: center;
-    border: 1px solid #444;
+    border: 1px solid var(--border-default);
 }
 
 .black-key-wrapper {
@@ -99,15 +100,15 @@
 .black-key {
     width: 32px;
     height: 120px;
-    background-color: #222;
-    color: #fff;
+    background-color: var(--key-black);
+    color: var(--text-primary);
     position: absolute;
     top: -1px; /* Align perfectly with top border */
     left: -16px; /* Exactly center over the 0-width wrapper */
     z-index: 30;
     border-bottom-left-radius: 4px;
     border-bottom-right-radius: 4px;
-    border: 1px solid #111;
+    border: 1px solid var(--key-edge);
     border-top: none;
     /* Reset flex layout for black key so it aligns text at bottom */
     display: flex;
@@ -117,7 +118,8 @@
 }
 
 .black-key:hover {
-    background-color: #444;
+    background-color: var(--key-black);
+    filter: brightness(1.05);
 }
 
 .note-label {
@@ -130,7 +132,7 @@
     pointer-events: none; /* Prevent clicks on label interfering with key clicks */
     position: relative;
     z-index: 40;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.8); /* Better contrast on colored keys */
+    text-shadow: 0 1px 2px var(--bg); /* Better contrast on colored keys */
 }
 
 .flat-label {
@@ -160,14 +162,14 @@
 }
 
 .piano-key.white-key.subtle-highlight {
-    background-color: #e8eaed !important;
-    color: #999 !important;
+    background-color: var(--key-white) !important;
+    color: var(--text-muted) !important;
 }
 
 .piano-key.black-key.subtle-highlight {
-    background-color: #2a2a2a !important;
-    color: #999 !important;
-    border-color: #222;
+    background-color: var(--surface-3) !important;
+    color: var(--text-muted) !important;
+    border-color: var(--border-subtle);
 }
 
 .piano-key.role-root {
@@ -223,13 +225,15 @@
     align-items: center;
     font-size: 12px;
     font-weight: bold;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: var(--lg-shadow);
 }
 
-.marker.root { background-color: var(--role-root); color: #fff; border: 2px solid #fff; }
-.marker.third { background-color: var(--role-third); color: #000; border: 2px solid rgba(0,0,0,0.2); }
-.marker.fifth { background-color: var(--role-fifth); color: #fff; border: 2px solid rgba(255,255,255,0.4); }
-.marker.target { background-color: var(--role-target); color: #000; border: 2px solid #fff; box-shadow: 0 0 10px var(--role-target); }
+/* Dead code (F1a report: no `className="marker..."` in any JSX, same as
+   Fretboard.css's identical block) - tokenized literally, not redesigned. */
+.marker.root { background-color: var(--role-root); color: var(--text-on-select); border: 2px solid var(--text-on-select); }
+.marker.third { background-color: var(--role-third); color: var(--on-role); border: 2px solid var(--border-subtle); }
+.marker.fifth { background-color: var(--role-fifth); color: var(--text-on-select); border: 2px solid var(--border-strong); }
+.marker.target { background-color: var(--role-target); color: var(--on-role); border: 2px solid var(--text-on-select); box-shadow: 0 0 10px var(--role-target); }
 
 /* --- Mobile Responsive Rules (UX-11) --- */
 @media (max-width: 767px) {
@@ -279,10 +283,10 @@
 /* Remove hover effects on touch devices */
 @media (hover: none) {
     .white-key:hover {
-        background-color: #fff;
+        background-color: var(--key-white);
     }
     .black-key:hover {
-        background-color: #222;
+        background-color: var(--key-black);
     }
 }
 
@@ -291,8 +295,8 @@
   position: relative;
   width: 100%;
   height: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
   border-radius: 4px;
   cursor: pointer;
   margin-top: 6px;
@@ -305,8 +309,8 @@
   position: absolute;
   top: 0;
   height: 100%;
-  background: rgba(0, 212, 255, 0.25);
-  border: 1px solid rgba(0, 212, 255, 0.6);
+  background: var(--surface-2);
+  border: 1px solid var(--select);
   border-radius: 3px;
   pointer-events: none;
   transition: left 0.08s ease, width 0.08s ease;
@@ -318,7 +322,7 @@
   height: 8px;
   top: 50%;
   transform: translate(-50%, -50%);
-  background: #00d4ff;
+  background: var(--select);
   border-radius: 1px;
   opacity: 0.7;
   pointer-events: none;

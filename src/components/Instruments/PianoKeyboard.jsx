@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from "react";
 import "./PianoKeyboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
 import { getHarmonicSeries } from "../../core/acousticEngine";
-import { getRoleForDegreeLabel } from "../../core/harmonyEngine";
+import { getRoleForDegreeLabel, getChordIntervalLabel } from "../../core/harmonyEngine";
 import { useAppContext } from "../../context/AppContext";
 import { useMusicEngineContext } from "../../context/MusicEngineContext";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
@@ -153,8 +153,8 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
       labelContent = (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1.2 }}>
           <span>{noteInfo[notation]}</span>
-          <span style={{ fontSize: "10px", color: "#ffb74d", fontWeight: "bold" }}>H{rank}</span>
-          <span style={{ fontSize: "9px", color: "#90caf9" }}>{devStr}¢</span>
+          <span style={{ fontSize: "10px", color: "var(--color-warning)", fontWeight: "bold" }}>H{rank}</span>
+          <span style={{ fontSize: "9px", color: "var(--text-secondary)" }}>{devStr}¢</span>
         </div>
       );
     }
@@ -175,6 +175,12 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
     
     // Fallback to calculation based on current rootValue
     const interval = (i - rootValue + 12) % 12;
+    if (!dictType?.includes("scale")) {
+      // VMU-160: same rule as the "order found" branch above and as
+      // core/fretboardUtils.js's own fallback — one reading for both
+      // instruments. Scale mode keeps its legacy reading below.
+      return `role-${getRoleForDegreeLabel(getChordIntervalLabel(-1, interval))}`;
+    }
     if (interval === 0) return "role-root";
     if (interval === 3 || interval === 4) return "role-third";
     if (interval === 7) return "role-fifth";

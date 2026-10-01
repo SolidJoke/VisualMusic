@@ -22,14 +22,14 @@
   font-family: var(--font-body);
   font-size: 10px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
   transition: all 0.2s ease;
 }
 
 .info-tooltip-container:hover .info-tooltip-icon {
   color: var(--lg-accent);
   border-color: var(--lg-accent);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-3);
   box-shadow: 0 0 8px var(--lg-accent-glow);
 }
 
@@ -48,7 +48,7 @@
   font-size: 12px;
   line-height: 1.5;
   text-align: left;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--lg-shadow);
   pointer-events: none; /* Let mouse leave work easily */
   animation: tooltipFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   z-index: 10000; /* Extremely high to sit above modals */

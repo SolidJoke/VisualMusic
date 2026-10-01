@@ -16,6 +16,7 @@
     "audio:measure": "node scripts/audio_measure.mjs",
     "audio:check": "node scripts/audio_measure.mjs --assert",
     "layout:probe": "node scripts/layout_probe.mjs",
+    "metronome:probe": "node scripts/metronome_probe.mjs",
     "style:probe": "node scripts/style_probe.mjs",
     "s1:probe": "node scripts/s1_probe.mjs"
   },
@@ -35,6 +36,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "^2.1.9",
+    "axe-core": "4.13.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

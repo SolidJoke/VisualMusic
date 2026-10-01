@@ -8,13 +8,20 @@ vi.mock("../../audio/metronome", () => ({
   stopMetronome: vi.fn(),
 }));
 
-describe("useMetronome (VMU-056)", () => {
+/**
+ * VMU-163-fix2: `isPlaying` is gone from this hook's own contract. Whether an
+ * extinction is allowed to stop the transport is decided in
+ * `transportOwner.js` now (it already knows because useSequencer.js reports
+ * Play/Stop to the same module) — `stopMetronome()` takes no argument, so
+ * this hook has nothing left to thread through to it. The four tests below
+ * are the same behaviour VMU-056 established, re-asserted against the
+ * simplified contract.
+ */
+describe("useMetronome (VMU-056 / VMU-163-fix2)", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("mounts off (no persistence — VMU-050 is a separate ticket)", () => {
-    const { result } = renderHook(() =>
-      useMetronome({ isPlaying: false, ensureAudioReady: vi.fn() }),
-    );
+    const { result } = renderHook(() => useMetronome({ ensureAudioReady: vi.fn() }));
     expect(result.current.metronomeOn).toBe(false);
     expect(metronomeModule.startMetronome).not.toHaveBeenCalled();
   });
@@ -27,9 +34,7 @@ describe("useMetronome (VMU-056)", () => {
     });
     metronomeModule.startMetronome.mockImplementation(() => calls.push("startMetronome"));
 
-    const { result } = renderHook(() =>
-      useMetronome({ isPlaying: false, ensureAudioReady }),
-    );
+    const { result } = renderHook(() => useMetronome({ ensureAudioReady }));
 
     await act(async () => {
       await result.current.toggleMetronome();
@@ -39,35 +44,23 @@ describe("useMetronome (VMU-056)", () => {
     expect(calls).toEqual(["ensureAudioReady", "startMetronome"]);
   });
 
-  it("toggling off calls stopMetronome with the current isSequencerPlaying and flips state", async () => {
-    let isPlaying = false;
-    const { result, rerender } = renderHook(
-      ({ isPlaying }) => useMetronome({ isPlaying, ensureAudioReady: vi.fn() }),
-      { initialProps: { isPlaying } },
-    );
+  it("toggling off calls stopMetronome (no argument) and flips state", async () => {
+    const { result } = renderHook(() => useMetronome({ ensureAudioReady: vi.fn() }));
 
     await act(async () => {
       await result.current.toggleMetronome(); // on
     });
-
-    // Sequencer starts playing between the two clicks — the hook must read
-    // the *current* isPlaying at toggle-off time, not the one captured when
-    // the metronome was switched on.
-    isPlaying = true;
-    rerender({ isPlaying });
 
     await act(async () => {
       await result.current.toggleMetronome(); // off
     });
 
     expect(result.current.metronomeOn).toBe(false);
-    expect(metronomeModule.stopMetronome).toHaveBeenCalledWith({ isSequencerPlaying: true });
+    expect(metronomeModule.stopMetronome).toHaveBeenCalledWith();
   });
 
   it("unmounting while on tears down the schedule as a safety net", async () => {
-    const { result, unmount } = renderHook(() =>
-      useMetronome({ isPlaying: false, ensureAudioReady: vi.fn() }),
-    );
+    const { result, unmount } = renderHook(() => useMetronome({ ensureAudioReady: vi.fn() }));
 
     await act(async () => {
       await result.current.toggleMetronome(); // on
@@ -76,6 +69,6 @@ describe("useMetronome (VMU-056)", () => {
 
     unmount();
 
-    expect(metronomeModule.stopMetronome).toHaveBeenCalledWith({ isSequencerPlaying: false });
+    expect(metronomeModule.stopMetronome).toHaveBeenCalledWith();
   });
 });

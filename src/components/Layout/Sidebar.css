@@ -10,8 +10,8 @@
   flex-direction: column;
   overflow: visible;
   /* Stitch Design System */
-  background: var(--color-bg-app, #131313);
-  border-right: 1px solid var(--border-default, #262626);
+  background: var(--color-bg-app);
+  border-right: 1px solid var(--border-default);
   font-family: var(--font-body, "Hanken Grotesk", sans-serif);
 }
 
@@ -26,8 +26,8 @@
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  border-bottom: 1px solid var(--border-default, #262626);
-  background: var(--color-bg-app, #131313);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--color-bg-app);
   z-index: 10;
   transition: opacity 0.2s ease, visibility 0.2s ease;
 }
@@ -51,10 +51,10 @@
   font-size: 14px;
   font-weight: 600;
   font-family: var(--font-body);
-  background: #1c1b1b;
-  border: 1px solid #262626;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
-  color: #c0c7d5;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -65,53 +65,53 @@
 }
 
 .sidebar-header-grid button:hover, .sidebar-header-grid .bpm-badge:hover {
-  background: #2a2a2a;
+  background: var(--surface-3);
 }
 
 .sidebar-header-grid button.active {
-  background: #a6c8ff;
-  color: #00315f;
-  border-color: #a6c8ff;
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
   font-weight: 600;
 }
 
 /* Play button specific states */
 .sidebar-header-grid .btn-playback-premium {
   font-weight: 600;
-  color: #e5e2e1;
+  color: var(--text-primary);
   height: auto;
   margin-bottom: 0;
   font-size: 14px;
 }
 
 .sidebar-header-grid .btn-playback-premium.play:hover {
-  border-color: #32D583;
-  color: #32D583;
+  border-color: var(--color-success);
+  color: var(--color-success);
 }
 
 .sidebar-header-grid .btn-playback-premium.stop {
-  background: #3f495d;
-  color: #aeb8d0;
-  border-color: #3f495d;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border-color: var(--surface-2);
 }
 
 .sidebar-header-grid .btn-playback-premium.stop:hover {
-  background: #ffb4ab;
-  color: #690005;
-  border-color: #ffb4ab;
+  background: var(--surface-3);
+  color: var(--color-error);
+  border-color: var(--color-error);
 }
 
 /* BPM badge */
 .sidebar-header-grid .bpm-badge {
   font-family: var(--font-mono);
-  color: #a6c8ff;
+  color: var(--select);
   font-weight: 500;
   user-select: none;
   gap: 4px;
 }
 
 .sidebar-header-grid .bpm-badge:hover {
-  border-color: #a6c8ff;
+  border-color: var(--select);
 }
 
 .bpm-badge input {
@@ -119,7 +119,7 @@
   background: transparent;
   border: none;
   outline: none;
-  color: #a6c8ff;
+  color: var(--select);
   font-size: 14px;
   font-family: var(--font-mono);
   font-weight: 500;
@@ -157,9 +157,9 @@
 }
 
 .sidebar-header-grid .metronome-toggle.active {
-  background: #a6c8ff;
-  color: #00315f;
-  border-color: #a6c8ff;
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
 }
 
 /* ─── Sidebar scrollable content ─────────────────────────────────────────── */
@@ -186,10 +186,10 @@
 .sidebar-cta-btn {
   width: 100%;
   padding: 16px;
-  background: #1c1b1b;
-  border: 1px solid #262626;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
-  color: #e5e2e1;
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 16px;
   font-weight: 600;
@@ -202,15 +202,15 @@
 }
 
 .sidebar-cta-btn:hover {
-  background: #2a2a2a;
-  border-color: #8a919e;
+  background: var(--surface-3);
+  border-color: var(--border-strong);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: var(--lg-shadow);
 }
 
 .sidebar-cta-btn.active {
-  border-color: #a6c8ff;
-  background: #201f1f;
+  border-color: var(--select);
+  background: var(--surface-3);
 }
 
 /* ─── Toggle Button ──────────────────────────────────────────────────────── */
@@ -225,21 +225,21 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 1px solid #262626;
-  background: #1c1b1b;
-  color: #8a919e;
+  border: 1px solid var(--border-default);
+  background: var(--surface-2);
+  color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: var(--lg-shadow);
   z-index: 1001;
   transition: all 0.2s ease;
 }
 
 .sidebar-toggle:hover {
-  background: #353534;
-  color: #e5e2e1;
+  background: var(--surface-3);
+  color: var(--text-primary);
 }
 
 /* ─── Rail Icons (visible when sidebar is closed) ────────────────────────── */
@@ -266,7 +266,7 @@
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
-  color: #8a919e;
+  color: var(--text-muted);
   font-size: 18px;
   cursor: pointer;
   display: flex;
@@ -275,13 +275,13 @@
   transition: all 0.2s;
 }
 .rail-icon-btn:hover, .rail-icon-btn.active {
-  background: rgba(166, 200, 255, 0.1);
-  border-color: #a6c8ff;
-  color: #a6c8ff;
+  background: var(--surface-3);
+  border-color: var(--select);
+  color: var(--select);
 }
 .rail-icon-btn.btn-play-rail.is-playing {
-  color: #32D583;
-  border-color: #32D583;
+  color: var(--color-success);
+  border-color: var(--color-success);
   animation: rail-pulse 1s ease-in-out infinite alternate;
 }
 @keyframes rail-pulse {
@@ -294,11 +294,11 @@
 .sidebar-content::-webkit-scrollbar { width: 8px; }
 
 .sidebar-content::-webkit-scrollbar-thumb {
-  background: #262626;
+  background: var(--border-default);
   border-radius: 4px;
 }
 
-.sidebar-content::-webkit-scrollbar-thumb:hover { background: #404753; }
+.sidebar-content::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
 /* ─── Responsive Breakpoints ─────────────────────────────────────────────── */
 
@@ -314,29 +314,29 @@
 
 @media (hover: none) {
   .sidebar-header-grid button:hover, .sidebar-header-grid .bpm-badge:hover {
-    background: #1c1b1b;
+    background: var(--surface-2);
   }
   .sidebar-header-grid .btn-playback-premium.play:hover {
     border-color: transparent;
-    color: #e5e2e1;
+    color: var(--text-primary);
   }
   .sidebar-header-grid .btn-playback-premium.stop:hover {
-    background: #3f495d;
-    color: #aeb8d0;
-    border-color: #3f495d;
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    border-color: var(--surface-2);
   }
   .sidebar-header-grid .bpm-badge:hover {
-    border-color: #262626;
+    border-color: var(--border-default);
   }
   .sidebar-cta-btn:hover {
-    background: #1c1b1b;
-    border-color: #262626;
+    background: var(--surface-2);
+    border-color: var(--border-default);
     transform: none;
     box-shadow: none;
   }
   .sidebar-toggle:hover {
-    background: #1c1b1b;
-    color: #8a919e;
+    background: var(--surface-2);
+    color: var(--text-muted);
   }
-  .sidebar-content::-webkit-scrollbar-thumb:hover { background: #262626; }
+  .sidebar-content::-webkit-scrollbar-thumb:hover { background: var(--border-default); }
 }

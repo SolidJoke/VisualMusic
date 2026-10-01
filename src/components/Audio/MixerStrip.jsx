@@ -20,10 +20,10 @@ export default function MixerStrip({ instrumentVolumes, handleInstrumentVolumeCh
         gap: "10px",
         backgroundColor: "var(--bg-panel)",
         borderRadius: "8px",
-        border: `1px solid ${isPlaying ? "#4CAF50" : "var(--border-default)"}`,
+        border: `1px solid ${isPlaying ? "var(--color-success)" : "var(--border-default)"}`,
         boxSizing: "border-box",
         width: "100%",
-        boxShadow: isPlaying ? "0 0 15px rgba(76, 175, 80, 0.2)" : "none",
+        boxShadow: isPlaying ? "0 0 15px var(--lg-accent-glow)" : "none",
         transition: "all 0.3s",
       }}
     >
@@ -73,7 +73,7 @@ export default function MixerStrip({ instrumentVolumes, handleInstrumentVolumeCh
                   width: "10px",
                   height: "100%",
                   '--value': `${((instrumentVolumes[inst.id] + 60) / 70) * 100}%`,
-                  background: `linear-gradient(to top, var(--led-cyan) 0%, var(--led-cyan) ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, #333 ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, #333 100%)`
+                  background: `linear-gradient(to top, var(--led-cyan) 0%, var(--led-cyan) ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, var(--border-default) ${((instrumentVolumes[inst.id] + 60) / 70) * 100}%, var(--border-default) 100%)`
                 }}
               />
             </div>

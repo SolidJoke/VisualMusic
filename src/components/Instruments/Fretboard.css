@@ -21,10 +21,10 @@
   align-items: center;
   gap: 6px;
   z-index: 10;
-  background: rgba(10, 10, 15, 0.8);
+  background: var(--surface-1);
   padding: 3px 8px;
   border-radius: 6px;
-  border: 1px solid #333;
+  border: 1px solid var(--border-default);
   backdrop-filter: blur(4px);
 }
 
@@ -32,9 +32,9 @@
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  border: 1px solid #444;
+  border: 1px solid var(--border-strong);
   background: transparent;
-  color: #00d4ff;
+  color: var(--select);
   font-size: 14px;
   cursor: pointer;
   display: flex;
@@ -51,7 +51,7 @@
 .fret-range-label {
   font-family: var(--font-mono);
   font-size: 10px;
-  color: #888;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -65,32 +65,37 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #333;
+  background: var(--border-default);
   transition: background 0.2s;
 }
 
 .fret-dot.active {
-  background: #00d4ff;
+  background: var(--select);
 }
 
-/* Semantic Instrument Colors */
+/* Semantic Instrument Colors — F1b: the role-* system (note-marker.role-*
+   below) now carries all real musical-role color; this custom property only
+   still backs the rare unclassified-marker fallback (line ~189), so both
+   instruments share one neutral tint instead of keeping the old red/purple
+   distinction (no --instrument-tint token exists, and inventing one for a
+   fallback state would be a new color outside tokens.css). */
 .instrument-guitar {
-    --instrument-color: rgba(178, 34, 34, 0.45); /* Muted Brick Red */
+    --instrument-color: var(--surface-3);
 }
 
 .instrument-bass {
-    --instrument-color: rgba(103, 58, 183, 0.45); /* Deep Purple */
+    --instrument-color: var(--surface-3);
 }
 
 .fretboard {
     position: relative;
     display: grid;
     grid-template-columns: var(--fretboard-grid, 0.5fr repeat(22, 1fr));
-    background-color: #2c1e16;
-    border: 2px solid #1a110c;
+    background-color: var(--bg);
+    border: 2px solid var(--border-default);
     border-radius: 4px;
     padding: 10px 0;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    box-shadow: var(--lg-shadow);
     /* Changed to visible to show O/X markers outside the grid */
     overflow: visible;
 }
@@ -110,7 +115,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    border-right: 2px solid rgba(153, 153, 153, 0.3);
+    border-right: 2px solid var(--border-subtle);
 }
 
 .dot-fret-cell:last-child {
@@ -118,7 +123,7 @@
 }
 
 .dot-fret-cell.open-string {
-    border-right: 5px solid #d4c4a8;
+    border-right: 5px solid var(--fret-wire);
 }
 
 .double-dot-container {
@@ -133,9 +138,9 @@
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background-color: #e0d0b0;
+    background-color: var(--fret-inlay);
     opacity: 0.6;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+    box-shadow: var(--lg-shadow);
 }
 
 .strings-layer {
@@ -160,7 +165,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    border-right: 2px solid #999;
+    border-right: 2px solid var(--fret-wire);
 }
 
 .fret:last-child {
@@ -168,15 +173,15 @@
 }
 
 .open-string {
-    border-right: 5px solid #d4c4a8;
-    background-color: rgba(0, 0, 0, 0.3);
+    border-right: 5px solid var(--fret-wire);
+    background-color: var(--surface-2);
 }
 
 .string-line {
     position: absolute;
     width: 100%;
     height: 2px;
-    background-color: #a0a0a0;
+    background-color: var(--string);
     z-index: 1;
 }
 
@@ -186,8 +191,8 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background-color: var(--instrument-color, rgba(68, 68, 68, 0.8));
-    color: #fff;
+    background-color: var(--instrument-color, var(--surface-3));
+    color: var(--text-primary);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -256,9 +261,9 @@
 }
 
 .note-marker.subtle-marker {
-    background-color: rgba(120, 144, 156, 0.4) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7) !important;
+    background-color: var(--surface-2) !important;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary) !important;
     box-shadow: none !important;
 }
 
@@ -272,14 +277,17 @@
     align-items: center;
     font-size: 12px;
     font-weight: bold;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: var(--lg-shadow);
 }
 
-.marker.root { background-color: var(--role-root); color: #fff; border: 2px solid #fff; }
-.marker.third { background-color: var(--role-third); color: #000; border: 2px solid rgba(0,0,0,0.2); }
-.marker.fifth { background-color: var(--role-fifth); color: #fff; border: 2px solid rgba(255,255,255,0.4); }
-.marker.scale { background-color: var(--role-scale); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
-.marker.target { background-color: var(--role-target); color: #000; border: 2px solid #fff; box-shadow: 0 0 10px var(--role-target); }
+/* Dead code (F1a report: no `className="marker..."` in any JSX) - tokenized
+   for §8-1 like everything else, values kept literally equivalent rather
+   than redesigned. */
+.marker.root { background-color: var(--role-root); color: var(--text-on-select); border: 2px solid var(--text-on-select); }
+.marker.third { background-color: var(--role-third); color: var(--on-role); border: 2px solid var(--border-subtle); }
+.marker.fifth { background-color: var(--role-fifth); color: var(--text-on-select); border: 2px solid var(--border-strong); }
+.marker.scale { background-color: var(--role-scale); color: var(--text-on-select); border: 1px solid var(--border-strong); }
+.marker.target { background-color: var(--role-target); color: var(--on-role); border: 2px solid var(--text-on-select); box-shadow: 0 0 10px var(--role-target); }
 
 /* Open String Labels & Indicators */
 .open-string-label-container {
@@ -294,10 +302,10 @@
 }
 
 .open-string-name {
-    color: #d4c4a8;
+    color: var(--text-secondary);
     font-weight: bold;
     font-size: 13px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    text-shadow: 1px 1px 2px var(--bg);
 }
 
 .note-marker.open-marker {
@@ -318,31 +326,31 @@
     justify-content: center;
     font-size: 14px;
     font-weight: 900;
-    color: #fff;
+    color: var(--text-primary);
     margin-right: 15px; /* Offset to align with nut markers if needed */
 }
 
-.string-status-symbol.is-muted { color: #ff5252; }
-.string-status-symbol.is-open  { color: #69f0ae; }
-.string-status-symbol.is-muffled { color: #ffb74d; }
+.string-status-symbol.is-muted { color: var(--color-error); }
+.string-status-symbol.is-open  { color: var(--color-success); }
+.string-status-symbol.is-muffled { color: var(--color-warning); }
 
 /* Barre Chord Indicator - Premium Glassmorphism */
 .fretboard-barre-indicator {
-    background: rgba(0, 120, 255, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: var(--select);
+    border: 1px solid var(--border-strong);
     border-radius: 4px;
     position: absolute;
     width: 80%; /* Increased for better visibility but staying within fret */
     left: 50%;
     transform: translateX(-50%);
-    box-shadow: 0 0 10px rgba(0, 100, 255, 0.5);
+    box-shadow: 0 0 10px var(--lg-accent-glow);
     backdrop-filter: blur(2px);
     pointer-events: none;
 }
 
 .instrument-bass .fretboard-barre-indicator {
-    background: rgba(103, 58, 183, 0.3);
-    box-shadow: 0 0 15px rgba(103, 58, 183, 0.4), inset 0 0 8px rgba(255, 255, 255, 0.2);
+    background: var(--select);
+    box-shadow: 0 0 15px var(--lg-accent-glow), inset 0 0 8px var(--lg-accent-glow);
 }
 
 .fretboard-container.is-out-of-range .fretboard {
@@ -361,14 +369,14 @@
   top: 60%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(178, 34, 34, 0.9);
-  color: white;
+  background: var(--surface-3);
+  color: var(--color-error);
   padding: 8px 16px;
   border-radius: 20px;
   font-weight: bold;
   z-index: 100;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-  border: 1px solid rgba(255,255,255,0.3);
+  box-shadow: var(--lg-shadow);
+  border: 1px solid var(--color-error);
   pointer-events: auto;
 }
 
@@ -458,9 +466,9 @@
   position: relative;
   height: 16px;
   margin-top: 6px;
-  background: #0e0e18;
+  background: var(--surface-1);
   border-radius: 4px;
-  border: 1px solid #262626;
+  border: 1px solid var(--border-default);
   cursor: pointer;
   overflow: hidden;
 }
@@ -469,8 +477,8 @@
   position: absolute;
   top: 0;
   height: 100%;
-  background: rgba(0, 212, 255, 0.2);
-  border: 1px solid #00d4ff;
+  background: var(--surface-2);
+  border: 1px solid var(--select);
   border-radius: 3px;
   cursor: grab;
   transition: background 0.1s;
@@ -479,7 +487,7 @@
 
 .scrubber-thumb:active {
   cursor: grabbing;
-  background: rgba(0, 212, 255, 0.35);
+  background: var(--surface-3);
 }
 
 .scrubber-note {
@@ -488,7 +496,7 @@
   height: 8px;
   top: 50%;
   transform: translateY(-50%);
-  background: #00d4ff;
+  background: var(--select);
   border-radius: 1px;
   opacity: 0.7;
   pointer-events: none;

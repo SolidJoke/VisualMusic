@@ -9,23 +9,23 @@
 }
 
 /* Base resets for modern theme */
-.theme-modern .vintage-chassis {
+.theme-modern .module-chassis {
   background: var(--lg-panel-bg);
   border: var(--lg-border);
   border-radius: 8px; /* Strict 8px grid */
   position: relative;
-  overflow: visible; 
+  overflow: visible;
   z-index: 2;
   box-shadow: none; /* Flat design */
 }
 
-.theme-modern .vintage-chassis::before,
-.theme-modern .vintage-chassis::after {
+.theme-modern .module-chassis::before,
+.theme-modern .module-chassis::after {
   display: none !important;
 }
 
 /* Module containers (formerly vintage modules) */
-.theme-modern .vintage-module {
+.theme-modern .module-body {
   background: var(--lg-panel-bg-elevated);
   border: var(--lg-border);
   border-radius: 8px;
@@ -35,7 +35,7 @@
 }
 
 /* Headers */
-.theme-modern .vintage-header {
+.theme-modern .module-header {
   color: var(--text-primary);
   font-family: var(--font-body);
   font-weight: 600;
@@ -83,7 +83,7 @@
 
 .theme-modern .step-lamp--current {
   outline: 1px solid var(--select);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px var(--lg-accent-glow);
 }
 
 /* Zoomed state */
@@ -114,7 +114,7 @@
 
 .theme-modern .note-marker {
   box-shadow: none;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid var(--border-subtle);
   font-family: var(--font-body);
   font-weight: 600;
   font-size: var(--fs-label);
@@ -145,7 +145,7 @@
 /* ─── UI CONTROLS (Buttons, Sliders, Tabs) ─── */
 .theme-modern .btn-toggle,
 .theme-modern .btn-premium,
-.theme-modern .vintage-control-btn {
+.theme-modern .module-control-btn {
   background: var(--lg-panel-bg);
   border: var(--lg-border);
   color: var(--text-primary);
@@ -159,7 +159,7 @@
 
 .theme-modern .btn-toggle--active,
 .theme-modern .btn-premium.active,
-.theme-modern .vintage-control-btn.active {
+.theme-modern .module-control-btn.active {
   /* F1 / VMU-168: active = --surface-3 fill, --text-on-select text, 1px --select border; never a solid fill
      (the old --lg-accent fill was #fff under #fff text: the label disappeared) */
   background: var(--surface-3);
@@ -169,7 +169,7 @@
 
 .theme-modern .btn-toggle:hover:not(.active),
 .theme-modern .btn-premium:hover:not(.active),
-.theme-modern .vintage-control-btn:hover:not(.active) {
+.theme-modern .module-control-btn:hover:not(.active) {
   background: var(--lg-panel-bg-elevated);
   border-color: var(--text-tertiary);
 }
@@ -239,7 +239,7 @@
     padding-bottom: 80px; /* Space for bottom nav */
   }
   
-  .theme-modern .vintage-module {
+  .theme-modern .module-body {
     padding: 12px;
   }
 }
