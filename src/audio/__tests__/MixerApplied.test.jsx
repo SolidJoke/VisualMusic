@@ -17,6 +17,12 @@ import { renderHook, act } from "@testing-library/react";
  * What is asserted is the level each node holds, not how many calls it took.
  *
  * Red at `4bf938f`: after the first Play every node still reads 0.
+ *
+ * VMU-171 (Gabriel, 2026-10-03): one setting per mode (Studio, Dictionary),
+ * each displayed = applied, and switching mode applies that mode's levels.
+ * Defaults changed to Gabriel's starting point (drums 0, piano 0, guitar
+ * +1.5, bass +3) — red at `72b68cd`, which still had one shared setting with
+ * the old -3 / -5 / -8 / -6 defaults.
  */
 
 /** dB currently held by each simulated mixer node. */
@@ -68,21 +74,30 @@ import { useSequencer } from "../useSequencer";
 
 const BRICK = { rootValue: 0, scaleKey: "scale_major", _group: "pop", bpm: 120 };
 
-function renderSequencer() {
-  return renderHook(() =>
-    useSequencer({
-      appMode: "studio",
-      activeBrick: BRICK,
-      activeDrums: [{ name: "kick", activeSteps: [0, 4, 8, 12] }],
-      activeMelody: [],
-      activeProgression: ["I", "IV", "V", "I"],
-      activeRhythm: [0, 4, 8, 12],
-      currentRootValue: 0,
-      setCurrentlyPlayingNotes: vi.fn(),
-      chordOctaveOffset: 0,
-    }),
+function renderSequencer(appMode = "studio") {
+  return renderHook(
+    ({ mode }) =>
+      useSequencer({
+        appMode: mode,
+        activeBrick: BRICK,
+        activeDrums: [{ name: "kick", activeSteps: [0, 4, 8, 12] }],
+        activeMelody: [],
+        activeProgression: ["I", "IV", "V", "I"],
+        activeRhythm: [0, 4, 8, 12],
+        currentRootValue: 0,
+        setCurrentlyPlayingNotes: vi.fn(),
+        chordOctaveOffset: 0,
+      }),
+    { initialProps: { mode: appMode } },
   );
 }
+
+/**
+ * VMU-171 (Gabriel, 2026-10-03): the defaults are what he hears online today
+ * (every node at 0 dB, drums he finds balanced) with bass and guitar raised —
+ * the same starting point in both modes.
+ */
+const VMU171_DEFAULTS = { kick: 0, snare: 0, hat: 0, bass: 3, piano: 0, guitar: 1.5 };
 
 describe("mixer: displayed levels are applied levels (T2 / VMU-153)", () => {
   beforeEach(() => {
@@ -101,7 +116,41 @@ describe("mixer: displayed levels are applied levels (T2 / VMU-153)", () => {
     expect(nodes).toEqual(result.current.instrumentVolumes);
     // And the displayed levels are the documented defaults, not 0 dB — the
     // assertion above would be vacuous if both sides were all zeros.
-    expect(result.current.instrumentVolumes).toEqual({ kick: -3, snare: -5, hat: -8, bass: -6, piano: 0, guitar: 0 });
+    expect(result.current.instrumentVolumes).toEqual(VMU171_DEFAULTS);
+  });
+
+  it("the Dictionary opens on its own defaults, applied (VMU-171)", () => {
+    const { result } = renderSequencer("dictionary");
+    expect(result.current.instrumentVolumes).toEqual(VMU171_DEFAULTS);
+    expect(nodes).toEqual(VMU171_DEFAULTS);
+  });
+
+  it("each mode keeps its own levels; switching mode applies that mode's levels (VMU-171)", async () => {
+    const { result, rerender } = renderSequencer("studio");
+
+    await act(async () => {
+      result.current.handleInstrumentVolumeChange("bass", "-2"); // Studio
+    });
+    expect(nodes.bass).toBe(-2);
+
+    rerender({ mode: "dictionary" });
+    // The Dictionary still shows, and now plays, its own bass level.
+    expect(result.current.instrumentVolumes.bass).toBe(VMU171_DEFAULTS.bass);
+    expect(nodes).toEqual(result.current.instrumentVolumes);
+
+    await act(async () => {
+      result.current.handleInstrumentVolumeChange("guitar", "4"); // Dictionary
+    });
+    expect(nodes.guitar).toBe(4);
+
+    rerender({ mode: "studio" });
+    // Back in the Studio: its bass -2 again, and the Dictionary's guitar move did not touch it.
+    expect(result.current.instrumentVolumes).toEqual({ ...VMU171_DEFAULTS, bass: -2 });
+    expect(nodes).toEqual(result.current.instrumentVolumes);
+
+    rerender({ mode: "dictionary" });
+    expect(result.current.instrumentVolumes).toEqual({ ...VMU171_DEFAULTS, guitar: 4 });
+    expect(nodes).toEqual(result.current.instrumentVolumes);
   });
 
   it("a slider move reaches its node, and the others keep the displayed level", async () => {
