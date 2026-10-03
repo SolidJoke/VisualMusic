@@ -33,8 +33,8 @@
  *    VMU-171 (one setting per mode): the same check in both modes and across
  *    a round trip — Studio first Play; Studio bass fader to -2; Dictionary on
  *    arrival (its own setting, which must not show the Studio's -2);
- *    Dictionary guitar fader to 4; back to Studio (bass -2, guitar
- *    untouched); back to Dictionary (guitar 4). Faders are moved like a drag
+ *    Dictionary guitar fader to -2.5 (a half step); back to Studio (bass -2, guitar
+ *    untouched); back to Dictionary (guitar -2.5). Faders are moved like a drag
  *    (native value setter + `input` event). Each node is fed a silent
  *    constant before it is read — see readMixer for why.
  */
@@ -207,6 +207,56 @@ async function tempoStep(page, name, action, settleMs) {
   };
 }
 
+/**
+ * Installs, once and for the whole run, a measuring tap on each mixer node:
+ * a small DC (ConstantSource, offset 0.01 = -40 dBFS) into the node and an
+ * analyser on its output. readMixer reads the output mean / DC, which is the
+ * gain the node really renders — the audio, not a getter.
+ *
+ * Why not the param's `.value` getter (the first version): it returns the
+ * value of the last render quantum the node *processed*, and Chrome does not
+ * process a gain node with no live input. A node whose instrument had not
+ * sounded since its level changed read its old value (guitar shown +1.5,
+ * scheduled at 0.60 s, still reading 1.0 at 4.4 s).
+ *
+ * Why installed once, never disconnected (the second version connected and
+ * disconnected a tap around each read): after such a cycle the *next* fader
+ * ramp on that node was intermittently not rendered (bass 0 -> -2 dB, events
+ * identical to a passing run). The same UI sequence with no intermediate tap,
+ * measured once at the end, rendered correctly 3 times out of 3
+ * (logs/debug_ui_ramp.mjs, not committed). The app does not do this; the
+ * probe did. With one permanent tap there is no cycle.
+ *
+ * Reads happen with the transport stopped: an instrument sounding adds AC to
+ * the mean. Probe-only; nothing in the app changes. The DC reaches the mix at
+ * -40 dBFS in a headless browser nobody listens to.
+ */
+async function installTaps(page) {
+  await page.evaluate(async () => {
+    const engine = await import("/src/audio/AudioEngine.js");
+    const DC = 0.01;
+    const taps = {};
+    for (const [name, vol] of Object.entries(engine.instrumentVols)) {
+      // @ts-ignore — Tone internals: the node's own context and gain node
+      const ctx = vol.context.rawContext;
+      const src = ctx.createConstantSource();
+      src.offset.value = DC;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      // @ts-ignore
+      src.connect(vol.output._gainNode);
+      // @ts-ignore
+      vol.output._gainNode.connect(analyser);
+      src.start();
+      taps[name] = analyser;
+    }
+    // @ts-ignore — page context
+    window.__mixerTaps = taps;
+    // @ts-ignore
+    window.__mixerTapDc = DC;
+  });
+}
+
 async function readMixer(page) {
   return page.evaluate(async () => {
     const engine = await import("/src/audio/AudioEngine.js");
@@ -216,47 +266,46 @@ async function readMixer(page) {
     } catch {
       owner = null;
     }
-    // The gain param's `.value` getter returns the value computed at the last
-    // render quantum the node *processed* — and Chrome does not process a
-    // gain node with no live input. A node whose instrument has not sounded
-    // since its level changed therefore reads its old value, however long
-    // ago the change was scheduled (found by this probe, VMU-171: guitar
-    // shown +1.5, scheduled +1.5 at 0.60 s, still reading 1.0 at 4.4 s while
-    // the bass, which had played, read its new value). So each node is fed
-    // a silent constant (offset 0 — adds no signal) for 150 ms before it is
-    // read, and the source is removed afterwards. Probe-only; nothing in the
-    // app changes.
-    const feeds = Object.values(engine.instrumentVols).map((vol) => {
-      // @ts-ignore — Tone internals: the node's own context and gain node
-      const src = vol.context.rawContext.createConstantSource();
-      src.offset.value = 0;
-      // @ts-ignore
-      src.connect(vol.output._gainNode);
-      src.start();
-      return src;
-    });
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    // Measured, not read from the param: see installTaps for why and how.
+    // @ts-ignore — page context
+    const taps = window.__mixerTaps;
+    if (!taps) throw new Error("installTaps() was not run before readMixer()");
+    await new Promise((resolve) => setTimeout(resolve, 250));
     const nodes = {};
     for (const [name, vol] of Object.entries(engine.instrumentVols)) {
+      const analyser = taps[name];
+      const buf = new Float32Array(analyser.fftSize);
+      analyser.getFloatTimeDomainData(buf);
+      const mean = buf.reduce((a, b) => a + b, 0) / buf.length;
+      // @ts-ignore
+      const rendered = mean / window.__mixerTapDc;
       // @ts-ignore — Tone internals: Param._param is the param under Tone's wrapper
       const linear = vol.volume._param ? vol.volume._param.value : null;
       nodes[name] = {
         toneDb: vol.volume.value,
-        nativeLinear: linear,
-        nativeDb: linear > 0 ? 20 * Math.log10(linear) : -Infinity,
+        renderedLinear: rendered,
+        nativeDb: rendered > 0 ? 20 * Math.log10(rendered) : -Infinity,
+        getterLinear: linear,
+        // For the JSON output: what Tone scheduled, and when the read happened.
+        // @ts-ignore — Tone internals
+        events: (vol.volume._events?._timeline ?? []).map((e) => `${e.type}@${e.time.toFixed(3)}=${e.value.toFixed(4)}`),
+        ctxTime: vol.context.currentTime,
       };
     }
-    for (const src of feeds) {
-      src.stop();
-      src.disconnect();
-    }
+    const waitedMs = 250;
     // MixerStrip: one "<n> dB" text per fader, in the order of its instrument list.
     const order = ["kick", "snare", "hat", "bass", "piano", "guitar"];
     const texts = [...document.querySelectorAll("*")]
       .filter((el) => el.children.length === 0 && /^-?\d+(\.\d+)? dB$/.test((el.textContent || "").trim()))
       .map((el) => Number((el.textContent || "").trim().replace(" dB", "")));
     const ownerBpm = owner && typeof owner.getTransportState === "function" ? owner.getTransportState().bpm : null;
-    return { nodes, displayedTexts: texts, order, ownerBpm };
+    // VMU-171: the faders' own values, as the browser holds them. A range
+    // input snaps its value to its step, so this is where a 1 dB step
+    // would show (-1.5 held as -1); jsdom does not apply that rule.
+    const faderValues = [...document.querySelectorAll('.modal-container input[type="range"][orient="vertical"]')].map(
+      (el) => Number(/** @type {HTMLInputElement} */ (el).value),
+    );
+    return { nodes, waitedMs, displayedTexts: texts, faderValues, order, ownerBpm };
   });
 }
 
@@ -326,7 +375,9 @@ function judgeMixer(name, m, expectShown) {
     const applied = display != null && Math.abs(node.nativeDb - display) <= GAIN_TOLERANCE_DB;
     const expected = expectShown ? expectShown[inst] : null;
     const asExpected = expected == null || display === expected;
-    return { inst, display, expected, ...node, ok: applied && asExpected };
+    const fader = m.faderValues ? m.faderValues[i] : null;
+    const faderOk = fader === display;
+    return { inst, display, expected, fader, ...node, ok: applied && asExpected && faderOk };
   });
   return { name, rows, ok: rows.every((r) => r.ok) };
 }
@@ -340,12 +391,15 @@ try {
   await waitForAppReady(page);
 
   // Mixer first: it is about the *first* Play of the session.
+  await installTaps(page);
   await clickEl(page.locator('[aria-label="Play"]'));
   await page.waitForTimeout(600);
-  mixer = await readMixerInModal(page);
-  mixer.badge = await readBadge(page);
-  mixerSteps.push(judgeMixer("Studio, after the first Play", mixer, null));
+  mixer = { badge: await readBadge(page) };
   await clickEl(page.locator('[aria-label="Stop"]'));
+  // Let the instruments ring out: the measurement reads the output's mean.
+  await page.waitForTimeout(1500);
+  mixer = { ...(await readMixerInModal(page)), badge: mixer.badge };
+  mixerSteps.push(judgeMixer("Studio, after the first Play (read after Stop)", mixer, null));
 
   // VMU-171: one setting per mode, each applied, and a round trip.
   const studioStart = Object.fromEntries(MIXER_ORDER.map((inst, i) => [inst, mixer.displayedTexts[i]]));
@@ -362,12 +416,12 @@ try {
     ok: dictLevels.bass !== -2,
     detail: `Dictionary bass shown ${dictLevels.bass} dB, Studio bass set to -2 dB`,
   });
-  await setFader(page, "guitar", 4); // Dictionary only
-  mixerSteps.push(judgeMixer("Dictionary, guitar fader to 4", await readMixerInModal(page), { ...dictLevels, guitar: 4 }));
+  await setFader(page, "guitar", -2.5); // Dictionary only
+  mixerSteps.push(judgeMixer("Dictionary, guitar fader to -2.5 (half step)", await readMixerInModal(page), { ...dictLevels, guitar: -2.5 }));
   await switchMode(page, "studio");
   mixerSteps.push(judgeMixer("back to Studio (bass -2 kept, guitar untouched)", await readMixerInModal(page), { ...studioStart, bass: -2 }));
   await switchMode(page, "dictionary");
-  mixerSteps.push(judgeMixer("back to Dictionary (guitar 4 kept)", await readMixerInModal(page), { ...dictLevels, guitar: 4 }));
+  mixerSteps.push(judgeMixer("back to Dictionary (guitar -2.5 kept)", await readMixerInModal(page), { ...dictLevels, guitar: -2.5 }));
   await switchMode(page, "studio");
 
   // Tempo: metronome on at the default style, then change style twice, then the badge.
@@ -407,11 +461,11 @@ for (const step of mixerSteps) {
   if (!step.ok) failures++;
   if (!AS_JSON) {
     console.log(
-      `${step.ok ? "PASS" : "FAIL"}  mixer: ${step.name}${step.detail ? ` — ${step.detail}` : ` — node gain = shown level (±${GAIN_TOLERANCE_DB} dB)`}`,
+      `${step.ok ? "PASS" : "FAIL"}  mixer: ${step.name}${step.detail ? ` — ${step.detail}` : ` — node gain = shown level (±${GAIN_TOLERANCE_DB} dB) = fader value`}`,
     );
     for (const r of step.rows) {
       console.log(
-        `        ${r.inst.padEnd(6)} shown ${String(r.display).padStart(4)} dB${r.expected != null ? ` (expects ${r.expected})` : ""}   node ${fmt(r.nativeDb, 2)} dB (native ${fmt(r.nativeLinear, 4)}, Tone ${fmt(r.toneDb, 2)} dB)`,
+        `        ${r.inst.padEnd(6)} shown ${String(r.display).padStart(4)} dB${r.expected != null ? ` (expects ${r.expected})` : ""}   fader ${String(r.fader).padStart(4)}   measured ${fmt(r.nativeDb, 2)} dB (gain ${fmt(r.renderedLinear, 4)}; Tone ${fmt(r.toneDb, 2)} dB, getter ${fmt(r.getterLinear, 4)})`,
       );
     }
   }
