@@ -59,6 +59,7 @@ import {
   noteNameToMidi,
   refinePeakBin,
 } from "./signalMetrics";
+import { DEFAULT_MIXER_LEVELS } from "../InstrumentPresets";
 
 /** Sample rate every measurement is taken at. */
 export const DEFAULT_SAMPLE_RATE = 44100;
@@ -75,13 +76,17 @@ export const LEAD_IN_SEC = 0.2;
  * means. Read from the app's own data and defaults rather than retyped:
  * `useStudioMode` opens on `BRICKS[0]` with theme "A", and `useSequencer`
  * opens at 120 BPM, master -12 dB, with these instrument trims.
+ *
+ * T2 (VMU-153): the trims are the app's own `DEFAULT_MIXER_LEVELS`, the
+ * same object useSequencer displays and applies to the mixer nodes — they
+ * used to be retyped here, while the app itself never applied them.
  */
 export const STUDIO_DEFAULTS = {
   brickIndex: 0,
   bpm: 120,
   masterVolumeDb: -12,
   chordOctaveOffset: 0,
-  instrumentVolumes: { kick: -3, snare: -5, hat: -8, bass: -6, piano: 0, guitar: 0 },
+  instrumentVolumes: DEFAULT_MIXER_LEVELS,
 };
 
 /**
