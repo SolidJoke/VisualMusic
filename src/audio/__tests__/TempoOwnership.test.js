@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 /**
  * TempoOwnership.test.js — the guard for T2 (VMU-025), decisions 1 and 2:
@@ -27,7 +28,10 @@ import path from "node:path";
  * need deliberate effort to write, not an accident.
  */
 
-const SRC_ROOT = path.resolve(__dirname, "../../");
+// import.meta.url, not __dirname: the latter is a CommonJS global the lint
+// config does not declare (TransportOwnership.test.js carries that no-undef
+// error in the lint baseline; this file does not add a second one).
+const SRC_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../");
 
 const ALLOWED_FILES = new Set([path.resolve(SRC_ROOT, "audio/transportOwner.js")]);
 

@@ -1,10 +1,29 @@
 // @ts-check
 /**
- * transportOwner.js — the one place that decides whether Tone's Transport is
- * running (VMU-163 §4 decision / VMU-165). The embryo of T2's single owner
- * (VMU-025) for *this one decision only* — it never touches tempo (three
- * writers remain: AudioEngine.setBpm, useSequencer.js's handleBpmChange and
- * togglePlayback), the mixer, or the click/step sound.
+ * transportOwner.js — the one owner of Tone's Transport: whether it runs
+ * (VMU-163 §4 decision / VMU-165), its tempo, and the context's scheduling
+ * look-ahead (T2 / VMU-025). It never touches the mixer or the click/step
+ * sound.
+ *
+ * ## One copy of the state (T2, decisions 1, 2 and 4)
+ *
+ * - **Tempo** — `setTempo(bpm)` is the only production code that writes
+ *   `transport.bpm`. Before T2 there were three writers (AudioEngine.setBpm
+ *   on a style change, useSequencer's first Play, useSequencer's
+ *   handleBpmChange), each paired with a separate React `setCurrentBpm`.
+ * - **lookAhead** — `unlockAudio()` is the only production code that writes
+ *   it. Before T2, AudioEngine.initAudio and useSequencer's first Play each
+ *   set it after their own `Tone.start()`.
+ * - **Playing / metronome / tempo, for the screen** — React no longer keeps
+ *   its own `isPlaying`, `metronomeOn` or `currentBpm`: useSequencer and
+ *   useMetronome read `getTransportState()` through `subscribe`
+ *   (`useSyncExternalStore`). The owner is the source because it is the one
+ *   that must decide synchronously, inside a click, whether Stop may stop the
+ *   transport; React only displays the answer. The reverse (React as the
+ *   source, the owner told after each render) is what VMU-163-fix2 removed.
+ *
+ * `src/audio/__tests__/TempoOwnership.test.js` guards the first two,
+ * `TransportStateAgreement.test.jsx` the third.
  *
  * ## The rule (coordinator's decision 4, VMU-163-fix2 brief)
  *
@@ -67,13 +86,106 @@
  */
 import * as Tone from "tone";
 
-/** True while the sequencer is playing — set only from playMusic/stopMusic. */
-let musicPlaying = false;
-/** True while the metronome is on — set only from enableMetronome/disableMetronome. */
-let metronomeOn = false;
+/**
+ * Tempo before anything sets one: Tone's own Transport default, and the
+ * Studio's (useSequencer used to open at `useState(120)`).
+ */
+export const DEFAULT_BPM = 120;
+
+/**
+ * Scheduling safety margin (seconds) between "now" and when Tone actually
+ * schedules an event: reduces glitches under CPU load. Set after
+ * `Tone.start()`, as both former writers did.
+ */
+export const LOOK_AHEAD_SEC = 0.1;
+
+/**
+ * @typedef {Object} TransportState
+ * @property {boolean} musicPlaying true while the sequencer plays — set only by playMusic/stopMusic
+ * @property {boolean} metronomeOn true while the metronome is on — set only by enableMetronome/disableMetronome
+ * @property {number} bpm the tempo the transport is set to — set only by setTempo
+ */
+
+/**
+ * The owner's whole state. Replaced, never mutated, so the same object is
+ * returned until something changes — what `useSyncExternalStore` requires
+ * of a snapshot.
+ * @type {Readonly<TransportState>}
+ */
+let state = Object.freeze({ musicPlaying: false, metronomeOn: false, bpm: DEFAULT_BPM });
+
+/** @type {Set<() => void>} */
+const listeners = new Set();
+
+/** @param {Partial<TransportState>} patch */
+function update(patch) {
+  const next = { ...state, ...patch };
+  if (next.musicPlaying === state.musicPlaying && next.metronomeOn === state.metronomeOn && next.bpm === state.bpm) {
+    return;
+  }
+  state = Object.freeze(next);
+  listeners.forEach((listener) => listener());
+}
+
+/**
+ * Subscribes to state changes (the `subscribe` half of useSyncExternalStore).
+ * @param {() => void} listener
+ * @returns {() => void} unsubscribe
+ */
+export function subscribe(listener) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/**
+ * The current state (the `getSnapshot` half of useSyncExternalStore). Read it
+ * at call time inside handlers, rather than a value captured by a render: two
+ * clicks before an `await` resolves must see each other's effect.
+ * @returns {Readonly<TransportState>}
+ */
+export function getTransportState() {
+  return state;
+}
 
 function transport() {
   return Tone.getTransport();
+}
+
+/**
+ * Sets the tempo — the only production writer of `transport.bpm` (T2,
+ * decision 1). A style change, the BPM badge or slider, and the first Play
+ * all come through here; the metronome and the step loop schedule in musical
+ * time ("4n", "16n"), so they follow without being told.
+ *
+ * Ignores anything that is not a positive finite number, as
+ * useSequencer.handleBpmChange used to for non-numbers: a tempo of 0 or NaN
+ * would stall the transport.
+ *
+ * @param {number | string} bpm
+ */
+export function setTempo(bpm) {
+  const value = Number(bpm);
+  if (!Number.isFinite(value) || value <= 0) return;
+  transport().bpm.value = value;
+  update({ bpm: value });
+}
+
+/**
+ * Unlocks the audio context and sets its look-ahead — the only production
+ * writer of `lookAhead` (T2, decision 2). Every path that starts audio goes
+ * through here: AudioEngine.initAudio (the Dictionary, the fretboard, the
+ * metronome) and the Studio's first Play (useSequencer.togglePlayback).
+ *
+ * `Tone.context`, not `getContext()`, deliberately: it is what both former
+ * writers used, it is the same object in the app (one real-time context for
+ * the page's life — the reasoning in metronome.js's header), and the offline
+ * harness never calls this.
+ */
+export async function unlockAudio() {
+  await Tone.start();
+  Tone.context.lookAhead = LOOK_AHEAD_SEC;
 }
 
 /**
@@ -97,8 +209,8 @@ function transport() {
 export function playMusic(registerSteps) {
   transport().stop();
   registerSteps(transport());
-  musicPlaying = true;
   transport().start();
+  update({ musicPlaying: true });
 }
 
 /**
@@ -112,11 +224,11 @@ export function playMusic(registerSteps) {
  * @param {(transport: import("tone").Transport) => void} unregisterSteps
  */
 export function stopMusic(unregisterSteps) {
-  musicPlaying = false;
   unregisterSteps(transport());
-  if (!metronomeOn) {
+  if (!state.metronomeOn) {
     transport().stop();
   }
+  update({ musicPlaying: false });
 }
 
 /**
@@ -129,11 +241,11 @@ export function stopMusic(unregisterSteps) {
  * @param {(transport: import("tone").Transport) => void} registerClick
  */
 export function enableMetronome(registerClick) {
-  metronomeOn = true;
   registerClick(transport());
   if (transport().state !== "started") {
     transport().start();
   }
+  update({ metronomeOn: true });
 }
 
 /**
@@ -142,9 +254,9 @@ export function enableMetronome(registerClick) {
  * @param {(transport: import("tone").Transport) => void} unregisterClick
  */
 export function disableMetronome(unregisterClick) {
-  metronomeOn = false;
   unregisterClick(transport());
-  if (!musicPlaying) {
+  if (!state.musicPlaying) {
     transport().stop();
   }
+  update({ metronomeOn: false });
 }

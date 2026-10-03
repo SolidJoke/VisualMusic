@@ -195,6 +195,23 @@ export const PIANO_PRESET = {
 };
 
 /**
+ * The mixer's levels on a cold start (dB per `AudioEngine.instrumentVols`
+ * node) — what the Studio's mixer shows, what useSequencer applies to the
+ * nodes (T2 / VMU-153), and what the offline harness's "default-progression"
+ * scenario renders with (`offlineRender.js` STUDIO_DEFAULTS). One copy, so
+ * the three cannot drift apart again; before T2 the app displayed these
+ * values while its nodes stayed at 0 dB.
+ */
+export const DEFAULT_MIXER_LEVELS = Object.freeze({
+  kick: -3,
+  snare: -5,
+  hat: -8,
+  bass: -6,
+  piano: 0,
+  guitar: 0,
+});
+
+/**
  * Resolve preset for a given genre group, with fallback.
  *
  * @param {'electronic'|'jazz'|'rock'|'pop'|'urban'|'world'} group

@@ -17,6 +17,7 @@
 import * as Tone from "tone";
 import { DRUM_PRESETS, BASS_PRESETS, BASS_BASE_VOLUME_DB, PIANO_PRESET } from "./InstrumentPresets";
 import { log } from "../utils/debug";
+import { unlockAudio } from "./transportOwner";
 
 // ─── Safety & Analysis: Hard Limiter and FFT ──────────────────────────
 // VMU-020 — this used to be a `Tone.Compressor` named `masterLimiter` and
@@ -93,21 +94,28 @@ export const instrumentVols = {
 /**
  * Set the volume (in dB) for a specific instrument.
  * range: roughly -30 to 6
+ *
+ * `rampSec` (default 50 ms, the slider's ramp) of 0 sets the level at once
+ * instead: useSequencer does that for the first application of the mixer's
+ * displayed levels (T2 / VMU-153), which happens before the audio context
+ * has started, where a ramp would still be running under the first notes.
+ *
+ * @param {string} instrument a key of `instrumentVols`
+ * @param {number} dbValue
+ * @param {number} [rampSec]
  */
-export function setInstrumentVolume(instrument, dbValue) {
+export function setInstrumentVolume(instrument, dbValue, rampSec = 0.05) {
   if (instrumentVols[instrument]) {
-    instrumentVols[instrument].volume.rampTo(dbValue, 0.05);
+    if (rampSec > 0) {
+      instrumentVols[instrument].volume.rampTo(dbValue, rampSec);
+    } else {
+      instrumentVols[instrument].volume.value = dbValue;
+    }
   }
 }
 
-/**
- * Sets the master BPM of the audio engine transport.
- * @param {number} bpm - The BPM to set
- * @returns {void}
- */
-export function setBpm(bpm) {
-  Tone.Transport.bpm.value = bpm;
-}
+// The tempo used to be set here too (`setBpm`, removed by T2 / VMU-025): it
+// has one writer now, `transportOwner.setTempo`.
 
 /**
  * Note on Tone.js Lazy Loading:
@@ -131,8 +139,9 @@ export function preloadSamplers() {
 }
 
 export async function initAudio() {
-  await Tone.start();
-  Tone.context.lookAhead = 0.1; // 100ms buffer — réduit les glitches sous charge CPU
+  // Tone.start() plus the scheduling look-ahead, both owned by
+  // transportOwner.js since T2 (VMU-025, decision 2).
+  await unlockAudio();
   // Bring the samplers up here rather than in the sequencer only. Every audible
   // interaction funnels through this call (useAudioScheduler.ensureAudioReady),
   // so initialising elsewhere left the Dictionary, the fretboard and single

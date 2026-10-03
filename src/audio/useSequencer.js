@@ -1,5 +1,5 @@
 // @ts-check
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from "react";
 import * as Tone from "tone";
 import {
   kickSynth,
@@ -14,10 +14,18 @@ import {
   getPianoSynth,
   getGuitarSynth
 } from "./AudioEngine";
+import { DEFAULT_MIXER_LEVELS } from "./InstrumentPresets";
 import { resolveChordAt, stepEvents } from "./dispatch";
 import { playStepEvents } from "./playStep";
 import { describeChord, loopSteps, timelineFromSelection } from "../core/timeline";
-import { playMusic, stopMusic } from "./transportOwner";
+import {
+  playMusic,
+  stopMusic,
+  setTempo,
+  unlockAudio,
+  subscribe as subscribeTransport,
+  getTransportState,
+} from "./transportOwner";
 
 /** The synths the Studio loop plays a step on (playStep.js). */
 const STUDIO_SYNTHS = { kickSynth, snareSynth, hatSynth, bassSynth, playDictionaryNote };
@@ -64,9 +72,15 @@ export function useSequencer({
   chordOctaveOffset = 0
 }) {
   const [isAudioReady, setIsAudioReady] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
+  // T2 (VMU-025, decision 4): whether the music plays and the tempo are the
+  // transport owner's state, read here — no React copy of either to keep in
+  // step with it (transportOwner.js, "One copy of the state").
+  const { musicPlaying: isPlaying, bpm: currentBpm } = useSyncExternalStore(
+    subscribeTransport,
+    getTransportState,
+    getTransportState, // server snapshot: AppRoot.test.jsx renders to a string
+  );
   const [masterVolume, setMasterVolume] = useState(-12);
-  const [currentBpm, setCurrentBpm] = useState(120);
   const [currentStep, setCurrentStep] = useState(-1);
   const [isPianoReady, setIsPianoReady] = useState(false);
   // VMU-129: the chord this measure of the loop is playing, published once
@@ -75,14 +89,7 @@ export function useSequencer({
   // ({ rootNote: { value }, nns, ... }) plus absolutePitches. Null at rest.
   const [currentPlayingChord, setCurrentPlayingChord] = useState(null);
   
-  const [instrumentVolumes, setInstrumentVolumes] = useState({
-    kick: -3,
-    snare: -5,
-    hat: -8,
-    bass: -6,
-    piano: 0,
-    guitar: 0,
-  });
+  const [instrumentVolumes, setInstrumentVolumes] = useState(() => ({ ...DEFAULT_MIXER_LEVELS }));
 
   // Pre-T3 callers: the document their selection fills (see above). A
   // missing rhythm plays as [0], as it always has.
@@ -133,8 +140,29 @@ export function useSequencer({
   const handleInstrumentVolumeChange = (instrument, value) => {
     const val = Number(value);
     setInstrumentVolumes((prev) => ({ ...prev, [instrument]: val }));
-    setInstrumentVolume(instrument, val);
   };
+
+  // T2 / VMU-153, decision 3: the mixer nodes play at the levels the mixer
+  // displays — always, not only once a slider has moved. This effect is the
+  // one place the displayed levels reach `AudioEngine.instrumentVols`: at
+  // mount (the nodes are built at 0 dB, AudioEngine.js), after every slider
+  // move, and after anything else that ever sets `instrumentVolumes`.
+  //
+  // At mount it runs before the audio context is unlocked; Tone schedules
+  // the value on the context's own timeline, which then starts from it. The
+  // first application is a set, not the slider's 50 ms ramp: a ramp
+  // scheduled on a context that has not started yet would still be running
+  // under the first notes of the first Play. Only the levels that changed
+  // since the last application are sent.
+  const appliedLevelsRef = useRef(/** @type {Record<string, number>} */ ({}));
+  useEffect(() => {
+    const applied = appliedLevelsRef.current;
+    for (const [instrument, db] of Object.entries(instrumentVolumes)) {
+      if (applied[instrument] === db) continue;
+      setInstrumentVolume(instrument, db, instrument in applied ? undefined : 0);
+      applied[instrument] = db;
+    }
+  }, [instrumentVolumes]);
 
   useEffect(() => {
     Tone.Destination.volume.rampTo(masterVolume, 0.05);
@@ -216,13 +244,16 @@ export function useSequencer({
 
   const togglePlayback = async () => {
     if (!isAudioReady) {
-      await Tone.start();
-      // Apply lookAhead buffer here — must be set AFTER Tone.start() to be effective.
-      // Reduces audio glitches under high CPU load (scheduling safety margin).
-      Tone.context.lookAhead = 0.1;
+      // Unlocks the context and sets its lookAhead (transportOwner.js, the
+      // only writer of either since T2, decision 2).
+      await unlockAudio();
       // Set initial volume directly (no rampTo needed: audio context just started, no audible click risk)
       Tone.Destination.volume.value = masterVolume;
-      Tone.Transport.bpm.value = currentBpm;
+      // The tempo is already on the transport (setTempo writes it at once);
+      // re-applied through the same owner after the unlock, as this first
+      // Play always did, so nothing depends on a write made while the
+      // context was still suspended.
+      setTempo(getTransportState().bpm);
       initPianoSampler(() => setIsPianoReady(true));
       initGuitarSampler();
       if (appMode === "studio" && brickRef.current) {
@@ -231,7 +262,11 @@ export function useSequencer({
       setIsAudioReady(true);
     }
 
-    if (isPlaying) {
+    // Read from the owner now, not from this render's `isPlaying`: two clicks
+    // made before the first `await` above resolved share one render, so a
+    // captured value made both of them Play and left one step repeat
+    // registered forever (TransportStateAgreement.test.jsx, race case).
+    if (getTransportState().musicPlaying) {
       // transportOwner.stopMusic (VMU-163-fix2, decision 4) stops the
       // transport itself only if the metronome is not keeping it alive
       // (VMU-056) — this used to be an unconditional `Tone.Transport.stop()`,
@@ -243,7 +278,6 @@ export function useSequencer({
           repeatIdRef.current = null;
         }
       });
-      setIsPlaying(false);
       setCurrentStep(-1);
       stepCounterRef.current = 0;
       lastPublishedChordIndexRef.current = null;
@@ -269,7 +303,6 @@ export function useSequencer({
       playMusic((transport) => {
         repeatIdRef.current = transport.scheduleRepeat(repeat, "16n", 0);
       });
-      setIsPlaying(true);
     }
   };
 
@@ -283,13 +316,14 @@ export function useSequencer({
    * while Sidebar wrapped its number in a fake `{target:{value}}` to satisfy a
    * signature it did not need. A number is what both callers actually had.
    *
+   * Goes through the transport owner (T2, decision 1), which writes the
+   * transport and the displayed value in one call; non-numbers are ignored
+   * there.
+   *
    * @param {number} bpm
    */
   const handleBpmChange = (bpm) => {
-    const newBpm = Number(bpm);
-    if (!Number.isFinite(newBpm)) return;
-    setCurrentBpm(newBpm);
-    Tone.Transport.bpm.value = newBpm;
+    setTempo(bpm);
   };
 
   return {
@@ -299,7 +333,9 @@ export function useSequencer({
     masterVolume,
     setMasterVolume,
     currentBpm,
-    setCurrentBpm,
+    // Kept under its old name for AppDesktop's style change (the style
+    // imposes its tempo); it is the owner's setTempo, not a React setter.
+    setCurrentBpm: setTempo,
     instrumentVolumes,
     handleInstrumentVolumeChange,
     currentStep,
