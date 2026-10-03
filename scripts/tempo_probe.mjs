@@ -30,6 +30,13 @@
  *    Control that the instance is the live one, not a second copy: where
  *    `transportOwner.getTransportState` exists (T2 and later), its `bpm` must
  *    equal the badge — a fresh copy would read its 120 default.
+ *    VMU-171 (one setting per mode): the same check in both modes and across
+ *    a round trip — Studio first Play; Studio bass fader to -2; Dictionary on
+ *    arrival (its own setting, which must not show the Studio's -2);
+ *    Dictionary guitar fader to 4; back to Studio (bass -2, guitar
+ *    untouched); back to Dictionary (guitar 4). Faders are moved like a drag
+ *    (native value setter + `input` event). Each node is fed a silent
+ *    constant before it is read — see readMixer for why.
  */
 import path from "node:path";
 import process from "node:process";
@@ -209,9 +216,29 @@ async function readMixer(page) {
     } catch {
       owner = null;
     }
+    // The gain param's `.value` getter returns the value computed at the last
+    // render quantum the node *processed* — and Chrome does not process a
+    // gain node with no live input. A node whose instrument has not sounded
+    // since its level changed therefore reads its old value, however long
+    // ago the change was scheduled (found by this probe, VMU-171: guitar
+    // shown +1.5, scheduled +1.5 at 0.60 s, still reading 1.0 at 4.4 s while
+    // the bass, which had played, read its new value). So each node is fed
+    // a silent constant (offset 0 — adds no signal) for 150 ms before it is
+    // read, and the source is removed afterwards. Probe-only; nothing in the
+    // app changes.
+    const feeds = Object.values(engine.instrumentVols).map((vol) => {
+      // @ts-ignore — Tone internals: the node's own context and gain node
+      const src = vol.context.rawContext.createConstantSource();
+      src.offset.value = 0;
+      // @ts-ignore
+      src.connect(vol.output._gainNode);
+      src.start();
+      return src;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 150));
     const nodes = {};
     for (const [name, vol] of Object.entries(engine.instrumentVols)) {
-      // @ts-ignore — Tone internals: Param._param is the native AudioParam
+      // @ts-ignore — Tone internals: Param._param is the param under Tone's wrapper
       const linear = vol.volume._param ? vol.volume._param.value : null;
       nodes[name] = {
         toneDb: vol.volume.value,
@@ -219,7 +246,10 @@ async function readMixer(page) {
         nativeDb: linear > 0 ? 20 * Math.log10(linear) : -Infinity,
       };
     }
-    const displayed = {};
+    for (const src of feeds) {
+      src.stop();
+      src.disconnect();
+    }
     // MixerStrip: one "<n> dB" text per fader, in the order of its instrument list.
     const order = ["kick", "snare", "hat", "bass", "piano", "guitar"];
     const texts = [...document.querySelectorAll("*")]
@@ -245,7 +275,64 @@ const pageErrors = [];
 page.on("pageerror", (e) => pageErrors.push(String(e)));
 await page.addInitScript(installProbe);
 
+const MIXER_ORDER = ["kick", "snare", "hat", "bass", "piano", "guitar"];
+
+/** Opens "Instruments & Audio" (where the mixer lives, in both modes), reads it, closes it. */
+async function readMixerInModal(page) {
+  await clickEl(page.locator(".sidebar-cta-btn", { hasText: /Instruments/ }));
+  await page.waitForTimeout(300);
+  const m = await readMixer(page);
+  await closeModal(page);
+  return m;
+}
+
+/**
+ * Moves one mixer fader the way a drag does: the native value setter, then
+ * the `input` event React's onChange listens to.
+ */
+async function setFader(page, instrument, db) {
+  await clickEl(page.locator(".sidebar-cta-btn", { hasText: /Instruments/ }));
+  await page.waitForTimeout(200);
+  await page.evaluate(
+    ({ index, value }) => {
+      const sliders = [...document.querySelectorAll('.modal-container input[type="range"][orient="vertical"]')];
+      const el = sliders[index];
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+      setter.call(el, String(value));
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    },
+    { index: MIXER_ORDER.indexOf(instrument), value: db },
+  );
+  await page.waitForTimeout(200);
+  await closeModal(page);
+}
+
+async function switchMode(page, mode) {
+  await clickEl(page.locator(`[data-testid="btn-mode-${mode}"]`));
+  // The slider ramp is 50 ms; leave the node time to reach its target.
+  await page.waitForTimeout(300);
+}
+
+/**
+ * One mixer observation: node gains vs the levels shown, and (when given)
+ * the levels shown vs what this step expects — the latter is what proves
+ * the two modes keep separate settings, not just that each is applied.
+ */
+function judgeMixer(name, m, expectShown) {
+  const shown = m.displayedTexts.length >= MIXER_ORDER.length ? m.displayedTexts.slice(0, MIXER_ORDER.length) : null;
+  const rows = MIXER_ORDER.map((inst, i) => {
+    const node = m.nodes[inst];
+    const display = shown ? shown[i] : null;
+    const applied = display != null && Math.abs(node.nativeDb - display) <= GAIN_TOLERANCE_DB;
+    const expected = expectShown ? expectShown[inst] : null;
+    const asExpected = expected == null || display === expected;
+    return { inst, display, expected, ...node, ok: applied && asExpected };
+  });
+  return { name, rows, ok: rows.every((r) => r.ok) };
+}
+
 const tempo = [];
+const mixerSteps = [];
 let mixer = null;
 let failures = 0;
 
@@ -255,13 +342,33 @@ try {
   // Mixer first: it is about the *first* Play of the session.
   await clickEl(page.locator('[aria-label="Play"]'));
   await page.waitForTimeout(600);
-  // The mixer is in the "Instruments & Audio" modal; open it so its level texts exist in the DOM.
-  await clickEl(page.locator(".sidebar-cta-btn", { hasText: /Instruments/ }));
-  await page.waitForTimeout(300);
-  mixer = await readMixer(page);
+  mixer = await readMixerInModal(page);
   mixer.badge = await readBadge(page);
-  await closeModal(page);
+  mixerSteps.push(judgeMixer("Studio, after the first Play", mixer, null));
   await clickEl(page.locator('[aria-label="Stop"]'));
+
+  // VMU-171: one setting per mode, each applied, and a round trip.
+  const studioStart = Object.fromEntries(MIXER_ORDER.map((inst, i) => [inst, mixer.displayedTexts[i]]));
+  await setFader(page, "bass", -2); // Studio only
+  mixerSteps.push(judgeMixer("Studio, bass fader to -2", await readMixerInModal(page), { ...studioStart, bass: -2 }));
+  await switchMode(page, "dictionary");
+  const dictStart = await readMixerInModal(page);
+  mixerSteps.push(judgeMixer("Dictionary, on arrival (its own setting)", dictStart, null));
+  const dictLevels = Object.fromEntries(MIXER_ORDER.map((inst, i) => [inst, dictStart.displayedTexts[i]]));
+  // The two settings are separate: the Studio's bass move must not show up here.
+  mixerSteps.push({
+    name: "Dictionary did not take the Studio's bass -2",
+    rows: [],
+    ok: dictLevels.bass !== -2,
+    detail: `Dictionary bass shown ${dictLevels.bass} dB, Studio bass set to -2 dB`,
+  });
+  await setFader(page, "guitar", 4); // Dictionary only
+  mixerSteps.push(judgeMixer("Dictionary, guitar fader to 4", await readMixerInModal(page), { ...dictLevels, guitar: 4 }));
+  await switchMode(page, "studio");
+  mixerSteps.push(judgeMixer("back to Studio (bass -2 kept, guitar untouched)", await readMixerInModal(page), { ...studioStart, bass: -2 }));
+  await switchMode(page, "dictionary");
+  mixerSteps.push(judgeMixer("back to Dictionary (guitar 4 kept)", await readMixerInModal(page), { ...dictLevels, guitar: 4 }));
+  await switchMode(page, "studio");
 
   // Tempo: metronome on at the default style, then change style twice, then the badge.
   tempo.push(await tempoStep(page, "default style, metronome on", () => clickEl(page.locator('[data-testid="btn-metronome-toggle"]')), 2600));
@@ -296,27 +403,25 @@ for (const s of tempo) {
   }
 }
 
+for (const step of mixerSteps) {
+  if (!step.ok) failures++;
+  if (!AS_JSON) {
+    console.log(
+      `${step.ok ? "PASS" : "FAIL"}  mixer: ${step.name}${step.detail ? ` — ${step.detail}` : ` — node gain = shown level (±${GAIN_TOLERANCE_DB} dB)`}`,
+    );
+    for (const r of step.rows) {
+      console.log(
+        `        ${r.inst.padEnd(6)} shown ${String(r.display).padStart(4)} dB${r.expected != null ? ` (expects ${r.expected})` : ""}   node ${fmt(r.nativeDb, 2)} dB (native ${fmt(r.nativeLinear, 4)}, Tone ${fmt(r.toneDb, 2)} dB)`,
+      );
+    }
+  }
+}
+
 if (mixer) {
-  const order = mixer.order;
-  const shown = mixer.displayedTexts.length >= order.length ? mixer.displayedTexts.slice(0, order.length) : null;
-  const rows = order.map((name, i) => {
-    const node = mixer.nodes[name];
-    const display = shown ? shown[i] : null;
-    const ok = display != null && Math.abs(node.nativeDb - display) <= GAIN_TOLERANCE_DB;
-    return { name, display, ...node, ok };
-  });
-  const allOk = rows.every((r) => r.ok);
-  if (!allOk) failures++;
   const identityOk =
     mixer.ownerBpm == null || (mixer.ownerBpm === mixer.badge && mixer.ownerBpmAtEnd === mixer.badgeAtEnd);
   if (!identityOk) failures++;
   if (!AS_JSON) {
-    console.log(`${allOk ? "PASS" : "FAIL"}  mixer after the first Play: node gain = displayed level (±${GAIN_TOLERANCE_DB} dB)`);
-    for (const r of rows) {
-      console.log(
-        `        ${r.name.padEnd(6)} shown ${String(r.display).padStart(4)} dB   node ${fmt(r.nativeDb, 2)} dB (native ${fmt(r.nativeLinear, 4)}, Tone ${fmt(r.toneDb, 2)} dB)`,
-      );
-    }
     console.log(
       `${identityOk ? "PASS" : "FAIL"}  module instance control: ${mixer.ownerBpm == null ? "getTransportState absent (pre-T2 tree) — not checkable" : `owner bpm ${mixer.ownerBpm} vs badge ${mixer.badge} at the first Play, ${mixer.ownerBpmAtEnd} vs ${mixer.badgeAtEnd} at the end`}`,
     );
@@ -332,7 +437,7 @@ if (pageErrors.length > 0) {
 }
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ tempo, mixer, pageErrors }, null, 2));
+  console.log(JSON.stringify({ tempo, mixerSteps, mixer, pageErrors }, null, 2));
 } else {
   console.log(`\n${failures === 0 ? "PASS" : "FAIL"} — ${failures} failure(s)\n`);
 }
