@@ -93,11 +93,13 @@ function renderSequencer(appMode = "studio") {
 }
 
 /**
- * VMU-171 (Gabriel, 2026-10-03): the defaults are what he hears online today
- * (every node at 0 dB, drums he finds balanced) with bass and guitar raised —
- * the same starting point in both modes.
+ * VMU-171 (Gabriel, 2026-10-03), with headroom (VMU-024): the balance he
+ * asked for — bass 3 dB and guitar 1.5 dB above the piano, drums level with
+ * it — reached by lowering the rest, not by raising bass and guitar. The
+ * first attempt (+3 / +1.5 over 0 dB) pushed the chain input to +2.69 dBFS.
+ * Same starting point in both modes.
  */
-const VMU171_DEFAULTS = { kick: 0, snare: 0, hat: 0, bass: 3, piano: 0, guitar: 1.5 };
+const VMU171_DEFAULTS = { kick: -3, snare: -3, hat: -3, bass: 0, piano: -3, guitar: -1.5 };
 
 describe("mixer: displayed levels are applied levels (T2 / VMU-153)", () => {
   beforeEach(() => {
