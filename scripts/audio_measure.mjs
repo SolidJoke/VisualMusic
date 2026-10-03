@@ -139,6 +139,16 @@ const VMU144_RELEVE_ROWS = ["guitar", "piano"].flatMap((instrument) =>
  */
 // Generic despite the name (also used for guitar-fallback-vs-sampler, brief
 // item 3): any two ids compared by loudness within GUITAR_VS_PIANO_TOLERANCE_LU.
+//
+// VMU-171: these rows now render with the Dictionary's mixer setting
+// (offlineRender.js DICTIONARY_DEFAULTS), where guitar sits +1.5 dB above
+// piano on purpose (Gabriel, 2026-10-03). This check is about the *voices*
+// (VMU-144's sample calibration), so the deliberate fader difference
+// (`mixerLevelDb`, recorded by each scenario) is discounted before the
+// tolerance is applied: a voice mismatch still fails, a mixer choice does
+// not. Without it, four relevé pairs failed at Δ 1.51-1.55 LU — the fader,
+// not the samples. Same-instrument pairs (fallback vs sampler) have no
+// offset.
 function guitarVsPianoCheck(results, firstId, secondId, label) {
   const a = results.find((r) => r.id === firstId)?.measurement;
   const b = results.find((r) => r.id === secondId)?.measurement;
@@ -146,11 +156,14 @@ function guitarVsPianoCheck(results, firstId, secondId, label) {
     return check(label, false, `missing measurement (${firstId} or ${secondId})`);
   }
   const deltaLu = a.mix.loudness.lufs - b.mix.loudness.lufs;
+  const mixerOffsetDb = (a.mixerLevelDb ?? 0) - (b.mixerLevelDb ?? 0);
+  const voiceDeltaLu = deltaLu - mixerOffsetDb;
   return check(
     label,
-    Math.abs(deltaLu) <= GUITAR_VS_PIANO_TOLERANCE_LU,
+    Math.abs(voiceDeltaLu) <= GUITAR_VS_PIANO_TOLERANCE_LU,
     `${firstId} ${fmt(a.mix.loudness.lufs)} LUFS, ${secondId} ${fmt(b.mix.loudness.lufs)} LUFS, ` +
-      `Δ ${fmt(deltaLu)} LU (tolerance ±${GUITAR_VS_PIANO_TOLERANCE_LU})`,
+      `Δ ${fmt(deltaLu)} LU, mixer ${mixerOffsetDb >= 0 ? "+" : ""}${fmt(mixerOffsetDb)} dB, ` +
+      `voice Δ ${fmt(voiceDeltaLu)} LU (tolerance ±${GUITAR_VS_PIANO_TOLERANCE_LU})`,
   );
 }
 
@@ -984,7 +997,11 @@ function printMeasurement(item, m, checks, pageErrors) {
     ]);
   }
   if (m.mixerState) {
-    rows.push(["mixer", JSON.stringify(m.mixerState.instrumentVolumes), `master ${m.mixerState.masterVolumeDb} dB (reported, not applied)`]);
+    // VMU-171: one setting per mode; the Dictionary rows carry no master level.
+    const mode = m.mixerState.mode ? `${m.mixerState.mode} setting` : "";
+    const master =
+      m.mixerState.masterVolumeDb !== undefined ? `master ${m.mixerState.masterVolumeDb} dB (reported, not applied)` : "";
+    rows.push(["mixer", JSON.stringify(m.mixerState.instrumentVolumes), [mode, master].filter(Boolean).join(", ")]);
   }
   rows.push(["render", `${fmt(m.durationSec, 2)} s at ${m.sampleRate} Hz`, `${m.contextDuringRender}, destination offline: ${m.destinationIsOffline}`]);
 

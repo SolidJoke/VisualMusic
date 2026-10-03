@@ -90,6 +90,36 @@ export const STUDIO_DEFAULTS = {
 };
 
 /**
+ * VMU-171: the Dictionary's own mixer setting on a cold start — what the app
+ * applies to the mixer nodes while the Dictionary is open. The scenarios that
+ * play through the Dictionary's path (`single-note`, `chord`,
+ * `guitar-fallback-note`, all the VMU-144 rows) render with it, so they
+ * measure the Dictionary the app actually plays. Before VMU-171 they rendered
+ * with every node at 0 dB, which was also what the app played then.
+ *
+ * Not applied, on purpose: the metronome scenarios (they measure timing
+ * from scheduled times, not level), `output-link-probe` (sets the piano node
+ * itself, 0 dB in both settings), `sine-440` and `silent-path` (no mixer node).
+ */
+export const DICTIONARY_DEFAULTS = {
+  instrumentVolumes: DEFAULT_MIXER_LEVELS.dictionary,
+};
+
+/**
+ * Applies the Dictionary's mixer setting to the engine built on this offline
+ * context, and records it: `mixerState` for the report, `mixerLevelDb` (the
+ * level of the instrument this scenario plays) for the driver's VMU-144
+ * cross-checks, which compare voices and must discount a deliberate
+ * difference between two mixer faders.
+ */
+function applyDictionaryMixer({ engine, diagnostics }, instrument) {
+  const volumes = DICTIONARY_DEFAULTS.instrumentVolumes;
+  Object.entries(volumes).forEach(([name, db]) => engine.setInstrumentVolume(name, db));
+  diagnostics.mixerState = { mode: "dictionary", instrumentVolumes: volumes };
+  diagnostics.mixerLevelDb = volumes[instrument] ?? 0;
+}
+
+/**
  * Renders a scenario and returns its measurements.
  *
  * @param {Object} spec
@@ -424,6 +454,7 @@ export const SCENARIOS = {
       }
       const instrument = params.instrument ?? "piano";
       const note = params.note ?? "C4";
+      applyDictionaryMixer(ctx, instrument);
       diagnostics.requested = { instrument, notes: [note] };
       engine.playDictionaryNote(instrument, note, params.duration ?? 1.0, LEAD_IN_SEC);
     },
@@ -444,6 +475,7 @@ export const SCENARIOS = {
     async body(ctx) {
       const { engine, params, diagnostics } = ctx;
       const note = params.note ?? "C3";
+      applyDictionaryMixer(ctx, "guitar");
       diagnostics.requested = { instrument: "guitar (forced fallback)", notes: [note] };
       diagnostics.guitarVoice = engine.guitarFallback.constructor.name;
       engine.guitarFallback.triggerAttackRelease(note, params.duration ?? 1.0, LEAD_IN_SEC);
@@ -461,6 +493,7 @@ export const SCENARIOS = {
       await loadSamplers(ctx);
       const instrument = params.instrument ?? "piano";
       const notes = params.notes ?? ["C4", "E4", "G4"];
+      applyDictionaryMixer(ctx, instrument);
       diagnostics.requested = { instrument, notes };
       engine.playDictionaryNote(instrument, notes, params.duration ?? 1.0, LEAD_IN_SEC);
     },
@@ -853,7 +886,7 @@ export const SCENARIOS = {
       const masterVolumeDb = params.masterVolumeDb ?? STUDIO_DEFAULTS.masterVolumeDb;
 
       diagnostics.style = { index: brickIndex, name: brick.name?.en ?? brick.name, progression, bpm };
-      diagnostics.mixerState = { instrumentVolumes: volumes, masterVolumeDb };
+      diagnostics.mixerState = { mode: "studio", instrumentVolumes: volumes, masterVolumeDb };
       diagnostics.masterVolumeNote =
         "master volume is reported, not applied: both taps sit before Tone.Destination";
 
