@@ -64,6 +64,9 @@ export default function MixerStrip({ instrumentVolumes, handleInstrumentVolumeCh
                 orient="vertical"
                 min="-60"
                 max="10"
+                // 0.5 dB (VMU-171): the HTML default of 1 could not hold a
+                // default such as guitar -1.5, nor be dragged back to it.
+                step="0.5"
                 value={instrumentVolumes[inst.id]}
                 onChange={(e) => handleInstrumentVolumeChange(inst.id, e.target.value)}
                 className="premium-slider"

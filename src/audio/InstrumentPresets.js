@@ -204,12 +204,17 @@ export const PIANO_PRESET = {
  * drift apart again; before T2 the app displayed -3 / -5 / -8 / -6 while its
  * nodes stayed at 0 dB.
  *
- * Values (Gabriel, 2026-10-03): what he heard online until now — every node
- * at 0 dB, drums he finds balanced — with bass +3 dB and guitar +1.5 dB,
- * which he finds too quiet against the piano. Same starting point in both
- * modes; his own slider values are meant to replace these.
+ * Values (Gabriel, 2026-10-03, with headroom): the balance he asked for —
+ * bass 3 dB and guitar 1.5 dB above the piano, which he found too quiet
+ * against it, and drums level with the piano, which he finds balanced —
+ * reached by lowering the rest (VMU-024 gain staging), not by raising bass
+ * and guitar. The first attempt (0/0/0/+3/0/+1.5) pushed the chain input of
+ * the default progression to +2.69 dBFS, 185 samples above 0 dBFS, 8 large
+ * sample jumps (none before). No fader above 0 dB by default; master volume
+ * unchanged. Same starting point in both modes; his own slider values are
+ * meant to replace these.
  */
-const GABRIEL_START_LEVELS = { kick: 0, snare: 0, hat: 0, bass: 3, piano: 0, guitar: 1.5 };
+const GABRIEL_START_LEVELS = { kick: -3, snare: -3, hat: -3, bass: 0, piano: -3, guitar: -1.5 };
 
 export const DEFAULT_MIXER_LEVELS = Object.freeze({
   studio: Object.freeze({ ...GABRIEL_START_LEVELS }),
