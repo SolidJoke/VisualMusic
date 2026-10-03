@@ -89,7 +89,16 @@ export function useSequencer({
   // ({ rootNote: { value }, nns, ... }) plus absolutePitches. Null at rest.
   const [currentPlayingChord, setCurrentPlayingChord] = useState(null);
   
-  const [instrumentVolumes, setInstrumentVolumes] = useState(() => ({ ...DEFAULT_MIXER_LEVELS }));
+  // VMU-171: one mixer setting per mode. The Studio and the Dictionary each
+  // keep their own levels; `instrumentVolumes` is the active mode's, which is
+  // what the mixer shows, what its sliders change, and what the effect below
+  // applies — so switching mode applies that mode's levels.
+  const mixerMode = appMode === "dictionary" ? "dictionary" : "studio";
+  const [mixerLevels, setMixerLevels] = useState(() => ({
+    studio: { ...DEFAULT_MIXER_LEVELS.studio },
+    dictionary: { ...DEFAULT_MIXER_LEVELS.dictionary },
+  }));
+  const instrumentVolumes = mixerLevels[mixerMode];
 
   // Pre-T3 callers: the document their selection fills (see above). A
   // missing rhythm plays as [0], as it always has.
@@ -139,14 +148,16 @@ export function useSequencer({
 
   const handleInstrumentVolumeChange = (instrument, value) => {
     const val = Number(value);
-    setInstrumentVolumes((prev) => ({ ...prev, [instrument]: val }));
+    // The active mode's setting only (VMU-171).
+    setMixerLevels((prev) => ({ ...prev, [mixerMode]: { ...prev[mixerMode], [instrument]: val } }));
   };
 
   // T2 / VMU-153, decision 3: the mixer nodes play at the levels the mixer
   // displays — always, not only once a slider has moved. This effect is the
   // one place the displayed levels reach `AudioEngine.instrumentVols`: at
   // mount (the nodes are built at 0 dB, AudioEngine.js), after every slider
-  // move, and after anything else that ever sets `instrumentVolumes`.
+  // move, when the mode changes (VMU-171: the other mode's levels, with the
+  // slider's ramp), and after anything else that ever sets the levels.
   //
   // At mount it runs before the audio context is unlocked; Tone schedules
   // the value on the context's own timeline, which then starts from it. The

@@ -86,7 +86,7 @@ export const STUDIO_DEFAULTS = {
   bpm: 120,
   masterVolumeDb: -12,
   chordOctaveOffset: 0,
-  instrumentVolumes: DEFAULT_MIXER_LEVELS,
+  instrumentVolumes: DEFAULT_MIXER_LEVELS.studio,
 };
 
 /**

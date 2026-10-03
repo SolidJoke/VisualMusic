@@ -195,20 +195,25 @@ export const PIANO_PRESET = {
 };
 
 /**
- * The mixer's levels on a cold start (dB per `AudioEngine.instrumentVols`
- * node) — what the Studio's mixer shows, what useSequencer applies to the
- * nodes (T2 / VMU-153), and what the offline harness's "default-progression"
- * scenario renders with (`offlineRender.js` STUDIO_DEFAULTS). One copy, so
- * the three cannot drift apart again; before T2 the app displayed these
- * values while its nodes stayed at 0 dB.
+ * The mixer's levels on a cold start, one setting per mode (VMU-171), in dB
+ * per `AudioEngine.instrumentVols` node — what each mode's mixer shows, what
+ * useSequencer applies to the nodes while that mode is active (T2 /
+ * VMU-153), and what the offline harness renders with (`offlineRender.js`:
+ * STUDIO_DEFAULTS for the Studio loop, DICTIONARY_DEFAULTS for the
+ * Dictionary's single notes and chords). One definition, so the three cannot
+ * drift apart again; before T2 the app displayed -3 / -5 / -8 / -6 while its
+ * nodes stayed at 0 dB.
+ *
+ * Values (Gabriel, 2026-10-03): what he heard online until now — every node
+ * at 0 dB, drums he finds balanced — with bass +3 dB and guitar +1.5 dB,
+ * which he finds too quiet against the piano. Same starting point in both
+ * modes; his own slider values are meant to replace these.
  */
+const GABRIEL_START_LEVELS = { kick: 0, snare: 0, hat: 0, bass: 3, piano: 0, guitar: 1.5 };
+
 export const DEFAULT_MIXER_LEVELS = Object.freeze({
-  kick: -3,
-  snare: -5,
-  hat: -8,
-  bass: -6,
-  piano: 0,
-  guitar: 0,
+  studio: Object.freeze({ ...GABRIEL_START_LEVELS }),
+  dictionary: Object.freeze({ ...GABRIEL_START_LEVELS }),
 });
 
 /**
