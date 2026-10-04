@@ -18,7 +18,8 @@
     "layout:probe": "node scripts/layout_probe.mjs",
     "metronome:probe": "node scripts/metronome_probe.mjs",
     "style:probe": "node scripts/style_probe.mjs",
-    "s1:probe": "node scripts/s1_probe.mjs"
+    "s1:probe": "node scripts/s1_probe.mjs",
+    "tempo:probe": "node scripts/tempo_probe.mjs"
   },
   "dependencies": {
     "@tonaljs/tonal": "^4.10.0",

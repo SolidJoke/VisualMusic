@@ -1,6 +1,7 @@
 // @ts-check
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { startMetronome, stopMetronome } from "../audio/metronome";
+import { subscribe, getTransportState } from "../audio/transportOwner";
 
 /**
  * React-facing wrapper around src/audio/metronome.js (VMU-056).
@@ -22,18 +23,20 @@ import { startMetronome, stopMetronome } from "../audio/metronome";
  *   before Play has ever been pressed needs it too.
  */
 export function useMetronome({ ensureAudioReady }) {
-  const [metronomeOn, setMetronomeOn] = useState(false);
+  // T2 (VMU-025, decision 4): on/off is the transport owner's own flag, read
+  // here — the hook no longer keeps a second copy that a missed update could
+  // leave showing "on" while the owner thinks "off" (or the reverse).
+  const { metronomeOn } = useSyncExternalStore(subscribe, getTransportState, getTransportState);
 
   const toggleMetronome = useCallback(async () => {
-    if (metronomeOn) {
+    // Read at call time, for the same reason useSequencer.togglePlayback does.
+    if (getTransportState().metronomeOn) {
       stopMetronome();
-      setMetronomeOn(false);
     } else {
       await ensureAudioReady();
       startMetronome();
-      setMetronomeOn(true);
     }
-  }, [metronomeOn, ensureAudioReady]);
+  }, [ensureAudioReady]);
 
   // Safety net, not the source of truth: if whatever renders this hook
   // unmounts while the metronome is on, do not leave a dangling schedule (or

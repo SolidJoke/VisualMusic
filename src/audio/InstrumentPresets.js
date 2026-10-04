@@ -195,6 +195,33 @@ export const PIANO_PRESET = {
 };
 
 /**
+ * The mixer's levels on a cold start, one setting per mode (VMU-171), in dB
+ * per `AudioEngine.instrumentVols` node — what each mode's mixer shows, what
+ * useSequencer applies to the nodes while that mode is active (T2 /
+ * VMU-153), and what the offline harness renders with (`offlineRender.js`:
+ * STUDIO_DEFAULTS for the Studio loop, DICTIONARY_DEFAULTS for the
+ * Dictionary's single notes and chords). One definition, so the three cannot
+ * drift apart again; before T2 the app displayed -3 / -5 / -8 / -6 while its
+ * nodes stayed at 0 dB.
+ *
+ * Values (Gabriel, 2026-10-03, with headroom): the balance he asked for —
+ * bass 3 dB and guitar 1.5 dB above the piano, which he found too quiet
+ * against it, and drums level with the piano, which he finds balanced —
+ * reached by lowering the rest (VMU-024 gain staging), not by raising bass
+ * and guitar. The first attempt (0/0/0/+3/0/+1.5) pushed the chain input of
+ * the default progression to +2.69 dBFS, 185 samples above 0 dBFS, 8 large
+ * sample jumps (none before). No fader above 0 dB by default; master volume
+ * unchanged. Same starting point in both modes; his own slider values are
+ * meant to replace these.
+ */
+const GABRIEL_START_LEVELS = { kick: -3, snare: -3, hat: -3, bass: 0, piano: -3, guitar: -1.5 };
+
+export const DEFAULT_MIXER_LEVELS = Object.freeze({
+  studio: Object.freeze({ ...GABRIEL_START_LEVELS }),
+  dictionary: Object.freeze({ ...GABRIEL_START_LEVELS }),
+});
+
+/**
  * Resolve preset for a given genre group, with fallback.
  *
  * @param {'electronic'|'jazz'|'rock'|'pop'|'urban'|'world'} group

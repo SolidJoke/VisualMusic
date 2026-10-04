@@ -31,7 +31,6 @@ import { PlaybackProvider } from "./context/PlaybackContext";
 import {
   applyGenrePreset,
   masterAnalyser,
-  setBpm,
 } from "./audio/AudioEngine";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -291,9 +290,11 @@ function AppDesktop() {
       // F1 (VMU-149, spec C9): --theme-primary / --theme-bg are no longer
       // written inline here — the style's tint is not applied (a future
       // --style-tint token could reintroduce it, out of F1's scope).
+      // The style imposes its tempo: one call, to the transport owner's
+      // setTempo (T2 / VMU-025), which sets the transport and what the
+      // badge shows together.
       if (setCurrentBpm) {
         setCurrentBpm(activeBrick.bpm);
-        setBpm(activeBrick.bpm);
       }
       applyGenrePreset(activeBrick._group);
     }

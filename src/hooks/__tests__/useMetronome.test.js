@@ -2,11 +2,34 @@ import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useMetronome } from "../useMetronome";
 import * as metronomeModule from "../../audio/metronome";
+import { enableMetronome } from "../../audio/transportOwner";
 
-vi.mock("../../audio/metronome", () => ({
-  startMetronome: vi.fn(),
-  stopMetronome: vi.fn(),
-}));
+// T2 (VMU-025, decision 4): the hook no longer flips a React state of its
+// own — it displays the transport owner's `metronomeOn`. A mocked
+// startMetronome/stopMetronome that did nothing would therefore leave the
+// hook "off" whatever happened, so the mocks report to the real owner, the
+// way the real metronome.js does (enableMetronome / disableMetronome), on a
+// fake transport (jsdom has no Web Audio).
+vi.mock("tone", () => {
+  const transport = {
+    state: "stopped",
+    start: vi.fn(function () {
+      this.state = "started";
+    }),
+    stop: vi.fn(function () {
+      this.state = "stopped";
+    }),
+  };
+  return { getTransport: () => transport };
+});
+
+vi.mock("../../audio/metronome", async () => {
+  const owner = await import("../../audio/transportOwner");
+  return {
+    startMetronome: vi.fn(() => owner.enableMetronome(() => {})),
+    stopMetronome: vi.fn(() => owner.disableMetronome(() => {})),
+  };
+});
 
 /**
  * VMU-163-fix2: `isPlaying` is gone from this hook's own contract. Whether an
@@ -32,7 +55,10 @@ describe("useMetronome (VMU-056 / VMU-163-fix2)", () => {
       calls.push("ensureAudioReady");
       return Promise.resolve();
     });
-    metronomeModule.startMetronome.mockImplementation(() => calls.push("startMetronome"));
+    metronomeModule.startMetronome.mockImplementation(() => {
+      calls.push("startMetronome");
+      enableMetronome(() => {});
+    });
 
     const { result } = renderHook(() => useMetronome({ ensureAudioReady }));
 
