@@ -27,6 +27,13 @@ export const translations = {
     mathRhythms: "📐 Math & Rythmes",
     instrumentsAudio: "🎛️ Instruments & Audio",
     dictNoRhythmWarning: "⚠️ Le mode Dictionnaire n'utilise pas le séquenceur rythmique.",
+    // --- Quick Start in the Studio (VMU-161): a pattern of degrees that takes the style's chords. ---
+    quickStart: {
+      names: { jazz_251_maj: "II-V-I" },
+      styleChords: "Accords du style",
+      classicCadence: "Cadence classique (le 5 attire vers le 1)",
+      tooltip: "Accords du style : chaque accord est pris dans la gamme du morceau, comme le ferait un musicien, donc tout sonne juste avec le style. Cadence classique : seul l'accord du 5 devient un accord de tension (dominante) qui appelle le retour au 1, comme dans le jazz. Sans effet si la suite n'a pas de 5."
+    },
     tooltip: {
       shellVoicings: "Simplifie les accords de piano en ne jouant que la Fondamentale, la Tierce et la Septième. Supprime la Quinte pour un son plus clair, typique du Jazz.",
       magicBass: "Génère automatiquement une ligne de basse adaptée au style musical et à la progression d'accords actuelle.",
@@ -370,6 +377,13 @@ export const translations = {
     mathRhythms: "📐 Math & Rhythms",
     instrumentsAudio: "🎛️ Instruments & Audio",
     dictNoRhythmWarning: "⚠️ Dictionary mode does not use the rhythmic sequencer.",
+    // --- Quick Start in the Studio (VMU-161): a pattern of degrees that takes the style's chords. ---
+    quickStart: {
+      names: { jazz_251_maj: "II-V-I" },
+      styleChords: "Style chords",
+      classicCadence: "Classic cadence (the 5 pulls toward the 1)",
+      tooltip: "Style chords: each chord is taken from the piece's scale, the way a musician would play it, so everything fits the style. Classic cadence: only the chord on the 5 becomes a tense chord (a dominant) that pulls back to the 1, as in jazz. No effect if the sequence has no 5."
+    },
     tooltip: {
       shellVoicings: "Simplifies piano chords by playing only the Root, 3rd, and 7th. Drops the 5th for a clearer, jazz-typical sound.",
       magicBass: "Automatically generates a bassline tailored to the musical style and current chord progression.",
@@ -740,6 +754,13 @@ export const translations = {
     targetNotesMajorMinor: "O que diz maior ou menor",
     targetNotesColor: "As notas de cor",
     targetNotesSkeleton: "O esqueleto",
+    // --- Quick Start in the Studio (VMU-161): a pattern of degrees that takes the style's chords. ---
+    quickStart: {
+      names: { jazz_251_maj: "II-V-I" },
+      styleChords: "Acordes do estilo",
+      classicCadence: "Cadência clássica (o 5 puxa para o 1)",
+      tooltip: "Acordes do estilo: cada acorde é tirado da escala da música, como faria um músico, então tudo combina com o estilo. Cadência clássica: só o acorde do 5 vira um acorde de tensão (dominante) que pede a volta ao 1, como no jazz. Sem efeito se a sequência não tem 5."
+    },
     tooltip: {
       targetNotes: "Nenhuma: nada é marcado. O que diz maior ou menor: a nota que torna um acorde alegre ou triste — o ponto de partida mais útil. As notas de cor: duas notas que dão sabor ao acorde (jazz, funk...). O esqueleto: as duas notas que sustentam o acorde, sem dizer se é alegre ou triste (rock, música eletrônica)."
     },
@@ -1055,6 +1076,13 @@ export const translations = {
     targetNotesMajorMinor: "决定大调或小调的音",
     targetNotesColor: "色彩音",
     targetNotesSkeleton: "骨架音",
+    // --- Quick Start in the Studio (VMU-161): a pattern of degrees that takes the style's chords. ---
+    quickStart: {
+      names: { jazz_251_maj: "II-V-I" },
+      styleChords: "风格和弦",
+      classicCadence: "经典终止（五级导向一级）",
+      tooltip: "风格和弦：每个和弦都取自乐曲的音阶，就像乐手会弹的那样，所以和风格完全契合。经典终止：只有五级和弦变成紧张的属和弦，把听感拉回一级，就像爵士乐那样。如果和弦序列里没有五级，则没有效果。"
+    },
     tooltip: {
       targetNotes: "无：不标记任何音符。决定大调或小调的音：让和弦听起来快乐或悲伤的那个音——最实用的入门参考。色彩音：赋予和弦独特味道的两个音（常见于爵士、放克）。骨架音：支撑和弦的两个音，不表明它是快乐还是悲伤（常见于摇滚、电子音乐）。"
     },
