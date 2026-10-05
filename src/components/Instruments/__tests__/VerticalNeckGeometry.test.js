@@ -3,12 +3,14 @@
 // Until now every fret row of the vertical neck was 70px high: no neck looks
 // like that, and Gabriel asked for a pitch that shrinks from the nut towards
 // the body ("pas besoin de respecter exactement les proportions, mais s'en
-// rapprocher facilitera le repérage").
+// rapprocher facilitera le repérage"). The coordinator's amendment fixes the
+// curve: LINEAR, 84px on fret 1 down to 56px on the neck's last fret, so a
+// neck is exactly as tall as with 70px rows (22 x 70 = 1540, 20 x 70 = 1400).
 //
-// What is asserted here is the FUNCTION (pure, no layout): the bounds the
-// coordinator's brief fixes, measurable without a browser.
+// What is asserted here is the FUNCTION (pure, no layout), for the guitar's 22
+// frets and the bass's 20:
 //
-//   - strictly decreasing, nut to body;
+//   - linear, strictly decreasing, 84px -> 56px;
 //   - >= 64px up to fret 12 (S1-5, which the probe measures in Chromium);
 //   - >= 52px everywhere (a 48px pastille, no overlap, S1-4);
 //   - a whole neck no taller than today's: guitar 1682px, bass 1542px.
@@ -22,10 +24,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { verticalFretPitch, INLAY_FRET_DOTS } from "../verticalNeckGeometry";
 
-const GUITAR_FRETS = 22; // useFretboard.js getNumFrets
-const BASS_FRETS = 20;
-const GUITAR_HEIGHT_BEFORE = 1682; // measured by the coordinator on 69272a3
-const BASS_HEIGHT_BEFORE = 1542;
+const NECKS = { guitar: 22, bass: 20 }; // useFretboard.js getNumFrets
+const HEIGHT_BEFORE = { guitar: 1682, bass: 1542 }; // measured by the coordinator on 69272a3
 
 const css = fs.readFileSync(path.resolve("src/components/Instruments/Fretboard.css"), "utf8");
 const cssPx = (name) => {
@@ -34,34 +34,42 @@ const cssPx = (name) => {
   return Number(m[1]);
 };
 
-const pitches = (n) => Array.from({ length: n }, (_, i) => verticalFretPitch(i + 1));
-const neckHeight = (frets) => 2 * cssPx("--fbv-head") + cssPx("--fbv-fret") + pitches(frets).reduce((a, b) => a + b, 0);
+const pitches = (numFrets) => Array.from({ length: numFrets }, (_, i) => verticalFretPitch(i + 1, numFrets));
+const neckHeight = (numFrets) => 2 * cssPx("--fbv-head") + cssPx("--fbv-fret") + pitches(numFrets).reduce((a, b) => a + b, 0);
 
-describe("verticalFretPitch", () => {
+describe.each(Object.entries(NECKS))("verticalFretPitch on the %s (%i frets)", (name, numFrets) => {
+  it("goes from 84px on fret 1 to 56px on the last fret", () => {
+    const p = pitches(numFrets);
+    expect(p[0]).toBeCloseTo(84, 1);
+    expect(p[numFrets - 1]).toBeCloseTo(56, 1);
+  });
+
   it("shrinks strictly from the nut towards the body", () => {
-    const p = pitches(GUITAR_FRETS);
+    const p = pitches(numFrets);
     p.slice(1).forEach((v, i) => expect(v).toBeLessThan(p[i]));
   });
 
+  it("is linear: the same step from one fret to the next", () => {
+    const p = pitches(numFrets);
+    const step = p[0] - p[1];
+    expect(step).toBeGreaterThan(1);
+    p.slice(1).forEach((v, i) => expect(p[i] - v).toBeCloseTo(step, 1));
+  });
+
   it("is at least 64px up to fret 12 (S1-5)", () => {
-    pitches(12).forEach((v, i) => expect(v, `fret ${i + 1}`).toBeGreaterThanOrEqual(64));
+    pitches(numFrets).slice(0, 12).forEach((v, i) => expect(v, `fret ${i + 1}`).toBeGreaterThanOrEqual(64));
   });
 
   it("is at least 52px on every fret, so a 48px pastille never touches its neighbour (S1-4)", () => {
-    pitches(GUITAR_FRETS).forEach((v, i) => expect(v, `fret ${i + 1}`).toBeGreaterThanOrEqual(52));
+    pitches(numFrets).forEach((v, i) => expect(v, `fret ${i + 1}`).toBeGreaterThanOrEqual(52));
   });
 
-  it("really varies: the nut end is clearly wider than the body end", () => {
-    const p = pitches(GUITAR_FRETS);
-    expect(p[0] - p[GUITAR_FRETS - 1]).toBeGreaterThanOrEqual(20);
+  it("keeps the neck no taller than before", () => {
+    expect(neckHeight(numFrets)).toBeLessThanOrEqual(HEIGHT_BEFORE[name]);
   });
 
-  it("keeps the guitar neck no taller than before (1682px)", () => {
-    expect(neckHeight(GUITAR_FRETS)).toBeLessThanOrEqual(GUITAR_HEIGHT_BEFORE);
-  });
-
-  it("keeps the bass neck no taller than before (1542px)", () => {
-    expect(neckHeight(BASS_FRETS)).toBeLessThanOrEqual(BASS_HEIGHT_BEFORE);
+  it("uses the height it had: the rows sum to numFrets x 70px, within half a pixel", () => {
+    expect(pitches(numFrets).reduce((a, b) => a + b, 0)).toBeGreaterThan(numFrets * 70 - 0.5);
   });
 });
 

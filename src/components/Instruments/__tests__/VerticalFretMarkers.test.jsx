@@ -13,6 +13,11 @@
 //   4. each fret row from 1 carries its pitch as the CSS variable the
 //      stylesheet reads (--fbv-pitch), the open-string row does not.
 //
+// Amendment (coordinator): every dot is centred between the two MIDDLE
+// strings (guitar D / G, bass A / D); the double dot on 12 is two dots in that
+// same band, one above the other along the neck, so each carries a vertical
+// offset (--fbv-inlay-dy: -1 and +1, 0 for a single dot).
+//
 // jsdom does no layout: that the dots sit between strings, at the middle of
 // the case, and under the pastilles is the Chromium probe's job
 // (scripts/s1_probe.mjs, S1-17), not this file's.
@@ -152,14 +157,21 @@ describe.each(["guitar", "bass"])("vertical %s neck: fret markers", (instrument)
     }
   });
 
-  it("tells its two dots on fret 12 apart (left of centre, right of centre)", () => {
+  it("tells its two dots on fret 12 apart (one above the other, either side of the case's middle)", () => {
     const neck = renderNeck(instrument);
-    const shifts = Array.from(neck.querySelectorAll('[data-fret-marker="12"]')).map((d) => d.style.getPropertyValue("--fbv-inlay-shift"));
-    expect(shifts).toHaveLength(2);
-    expect(new Set(shifts).size).toBe(2);
-    // A single dot is centred.
+    const offsets = Array.from(neck.querySelectorAll('[data-fret-marker="12"]')).map((d) => d.style.getPropertyValue("--fbv-inlay-dy"));
+    expect(offsets).toEqual(["-1", "1"]);
+    // A single dot is on the case's middle: no offset.
     const single = neck.querySelector('[data-fret-marker="3"]');
-    expect(["", "0"]).toContain(single.style.getPropertyValue("--fbv-inlay-shift"));
+    expect(["", "0"]).toContain(single.style.getPropertyValue("--fbv-inlay-dy"));
+  });
+
+  it("keeps every dot in the band between the two middle strings: no horizontal shift variable at all", () => {
+    const neck = renderNeck(instrument);
+    expect(neck.querySelectorAll("[data-fret-marker]").length).toBeGreaterThan(0);
+    for (const dot of neck.querySelectorAll("[data-fret-marker]")) {
+      expect(dot.style.getPropertyValue("--fbv-inlay-shift")).toBe("");
+    }
   });
 
   it("gives each fret row from 1 its pitch as --fbv-pitch, and the open-string row none", () => {
@@ -167,7 +179,7 @@ describe.each(["guitar", "bass"])("vertical %s neck: fret markers", (instrument)
     expect(neck.querySelector('.fbv-fret-row[data-fret="0"]').style.getPropertyValue("--fbv-pitch")).toBe("");
     for (let fret = 1; fret <= frets; fret++) {
       const row = neck.querySelector(`.fbv-fret-row[data-fret="${fret}"]`);
-      expect(row.style.getPropertyValue("--fbv-pitch"), `fret ${fret}`).toBe(`${verticalFretPitch(fret)}px`);
+      expect(row.style.getPropertyValue("--fbv-pitch"), `fret ${fret}`).toBe(`${verticalFretPitch(fret, frets)}px`);
     }
   });
 });

@@ -27,10 +27,14 @@
  *
  * L1a-fix1 (Gabriel's feedback on ?prototype=a, 2026-10-05): the scenario /
  * label-mode / state buttons are the probe's own fixtures, drawn only with
- * `bench=1` in the URL, so every URL below carries it. And criterion S1-16:
- * the three instrument columns keep their distances — no column overlaps
- * another, the piano keeps clear of the guitar neck, the page keeps a margin
- * after the bass, the heads are not glued to the left of their column.
+ * `bench=1` in the URL, so every URL below carries it. And three criteria:
+ * S1-16, the three instrument columns keep their distances (no column
+ * overlaps another, the piano keeps clear of the guitar neck, the page keeps
+ * a margin after the bass, the heads are not glued to the left, on one line,
+ * and the three instruments start at the same height); S1-17, the necks'
+ * fret pitch shrinks linearly from the nut to the body and their markers
+ * (3 5 7 9 12x2 15 17 19 21) sit between the two middle strings; S1-18, the
+ * left rail is gone and its two mode buttons are tabs in the header.
  *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
@@ -93,11 +97,22 @@ const CRITERIA = [
   // guitar neck, the heads were glued to the left, the bass ended at the
   // window's edge. Decides like S1-15: a layout that crowds an instrument is
   // a layout that fails.
-  { id: "S1-16", decides: true, what: "instrument columns: no overlap, piano -> guitar >= 24px, column gaps >= 32px, right margin >= 32px, head padding-left >= 16px" },
+  { id: "S1-16", decides: true, what: "instrument columns: no overlap, piano -> guitar and guitar -> bass >= 24px, right margin >= 24px, head padding-left >= 16px (one line, aligned), the three instruments start at the same height" },
+  // L1a-fix1 (Gabriel): the frets get closer towards the body and the neck
+  // carries the markers a real one has. Decides like S1-5 / S1-16.
+  { id: "S1-17", decides: true, what: "neck: fret pitch linear 84 -> 56px (>= 52 everywhere), height <= before (guitar 1682 / bass 1542px), 12px markers on 3 5 7 9 12x2 15 17 19 21 (those the neck has) between the two middle strings, under the pastilles; numbers and pastilles on their row's middle" },
+  // Coordinator's amendment: the left rail is gone, its two mode buttons are
+  // tabs in the header after the title.
+  { id: "S1-18", decides: true, what: "mode tabs: 'Mode Studio' / 'Mode Dictionnaire' in the header after the title, >= 48px high; no left rail (the page starts at <= 24px)" },
 ];
 
-// S1-16 thresholds (L1a-fix1 brief, E).
-const S1_16 = { pianoToNeck: 24, columnGap: 32, rightMargin: 32, headPadding: 16 };
+// S1-16 thresholds (L1a-fix1 brief E, as amended by the coordinator: 24px
+// everywhere after the UX critique — the centre keeps its 2764px).
+const S1_16 = { pianoToNeck: 24, neckToNeck: 24, columnGap: 24, rightMargin: 24, headPadding: 16, topTolerance: 1 };
+
+// S1-17 limits (L1a-fix1 brief, C): the neck is never taller than it was on
+// 69272a3, and no fret row is narrower than a 48px pastille needs.
+const S1_17 = { minPitch: 52, maxHeight: { guitar: 1682, bass: 1542 }, nearPitch: 84, farPitch: 56 };
 
 // ─── dev server (same pattern as scripts/style_probe.mjs) ─────────────────
 
@@ -418,6 +433,13 @@ function measureInPage() {
     const section = document.querySelector(`[data-s1="${id}"]`);
     const content = section.querySelector(id === "piano" ? ".piano-wrapper--vertical" : ".fretboard-container--vertical");
     const heads = [...section.querySelectorAll(".proto-a__inst-head > *")];
+    const headBox = section.querySelector(".proto-a__inst-head");
+    // Lines a head's text runs over: the distinct tops of its text rectangles.
+    const lines = (el) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return new Set([...range.getClientRects()].map((q) => Math.round(q.top))).size;
+    };
     const sb = r(section);
     const cb = content ? r(content) : null;
     s1_16[id] = {
@@ -425,10 +447,133 @@ function measureInPage() {
       colRight: round(sb.right),
       left: cb ? round(cb.left) : null,
       right: cb ? round(cb.right) : null,
+      top: cb ? round(cb.top) : null,
       headPad: heads.length ? round(Math.min(...heads.map((h) => r(h).left)) - sb.left) : null,
+      headHeight: headBox ? round(r(headBox).height) : null,
+      headLines: heads.length ? Math.max(...heads.map(lines)) : null,
     };
   }
+  const centreBox = document.querySelector('[data-s1="center"]');
+  s1_16.leftMargin = centreBox ? round(r(centreBox).left) : null;
   out.s1_16 = s1_16;
+
+  // S1-18 (coordinator's amendment) — the mode tabs in the header.
+  {
+    const header = document.querySelector("header.proto-a__header");
+    const title = header ? header.querySelector(".proto-a__title") : null;
+    const tabs = ["Mode Studio", "Mode Dictionnaire"].map((label) => (header ? header.querySelector(`button[aria-label="${label}"]`) : null));
+    const boxes = tabs.map((t) => (t ? r(t) : null));
+    const hb = header ? r(header) : null;
+    out.s1_18 = {
+      present: tabs.map(Boolean),
+      heights: boxes.map((b) => (b ? round(b.height) : null)),
+      widths: boxes.map((b) => (b ? round(b.width) : null)),
+      afterTitle: Boolean(title && boxes[0] && boxes[0].left >= r(title).right - EPS),
+      sideBySide: Boolean(boxes[0] && boxes[1] && boxes[1].left >= boxes[0].right - EPS && Math.abs(boxes[0].top - boxes[1].top) <= 1),
+      inHeader: Boolean(hb && boxes.every((b) => b && b.top >= hb.top - EPS && b.bottom <= hb.bottom + EPS)),
+      rail: Boolean(document.querySelector(".proto-a__rail")),
+      firstColumnLeft: s1_16.leftMargin,
+    };
+  }
+
+  // S1-17 (L1a-fix1) — the neck's fret geometry, raw. The frets that carry a
+  // marker are Gabriel's list, kept here on purpose and NOT imported from the
+  // component: the page must not grade itself.
+  const MARKS = { 3: 1, 5: 1, 7: 1, 9: 1, 12: 2, 15: 1, 17: 1, 19: 1, 21: 1 };
+  const centre = (b) => ({ x: (b.left + b.right) / 2, y: (b.top + b.bottom) / 2 });
+  out.s1_17 = {};
+  for (const [name, neck] of Object.entries(necks)) {
+    const rows = [...neck.querySelectorAll(".fbv-fret-row")]
+      .map((row) => ({ fret: Number(row.dataset.fret), row, rect: r(row) }))
+      .sort((a, b) => a.fret - b.fret);
+    const pitches = rows.filter((x) => x.fret >= 1).map((x) => x.rect.height);
+    const fails = [];
+    // Markers: exactly Gabriel's frets (and only the ones this neck has).
+    const found = {};
+    for (const d of neck.querySelectorAll("[data-fret-marker]")) {
+      const f = Number(d.getAttribute("data-fret-marker"));
+      found[f] = (found[f] || 0) + 1;
+    }
+    for (const f of new Set([...Object.keys(found), ...Object.keys(MARKS)].map(Number))) {
+      const want = rows.some((x) => x.fret === f) ? MARKS[f] || 0 : 0;
+      if ((found[f] || 0) !== want) fails.push(`fret ${f}: ${found[f] || 0} marker(s), expected ${want}`);
+    }
+    // Each marker (coordinator's amendment): 12px, centred between the TWO
+    // MIDDLE strings (guitar D / G, bass A / D); a single dot on the middle of
+    // its case, the two dots of fret 12 one above the other, symmetric about
+    // that middle and clear of each other; and under any pastille it touches.
+    let dots = 0;
+    const byFret = {};
+    for (const d of neck.querySelectorAll("[data-fret-marker]")) {
+      const f = Number(d.getAttribute("data-fret-marker"));
+      (byFret[f] = byFret[f] || []).push(d);
+    }
+    for (const [fretKey, group] of Object.entries(byFret)) {
+      const f = Number(fretKey);
+      const row = rows.find((x) => x.fret === f);
+      if (!row) continue;
+      const bw = parseFloat(getComputedStyle(row.row).borderBottomWidth) || 0;
+      const rowMidY = (row.rect.top + row.rect.bottom - bw) / 2;
+      const cells = [...row.row.querySelectorAll(".fbv-cell")].map((c) => centre(r(c)).x).sort((a, b) => a - b);
+      const boardMidX = (cells[0] + cells[cells.length - 1]) / 2;
+      const boxes = group.map(r).sort((a, b) => a.top - b.top);
+      for (const db of boxes) {
+        dots++;
+        const dc = centre(db);
+        if (Math.abs(dc.x - boardMidX) > 1.5) fails.push(`fret ${f} marker at x=${round(dc.x)}, ${round(dc.x - boardMidX)}px off the band between the two middle strings`);
+        if (Math.abs(db.width - 12) > 0.5 || Math.abs(db.height - 12) > 0.5) fails.push(`fret ${f} marker is ${round(db.width)}x${round(db.height)}px, 12px expected`);
+        if (db.top < row.rect.top - EPS || db.bottom > row.rect.bottom - bw + EPS) fails.push(`fret ${f} marker leaves its case`);
+      }
+      const ys = boxes.map((b) => centre(b).y);
+      if (boxes.length === 1 && Math.abs(ys[0] - rowMidY) > 1) fails.push(`fret ${f} marker ${round(ys[0] - rowMidY)}px off the middle of its case`);
+      if (boxes.length === 2) {
+        if (Math.abs((ys[0] + ys[1]) / 2 - rowMidY) > 1) fails.push(`fret ${f} double marker is not centred on the middle of its case`);
+        if (ys[1] - ys[0] < boxes[0].height + 4) fails.push(`fret ${f} double marker: the two dots are ${round(ys[1] - ys[0])}px apart, too close`);
+      }
+    }
+    for (const d of neck.querySelectorAll("[data-fret-marker]")) {
+      const f = Number(d.getAttribute("data-fret-marker"));
+      const row = rows.find((x) => x.fret === f);
+      if (!row) continue;
+      const db = r(d);
+      const dc = centre(db);
+      for (const m of row.row.querySelectorAll(".note-marker")) {
+        const mb = r(m);
+        const mc = centre(mb);
+        const dist = Math.hypot(dc.x - mc.x, dc.y - mc.y);
+        const overlap = mb.width / 2 + db.width / 2 - dist;
+        if (overlap > 1.5 && dist > 0) {
+          // A point inside the pastille, on the line to the marker's centre.
+          const k = (mb.width / 2 - 1) / dist;
+          const stack = document.elementsFromPoint(mc.x + (dc.x - mc.x) * k, mc.y + (dc.y - mc.y) * k);
+          const iM = stack.findIndex((e) => m.contains(e));
+          const iD = stack.indexOf(d);
+          if (iD !== -1 && (iM === -1 || iM > iD)) fails.push(`fret ${f} marker is painted over a pastille`);
+        }
+      }
+    }
+    // Numbers, pastilles and markers share their row's middle: one position.
+    let aligned = 0;
+    for (const { fret, row, rect } of rows) {
+      const bw = parseFloat(getComputedStyle(row).borderBottomWidth) || 0;
+      const midY = (rect.top + rect.bottom - bw) / 2;
+      const parts = [...row.querySelectorAll(".fbv-fret-number, .note-marker")];
+      for (const p of parts) {
+        aligned++;
+        const off = centre(r(p)).y - midY;
+        if (Math.abs(off) > 1) fails.push(`fret ${fret} ${p.classList.contains("note-marker") ? "pastille" : "number"} ${round(off)}px off its row's middle`);
+      }
+    }
+    out.s1_17[name] = {
+      frets: pitches.length,
+      pitches: pitches.map(round),
+      height: round(r(neck).height),
+      dots,
+      aligned,
+      fails: fails.slice(0, 6),
+      failCount: fails.length,
+    };
+  }
 
   // Informational (VMU-155 "noms et degrés mélangés"): what kind of text
   // each instrument shows on its active notes in this state.
@@ -464,6 +609,7 @@ function columnsVerdict(c) {
   if (neckToNeck < 0) fails.push(`guitar overlaps the bass by ${-neckToNeck}px`);
   // 3. Distances.
   if (pianoToNeck < S1_16.pianoToNeck) fails.push(`piano -> guitar ${pianoToNeck}px < ${S1_16.pianoToNeck}px`);
+  if (neckToNeck < S1_16.neckToNeck) fails.push(`guitar -> bass ${neckToNeck}px < ${S1_16.neckToNeck}px`);
   if (gapPG < S1_16.columnGap) fails.push(`column gap piano | guitar ${gapPG}px < ${S1_16.columnGap}px`);
   if (gapGB < S1_16.columnGap) fails.push(`column gap guitar | bass ${gapGB}px < ${S1_16.columnGap}px`);
   const rightMargin = round1(c.viewport - bass.right);
@@ -475,15 +621,68 @@ function columnsVerdict(c) {
   }
   const padValues = Object.values(pads).filter(Number.isFinite);
   if (padValues.length && Math.max(...padValues) - Math.min(...padValues) > 1) fails.push(`head padding differs between columns (${padValues.join(" / ")}px)`);
+  // 5. Heads on one line, the same height in the three columns, so that the
+  // three instruments start at the same height (a two-line head used to push
+  // the bass neck 14px below the guitar's).
+  const headLines = [piano, guitar, bass].map((col) => col.headLines);
+  if (headLines.some((n) => n !== 1)) fails.push(`a head runs over ${headLines.join(" / ")} lines (piano / guitar / bass), one expected`);
+  const heights = [piano, guitar, bass].map((col) => col.headHeight);
+  if (Math.max(...heights) - Math.min(...heights) > S1_16.topTolerance) fails.push(`head heights differ (${heights.join(" / ")}px)`);
+  const tops = [piano, guitar, bass].map((col) => col.top);
+  if (Math.max(...tops) - Math.min(...tops) > S1_16.topTolerance) fails.push(`the instruments do not start at the same height (tops ${tops.join(" / ")}px)`);
   const widths = [piano, guitar, bass].map((col) => round1(col.colRight - col.colLeft));
   const value =
     `columns ${widths.join(" / ")}px (piano / guitar / bass); piano -> guitar ${pianoToNeck}px, guitar -> bass ${neckToNeck}px; ` +
-    `column gaps ${gapPG} / ${gapGB}px; right margin ${rightMargin}px; head padding ${padValues.join(" / ")}px` +
+    `column gaps ${gapPG} / ${gapGB}px; margins left ${c.leftMargin}px, right ${rightMargin}px; head padding ${padValues.join(" / ")}px, ` +
+    `head ${heights.join(" / ")}px high on ${headLines.join(" / ")} line(s); tops ${tops.join(" / ")}px` +
     (fails.length ? `; FAILED: ${fails.join(" | ")}` : "");
   return [fails.length === 0, value];
 }
 
 const round1 = (n) => Math.round(n * 10) / 10;
+
+/** S1-18: [pass, "measured values; what failed"] from the raw header tabs. */
+function tabsVerdict(t) {
+  const fails = [];
+  if (!t.present[0]) fails.push("no 'Mode Studio' button in the header");
+  if (!t.present[1]) fails.push("no 'Mode Dictionnaire' button in the header");
+  if (t.present.every(Boolean)) {
+    if (!t.afterTitle) fails.push("the tabs do not come after the title");
+    if (!t.sideBySide) fails.push("the tabs are not side by side");
+    if (!t.inHeader) fails.push("the tabs are not inside the header");
+    if (t.heights.some((h) => !(h >= 48))) fails.push(`tab height ${t.heights.join(" / ")}px < 48px`);
+  }
+  if (t.rail) fails.push("the left rail is still there");
+  if (!(t.firstColumnLeft <= 24)) fails.push(`the page starts at x=${t.firstColumnLeft}px, 24px or less expected without a rail`);
+  const value =
+    `tabs ${t.widths.join(" x ")} wide, ${t.heights.join(" / ")}px high; page starts at x=${t.firstColumnLeft}px` +
+    (fails.length ? `; FAILED: ${fails.join(" | ")}` : "");
+  return [fails.length === 0, value];
+}
+
+/** S1-17: [pass, "measured values; what failed"] from the raw neck geometry. */
+function necksVerdict(c) {
+  const parts = [];
+  const fails = [];
+  for (const name of ["guitar", "bass"]) {
+    const n = c[name];
+    const p = n.pitches;
+    const strictlyDecreasing = p.length > 1 && p.every((v, i) => i === 0 || v < p[i - 1]);
+    const min = Math.min(...p);
+    const max = Math.max(...p);
+    if (!strictlyDecreasing) fails.push(`${name}: fret pitch is not strictly decreasing`);
+    // The amendment's curve: linear, 84px on fret 1 down to 56px on the last.
+    const step = p[0] - p[1];
+    if (Math.abs(p[0] - S1_17.nearPitch) > 0.5 || Math.abs(p[p.length - 1] - S1_17.farPitch) > 0.5) fails.push(`${name}: pitch runs ${p[0]} -> ${p[p.length - 1]}px, ${S1_17.nearPitch} -> ${S1_17.farPitch} expected`);
+    if (p.some((v, i) => i > 0 && Math.abs(p[i - 1] - v - step) > 0.3)) fails.push(`${name}: fret pitch is not linear`);
+    if (!(min >= S1_17.minPitch)) fails.push(`${name}: smallest pitch ${min}px < ${S1_17.minPitch}px`);
+    if (!(n.height <= S1_17.maxHeight[name])) fails.push(`${name}: neck ${n.height}px taller than ${S1_17.maxHeight[name]}px`);
+    for (const f of n.fails) fails.push(`${name}: ${f}`);
+    if (n.failCount > n.fails.length) fails.push(`${name}: ${n.failCount - n.fails.length} more`);
+    parts.push(`${name} pitch ${max}px (fret 1) -> ${min}px (fret ${p.length}), neck ${n.height}px, ${n.dots} markers, ${n.aligned} parts on their row's middle`);
+  }
+  return [fails.length === 0, parts.join("; ") + (fails.length ? `; FAILED: ${fails.join(" | ")}` : "")];
+}
 
 function verdicts(m) {
   const v = {};
@@ -513,6 +712,8 @@ function verdicts(m) {
   const a = m.s1_15;
   put("S1-15", a.fails.length === 0, `${a.n - a.fails.length}/${a.n} drawn; piano [${a.piano.join(" ")}] in window ${a.window}${a.fails.length ? `: ${a.fails.slice(0, 4).join(" | ")}` : ""}`);
   put("S1-16", ...columnsVerdict(m.s1_16));
+  put("S1-17", ...necksVerdict(m.s1_17));
+  put("S1-18", ...tabsVerdict(m.s1_18));
   return v;
 }
 
@@ -664,7 +865,7 @@ if (AS_JSON) {
     console.log(`  ${s.id.padEnd(5)} ${s.pass ? "PASS" : "FAIL"} ${String(s.passCount).padStart(2)}/${s.total}  ${s.what}${s.decides ? "" : "  [correction, not a decision criterion]"}${s.firstFail ? `\n        first fail: ${s.firstFail}` : ""}`);
   }
   console.log("  S1-14 not measured: Gabriel's reading test (10 labels per instrument, names then degrees).");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15 and S1-16 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-18 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 
