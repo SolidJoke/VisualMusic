@@ -504,21 +504,26 @@
 
 /* === orientation="vertical" (S1 prototype, ?prototype=a) ===
    Scoped to .fretboard-container--vertical: the horizontal neck never
-   carries that class. Nut at the top, frets downwards at EQUAL spacing (a
-   realistic taper would fail S1-5 high up the neck), low strings on the
-   left, text always horizontal. */
+   carries that class. Nut at the top, frets downwards at a pitch that
+   shrinks towards the body (L1a-fix1: verticalNeckGeometry.js writes each
+   row's height as --fbv-pitch; a real taper, unlifted, would fail S1-5 and
+   S1-4), low strings on the left, text always horizontal. */
 .fretboard-container--vertical {
     /* VMU-164 (L1a): a narrower fret-number gutter (spec §4 had 44px) and
-       wider strings (56px) — guitar 28 + 6 x 62 = 400px, bass 28 + 4 x 62 =
-       276px. The coordinator's proposal, to be judged by Gabriel on screen:
-       these two lines are the only place to change it, the prototype's
+       wider strings. L1a-fix1 (the coordinator's amendment): 66px strings -
+       guitar 28 + 6 x 66 = 424px, bass 28 + 4 x 66 = 292px, and two
+       neighbouring pastilles leave 18px between them, room for a 12px marker.
+       These two lines are the only place to change it, the prototype's
        columns follow (PrototypeA.css, min-content). */
     --fbv-gutter: 28px;   /* fret numbers: "22" is 21.6px in JetBrains Mono at 18px */
     --fbv-gutter-pad: 4px; /* space between a fret number and the board */
-    --fbv-string: 62px;   /* string pitch, centre to centre (S1-7: >= 56px) */
-    --fbv-fret: 70px;     /* fret pitch (S1-5: >= 64px, mock-up 70px) */
+    --fbv-string: 66px;   /* string pitch, centre to centre (S1-7: >= 56px) */
+    --fbv-fret: 70px;     /* the open-string row (fret 0, above the nut) only: every other row
+                             takes its height from --fbv-pitch (verticalNeckGeometry.js) */
     --fbv-head: 36px;     /* open-string names row, status row */
     --fbv-marker: 48px;   /* note pastille (S1-3: >= 48px) */
+    --fbv-inlay: 12px;    /* fret marker dot (fits the 18px between two pastilles) */
+    --fbv-inlay-step: 13px; /* the two dots of fret 12: this far above / below the case's middle */
     /* VMU-164: look more like a neck, with tokens only. The board is a large
        surface: --surface-1 is the lightest one F1 allows there (tokens.css).
        Fret wires 3px instead of 2px. */
@@ -532,12 +537,12 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    width: calc(var(--fbv-gutter, 28px) + var(--fbv-string, 62px) * var(--fbv-strings, 6));
+    width: calc(var(--fbv-gutter, 28px) + var(--fbv-string, 66px) * var(--fbv-strings, 6));
 }
 
 .fbv-row {
     display: grid;
-    grid-template-columns: var(--fbv-gutter, 28px) repeat(var(--fbv-strings, 6), var(--fbv-string, 62px));
+    grid-template-columns: var(--fbv-gutter, 28px) repeat(var(--fbv-strings, 6), var(--fbv-string, 66px));
     position: relative;
 }
 
@@ -550,7 +555,7 @@
 }
 
 .fbv-fret-row {
-    height: var(--fbv-fret, 70px);
+    height: var(--fbv-pitch, var(--fbv-fret, 70px));
     border-bottom: var(--fbv-wire, 3px) solid var(--fret-wire);
     box-sizing: border-box;
     /* The board, from the gutter's edge across the strings. */
@@ -643,6 +648,28 @@
     white-space: nowrap;
     flex-shrink: 0;
     cursor: pointer;
+}
+
+/* Fret markers (L1a-fix1): the dots a real neck has on frets 3, 5, 7, 9, 12
+   (two), 15, 17, 19, 21. Inside the row of their fret, so they follow its
+   height; every dot is centred in the band between the two MIDDLE strings
+   (guitar D / G, bass A / D: the middle of the board, --fbv-strings / 2
+   strings from its left edge), on the middle of the case; the two on 12 sit
+   one above the other, --fbv-inlay-step either side of that middle. Drawn
+   before the cells and at z-index 0, so a pastille (z-index 2) always paints
+   over a marker; with 66px strings two neighbouring pastilles leave 18px, so
+   a 12px dot does not even touch them. --border-strong, as the fret wires. */
+.fbv-inlay {
+    position: absolute;
+    left: calc(var(--fbv-gutter, 28px) + var(--fbv-string, 66px) * var(--fbv-strings, 6) / 2);
+    top: calc(50% + var(--fbv-inlay-dy, 0) * var(--fbv-inlay-step, 13px));
+    width: var(--fbv-inlay, 12px);
+    height: var(--fbv-inlay, 12px);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background-color: var(--border-strong);
+    z-index: 0;
+    pointer-events: none;
 }
 
 /* Barre: a horizontal bar across the strings of its fret, under the pastilles. */

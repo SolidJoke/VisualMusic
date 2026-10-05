@@ -4,15 +4,11 @@ import { getAbsoluteNoteValue } from "../../core/theory";
 import { computeFretMetadata, resolveStringStatus } from "../../core/fretboardUtils";
 import { useFretboard } from "../../hooks/useFretboard";
 import { useMediaQuery, useLandscapeMode } from "../../hooks/useMediaQuery";
+import { verticalFretPitch, INLAY_FRET_DOTS } from "./verticalNeckGeometry";
 
 // Fixed string height — used for barre indicator and status row positioning.
 // Do NOT compute from window dimensions (no SSR safety, breaks on resize).
 const STRING_HEIGHT = 36;
-
-// orientation="vertical" (S1 prototype): fret-number colour for the frets
-// that carry an inlay on a real neck (spec §4). The vertical neck draws no
-// inlay dots: the number in the gutter carries that landmark instead.
-const VERTICAL_INLAY_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
 
 /**
  * @param {object} props
@@ -20,8 +16,10 @@ const VERTICAL_INLAY_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21, 24];
  * @param {"horizontal"|"vertical"} [props.orientation] - S1 prototype
  *   (`?prototype=a`) only. Default "horizontal": the app never passes it, and
  *   the horizontal render is unchanged. "vertical" turns the geometry, never
- *   the text: nut at the top, frets downwards at equal spacing, low strings
- *   on the left, every fret 0..numFrets shown.
+ *   the text: nut at the top, frets downwards at a pitch that shrinks towards
+ *   the body (verticalNeckGeometry.js), low strings on the left, every fret
+ *   0..numFrets shown, a dot between the two middle strings on the frets a
+ *   real neck marks (3, 5, 7, 9, 12 twice, 15, 17, 19, 21).
  */
 function Fretboard({
   instrument = "guitar",
@@ -317,15 +315,33 @@ function Fretboard({
               (fretboardZone === "mid" && fret >= 5 && fret <= 9) ||
               (fretboardZone === "high" && fret >= 10 && fret <= 14);
             const hasBarre = barre && barre.fret === fret;
+            const dotCount = INLAY_FRET_DOTS[fret] || 0;
             return (
               <div
                 key={`fret-row-${fret}`}
                 className={`fbv-row fbv-fret-row ${fret === 0 ? "fbv-row--open" : ""}`}
                 data-fret={fret}
+                // The one position function: this row's height. Everything in
+                // the row (pastilles, number, markers) is laid out inside it.
+                // Fret 0 (the open-string row, above the nut) keeps --fbv-fret.
+                style={fret > 0 ? { "--fbv-pitch": `${verticalFretPitch(fret, numFrets)}px` } : undefined}
               >
                 <div className="fbv-gutter">
-                  <span className={`fbv-fret-number ${VERTICAL_INLAY_FRETS.includes(fret) ? "is-inlay" : ""}`}>{fret}</span>
+                  <span className={`fbv-fret-number ${dotCount ? "is-inlay" : ""}`}>{fret}</span>
                 </div>
+                {/* Markers come before the cells: the pastilles paint over them. */}
+                {Array.from({ length: dotCount }, (_, i) => (
+                  <div
+                    key={`inlay-${fret}-${i}`}
+                    className="fbv-inlay"
+                    data-fret-marker={fret}
+                    aria-hidden="true"
+                    // Every dot is centred between the two middle strings; the
+                    // two on fret 12 sit one above the other, either side of the
+                    // case's middle (--fbv-inlay-dy: -1 and +1 steps of --fbv-inlay-step).
+                    style={dotCount === 2 ? { "--fbv-inlay-dy": i === 0 ? -1 : 1 } : undefined}
+                  />
+                ))}
                 {hasBarre && (
                   <div
                     className="fretboard-barre-indicator fbv-barre"
