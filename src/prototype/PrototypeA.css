@@ -1,11 +1,29 @@
 /* S1 prototype — layout A′ (?prototype=a). Every rule is scoped to .proto-a.
-   Column widths are the spec's mock-up (Maquette A 4K): rail 96 · centre
-   (the rest: 2784px at 3840) · piano 240 · guitar 384 · bass 272, gaps 16;
-   header 72; assistant drawer 896 over the instruments.
+   Columns: centre (the rest) · piano · guitar · bass; header 72 (title, then
+   the two mode tabs); assistant drawer 896 over the instruments.
+   L1a (VMU-164): the guitar and bass columns are as wide as the vertical
+   necks (Fretboard.css --fbv-gutter and --fbv-string).
+   L1a-fix1 (Gabriel's feedback, then the coordinator's amendment): the left
+   rail is gone (its two buttons are tabs in the header), which frees 112px,
+   and the instruments get their breathing room. At 3840, left to right:
+     16 margin · centre 2764 · 24 · piano 248 (10 inset + a 238px keyboard) ·
+     24 · guitar 424 (28 gutter + 6 x 66) · 24 · bass 292 (28 + 4 x 66) · 24
+   = 3840. The centre keeps the 2764px S1-11 asks for (a 39px step: 262 +
+   64 x 39 = 2758). The necks' columns are min-content (a neck is exactly its
+   columns); only the piano's is a number, --proto-piano-col.
    Nothing here clips: an overflow must show up as page scroll, where the
    S1 probe measures it (S1-12), not be hidden by overflow: hidden. */
 
 .proto-a {
+  /* The page's spacing — S1-16 measures it. */
+  --proto-margin-left: 16px;
+  --proto-margin-right: 24px;
+  --proto-gap: 24px;           /* between two columns */
+  --proto-piano-col: 248px;    /* the piano's column: its inset + its keyboard */
+  --proto-piano-inset: 10px;   /* the keyboard's left inset inside that column */
+  --proto-head-pad: 16px;      /* the three instrument heads' left padding (aligned) */
+  --proto-head-h: 72px;        /* one head: title + caption, one line each, same in the three columns */
+
   position: relative;
   min-height: 100vh;
   display: grid;
@@ -20,7 +38,7 @@
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 0 24px 0 120px;
+  padding: 0 var(--proto-margin-right, 24px) 0 var(--proto-margin-left, 16px);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -41,38 +59,41 @@
   flex: 1;
 }
 
-.proto-a__grid {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 240px 384px 272px;
-  column-gap: 16px;
-  min-height: 0;
-}
-
-.proto-a__rail {
+/* The mode switch, right after the title: two tabs side by side, 48px high
+   (the hit target is >= 48px). It was the left rail's two 80px buttons. */
+.proto-a__tabs {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 8px;
-  padding-top: 24px;
-  border-right: 1px solid var(--border-subtle);
 }
 
-.proto-a .proto-a__rail-btn {
-  width: 80px;
-  height: 80px;
+.proto-a .proto-a__tab {
+  width: 251px;
+  height: 48px;
   border-radius: var(--radius-lg);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-default);
   background: var(--bg);
   color: var(--text-secondary);
   font: inherit;
-  font-size: var(--fs-label);
+  font-size: var(--fs-emph);
   cursor: pointer;
 }
 
-.proto-a .proto-a__rail-btn.is-active {
+.proto-a .proto-a__tab.is-active {
   background: var(--surface-3);
   color: var(--text-on-select);
   border-color: var(--select);
+}
+
+.proto-a__grid {
+  display: grid;
+  /* min-content: a neck column is exactly its neck; change the neck's
+     variables and the page follows, with no second number to keep in step.
+     The piano's column is a number (it is 248px: a 10px inset and the
+     keyboard's 238px box). */
+  grid-template-columns: minmax(0, 1fr) var(--proto-piano-col, 248px) min-content min-content;
+  column-gap: var(--proto-gap, 24px);
+  padding: 0 var(--proto-margin-right, 24px) 0 var(--proto-margin-left, 16px);
+  min-height: 0;
 }
 
 .proto-a__center {
@@ -143,19 +164,47 @@
   gap: 12px;
   padding-top: 24px;
   min-width: 0;
-  border-left: 1px solid var(--border-subtle);
+  /* The separator is drawn 1px left of the column, in the gap: a border
+     would add 1px to a min-content column (and push the bass column past
+     the window's right edge by that pixel). */
+  box-shadow: -1px 0 0 var(--border-subtle);
 }
 
 .proto-a__instrument[data-s1="piano"] {
-  border-left: none;
-  padding-left: 20px;
+  box-shadow: none;
 }
 
+/* The keyboard's box (.piano-wrapper is width: 100% in the default
+   content-box, i.e. 100% + its 18px of padding and border: it stuck out of
+   its column by 18px and touched the guitar neck). Here it takes the
+   column's width minus a left inset, so it ends exactly with its column. */
+.proto-a__instrument[data-s1="piano"] .piano-wrapper--vertical {
+  width: auto;
+  margin-left: var(--proto-piano-inset, 10px);
+}
+
+/* One head, the same in the three columns: a fixed height and one line each
+   (the bass's caption wrapped to two lines, its head was 86px against 72 and
+   its neck 14px lower than the guitar's), padded alike so the titles align. */
 .proto-a__inst-head {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-height: 72px;
+  box-sizing: border-box;
+  height: var(--proto-head-h, 72px);
+  padding-left: var(--proto-head-pad, 16px);
+}
+
+.proto-a__inst-head > * {
+  white-space: nowrap;
+}
+
+/* The caption at the label size (18px at 3840, the instruments' own label
+   size) rather than the body size: "sillet en haut, graves à gauche" at the
+   body size is 281px, more than the bass column's 276px beside its padding -
+   which is what made it wrap. */
+.proto-a__inst-head .proto-a__muted {
+  font-size: var(--fs-label);
 }
 
 .proto-a__inst-title {

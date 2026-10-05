@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import "./PianoKeyboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
+import { chooseKeyboardWindow } from "../../core/noteEngine";
 import { getHarmonicSeries } from "../../core/acousticEngine";
 import { getRoleForDegreeLabel, getChordIntervalLabel } from "../../core/harmonyEngine";
 import { useAppContext } from "../../context/AppContext";
@@ -10,7 +11,11 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11];
 const BLACK_KEYS = [1, 3, 6, 8, 10];
 const WHITE_KEY_WIDTH = 50;
-// orientation="vertical" (S1 prototype): C2..C6, as the spec's mock-up.
+// The keyboard starts at C2: describeKey's octave index 0 is octave 2.
+const LOWEST_OCTAVE = 2;
+// orientation="vertical": 4 octaves plus the closing C (29 white keys, spec
+// S1-9), C2..C6 by default; L1a (VMU-031) moves the window over the 7 octaves
+// so that it holds the active notes (core/noteEngine.js chooseKeyboardWindow).
 const VERTICAL_OCTAVES = 4;
 
 const FLAT_EQUIVALENTS = {
@@ -120,6 +125,7 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
     isBlack,
     orderToDisplay,
     isSubtle,
+    oneLine = false,
   ) => {
     const noteInfo = NOTES.at(i);
     let labelContent = <span>{noteInfo[notation]}</span>;
@@ -149,7 +155,20 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
       const { rank, deviationCents } = harmonicMap[i];
       const sign = deviationCents > 0 ? "+" : "";
       const devStr = Math.round(deviationCents) === 0 ? "0" : `${sign}${Math.round(deviationCents)}`;
-      
+
+      // L1a — the vertical keys are 62px (white) / 36px (black) thick: the
+      // three stacked lines below measure 66px at the 18px label size (s1
+      // probe, harm-* states). One line instead, in the key's own text
+      // colour (a lit key is a role colour; the horizontal's warning-yellow
+      // rank would not read on it). A black key leaves 112px for its label:
+      // "Sol# · H13 +41¢" measures 131px there (36 of the 60 EU black-key
+      // labels do not fit, 17 of 60 in US), so a black key shows the rank and
+      // the cents only — its name stays in the key's title.
+      if (oneLine) {
+        const line = isBlack ? `H${rank} ${devStr}¢` : `${noteInfo[notation]} · H${rank} ${devStr}¢`;
+        return <span className="harmonic-line">{line}</span>;
+      }
+
       labelContent = (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1.2 }}>
           <span>{noteInfo[notation]}</span>
@@ -259,20 +278,30 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
   };
 
   if (orientation === "vertical") {
-    // C2..B5 plus the closing C6: 4 octaves, 29 white keys (spec S1-9), in
-    // ascending order here, laid out high-at-top by the index below.
+    // Which 4 octaves (L1a, VMU-031): the note engine picks, among the 7 the
+    // horizontal keyboard has, the window that holds the active notes —
+    // C2..C6 whenever that one does. Notes without an absolute pitch keep
+    // their legacy place (describeKey) and do not move the window.
+    const pianoWindow = chooseKeyboardWindow(
+      activeNotes.map((n) => n.absoluteValue).filter(Number.isFinite),
+      { lowestOctave: LOWEST_OCTAVE, octaveCount: numOctaves, windowOctaves: VERTICAL_OCTAVES },
+      Number(rootValue) % 12,
+    );
+    const first = pianoWindow.startOctave - LOWEST_OCTAVE; // describeKey's octave index
+    // 4 octaves plus the closing C: 29 white keys (spec S1-9), in ascending
+    // order here, laid out high-at-top by the index below.
     const vertical = [];
-    for (let octave = 0; octave < VERTICAL_OCTAVES; octave++) {
+    for (let octave = first; octave < first + VERTICAL_OCTAVES; octave++) {
       for (let i = 0; i < 12; i++) vertical.push({ octave, i, ...describeKey(octave, i) });
     }
-    vertical.push({ octave: VERTICAL_OCTAVES, i: 0, ...describeKey(VERTICAL_OCTAVES, 0) });
+    vertical.push({ octave: first + VERTICAL_OCTAVES, i: 0, ...describeKey(first + VERTICAL_OCTAVES, 0) });
 
     const whites = vertical.filter((k) => !k.isBlack).reverse(); // high at top
     const whiteIndex = new Map(whites.map((k, idx) => [k.absoluteValue, idx]));
 
     const renderVerticalLabel = (k) => {
       if (k.isActive || k.isPlaying) {
-        return renderKeyLabel(k.i, k.isActive, k.activeNote, k.isBlack, k.orderToDisplay, k.isSubtle);
+        return renderKeyLabel(k.i, k.isActive, k.activeNote, k.isBlack, k.orderToDisplay, k.isSubtle, true);
       }
       // Inactive keys stay blank, except each C, named with its octave
       // (spec §3: "le nom de chaque Do (Do2…Do6) sur sa touche").
@@ -299,7 +328,12 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
     };
 
     return (
-      <div className="piano-wrapper piano-wrapper--vertical" data-orientation="vertical">
+      <div
+        className="piano-wrapper piano-wrapper--vertical"
+        data-orientation="vertical"
+        data-window-start={pianoWindow.startOctave}
+        data-window-holds-all={String(pianoWindow.holdsAll)}
+      >
         <div className="piano-vertical" style={{ "--piano-v-count": whites.length }}>
           {whites.map((k, idx) => renderVerticalKey(k, `calc(var(--piano-v-key, 62px) * ${idx})`))}
           {vertical
