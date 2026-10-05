@@ -30,6 +30,11 @@ import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js"
  *              harmonic mode); the Studio one waits for a first click on
  *              the page before its chord sounds (browser audio rule)
  *   drawer   = open
+ *   bench    = 1  (L1a-fix1) draws the scenario / label-mode / state buttons.
+ *              They are the S1 probe's fixtures — they put the page in a
+ *              fixed state and do not follow what the user selects in
+ *              Dictionary or Studio — so without it the page shows none.
+ *              The three parameters above work with or without it.
  *
  * S1-15 (L1a, "toute note active a sa touche ou sa pastille"): each
  * instrument column carries what the engine asks it to show —
@@ -41,7 +46,13 @@ import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js"
 function readParams() {
   if (typeof window === "undefined") return {};
   const p = new URLSearchParams(window.location.search);
-  return { scenario: p.get("scenario"), labels: p.get("labels"), state: p.get("state"), drawer: p.get("drawer") };
+  return {
+    scenario: p.get("scenario"),
+    labels: p.get("labels"),
+    state: p.get("state"),
+    drawer: p.get("drawer"),
+    bench: p.get("bench") === "1",
+  };
 }
 
 /** "string:fret" of every sounding position of a fingering (chord grip or scale box). */
@@ -94,6 +105,8 @@ export default function PrototypeA({
   handleChordClick,
 }) {
   const [drawerOpen, setDrawerOpen] = useState(() => readParams().drawer === "open");
+  // The probe's fixture buttons: read once, like the other URL parameters.
+  const [bench] = useState(() => readParams().bench);
   // A Studio state's chord is clicked once the base octave it needs is in
   // place: handleChordClick reads the octave of the render it comes from.
   const pendingChordRef = useRef(null);
@@ -192,6 +205,27 @@ export default function PrototypeA({
         <div className="proto-a" data-prototype="a">
           <header className="proto-a__header">
             <div className="proto-a__title">VisualMusic</div>
+            {/* The mode switch (it was the left rail): two tabs, right after the title. */}
+            <nav className="proto-a__tabs" aria-label="Modes">
+              <button
+                type="button"
+                className={`proto-a__tab ${appMode === "studio" ? "is-active" : ""}`}
+                aria-label="Mode Studio"
+                aria-pressed={appMode === "studio"}
+                onClick={() => setAppMode("studio")}
+              >
+                Studio
+              </button>
+              <button
+                type="button"
+                className={`proto-a__tab ${appMode === "dictionary" ? "is-active" : ""}`}
+                aria-label="Mode Dictionnaire"
+                aria-pressed={appMode === "dictionary"}
+                onClick={() => setAppMode("dictionary")}
+              >
+                {txt.sidebar?.dictionary || "Dictionnaire"}
+              </button>
+            </nav>
             <div className="proto-a__subtitle">Prototype A′ · banc de mesure S1</div>
             <div className="proto-a__spacer" />
             <button
@@ -206,23 +240,6 @@ export default function PrototypeA({
           </header>
 
           <div className="proto-a__grid">
-            <nav className="proto-a__rail" aria-label="Modes">
-              <button
-                type="button"
-                className={`proto-a__rail-btn ${appMode === "studio" ? "is-active" : ""}`}
-                onClick={() => setAppMode("studio")}
-              >
-                Studio
-              </button>
-              <button
-                type="button"
-                className={`proto-a__rail-btn ${appMode === "dictionary" ? "is-active" : ""}`}
-                onClick={() => setAppMode("dictionary")}
-              >
-                Dico
-              </button>
-            </nav>
-
             <main className="proto-a__center" data-s1="center">
               <section className="proto-a__panel proto-a__transport" data-s1="transport">
                 <button type="button" className="proto-a__btn proto-a__btn--primary" onClick={handlePlay}>
@@ -252,48 +269,53 @@ export default function PrototypeA({
                 </button>
               </section>
 
-              <section className="proto-a__panel proto-a__controls" data-s1="scenarios">
-                <span className="proto-a__muted">Scénarios S1</span>
-                {S1_SCENARIOS.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className={`proto-a__btn ${currentScenario?.id === s.id ? "is-active" : ""}`}
-                    data-scenario={s.id}
-                    onClick={() => applyScenario(s)}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-                <div className="proto-a__spacer" />
-                <span className="proto-a__muted">Sur les notes</span>
-                {S1_LABEL_MODES.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    className={`proto-a__btn ${currentLabels?.id === m.id ? "is-active" : ""}`}
-                    data-labels={m.id}
-                    onClick={() => applyLabels(m)}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </section>
+              {/* The probe's fixtures (bench=1 only): see the header comment. */}
+              {bench && (
+                <section className="proto-a__panel proto-a__controls" data-s1="scenarios">
+                  <span className="proto-a__muted">Scénarios S1</span>
+                  {S1_SCENARIOS.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={`proto-a__btn ${currentScenario?.id === s.id ? "is-active" : ""}`}
+                      data-scenario={s.id}
+                      onClick={() => applyScenario(s)}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                  <div className="proto-a__spacer" />
+                  <span className="proto-a__muted">Sur les notes</span>
+                  {S1_LABEL_MODES.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={`proto-a__btn ${currentLabels?.id === m.id ? "is-active" : ""}`}
+                      data-labels={m.id}
+                      onClick={() => applyLabels(m)}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </section>
+              )}
 
-              <section className="proto-a__panel proto-a__controls" data-s1="states">
-                <span className="proto-a__muted">États L1a</span>
-                {S1_EXTRA_STATES.map((x) => (
-                  <button
-                    key={x.id}
-                    type="button"
-                    className={`proto-a__btn ${isExtraStateActive(x) ? "is-active" : ""}`}
-                    data-state={x.id}
-                    onClick={() => applyExtraState(x)}
-                  >
-                    {x.label}
-                  </button>
-                ))}
-              </section>
+              {bench && (
+                <section className="proto-a__panel proto-a__controls" data-s1="states">
+                  <span className="proto-a__muted">États L1a</span>
+                  {S1_EXTRA_STATES.map((x) => (
+                    <button
+                      key={x.id}
+                      type="button"
+                      className={`proto-a__btn ${isExtraStateActive(x) ? "is-active" : ""}`}
+                      data-state={x.id}
+                      onClick={() => applyExtraState(x)}
+                    >
+                      {x.label}
+                    </button>
+                  ))}
+                </section>
+              )}
 
               <section className="proto-a__sequencer" data-s1="sequencer">
                 <SequencerPanel

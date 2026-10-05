@@ -40,6 +40,7 @@
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
  *   npm run s1:probe -- --only=gsm7,harm-gsm7   # only these scenario / state ids
+ *   npm run s1:probe -- --viewport=3840x2045    # one other window size, instead of the two
  *
  * Positive control: S1_PROBE_INJECT_CSS="<css>" adds a <style> to every
  * page before measuring, e.g. forcing a label to 10px must turn S1-1 red:
@@ -70,10 +71,17 @@ const SHOT = flag("shot");
 const KEEP_OPEN = flag("headed");
 const ONLY = (args.find((a) => a.startsWith("--only=")) || "").slice("--only=".length).split(",").filter(Boolean);
 
-const VIEWPORTS = [
-  { w: 3840, h: 2160, label: "3840x2160" },
-  { w: 3840, h: 2020, label: "3840x2020" },
-];
+// --viewport=3840x2045 measures at another size INSTEAD of the two below
+// (Gabriel's window is about 2045px high): an extra look, not a change of
+// the 60-state matrix the decision rests on.
+const VIEWPORT_ARG = (args.find((a) => a.startsWith("--viewport=")) || "").slice("--viewport=".length);
+const [vpW, vpH] = VIEWPORT_ARG.split("x").map(Number);
+const VIEWPORTS = VIEWPORT_ARG
+  ? [{ w: vpW, h: vpH, label: `${vpW}x${vpH}` }]
+  : [
+      { w: 3840, h: 2160, label: "3840x2160" },
+      { w: 3840, h: 2020, label: "3840x2020" },
+    ];
 
 // Thresholds, spec §2 table. `decides` = counts for the A′ / B decision.
 const CRITERIA = [
