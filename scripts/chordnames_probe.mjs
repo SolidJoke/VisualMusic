@@ -13,12 +13,13 @@
  *   3. "classic cadence" with it loaded -> Fmaj7, B7, Em7 (only the V changes).
  *
  * It does 2 and 3 in both notations: EU (Do, Ré, Mi: the app's default) and US
- * (C, D, E, switched with the header button). Then, with the longest names
- * loaded (EU), it measures at four viewport widths whether a chord's box and
- * the row hold their names: the box's text overflow, the row's horizontal
- * overflow, the width of each box. Those measures are printed, not asserted:
- * the question they answer — does a longer name widen a box? — is read against
- * the same run on the previous code.
+ * (C, D, E, switched with the header button). Then, in EU (the longest names),
+ * it loads each of the four Quick Starts at four viewport widths and measures
+ * whether a chord's box and the row hold their names: the width of each box,
+ * the box's text overflow, the row's horizontal overflow. Those measures are
+ * printed, not asserted: the question they answer — does a longer name widen a
+ * box, and does the row still hold? — is read against the same run on the
+ * previous code.
  *
  * jsdom does no layout, so this is the one place the names are seen as a user
  * sees them (the wiring is in
@@ -41,6 +42,9 @@ const ORIGIN = `http://localhost:${PORT}`;
 const bricks = JSON.parse(fs.readFileSync(path.join(ROOT, "src", "data", "bricks.json"), "utf8"));
 const METAL = bricks.find((b) => b.rootValue === 4 && b.scaleKey === "scale_phrygian" && b.name.en === "Epic Metal");
 if (!METAL) throw new Error('no style "Epic Metal" (E phrygian) in bricks.json');
+
+// The four Quick Starts the Studio offers: name -> a piece of the button's label (same in every language).
+const QUICK_STARTS = { "II-V-I": "II-V-I", "Pop": "I-V-vi-IV", "Turnaround": "I-vi-ii-V", "Neo-Soul": "IV-iii-vi" };
 
 const VIEWPORTS = [
   { width: 390, height: 844 },
@@ -123,21 +127,33 @@ async function chooseStyle(page, brick) {
   await page.waitForTimeout(300);
 }
 
-/** A fresh page (1920x1080) on the Studio popup, in the notation asked for, the Epic Metal style chosen. */
-async function openStudio(browser, notation, pageErrors) {
-  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+/**
+ * A fresh page, opened at the viewport, on the Studio popup, the Epic Metal style chosen
+ * (except on a phone: see below). `notation` "us" switches the header button; null leaves
+ * the app's default (EU) and skips the header, which a phone does not show.
+ */
+async function openStudio(browser, notation, pageErrors, viewport = { width: 1920, height: 1080 }) {
+  const page = await browser.newPage({ viewport });
   page.on("pageerror", (e) => pageErrors.push(String(e)));
   await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
-  await page.locator(".sidebar-cta-btn").first().waitFor({ state: "visible", timeout: 15_000 });
+  await page.locator(".sidebar-cta-btn, .bottom-nav-btn").first().waitFor({ state: "attached", timeout: 15_000 });
 
-  // EU is the app's default; US is one click on the header button.
-  const toggle = page.locator('[data-testid="header-notation-toggle"]');
-  if ((await toggle.textContent()).trim().startsWith(notation === "us" ? "EU" : "US")) await toggle.click();
-  check(`[${notation}] the header says the notation`, (await toggle.textContent()).trim().startsWith(notation === "us" ? "US" : "EU"), true);
+  if (notation) {
+    // EU is the app's default; US is one click on the header button.
+    const toggle = page.locator('[data-testid="header-notation-toggle"]');
+    if ((await toggle.textContent()).trim().startsWith(notation === "us" ? "EU" : "US")) await toggle.click();
+    check(`[${notation}] the header says the notation`, (await toggle.textContent()).trim().startsWith(notation === "us" ? "US" : "EU"), true);
+  }
 
+  // On a phone the sidebar is behind the menu button (as layout_probe.mjs opens it).
+  const phone = viewport.width < 768;
+  if (phone) await page.locator('button[aria-label="Open menu"]').click();
   await page.locator(".sidebar-cta-btn").first().click(); // "Studio & Harmonie"
   await page.locator(".modal-container").first().waitFor({ state: "visible", timeout: 5_000 });
-  await chooseStyle(page, METAL);
+  // On a phone the style list closes by itself within 100 ms of opening (seen at 390 px, 2 of 2
+  // times; it stays open at 1280 and 3840), faster than a click can reach an item. The phone
+  // keeps the app's default style (Modern Pop, C major) instead of racing it.
+  if (!phone) await chooseStyle(page, METAL);
   return page;
 }
 
@@ -170,21 +186,21 @@ async function runNotation(browser, notation, expected, pageErrors) {
 }
 
 /**
- * The row at one viewport, EU, II-V-I loaded. A fresh page for each width, and the
- * viewport changed once, after the chords are loaded: the app swaps its layout across
- * the narrow-screen breakpoint, and the chords loaded in one layout are not kept by the other.
+ * The row at one viewport, EU, II-V-I loaded. A fresh page opened AT the viewport for
+ * each width, never resized: the app closes the popup about 250 ms after a viewport change
+ * (measured: at 390 and 3840 from 1920, not at 1280), so a resized page is read before or
+ * after the popup is gone, depending on timing.
  */
 async function measureAt(browser, viewport, pageErrors) {
-  const page = await openStudio(browser, "eu", pageErrors);
-  await buttonNamed(page, "II-V-I").first().click();
-  await page.waitForTimeout(200);
-  if (viewport.width !== 1920) {
-    await page.setViewportSize(viewport);
+  const page = await openStudio(browser, null, pageErrors, viewport);
+  const measures = {};
+  for (const [quickStart, button] of Object.entries(QUICK_STARTS)) {
+    await buttonNamed(page, button).first().click();
     await page.waitForTimeout(300);
+    measures[quickStart] = { chords: (await readChords(page)).length, ...(await measureRow(page)) };
   }
-  const measure = { chords: (await readChords(page)).length, ...(await measureRow(page)) };
   await page.close();
-  return measure;
+  return measures;
 }
 
 async function main() {
@@ -200,16 +216,25 @@ async function main() {
     for (const viewport of VIEWPORTS) {
       measures[`${viewport.width}x${viewport.height}`] = await measureAt(browser, viewport, pageErrors);
     }
-    check("the measures are of the II-V-I (3 chords) at every width", Object.values(measures).map((m) => m.chords), VIEWPORTS.map(() => 3));
+    // The measures are read only if they are of the chords they claim: 3, 4, 4, 3 at every width.
+    check(
+      "the measures are of the right Quick Starts (chords loaded: II-V-I 3, Pop 4, Turnaround 4, Neo-Soul 3) at every width",
+      Object.values(measures).map((byQuickStart) => Object.values(byQuickStart).map((m) => m.chords)),
+      VIEWPORTS.map(() => [3, 4, 4, 3]),
+    );
     check("no page error", pageErrors, []);
   } finally {
     await browser.close();
     if (server) await server.close();
   }
-  console.log("\nMEASURES (EU, II-V-I loaded; informational except the chord count — read against the previous code's run)");
-  for (const [viewport, m] of Object.entries(measures)) {
-    console.log(`  ${viewport}: row ${m.rowClientWidth}px wide, scrolls ${m.rowScrollWidth}px, overflows=${m.rowOverflows}`);
-    m.boxes.forEach((b) => console.log(`    "${b.name}": ${b.width}px, text overflows=${b.textOverflows}, outside row=${b.outsideRow}`));
+  console.log("\nMEASURES (EU; Epic Metal, but the app's default style at 390 px; informational except the chord counts — read against the previous code's run)");
+  for (const [viewport, byQuickStart] of Object.entries(measures)) {
+    for (const [quickStart, m] of Object.entries(byQuickStart)) {
+      const over = Math.max(0, m.rowScrollWidth - m.rowClientWidth);
+      const boxes = m.boxes.map((b) => `${b.name} ${b.width}px`).join(" · ");
+      const flags = [m.boxes.some((b) => b.textOverflows) && "TEXT OVERFLOWS", m.boxes.some((b) => b.outsideRow) && "BOX OUTSIDE ROW"].filter(Boolean).join(", ");
+      console.log(`  ${viewport.padEnd(9)} ${quickStart.padEnd(12)} row ${m.rowClientWidth}px, content ${m.rowScrollWidth}px, over by ${over}px   ${boxes}${flags ? `   [${flags}]` : ""}`);
+    }
   }
   console.log(failures.length === 0 ? "\nPASS — chord names probe" : `\nFAIL — ${failures.length} check(s): ${failures.join("; ")}`);
   process.exit(failures.length === 0 ? 0 : 1);
