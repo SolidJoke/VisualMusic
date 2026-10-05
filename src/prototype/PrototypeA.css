@@ -1,7 +1,10 @@
 /* S1 prototype — layout A′ (?prototype=a). Every rule is scoped to .proto-a.
    Column widths are the spec's mock-up (Maquette A 4K): rail 96 · centre
-   (the rest: 2784px at 3840) · piano 240 · guitar 384 · bass 272, gaps 16;
-   header 72; assistant drawer 896 over the instruments.
+   (the rest) · piano 240 · guitar · bass, gaps 16; header 72; assistant
+   drawer 896 over the instruments. L1a (VMU-164): the guitar and bass
+   columns are as wide as the vertical necks (Fretboard.css --fbv-gutter and
+   --fbv-string: 400 and 276px today, 384 and 272 in the mock-up), so the
+   centre is 2764px at 3840 — S1-11 needs 262 + 64 x 39 = 2758px.
    Nothing here clips: an overflow must show up as page scroll, where the
    S1 probe measures it (S1-12), not be hidden by overflow: hidden. */
 
@@ -43,7 +46,9 @@
 
 .proto-a__grid {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 240px 384px 272px;
+  /* min-content: a neck column is exactly its neck; change the neck's
+     variables and the page follows, with no second number to keep in step. */
+  grid-template-columns: 96px minmax(0, 1fr) 240px min-content min-content;
   column-gap: 16px;
   min-height: 0;
 }
@@ -143,11 +148,14 @@
   gap: 12px;
   padding-top: 24px;
   min-width: 0;
-  border-left: 1px solid var(--border-subtle);
+  /* The separator is drawn 1px left of the column, in the gap: a border
+     would add 1px to a min-content column (and push the bass column past
+     the window's right edge by that pixel). */
+  box-shadow: -1px 0 0 var(--border-subtle);
 }
 
 .proto-a__instrument[data-s1="piano"] {
-  border-left: none;
+  box-shadow: none;
   padding-left: 20px;
 }
 

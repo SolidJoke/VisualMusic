@@ -508,11 +508,22 @@
    realistic taper would fail S1-5 high up the neck), low strings on the
    left, text always horizontal. */
 .fretboard-container--vertical {
-    --fbv-gutter: 44px;   /* fret numbers (spec §4) */
-    --fbv-string: 56px;   /* string pitch, centre to centre (S1-7: >= 56px) */
+    /* VMU-164 (L1a): a narrower fret-number gutter (spec §4 had 44px) and
+       wider strings (56px) — guitar 28 + 6 x 62 = 400px, bass 28 + 4 x 62 =
+       276px. The coordinator's proposal, to be judged by Gabriel on screen:
+       these two lines are the only place to change it, the prototype's
+       columns follow (PrototypeA.css, min-content). */
+    --fbv-gutter: 28px;   /* fret numbers: "22" is 21.6px in JetBrains Mono at 18px */
+    --fbv-gutter-pad: 4px; /* space between a fret number and the board */
+    --fbv-string: 62px;   /* string pitch, centre to centre (S1-7: >= 56px) */
     --fbv-fret: 70px;     /* fret pitch (S1-5: >= 64px, mock-up 70px) */
     --fbv-head: 36px;     /* open-string names row, status row */
     --fbv-marker: 48px;   /* note pastille (S1-3: >= 48px) */
+    /* VMU-164: look more like a neck, with tokens only. The board is a large
+       surface: --surface-1 is the lightest one F1 allows there (tokens.css).
+       Fret wires 3px instead of 2px. */
+    --fbv-board: var(--surface-1);
+    --fbv-wire: 3px;
     width: auto;
     margin: 0;
 }
@@ -521,12 +532,12 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    width: calc(var(--fbv-gutter, 44px) + var(--fbv-string, 56px) * var(--fbv-strings, 6));
+    width: calc(var(--fbv-gutter, 28px) + var(--fbv-string, 62px) * var(--fbv-strings, 6));
 }
 
 .fbv-row {
     display: grid;
-    grid-template-columns: var(--fbv-gutter, 44px) repeat(var(--fbv-strings, 6), var(--fbv-string, 56px));
+    grid-template-columns: var(--fbv-gutter, 28px) repeat(var(--fbv-strings, 6), var(--fbv-string, 62px));
     position: relative;
 }
 
@@ -540,13 +551,16 @@
 
 .fbv-fret-row {
     height: var(--fbv-fret, 70px);
-    border-bottom: 2px solid var(--fret-wire);
+    border-bottom: var(--fbv-wire, 3px) solid var(--fret-wire);
     box-sizing: border-box;
+    /* The board, from the gutter's edge across the strings. */
+    background: linear-gradient(to right, transparent var(--fbv-gutter, 28px), var(--fbv-board, var(--surface-1)) var(--fbv-gutter, 28px));
 }
 
-/* The nut: fret 0 sits above it. */
+/* The nut: fret 0 sits above it, off the board (the headstock side). */
 .fbv-fret-row.fbv-row--open {
     border-bottom: 6px solid var(--text-secondary);
+    background: none;
 }
 
 .fbv-gutter {
@@ -554,7 +568,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding-right: 10px;
+    padding-right: var(--fbv-gutter-pad, 4px);
     box-sizing: border-box;
 }
 
