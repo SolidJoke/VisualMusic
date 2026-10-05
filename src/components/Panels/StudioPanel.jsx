@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { BRICKS } from '../../core/bricks';
-import { SCALES, generateChordsFromNNS, toRoman, getNextChordSuggestions } from '../../core/theory';
+import {
+  SCALES,
+  DIMINISHED_CHORD_TYPES,
+  MINOR_CHORD_TYPES,
+  generateChordsFromNNS,
+  resolveNnsToChordType,
+  toRoman,
+  getNextChordSuggestions,
+} from '../../core/theory';
 import { calculatePlayabilityScore } from '../../core/harmonyEngine';
 import { useAppContext } from '../../context/AppContext';
 import StudioInfoBlock from './StudioInfoBlock';
@@ -83,9 +91,14 @@ const StudioPanel = ({
     });
   };
 
+  // VMU-170: the quality line is the chord type's, read by theory.js's one
+  // rule — not by looking for an "m" in the symbol, which found the one in
+  // "maj7". The families are theory.js's: the "m" chords (m7b5 among them) and
+  // the diminished ones; every other type has a major third.
   const getChordQuality = (nns) => {
-    if (nns.includes('dim') || nns.includes('°')) return txt.chordQualDim || 'Dim.';
-    if (nns.includes('-') || (nns.includes('m') && !nns.startsWith('maj'))) return txt.chordQualMin || 'Min.';
+    const type = resolveNnsToChordType(nns);
+    if (DIMINISHED_CHORD_TYPES.includes(type)) return txt.chordQualDim || 'Dim.';
+    if (MINOR_CHORD_TYPES.includes(type)) return txt.chordQualMin || 'Min.';
     return txt.chordQualMaj || 'Maj.';
   };
 
