@@ -132,6 +132,16 @@ describe("VMU-170 — the quality under a chord is the chord's, read by the one 
     expect(shown().map((c) => c.quality)).toEqual([MAJ, MAJ, MAJ]);
   });
 
+  it("a lower-case roman numeral whose suffix makes a major chord (iMaj7, iadd9, isus4) takes the quality of its type", () => {
+    // The panel gets it as "1-Maj7": the "-" a lower-case numeral is shown with. The hand
+    // read took it for a minor mark; the type is major (the sound is a major seventh).
+    // Measured over 805 symbols (23 suffixes x (21 degrees + 14 roman numerals)): 91 differ
+    // from the hand read, all Min. -> Maj., in exactly these two families.
+    render(<Harness index={styleIndex(0, "scale_major")} initial={["iMaj7", "iadd9", "isus4"]} />);
+    expect(shown().map((c) => c.name)).toEqual(["Cmaj7", "Cadd9", "Csus4"]);
+    expect(shown().map((c) => c.quality)).toEqual([MAJ, MAJ, MAJ]);
+  });
+
   it("one quality per chord type: major families Maj., minor families Min., diminished Dim.", () => {
     const written = ["1", "1-", "1°", "1+", "17", "1maj7", "1Maj7", "1-7", "1m7b5", "1dim7", "19", "1m9", "1add9", "1sus2", "1sus4"];
     render(<Harness index={styleIndex(0, "scale_major")} initial={written} />);
