@@ -168,7 +168,13 @@ const GOLDEN = {
   "21:B Bossa Nova": ["d3f1b77420844ebf1becabafb0da5ac3644a129b50599c4b0dc5d1ffff596cf2", 160],
   "rhythm-absolute-0-6-10": ["bb12801756896b15d826c358fad5b2c809eac12fd6eb4888a268aa01c6d54418", 116],
   "octave-plus-1": ["15b4125e3bbb58456f091d60f45bebc85b62e11f8b76d9220902852d9bedcb97", 120],
-  "progression-jazz_251_maj": ["90e9c06209d8b18813554c1d68863a809baec5a25592c054cf3c81f90088f47c", 120],
+  // VMU-169: the chord published to React carries its name, and the name is now
+  // complete ("Dm" "G" "C" became "Dm7" "G7" "Cmaj7"; EU "Rém7" "Sol7" "Domaj7").
+  // Nothing audible moved: the journals of the previous fingerprint and of this
+  // one are identical once those two fields (chordNameUS, chordNameEU) are
+  // taken out — same 120 entries, every synth call and every pitch the same.
+  // Was 90e9c06209d8b18813554c1d68863a809baec5a25592c054cf3c81f90088f47c.
+  "progression-jazz_251_maj": ["ad94959ef0c5d4766951a941264cdaa821718f30c432747c03f95ff266ed68ca", 120],
   "non-bass-melodic-track": ["29565a9d2fcd466dba30cac5f5d4d3b20f50ec0b0a7d94208f67d7327b42294d", 168],
   "empty-progression": ["0cc352aca834358bb3adec2a025ac950aebde4425e3c4ad1aefb2ac3388031e7", 84],
 };
