@@ -20,8 +20,10 @@
  */
 import path from "node:path";
 import process from "node:process";
+import { repoRootFrom } from "./lib/repoRoot.mjs";
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1"), "..");
+// VMU-166: decoded with fileURLToPath (a space or a "~" in the path broke .pathname).
+const ROOT = repoRootFrom(import.meta.url);
 
 // Same env var pattern as audio_measure.mjs (AUDIO_MEASURE_PORT), scoped to
 // this script. Defaults to 5199, the port the VisualMusic dev server is

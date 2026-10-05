@@ -35,8 +35,10 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { S1_SCENARIOS, S1_LABEL_MODES } from "../src/prototype/s1Scenarios.js";
+import { repoRootFrom } from "./lib/repoRoot.mjs";
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1"), "..");
+// VMU-166: decoded with fileURLToPath (a space or a "~" in the path broke .pathname).
+const ROOT = repoRootFrom(import.meta.url);
 
 const PORT = Number(process.env.S1_PROBE_PORT ?? 5986);
 const ORIGIN = `http://localhost:${PORT}`;

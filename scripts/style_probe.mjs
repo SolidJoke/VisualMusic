@@ -45,8 +45,10 @@
 import path from "node:path";
 import process from "node:process";
 import { createRequire } from "node:module";
+import { repoRootFrom } from "./lib/repoRoot.mjs";
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1"), "..");
+// VMU-166: decoded with fileURLToPath (a space or a "~" in the path broke .pathname).
+const ROOT = repoRootFrom(import.meta.url);
 
 // Own port, distinct from vite preview's 4173 and audio_measure.mjs /
 // layout_probe.mjs's shared 5199 (brief: "sur un port libre autre que 4173
