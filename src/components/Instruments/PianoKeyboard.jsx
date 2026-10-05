@@ -125,6 +125,7 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
     isBlack,
     orderToDisplay,
     isSubtle,
+    oneLine = false,
   ) => {
     const noteInfo = NOTES.at(i);
     let labelContent = <span>{noteInfo[notation]}</span>;
@@ -154,7 +155,20 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
       const { rank, deviationCents } = harmonicMap[i];
       const sign = deviationCents > 0 ? "+" : "";
       const devStr = Math.round(deviationCents) === 0 ? "0" : `${sign}${Math.round(deviationCents)}`;
-      
+
+      // L1a — the vertical keys are 62px (white) / 36px (black) thick: the
+      // three stacked lines below measure 66px at the 18px label size (s1
+      // probe, harm-* states). One line instead, in the key's own text
+      // colour (a lit key is a role colour; the horizontal's warning-yellow
+      // rank would not read on it). A black key leaves 112px for its label:
+      // "Sol# · H13 +41¢" measures 131px there (36 of the 60 EU black-key
+      // labels do not fit, 17 of 60 in US), so a black key shows the rank and
+      // the cents only — its name stays in the key's title.
+      if (oneLine) {
+        const line = isBlack ? `H${rank} ${devStr}¢` : `${noteInfo[notation]} · H${rank} ${devStr}¢`;
+        return <span className="harmonic-line">{line}</span>;
+      }
+
       labelContent = (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1.2 }}>
           <span>{noteInfo[notation]}</span>
@@ -287,7 +301,7 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
 
     const renderVerticalLabel = (k) => {
       if (k.isActive || k.isPlaying) {
-        return renderKeyLabel(k.i, k.isActive, k.activeNote, k.isBlack, k.orderToDisplay, k.isSubtle);
+        return renderKeyLabel(k.i, k.isActive, k.activeNote, k.isBlack, k.orderToDisplay, k.isSubtle, true);
       }
       // Inactive keys stay blank, except each C, named with its octave
       // (spec §3: "le nom de chaque Do (Do2…Do6) sur sa touche").

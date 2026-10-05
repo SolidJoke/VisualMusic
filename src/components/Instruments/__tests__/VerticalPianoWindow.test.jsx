@@ -305,13 +305,21 @@ describe("harmonic mode on the vertical piano: one line per label (L1a)", () => 
   // Sol#m7: its notes land on black keys (Sol#, Ré#, Fa#), the narrowest
   // place a label has to fit (S1-10, measured by the probe).
   const HARMONIC_LINE = /^\S+ · H\d+ [+-]?\d+¢$/;
+  // Amended after the first implementation was measured (commit message):
+  // a black key leaves 112px for its label, "Sol# · H13 +41¢" takes 131px,
+  // so a black key carries the rank and the cents only, its name in the
+  // key's title.
+  const HARMONIC_LINE_BLACK = /^H\d+ [+-]?\d+¢$/;
 
-  it("each lit key's label reads « Nom · Hn ±c¢ », on one line", () => {
+  it("each lit key's label is one line: « Nom · Hn ±c¢ » on a white key, « Hn ±c¢ » on a black key", () => {
     const container = renderDictionary({ dictRoot: 8, dictType: "chord_m7", dictOctave: 0, harmonic: true });
     const lit = verticalKeys(container).filter((k) => k.role);
     expect(lit.length).toBe(4);
+    expect(lit.filter((k) => k.isBlack)).toHaveLength(3); // Sol#, Ré#, Fa#
     for (const k of lit) {
-      expect(k.label.textContent).toMatch(HARMONIC_LINE);
+      expect(k.label.textContent).toMatch(k.isBlack ? HARMONIC_LINE_BLACK : HARMONIC_LINE);
+      // The name a black key does not print is still on the key.
+      expect(k.el.getAttribute("title")).toMatch(/\S+ \/ \S+/);
       // Nothing inside the label stacks its parts in a column.
       const stacked = Array.from(k.label.querySelectorAll("*")).filter((e) => e.style.flexDirection === "column");
       expect(stacked).toEqual([]);

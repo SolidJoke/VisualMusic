@@ -296,11 +296,13 @@ function measureInPage() {
   const whitesVisible = whites.filter((b) => b.top >= -EPS && b.bottom <= vh + EPS).length;
   const blackLabelFails = [];
   let blackLabels = 0;
+  let widestBlack = null; // L1a: the margin, not only the verdict
   for (const k of blacks) {
     const label = k.querySelector(".note-label");
     if (!label || !visible(label)) continue;
     blackLabels++;
     const tr = textRect(label);
+    if (!widestBlack || tr.width > widestBlack.w) widestBlack = { w: round(tr.width), key: round(r(k).width), text: (label.textContent || "").trim() };
     if (!inside(r(label), r(k)) || !inside(tr, r(k))) blackLabelFails.push(`${describe(label)} ${round(tr.width)}x${round(tr.height)} in ${round(r(k).width)}x${round(r(k).height)}`);
   }
   out.piano = {
@@ -310,6 +312,7 @@ function measureInPage() {
     whitesVisible,
     blackLabels,
     blackLabelFails,
+    widestBlack,
     bottom: round(r(piano).bottom),
   };
 
@@ -424,7 +427,7 @@ function verdicts(m) {
   const p = m.piano;
   put("S1-8", p.minWhite >= 52 && p.minBlack >= 30, `white ${p.minWhite}px, black ${p.minBlack}px`);
   put("S1-9", p.whitesVisible >= 29, `${p.whitesVisible}/${p.whiteKeys} white keys visible (${Math.floor((p.whitesVisible - 1) / 7)} octaves)`);
-  put("S1-10", p.blackLabelFails.length === 0, p.blackLabels ? `${p.blackLabels - p.blackLabelFails.length}/${p.blackLabels} inside${p.blackLabelFails.length ? `: ${p.blackLabelFails.slice(0, 3).join(" | ")}` : ""}` : "n/a (no black-key label in this state)");
+  put("S1-10", p.blackLabelFails.length === 0, p.blackLabels ? `${p.blackLabels - p.blackLabelFails.length}/${p.blackLabels} inside, widest "${p.widestBlack.text}" ${p.widestBlack.w}px in ${p.widestBlack.key}px${p.blackLabelFails.length ? `: ${p.blackLabelFails.slice(0, 3).join(" | ")}` : ""}` : "n/a (no black-key label in this state)");
   put("S1-11", m.s1_11.pitch >= 39 && m.s1_11.cellWidth >= 36, `centre ${m.s1_11.centerWidth}px -> pitch ${m.s1_11.pitch}px, cell ${m.s1_11.cellWidth}px wide (x 40 high by construction)`);
   const sc = m.s1_12;
   put("S1-12", sc.scrollHeight <= sc.innerHeight && sc.scrollWidth <= sc.innerWidth, `scrollHeight ${sc.scrollHeight} / innerHeight ${sc.innerHeight}, scrollWidth ${sc.scrollWidth} / ${sc.innerWidth}`);
