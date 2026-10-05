@@ -510,6 +510,16 @@ function AppDesktop() {
         musicEngineContextValue={musicEngineContextValue}
         playbackContextValue={playbackContextValue}
         drawerPanel={studioHarmonyPanel}
+        // L1a states (octave +3, Studio octave +2, harmonic mode): the same
+        // setters the drawer's Dictionary and Studio panels use.
+        dictOctave={dictOctave}
+        setDictOctave={setDictOctave}
+        harmonicMode={harmonicMode}
+        setHarmonicMode={setHarmonicMode}
+        setChordOctaveOffset={setChordOctaveOffset}
+        activeProgression={activeProgression}
+        clickedChord={clickedChord}
+        handleChordClick={handleChordClick}
       />
     );
   }

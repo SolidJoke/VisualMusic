@@ -22,3 +22,23 @@ export const S1_LABEL_MODES = [
   { id: "us", label: "Noms C D E", notation: "us", fingers: false },
   { id: "fingers", label: "Doigts", notation: "eu", fingers: true },
 ];
+
+// L1a — states the four scenarios do not reach (L1 study, fact 0.4 and
+// "mode harmonique"): the Dictionary's octave selector at +3, the Studio's
+// base octave at +2 with a chord clicked, and the harmonic mode. Each is a
+// button of the prototype page (data-state="<id>"), so the probe and Gabriel
+// reach it the same way; the Studio one plays its chord, which needs a real
+// click (no audio context starts without one).
+//   scenario   — one of S1_SCENARIOS above (Dictionary states)
+//   dictOctave — the Dictionary's octave selector, -3..+3
+//   harmonic   — the Dictionary's harmonic mode
+//   studio     — { chordOctaveOffset, chordIndex }: the Studio's "Octave de
+//                base", then a click on that chord of the style's progression
+export const S1_EXTRA_STATES = [
+  { id: "dict-oct3", label: "Do majeur · octave +3", scenario: "cmaj", dictOctave: 3 },
+  { id: "studio-oct2", label: "Studio · octave +2 · 1er accord", studio: { chordOctaveOffset: 2, chordIndex: 0 } },
+  { id: "harm-cmaj", label: "Harmonique · Do majeur", scenario: "cmaj", harmonic: true },
+  { id: "harm-gsm7", label: "Harmonique · Sol♯m7", scenario: "gsm7", harmonic: true },
+  { id: "harm-cmajscale", label: "Harmonique · gamme de Do", scenario: "cmajscale", harmonic: true },
+  { id: "harm-apenta", label: "Harmonique · La penta mineure", scenario: "apenta", harmonic: true },
+];

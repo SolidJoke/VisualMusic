@@ -18,9 +18,17 @@
  *   "A (ou A′) si S1-1 à S1-11 et S1-14 passent tous ; un seul échec → B.
  *    S1-12 et S1-13 sont des corrections, pas des critères de choix."
  *
+ * L1a adds the states the four scenarios never reached (S1_EXTRA_STATES:
+ * Dictionary octave +3, Studio base octave +2 with a chord clicked, harmonic
+ * mode on each scenario), reached by clicking the page's own state button,
+ * and criterion S1-15: every note the engine hands an instrument is drawn —
+ * a lit key on the piano, a pastille on a neck — inside the viewport (the
+ * vertical piano used to stop at C6, L1 study fact 0.4).
+ *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
+ *   npm run s1:probe -- --only=gsm7,harm-gsm7   # only these scenario / state ids
  *
  * Positive control: S1_PROBE_INJECT_CSS="<css>" adds a <style> to every
  * page before measuring, e.g. forcing a label to 10px must turn S1-1 red:
@@ -34,7 +42,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { S1_SCENARIOS, S1_LABEL_MODES } from "../src/prototype/s1Scenarios.js";
+import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "../src/prototype/s1Scenarios.js";
 import { repoRootFrom } from "./lib/repoRoot.mjs";
 
 // VMU-166: decoded with fileURLToPath (a space or a "~" in the path broke .pathname).
@@ -49,6 +57,7 @@ const flag = (name) => args.includes(`--${name}`);
 const AS_JSON = flag("json");
 const SHOT = flag("shot");
 const KEEP_OPEN = flag("headed");
+const ONLY = (args.find((a) => a.startsWith("--only=")) || "").slice("--only=".length).split(",").filter(Boolean);
 
 const VIEWPORTS = [
   { w: 3840, h: 2160, label: "3840x2160" },
@@ -70,6 +79,9 @@ const CRITERIA = [
   { id: "S1-11", decides: true, what: "V3 step pitch in the centre column >= 39px, cell >= 36px wide (projection)" },
   { id: "S1-12", decides: false, what: "no page scroll: scrollHeight <= innerHeight, scrollWidth <= innerWidth" },
   { id: "S1-13", decides: false, what: "no interactive element intercepted (elementFromPoint)" },
+  // L1a (coordinator): a layout that drops a note loses a function, so this
+  // one decides like S1-1..S1-11.
+  { id: "S1-15", decides: true, what: "every active note has its key (piano) or its pastille (neck), on screen" },
 ];
 
 // ─── dev server (same pattern as scripts/style_probe.mjs) ─────────────────
@@ -339,6 +351,44 @@ function measureInPage() {
   }
   out.s1_13 = { checked, offscreen, intercepted };
 
+  // S1-15 (L1a) — what the engine hands each instrument (PrototypeA.jsx's
+  // data-s1-notes / data-s1-positions) against what is drawn: a lit key
+  // (a role class) for every piano pitch, a pastille in the right cell for
+  // every neck position, each visible and inside the viewport.
+  const onScreen = (el) => {
+    if (!visible(el)) return false;
+    const b = r(el);
+    return b.top >= -EPS && b.bottom <= vh + EPS && b.left >= -EPS && b.right <= vw + EPS;
+  };
+  const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const pitchName = (p) => `${NAMES[p % 12]}${Math.floor(p / 12) - 1}`;
+  const s1_15 = { n: 0, fails: [] };
+  const pianoNotes = (document.querySelector('[data-s1="piano"]').getAttribute("data-s1-notes") || "")
+    .split(" ").filter(Boolean).map(Number);
+  for (const p of pianoNotes) {
+    s1_15.n++;
+    const key = piano.querySelector(`.piano-key[data-abs="${p}"]`);
+    if (!key) s1_15.fails.push(`piano ${pitchName(p)}: no key`);
+    else if (![...key.classList].some((c) => c.startsWith("role-"))) s1_15.fails.push(`piano ${pitchName(p)}: key not lit`);
+    else if (!onScreen(key)) s1_15.fails.push(`piano ${pitchName(p)}: key off screen`);
+  }
+  for (const [name, neck] of Object.entries(necks)) {
+    const positions = (document.querySelector(`[data-s1="${name}"]`).getAttribute("data-s1-positions") || "")
+      .split(" ").filter(Boolean);
+    for (const pos of positions) {
+      s1_15.n++;
+      const [s, f] = pos.split(":");
+      const marker = neck.querySelector(`.fbv-fret-row[data-fret="${f}"] .fbv-cell[data-string-index="${s}"] .note-marker`);
+      if (!marker) s1_15.fails.push(`${name} string ${s} fret ${f}: no pastille`);
+      else if (!onScreen(marker)) s1_15.fails.push(`${name} string ${s} fret ${f}: pastille off screen`);
+    }
+  }
+  s1_15.piano = pianoNotes.map(pitchName);
+  const win = piano.querySelectorAll(".white-key[data-abs]");
+  const abs = [...win].map((k) => Number(k.getAttribute("data-abs")));
+  s1_15.window = abs.length ? `${pitchName(Math.min(...abs))}-${pitchName(Math.max(...abs))}` : "?";
+  out.s1_15 = s1_15;
+
   // Informational (VMU-155 "noms et degrés mélangés"): what kind of text
   // each instrument shows on its active notes in this state.
   const kind = (t) => (/^[b#♭♯]?\d{1,2}$/.test(t) ? "degree" : "name");
@@ -380,29 +430,45 @@ function verdicts(m) {
   put("S1-12", sc.scrollHeight <= sc.innerHeight && sc.scrollWidth <= sc.innerWidth, `scrollHeight ${sc.scrollHeight} / innerHeight ${sc.innerHeight}, scrollWidth ${sc.scrollWidth} / ${sc.innerWidth}`);
   const it = m.s1_13;
   put("S1-13", it.intercepted.length === 0, `${it.intercepted.length} intercepted of ${it.checked} on screen (${it.offscreen} off screen)${it.intercepted.length ? `: ${it.intercepted.slice(0, 3).join(" | ")}` : ""}`);
+  const a = m.s1_15;
+  put("S1-15", a.fails.length === 0, `${a.n - a.fails.length}/${a.n} drawn; piano [${a.piano.join(" ")}] in window ${a.window}${a.fails.length ? `: ${a.fails.slice(0, 4).join(" | ")}` : ""}`);
   return v;
 }
 
 // ─── run ──────────────────────────────────────────────────────────────────
 
-async function runState(browser, viewport, scenario, labels) {
+// The four S1 scenarios (applied from the URL), then the L1a states (applied
+// by clicking the page's own button: the Studio one plays a chord, and no
+// audio context starts without a real click).
+const STATES = [
+  ...S1_SCENARIOS.map((s) => ({ id: s.id, extra: false })),
+  ...S1_EXTRA_STATES.map((x) => ({ id: x.id, extra: true })),
+].filter((s) => ONLY.length === 0 || ONLY.includes(s.id));
+
+async function runState(browser, viewport, state, labels) {
   const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
   try {
-    await page.goto(`${ORIGIN}/?prototype=a&scenario=${scenario.id}&labels=${labels.id}`, { waitUntil: "domcontentloaded" });
+    const query = state.extra ? `labels=${labels.id}` : `scenario=${state.id}&labels=${labels.id}`;
+    await page.goto(`${ORIGIN}/?prototype=a&${query}`, { waitUntil: "domcontentloaded" });
     await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
     if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
     await page.evaluate(() => document.fonts.ready);
     // The scenario is applied by an effect after the first paint: wait until
     // the page's own scenario / label buttons report it active.
-    await page.locator(`[data-scenario="${scenario.id}"].is-active`).waitFor({ timeout: 10_000 });
     await page.locator(`[data-labels="${labels.id}"].is-active`).waitFor({ timeout: 10_000 });
+    if (state.extra) {
+      await page.locator(`[data-state="${state.id}"]`).click();
+      await page.locator(`[data-state="${state.id}"].is-active`).waitFor({ timeout: 10_000 });
+    } else {
+      await page.locator(`[data-scenario="${state.id}"].is-active`).waitFor({ timeout: 10_000 });
+    }
     await page.waitForTimeout(200);
     const m = await page.evaluate(measureInPage);
     if (SHOT) {
       fs.mkdirSync(path.join(ROOT, "probe.local"), { recursive: true });
-      await page.screenshot({ path: path.join(ROOT, "probe.local", `s1-${viewport.label}-${scenario.id}-${labels.id}.png`) });
+      await page.screenshot({ path: path.join(ROOT, "probe.local", `s1-${viewport.label}-${state.id}-${labels.id}.png`) });
     }
     return { m, pageErrors };
   } catch (err) {
@@ -457,11 +523,11 @@ const results = [];
 const drawerChecks = {};
 try {
   for (const viewport of VIEWPORTS) {
-    for (const scenario of S1_SCENARIOS) {
+    for (const scenario of STATES) {
       for (const labels of S1_LABEL_MODES) {
         const { m, pageErrors } = await runState(browser, viewport, scenario, labels);
         const v = verdicts(m);
-        const state = `${viewport.label} ${scenario.id.padEnd(9)} ${labels.id.padEnd(7)}`;
+        const state = `${viewport.label} ${scenario.id.padEnd(14)} ${labels.id.padEnd(7)}`;
         results.push({ viewport: viewport.label, scenario: scenario.id, labels: labels.id, verdicts: v, measures: m, pageErrors });
         if (!AS_JSON) {
           for (const c of CRITERIA) {
@@ -510,12 +576,14 @@ const anyPageError = results.some((r) => r.pageErrors.length);
 if (AS_JSON) {
   console.log(JSON.stringify({ results, drawerChecks, summary, decision }, null, 2));
 } else {
-  console.log("\nSummary (all states: 2 viewports x 4 scenarios x 3 label modes)");
+  const nScen = STATES.filter((s) => !s.extra).length;
+  const nExtra = STATES.filter((s) => s.extra).length;
+  console.log(`\nSummary (all states: ${VIEWPORTS.length} viewports x (${nScen} scenarios + ${nExtra} L1a states) x ${S1_LABEL_MODES.length} label modes)`);
   for (const s of summary) {
     console.log(`  ${s.id.padEnd(5)} ${s.pass ? "PASS" : "FAIL"} ${String(s.passCount).padStart(2)}/${s.total}  ${s.what}${s.decides ? "" : "  [correction, not a decision criterion]"}${s.firstFail ? `\n        first fail: ${s.firstFail}` : ""}`);
   }
   console.log("  S1-14 not measured: Gabriel's reading test (10 labels per instrument, names then degrees).");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11 and S1-15 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

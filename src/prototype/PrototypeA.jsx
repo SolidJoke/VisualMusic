@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./PrototypeA.css";
 import PianoKeyboard from "../components/Instruments/PianoKeyboard";
 import Fretboard from "../components/Instruments/Fretboard";
@@ -6,7 +6,8 @@ import SequencerPanel from "../components/Panels/SequencerPanel";
 import TheoryLegend from "../components/Panels/TheoryLegend";
 import { MusicEngineProvider } from "../context/MusicEngineContext";
 import { PlaybackProvider } from "../context/PlaybackContext";
-import { S1_SCENARIOS, S1_LABEL_MODES } from "./s1Scenarios.js";
+import { generateChordsFromNNS } from "../core/theory";
+import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
 
 /**
  * S1 prototype — layout A′ at 3840px (VMU-135 / 035, VMU-155).
@@ -25,13 +26,35 @@ import { S1_SCENARIOS, S1_LABEL_MODES } from "./s1Scenarios.js";
  * probe and Gabriel reach a scenario the same way):
  *   scenario = cmaj | gsm7 | cmajscale | apenta  (the four S1 scenarios)
  *   labels   = eu | us | fingers                 (label modes the app has)
+ *   state    = an S1_EXTRA_STATES id (L1a: octave +3, Studio octave +2,
+ *              harmonic mode); the Studio one waits for a first click on
+ *              the page before its chord sounds (browser audio rule)
  *   drawer   = open
+ *
+ * S1-15 (L1a, "toute note active a sa touche ou sa pastille"): each
+ * instrument column carries what the engine asks it to show —
+ * data-s1-notes on the piano (absolute pitches of the notes it is handed),
+ * data-s1-positions on a neck ("string:fret" of the fingering it is handed)
+ * — so the probe checks the drawing against the engine, not against itself.
  */
 
 function readParams() {
   if (typeof window === "undefined") return {};
   const p = new URLSearchParams(window.location.search);
-  return { scenario: p.get("scenario"), labels: p.get("labels"), drawer: p.get("drawer") };
+  return { scenario: p.get("scenario"), labels: p.get("labels"), state: p.get("state"), drawer: p.get("drawer") };
+}
+
+/** "string:fret" of every sounding position of a fingering (chord grip or scale box). */
+function fingeringPositions(fingering) {
+  if (!fingering) return "";
+  if (Array.isArray(fingering.scaleFrets)) {
+    return fingering.scaleFrets.map((p) => `${p.stringIndex}:${p.fret}`).join(" ");
+  }
+  const map = fingering.fingeringMap || {};
+  return Object.entries(map)
+    .filter(([, s]) => s && (s.status === "played" || s.status === "open") && Number.isFinite(Number(s.fret)))
+    .map(([stringIndex, s]) => `${stringIndex}:${s.fret}`)
+    .join(" ");
 }
 
 export default function PrototypeA({
@@ -60,33 +83,103 @@ export default function PrototypeA({
   musicEngineContextValue,
   playbackContextValue,
   drawerPanel,
+  // L1a states (S1_EXTRA_STATES): the same setters the drawer's panels use.
+  dictOctave = 0,
+  setDictOctave,
+  harmonicMode = false,
+  setHarmonicMode,
+  setChordOctaveOffset,
+  activeProgression,
+  clickedChord,
+  handleChordClick,
 }) {
   const [drawerOpen, setDrawerOpen] = useState(() => readParams().drawer === "open");
+  // A Studio state's chord is clicked once the base octave it needs is in
+  // place: handleChordClick reads the octave of the render it comes from.
+  const pendingChordRef = useRef(null);
+  const [chordRequest, setChordRequest] = useState(0);
 
-  const applyScenario = (s) => {
+  // The Studio's chord buttons (StudioPanel.jsx) are built the same way.
+  const progressionChords = useMemo(
+    () => (activeBrick ? generateChordsFromNNS(activeBrick.rootValue, activeBrick.scaleKey, activeProgression || []) : []),
+    [activeBrick, activeProgression]
+  );
+
+  // A scenario is a whole Dictionary state: octave 0 and harmonic mode off
+  // unless an L1a state asks otherwise.
+  const applyScenario = (s, { octave = 0, harmonic = false } = {}) => {
     setAppMode("dictionary");
     setDictRoot(s.dictRoot);
     setDictType(s.dictType);
+    if (setDictOctave) setDictOctave(octave);
+    if (setHarmonicMode) setHarmonicMode(harmonic);
   };
   const applyLabels = (m) => {
     setNotation(m.notation);
     setShowFingerNumbers(m.fingers);
   };
+  const applyExtraState = (x) => {
+    if (x.studio) {
+      setAppMode("studio");
+      if (setHarmonicMode) setHarmonicMode(false);
+      if (setChordOctaveOffset) setChordOctaveOffset(x.studio.chordOctaveOffset);
+      pendingChordRef.current = x.studio;
+      setChordRequest((n) => n + 1);
+      return;
+    }
+    const s = S1_SCENARIOS.find((sc) => sc.id === x.scenario);
+    if (s) applyScenario(s, { octave: x.dictOctave ?? 0, harmonic: Boolean(x.harmonic) });
+  };
 
-  // Once, on arrival: the URL's scenario and label mode.
+  // Once, on arrival: the URL's scenario (or L1a state) and label mode.
   useEffect(() => {
-    const { scenario, labels } = readParams();
+    const { scenario, labels, state } = readParams();
     const s = S1_SCENARIOS.find((x) => x.id === scenario);
     if (s) applyScenario(s);
+    const x = S1_EXTRA_STATES.find((e) => e.id === state);
+    if (x) applyExtraState(x);
     const m = S1_LABEL_MODES.find((x) => x.id === labels);
     if (m) applyLabels(m);
     // Deliberately once: later changes come from the page's own buttons.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The pending Studio chord, once the mode and the base octave it needs are
+  // the ones this render closed over.
+  useEffect(() => {
+    const pending = pendingChordRef.current;
+    if (!pending || appMode !== "studio" || chordOctaveOffset !== pending.chordOctaveOffset) return;
+    const chord = progressionChords[pending.chordIndex];
+    pendingChordRef.current = null;
+    if (chord && handleChordClick) handleChordClick(chord, pending.chordIndex);
+  }, [chordRequest, appMode, chordOctaveOffset, progressionChords, handleChordClick]);
+
   const currentScenario =
     appMode === "dictionary" ? S1_SCENARIOS.find((s) => s.dictRoot === Number(dictRoot) && s.dictType === dictType) : null;
   const currentLabels = S1_LABEL_MODES.find((m) => m.notation === notation && m.fingers === Boolean(showFingerNumbers));
+  const isExtraStateActive = (x) => {
+    if (x.studio) {
+      const chord = progressionChords[x.studio.chordIndex];
+      return (
+        appMode === "studio" &&
+        chordOctaveOffset === x.studio.chordOctaveOffset &&
+        Boolean(chord && clickedChord && clickedChord.nns === chord.nns)
+      );
+    }
+    return (
+      currentScenario?.id === x.scenario &&
+      Number(dictOctave) === (x.dictOctave ?? 0) &&
+      Boolean(harmonicMode) === Boolean(x.harmonic)
+    );
+  };
+
+  // S1-15: what the engine hands each instrument (see the header comment).
+  const s1Notes = (musicEngineContextValue?.activeNotes || [])
+    .filter((n) => Number.isFinite(n?.absoluteValue))
+    .map((n) => n.absoluteValue)
+    .join(" ");
+  const s1GuitarPositions = fingeringPositions(musicEngineContextValue?.guitarFingering);
+  const s1BassPositions = fingeringPositions(musicEngineContextValue?.bassFingering);
 
   const handlePlay = () => {
     if (appMode === "dictionary" && playDictionaryAudio) playDictionaryAudio();
@@ -187,6 +280,21 @@ export default function PrototypeA({
                 ))}
               </section>
 
+              <section className="proto-a__panel proto-a__controls" data-s1="states">
+                <span className="proto-a__muted">États L1a</span>
+                {S1_EXTRA_STATES.map((x) => (
+                  <button
+                    key={x.id}
+                    type="button"
+                    className={`proto-a__btn ${isExtraStateActive(x) ? "is-active" : ""}`}
+                    data-state={x.id}
+                    onClick={() => applyExtraState(x)}
+                  >
+                    {x.label}
+                  </button>
+                ))}
+              </section>
+
               <section className="proto-a__sequencer" data-s1="sequencer">
                 <SequencerPanel
                   timeline={timeline}
@@ -202,7 +310,7 @@ export default function PrototypeA({
               </section>
             </main>
 
-            <section className="proto-a__instrument" data-s1="piano" aria-label="Piano">
+            <section className="proto-a__instrument" data-s1="piano" data-s1-notes={s1Notes} aria-label="Piano">
               <div className="proto-a__inst-head">
                 <span className="proto-a__inst-title">{txt.instrumentPiano || "Piano"}</span>
                 <span className="proto-a__muted">aigus ↑</span>
@@ -210,7 +318,7 @@ export default function PrototypeA({
               <PianoKeyboard orientation="vertical" />
             </section>
 
-            <section className="proto-a__instrument" data-s1="guitar" aria-label="Guitare">
+            <section className="proto-a__instrument" data-s1="guitar" data-s1-positions={s1GuitarPositions} aria-label="Guitare">
               <div className="proto-a__inst-head">
                 <span className="proto-a__inst-title">{txt.instrumentGuitar || "Guitare"}</span>
                 <span className="proto-a__muted">sillet en haut, graves à gauche</span>
@@ -218,7 +326,7 @@ export default function PrototypeA({
               <Fretboard instrument="guitar" orientation="vertical" />
             </section>
 
-            <section className="proto-a__instrument" data-s1="bass" aria-label="Basse">
+            <section className="proto-a__instrument" data-s1="bass" data-s1-positions={s1BassPositions} aria-label="Basse">
               <div className="proto-a__inst-head">
                 <span className="proto-a__inst-title">{txt.instrumentBass || "Basse"}</span>
                 <span className="proto-a__muted">sillet en haut, graves à gauche</span>
