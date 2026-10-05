@@ -120,7 +120,7 @@ async function main() {
     // 1. II-V-I, style chords.
     await button("II-V-I").first().click();
     await page.waitForTimeout(200);
-    check("II-V-I on E phrygian, style chords (Fmaj7 Bm7b5 Em7)", await chords(), ["Fa", "Sim", "Mim"]);
+    check("II-V-I on E phrygian, style chords (Fmaj7 Bm7b5 Em7)", await chords(), ["Famaj7", "Sim7b5", "Mim7"]);
     // The label above each chord is the chord's own degree in the key: lower case is minor.
     check("  degrees shown", (await readChords(page)).map((c) => c.degree), ["IIMaj7", "v7b5", "i7"]);
     check("  the II-V-I button is active", await isActive("II-V-I"), true);
@@ -130,7 +130,7 @@ async function main() {
     await button(/Cadence classique|Classic cadence/).first().click();
     await page.waitForTimeout(200);
     const after = await chords();
-    check("classic cadence (Fmaj7 B7 Em7)", after, ["Fa", "Si", "Mim"]);
+    check("classic cadence (Fmaj7 B7 Em7)", after, ["Famaj7", "Si7", "Mim7"]);
     check("  only the V changed", before.map((c, i) => c !== after[i]), [false, true, false]);
     check("  degrees shown", (await readChords(page)).map((c) => c.degree), ["IIMaj7", "V7", "i7"]);
     check("  the II-V-I button is still active", await isActive("II-V-I"), true);
@@ -140,12 +140,12 @@ async function main() {
     check("a style change clears the loaded Quick Start", await isActive("II-V-I"), false);
     await button("II-V-I").first().click();
     await page.waitForTimeout(200);
-    check("II-V-I on E dorian with the cadence (F#m7 B7 Em7)", await chords(), ["Fa#m", "Si", "Mim"]);
+    check("II-V-I on E dorian with the cadence (F#m7 B7 Em7)", await chords(), ["Fa#m7", "Si7", "Mim7"]);
 
     // Back to style chords on the loaded Quick Start.
     await button(/Accords du style|Style chords/).first().click();
     await page.waitForTimeout(200);
-    check("style chords again on E dorian (F#m7 Bm7 Em7)", await chords(), ["Fa#m", "Sim", "Mim"]);
+    check("style chords again on E dorian (F#m7 Bm7 Em7)", await chords(), ["Fa#m7", "Sim7", "Mim7"]);
 
     check("no page error", pageErrors, []);
   } finally {
