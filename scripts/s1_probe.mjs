@@ -25,6 +25,13 @@
  * a lit key on the piano, a pastille on a neck — inside the viewport (the
  * vertical piano used to stop at C6, L1 study fact 0.4).
  *
+ * L1a-fix1 (Gabriel's feedback on ?prototype=a, 2026-10-05): the scenario /
+ * label-mode / state buttons are the probe's own fixtures, drawn only with
+ * `bench=1` in the URL, so every URL below carries it. And criterion S1-16:
+ * the three instrument columns keep their distances — no column overlaps
+ * another, the piano keeps clear of the guitar neck, the page keeps a margin
+ * after the bass, the heads are not glued to the left of their column.
+ *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
@@ -82,7 +89,15 @@ const CRITERIA = [
   // L1a (coordinator): a layout that drops a note loses a function, so this
   // one decides like S1-1..S1-11.
   { id: "S1-15", decides: true, what: "every active note has its key (piano) or its pastille (neck), on screen" },
+  // L1a-fix1 (Gabriel): the piano used to overflow its column and touch the
+  // guitar neck, the heads were glued to the left, the bass ended at the
+  // window's edge. Decides like S1-15: a layout that crowds an instrument is
+  // a layout that fails.
+  { id: "S1-16", decides: true, what: "instrument columns: no overlap, piano -> guitar >= 24px, column gaps >= 32px, right margin >= 32px, head padding-left >= 16px" },
 ];
+
+// S1-16 thresholds (L1a-fix1 brief, E).
+const S1_16 = { pianoToNeck: 24, columnGap: 32, rightMargin: 32, headPadding: 16 };
 
 // ─── dev server (same pattern as scripts/style_probe.mjs) ─────────────────
 
@@ -392,6 +407,29 @@ function measureInPage() {
   s1_15.window = abs.length ? `${pitchName(Math.min(...abs))}-${pitchName(Math.max(...abs))}` : "?";
   out.s1_15 = s1_15;
 
+  // S1-16 (L1a-fix1) — the three instrument columns, raw measures (the
+  // thresholds are applied in verdicts()). For each: the column's own box
+  // (the grid area's section), the instrument it holds (the piano's wrapper,
+  // a neck's container), and how far its head (title + caption) sits from the
+  // column's left edge. The page's usable width is clientWidth, so a page
+  // scrollbar cannot flatter the right margin.
+  const s1_16 = { viewport: document.documentElement.clientWidth };
+  for (const id of ["piano", "guitar", "bass"]) {
+    const section = document.querySelector(`[data-s1="${id}"]`);
+    const content = section.querySelector(id === "piano" ? ".piano-wrapper--vertical" : ".fretboard-container--vertical");
+    const heads = [...section.querySelectorAll(".proto-a__inst-head > *")];
+    const sb = r(section);
+    const cb = content ? r(content) : null;
+    s1_16[id] = {
+      colLeft: round(sb.left),
+      colRight: round(sb.right),
+      left: cb ? round(cb.left) : null,
+      right: cb ? round(cb.right) : null,
+      headPad: heads.length ? round(Math.min(...heads.map((h) => r(h).left)) - sb.left) : null,
+    };
+  }
+  out.s1_16 = s1_16;
+
   // Informational (VMU-155 "noms et degrés mélangés"): what kind of text
   // each instrument shows on its active notes in this state.
   const kind = (t) => (/^[b#♭♯]?\d{1,2}$/.test(t) ? "degree" : "name");
@@ -407,6 +445,45 @@ function measureInPage() {
 }
 
 // ─── verdicts ───────────────────────────────────────────────────────────────
+
+/** S1-16: [pass, "measured values; what failed"] from the raw column boxes. */
+function columnsVerdict(c) {
+  const EPS = 0.5;
+  const { piano, guitar, bass } = c;
+  const fails = [];
+  // 1. An instrument stays inside its own column.
+  for (const [id, col] of Object.entries({ piano, guitar, bass })) {
+    if (col.right > col.colRight + EPS) fails.push(`${id} content ends at x=${col.right}, ${round1(col.right - col.colRight)}px beyond its column (x=${col.colRight})`);
+  }
+  // 2. No horizontal overlap between neighbouring instruments, as drawn and as columns.
+  const pianoToNeck = round1(guitar.left - piano.right);
+  const neckToNeck = round1(bass.left - guitar.right);
+  const gapPG = round1(guitar.colLeft - piano.colRight);
+  const gapGB = round1(bass.colLeft - guitar.colRight);
+  if (pianoToNeck < 0) fails.push(`piano overlaps the guitar by ${-pianoToNeck}px`);
+  if (neckToNeck < 0) fails.push(`guitar overlaps the bass by ${-neckToNeck}px`);
+  // 3. Distances.
+  if (pianoToNeck < S1_16.pianoToNeck) fails.push(`piano -> guitar ${pianoToNeck}px < ${S1_16.pianoToNeck}px`);
+  if (gapPG < S1_16.columnGap) fails.push(`column gap piano | guitar ${gapPG}px < ${S1_16.columnGap}px`);
+  if (gapGB < S1_16.columnGap) fails.push(`column gap guitar | bass ${gapGB}px < ${S1_16.columnGap}px`);
+  const rightMargin = round1(c.viewport - bass.right);
+  if (rightMargin < S1_16.rightMargin) fails.push(`right margin after the bass ${rightMargin}px < ${S1_16.rightMargin}px`);
+  // 4. Heads: not glued to the left, and aligned the same way in the three columns.
+  const pads = { piano: piano.headPad, guitar: guitar.headPad, bass: bass.headPad };
+  for (const [id, pad] of Object.entries(pads)) {
+    if (!(pad >= S1_16.headPadding)) fails.push(`${id} head padding-left ${pad}px < ${S1_16.headPadding}px`);
+  }
+  const padValues = Object.values(pads).filter(Number.isFinite);
+  if (padValues.length && Math.max(...padValues) - Math.min(...padValues) > 1) fails.push(`head padding differs between columns (${padValues.join(" / ")}px)`);
+  const widths = [piano, guitar, bass].map((col) => round1(col.colRight - col.colLeft));
+  const value =
+    `columns ${widths.join(" / ")}px (piano / guitar / bass); piano -> guitar ${pianoToNeck}px, guitar -> bass ${neckToNeck}px; ` +
+    `column gaps ${gapPG} / ${gapGB}px; right margin ${rightMargin}px; head padding ${padValues.join(" / ")}px` +
+    (fails.length ? `; FAILED: ${fails.join(" | ")}` : "");
+  return [fails.length === 0, value];
+}
+
+const round1 = (n) => Math.round(n * 10) / 10;
 
 function verdicts(m) {
   const v = {};
@@ -435,6 +512,7 @@ function verdicts(m) {
   put("S1-13", it.intercepted.length === 0, `${it.intercepted.length} intercepted of ${it.checked} on screen (${it.offscreen} off screen)${it.intercepted.length ? `: ${it.intercepted.slice(0, 3).join(" | ")}` : ""}`);
   const a = m.s1_15;
   put("S1-15", a.fails.length === 0, `${a.n - a.fails.length}/${a.n} drawn; piano [${a.piano.join(" ")}] in window ${a.window}${a.fails.length ? `: ${a.fails.slice(0, 4).join(" | ")}` : ""}`);
+  put("S1-16", ...columnsVerdict(m.s1_16));
   return v;
 }
 
@@ -454,7 +532,7 @@ async function runState(browser, viewport, state, labels) {
   page.on("pageerror", (e) => pageErrors.push(String(e)));
   try {
     const query = state.extra ? `labels=${labels.id}` : `scenario=${state.id}&labels=${labels.id}`;
-    await page.goto(`${ORIGIN}/?prototype=a&${query}`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${ORIGIN}/?prototype=a&bench=1&${query}`, { waitUntil: "domcontentloaded" });
     await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
     if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
     await page.evaluate(() => document.fonts.ready);
@@ -487,7 +565,7 @@ async function runState(browser, viewport, state, labels) {
 async function runDrawer(browser, viewport) {
   const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
   try {
-    await page.goto(`${ORIGIN}/?prototype=a&scenario=cmaj&labels=eu&drawer=open`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${ORIGIN}/?prototype=a&bench=1&scenario=cmaj&labels=eu&drawer=open`, { waitUntil: "domcontentloaded" });
     await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: 20_000 });
     await page.evaluate(() => document.fonts.ready);
     return await page.evaluate(() => {
@@ -586,7 +664,7 @@ if (AS_JSON) {
     console.log(`  ${s.id.padEnd(5)} ${s.pass ? "PASS" : "FAIL"} ${String(s.passCount).padStart(2)}/${s.total}  ${s.what}${s.decides ? "" : "  [correction, not a decision criterion]"}${s.firstFail ? `\n        first fail: ${s.firstFail}` : ""}`);
   }
   console.log("  S1-14 not measured: Gabriel's reading test (10 labels per instrument, names then degrees).");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11 and S1-15 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15 and S1-16 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 
