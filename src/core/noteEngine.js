@@ -113,6 +113,56 @@ export function realizeChord(rootPc, semitones, octave) {
 }
 
 /**
+ * L1a (VMU-031) — which window of a keyboard shows a set of notes.
+ *
+ * The vertical piano (PianoKeyboard orientation="vertical") has room for 4
+ * octaves plus the closing C (29 white keys, spec S1-9), out of the 7 the
+ * horizontal keyboard shows at 4K. It used to be frozen at C2..C6, so the
+ * Dictionary's octave +2 / +3 and the Studio's base octave +2 / +3 lit notes
+ * it did not have (L1 study, fact 0.4). The rule (L1a brief, scope item 2):
+ *
+ *   1. the default window — the keyboard's lowest — whenever it holds every
+ *      note (so nothing moves for an octave-0 selection);
+ *   2. otherwise the lowest window that holds them all;
+ *   3. if none does (the notes span more than the window), the window starts
+ *      on the octave of the lowest root — the lowest note when no root is
+ *      among them — clamped to the keyboard, and `holdsAll` says some notes
+ *      are left out.
+ *
+ * A window is described by its lowest C (`startOctave`, scientific: 2 = C2)
+ * and goes up to the C `windowOctaves` octaves higher, included. Bounds go
+ * through realizeNote, like every other pitch in this module.
+ *
+ * @param {number[]} pitches absolute MIDI pitches the window should show
+ * @param {{lowestOctave: number, octaveCount: number, windowOctaves: number}} keyboard
+ *   lowestOctave: the keyboard's lowest C (2 for C2); octaveCount: its octaves
+ *   in all (7: C2..B8); windowOctaves: the window's octaves (4: C2..C6)
+ * @param {number|null} [rootPc] 0-11, the root whose lowest occurrence anchors
+ *   a window that cannot hold everything
+ * @returns {{startOctave: number, holdsAll: boolean}}
+ */
+export function chooseKeyboardWindow(pitches, { lowestOctave, octaveCount, windowOctaves }, rootPc = null) {
+  /** @type {number[]} candidate window starts, lowest first */
+  const starts = [];
+  for (let s = lowestOctave; s <= lowestOctave + octaveCount - windowOctaves; s++) starts.push(s);
+  if (!pitches || pitches.length === 0) return { startOctave: lowestOctave, holdsAll: true };
+
+  const low = Math.min(...pitches);
+  const high = Math.max(...pitches);
+  const holds = (/** @type {number} */ s) => realizeNote(0, s) <= low && high <= realizeNote(0, s + windowOctaves);
+  const fitting = starts.find(holds);
+  if (fitting !== undefined) return { startOctave: fitting, holdsAll: true };
+
+  const roots = rootPc === null || rootPc === undefined ? [] : pitches.filter((p) => ((p % 12) + 12) % 12 === rootPc);
+  const anchor = roots.length > 0 ? Math.min(...roots) : low;
+  // The highest window whose lowest C is at or below the anchor; the
+  // keyboard's lowest when the anchor is below the keyboard.
+  let startOctave = lowestOctave;
+  for (const s of starts) if (realizeNote(0, s) <= anchor) startOctave = s;
+  return { startOctave, holdsAll: false };
+}
+
+/**
  * Convenience: realizeChord for a `CHORDS` dictType key instead of a raw
  * semitones array, resolved via theory.js's own registry. Not part of the
  * brief's minimal contract, but every call site in this ticket already has
