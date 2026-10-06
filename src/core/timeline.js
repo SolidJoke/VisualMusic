@@ -31,7 +31,7 @@
  */
 import { BRICKS } from "./bricks";
 import { NOTES } from "./constants";
-import { DIMINISHED_CHORD_TYPES, MINOR_CHORD_TYPES, generateChordsFromNNS, resolveNnsToChordType } from "./theory";
+import { chordNamesOf, generateChordsFromNNS, resolveNnsToChordType } from "./theory";
 import { classifyDrumTrack, classifyMelodicTrack } from "../audio/trackMapping";
 
 export const TIMELINE_SCHEMA_VERSION = 1;
@@ -577,12 +577,10 @@ export function describeChord(key, chord) {
     }
   }
   const rootNote = NOTES.find((note) => note.value === chord.rootPc);
-  const suffix = MINOR_CHORD_TYPES.includes(chord.type) ? "m" : DIMINISHED_CHORD_TYPES.includes(chord.type) ? "dim" : "";
   const degree = key ? degreeIn(key, chord.rootPc) : null;
   return {
     nns: `${degree ?? rootNote.us}${TYPE_MARKS[chord.type] ?? ""}`,
-    chordNameUS: `${rootNote.us}${suffix}`,
-    chordNameEU: `${rootNote.eu}${suffix}`,
+    ...chordNamesOf(rootNote, chord.type),
     rootNote,
     role: "",
   };

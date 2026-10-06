@@ -177,6 +177,50 @@ export const resolveNnsToChordType = (nns) => {
 };
 
 // ---------------------------------------------------------
+// CHORD NAMES (VMU-169)
+// ---------------------------------------------------------
+//
+// A chord is named by its root and by what its type adds to it: "Fmaj7",
+// "Bm7b5", "C7". This table is the one place that says what each type adds;
+// the Studio's progression (generateChordsFromNNS), the chords of the
+// document (timeline.js describeChord) and the dictionary
+// (getChordShortName) all read it. Only "m" and "dim" used to be written, so
+// a Quick Start's Fmaj7, Bm7b5, Em7 was shown "F", "Bm", "Em": the seventh
+// was gone from the screen, and a half-diminished chord read as a minor one.
+
+/** What follows the root in a chord's name, by chord type. */
+export const CHORD_NAME_SUFFIX = {
+    chord_major: "",
+    chord_minor: "m",
+    chord_dim: "dim",
+    chord_aug: "aug",
+    chord_sus2: "sus2",
+    chord_sus4: "sus4",
+    chord_maj7: "maj7",
+    chord_m7: "m7",
+    chord_7: "7",
+    chord_dim7: "dim7",
+    chord_m7b5: "m7b5",
+    chord_add9: "add9",
+    chord_9: "9",
+    chord_m9: "m9",
+};
+
+/**
+ * The name of a chord on a root, in both notations the app shows: US
+ * "Fmaj7", EU "Famaj7" — the root in solfege and the same suffix after it,
+ * as a minor chord is already "Lam".
+ *
+ * @param {{ us: string, eu: string }} rootNote an entry of NOTES
+ * @param {string} chordType a CHORDS key
+ * @returns {{ chordNameUS: string, chordNameEU: string }}
+ */
+export const chordNamesOf = (rootNote, chordType) => {
+    const suffix = CHORD_NAME_SUFFIX[chordType] ?? "";
+    return { chordNameUS: `${rootNote.us}${suffix}`, chordNameEU: `${rootNote.eu}${suffix}` };
+};
+
+// ---------------------------------------------------------
 // FINGERING DATABASE (GUITAR & BASS)
 // ---------------------------------------------------------
 
@@ -248,8 +292,6 @@ export function generateChordsFromNNS(rootValue, scaleKey, nnsArray) {
 
         const chordType = resolveNnsToChordType(normalizedStr);
         const isMinor = MINOR_CHORD_TYPES.includes(chordType);
-        const isDim = DIMINISHED_CHORD_TYPES.includes(chordType);
-        let suffix = isMinor ? 'm' : isDim ? 'dim' : '';
 
         // Define Harmonic Role — of the mode's own degrees only: a flat or
         // sharp degree ("b5", "b6") is not the mode's dominant or sixth.
@@ -263,8 +305,7 @@ export function generateChordsFromNNS(rootValue, scaleKey, nnsArray) {
 
         return {
             nns: normalizedStr,
-            chordNameUS: `${chordRootNote.us}${suffix}`,
-            chordNameEU: `${chordRootNote.eu}${suffix}`,
+            ...chordNamesOf(chordRootNote, chordType),
             rootNote: chordRootNote,
             role: role
         };
@@ -532,25 +573,8 @@ export const getChordShortName = (rootValue, chordType) => {
     const root = NOTES[rootValue % 12]?.us;
     if (!root || !chordType) return null;
     
-    // Map chord types to their common short suffixes
-    const suffixMap = {
-        chord_major: "",
-        chord_minor: "m",
-        chord_dim: "dim",
-        chord_aug: "aug",
-        chord_sus2: "sus2",
-        chord_sus4: "sus4",
-        chord_maj7: "maj7",
-        chord_m7: "m7",
-        chord_7: "7",
-        chord_dim7: "dim7",
-        chord_m7b5: "m7b5",
-        chord_add9: "add9",
-        chord_9: "9",
-        chord_m9: "m9"
-    };
-
-    const suffix = suffixMap[chordType];
+    // The suffixes are the chord names' own table (see "CHORD NAMES" above).
+    const suffix = CHORD_NAME_SUFFIX[chordType];
     return suffix !== undefined ? `${root}${suffix}` : `${root}?`;
 };
 
