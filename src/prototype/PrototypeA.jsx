@@ -222,6 +222,7 @@ export default function PrototypeA({
                 className={`proto-a__tab ${appMode === "studio" ? "is-active" : ""}`}
                 aria-label="Mode Studio"
                 aria-pressed={appMode === "studio"}
+                data-fn="nav.mode-studio"
                 onClick={() => setAppMode("studio")}
               >
                 Studio
@@ -231,6 +232,7 @@ export default function PrototypeA({
                 className={`proto-a__tab ${appMode === "dictionary" ? "is-active" : ""}`}
                 aria-label="Mode Dictionnaire"
                 aria-pressed={appMode === "dictionary"}
+                data-fn="nav.mode-dictionnaire"
                 onClick={() => setAppMode("dictionary")}
               >
                 {txt.sidebar?.dictionary || "Dictionnaire"}
