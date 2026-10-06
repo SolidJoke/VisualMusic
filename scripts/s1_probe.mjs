@@ -521,7 +521,8 @@ function measureInPage() {
       widths: boxes.map((b) => (b ? round(b.width) : null)),
       headerHeight: hb ? round(hb.height) : null,
       inHeader: Boolean(hb && boxes.every((b) => b && b.top >= hb.top - EPS && b.bottom <= hb.bottom + EPS)),
-      sideBySide: boxes.every((b, i) => b && (i === 0 || (b.left >= boxes[i - 1].right - EPS && Math.abs(b.top - boxes[i - 1].top) <= 1))),
+      // Joined segments share their 1px border: touching is allowed, overlapping by more is not.
+      sideBySide: boxes.every((b, i) => b && (i === 0 || (b.left >= boxes[i - 1].right - 1.5 && Math.abs(b.top - boxes[i - 1].top) <= 1))),
       afterTabs: Boolean(gb && tabsNav && gb.left >= r(tabsNav).right - EPS),
       beforeDrawer: Boolean(gb && drawerBtn && gb.right <= r(drawerBtn).left + EPS),
       labelButtons: document.querySelectorAll("[data-labels]").length,
@@ -857,6 +858,7 @@ async function runNoBench(browser, viewport) {
   try {
     await page.goto(`${ORIGIN}/?prototype=a&scenario=cmaj&labels=eu`, { waitUntil: "domcontentloaded" });
     await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
     await page.evaluate(() => document.fonts.ready);
     await page.locator('[data-labels="eu"].is-active').waitFor({ timeout: 10_000 });
     const pianoTexts = () =>

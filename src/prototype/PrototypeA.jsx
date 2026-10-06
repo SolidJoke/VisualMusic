@@ -17,7 +17,8 @@ import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js"
  * renders the REAL components over the REAL app state AppDesktop already
  * holds (dictionary selection, Studio timeline, label settings):
  *
- *   rail · centre (transport, current sequencer, legend) · vertical piano ·
+ *   header (title, the two mode tabs, the label modes, the drawer button) ·
+ *   centre (transport, current sequencer, legend) · vertical piano ·
  *   vertical guitar · vertical bass · assistant as a drawer laid over the
  *   instruments (the Studio / Dictionary panel of the "Studio & Harmonie"
  *   popup), never over the centre column.
@@ -30,11 +31,13 @@ import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js"
  *              harmonic mode); the Studio one waits for a first click on
  *              the page before its chord sounds (browser audio rule)
  *   drawer   = open
- *   bench    = 1  (L1a-fix1) draws the scenario / label-mode / state buttons.
- *              They are the S1 probe's fixtures — they put the page in a
- *              fixed state and do not follow what the user selects in
- *              Dictionary or Studio — so without it the page shows none.
- *              The three parameters above work with or without it.
+ *   bench    = 1  (L1a-fix1) draws the scenario and L1a-state buttons. They
+ *              are the S1 probe's fixtures — they put the page in a fixed
+ *              state and do not follow what the user selects in Dictionary
+ *              or Studio — so without it the page shows none. The label-mode
+ *              buttons are NOT fixtures: a real function, in the header
+ *              whatever the URL says. The parameters above work with or
+ *              without bench.
  *
  * S1-15 (L1a, "toute note active a sa touche ou sa pastille"): each
  * instrument column carries what the engine asks it to show —
@@ -42,6 +45,13 @@ import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js"
  * data-s1-positions on a neck ("string:fret" of the fingering it is handed)
  * — so the probe checks the drawing against the engine, not against itself.
  */
+
+/** The parity registry's name for each label-mode button (S1_LABEL_MODES ids). */
+const LABEL_MODE_FN = {
+  eu: "nav.noms-notes-eu",
+  us: "nav.noms-notes-us",
+  fingers: "nav.etiquettes-doigts",
+};
 
 function readParams() {
   if (typeof window === "undefined") return {};
@@ -228,6 +238,29 @@ export default function PrototypeA({
             </nav>
             <div className="proto-a__subtitle">Prototype A′ · banc de mesure S1</div>
             <div className="proto-a__spacer" />
+            {/* The label modes: a real function (the note names / finger numbers
+                shown on the keyboard and the necks), whatever the URL says. One
+                control, three segments. The caption and the segments' texts are
+                still hard-coded French (S1_LABEL_MODES): the visible texts must
+                follow the language (VMU-182). */}
+            <div className="proto-a__segmented">
+              <span className="proto-a__muted" aria-hidden="true">Sur les notes</span>
+              <div className="proto-a__segments" role="group" aria-label="Sur les notes">
+                {S1_LABEL_MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={`proto-a__segment ${currentLabels?.id === m.id ? "is-active" : ""}`}
+                    aria-pressed={currentLabels?.id === m.id}
+                    data-labels={m.id}
+                    data-fn={LABEL_MODE_FN[m.id]}
+                    onClick={() => applyLabels(m)}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <button
               type="button"
               className={`proto-a__btn ${drawerOpen ? "is-active" : ""}`}
@@ -282,19 +315,6 @@ export default function PrototypeA({
                       onClick={() => applyScenario(s)}
                     >
                       {s.label}
-                    </button>
-                  ))}
-                  <div className="proto-a__spacer" />
-                  <span className="proto-a__muted">Sur les notes</span>
-                  {S1_LABEL_MODES.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className={`proto-a__btn ${currentLabels?.id === m.id ? "is-active" : ""}`}
-                      data-labels={m.id}
-                      onClick={() => applyLabels(m)}
-                    >
-                      {m.label}
                     </button>
                   ))}
                 </section>

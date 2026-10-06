@@ -84,6 +84,53 @@
   border-color: var(--select);
 }
 
+/* The label modes ("Sur les notes"): ONE control with three segments, on the
+   right of the header, before the drawer button. 48px high targets inside the
+   header's 72px: it adds no height. (They used to sit in the centre column
+   with the bench's fixtures; they are a real function, not a fixture.) */
+.proto-a__segmented {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.proto-a__segments {
+  display: flex;
+}
+
+.proto-a .proto-a__segment {
+  height: 48px;
+  padding: 0 20px;
+  background: var(--bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Joined: one border between two segments, rounded only at the two ends. */
+.proto-a .proto-a__segment + .proto-a__segment {
+  margin-left: -1px;
+}
+
+.proto-a .proto-a__segment:first-child {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.proto-a .proto-a__segment:last-child {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.proto-a .proto-a__segment.is-active {
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
+  /* The pressed segment's white border draws over its neighbours'. */
+  position: relative;
+  z-index: 1;
+}
+
 .proto-a__grid {
   display: grid;
   /* min-content: a neck column is exactly its neck; change the neck's
@@ -177,10 +224,15 @@
 /* The keyboard's box (.piano-wrapper is width: 100% in the default
    content-box, i.e. 100% + its 18px of padding and border: it stuck out of
    its column by 18px and touched the guitar neck). Here it takes the
-   column's width minus a left inset, so it ends exactly with its column. */
+   column's width minus a left inset, so it ends exactly with its column.
+   The keys fill that box: their length (--piano-v-width, 200px by default)
+   is 100% of the box's content, so the 8px padding and 1px border the theme
+   puts around it are the same on the left and on the right (the keys used
+   to stop 29px short of the right edge, 9px from the left one). */
 .proto-a__instrument[data-s1="piano"] .piano-wrapper--vertical {
   width: auto;
   margin-left: var(--proto-piano-inset, 10px);
+  --piano-v-width: 100%;
 }
 
 /* One head, the same in the three columns: a fixed height and one line each
