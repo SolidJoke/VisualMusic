@@ -24,6 +24,19 @@
   --proto-head-pad: 16px;      /* the three instrument heads' left padding (aligned) */
   --proto-head-h: 72px;        /* one head: title + caption, one line each, same in the three columns */
 
+  /* The instruments' length (L1a-fix2, Gabriel: the two necks as long as the
+     keyboard). ONE value, derived from the keyboard: its white keys (the
+     vertical window is 4 octaves and a C: 29) x their thickness, plus the
+     keyboard box's padding and border (8 + 1 each side, the theme's). The
+     keyboard reads --proto-key for its keys (below), the necks read --fbv-h
+     (Fretboard.css turns it into their rows): neither carries a number of its
+     own. S1-17 measures that each neck ends where the keyboard ends. */
+  --proto-key: 62px;
+  --proto-keys: 29;
+  --proto-piano-chrome: 18px;
+  --proto-inst-h: calc(var(--proto-keys, 29) * var(--proto-key, 62px) + var(--proto-piano-chrome, 18px));
+  --fbv-h: var(--proto-inst-h, calc(29 * 62px + 18px));
+
   position: relative;
   min-height: 100vh;
   display: grid;
@@ -233,6 +246,9 @@
   width: auto;
   margin-left: var(--proto-piano-inset, 10px);
   --piano-v-width: 100%;
+  /* The key thickness is the page's (--proto-key): the keyboard's length and
+     the necks' are the same variable, not two numbers kept equal by hand. */
+  --piano-v-key: var(--proto-key, 62px);
 }
 
 /* One head, the same in the three columns: a fixed height and one line each
