@@ -13,10 +13,14 @@
 //   4. each fret row from 1 carries its pitch as the CSS variable the
 //      stylesheet reads (--fbv-pitch), the open-string row does not.
 //
-// Amendment (coordinator): every dot is centred between the two MIDDLE
-// strings (guitar D / G, bass A / D); the double dot on 12 is two dots in that
-// same band, one above the other along the neck, so each carries a vertical
-// offset (--fbv-inlay-dy: -1 and +1, 0 for a single dot).
+// Where the dots sit across the neck (coordinator, 2026-10-06, after her QA):
+// a single dot is centred between the two MIDDLE strings (guitar D / G, bass
+// A / D), and the double dot on fret 12 is spread over the width like a real
+// neck - guitar: one between strings 2-3 and one between strings 4-5; bass:
+// one between 1-2 and one between 3-4. That is one string either side of the
+// centre, so each dot of the pair carries a horizontal shift in strings
+// (--fbv-inlay-shift: -1 and +1; none on a single dot) and no vertical offset.
+// (The previous round stacked the pair in the middle band: --fbv-inlay-dy.)
 //
 // jsdom does no layout: that the dots sit between strings, at the middle of
 // the case, and under the pastilles is the Chromium probe's job
@@ -157,20 +161,21 @@ describe.each(["guitar", "bass"])("vertical %s neck: fret markers", (instrument)
     }
   });
 
-  it("tells its two dots on fret 12 apart (one above the other, either side of the case's middle)", () => {
+  it("spreads the two dots of fret 12 over the width: one string left of the centre, one string right", () => {
     const neck = renderNeck(instrument);
-    const offsets = Array.from(neck.querySelectorAll('[data-fret-marker="12"]')).map((d) => d.style.getPropertyValue("--fbv-inlay-dy"));
-    expect(offsets).toEqual(["-1", "1"]);
-    // A single dot is on the case's middle: no offset.
-    const single = neck.querySelector('[data-fret-marker="3"]');
-    expect(["", "0"]).toContain(single.style.getPropertyValue("--fbv-inlay-dy"));
+    const shifts = Array.from(neck.querySelectorAll('[data-fret-marker="12"]')).map((d) => d.style.getPropertyValue("--fbv-inlay-shift"));
+    expect(shifts).toEqual(["-1", "1"]);
   });
 
-  it("keeps every dot in the band between the two middle strings: no horizontal shift variable at all", () => {
+  it("keeps a single dot at the middle of the board: no shift, and no dot is ever shifted along the neck", () => {
     const neck = renderNeck(instrument);
-    expect(neck.querySelectorAll("[data-fret-marker]").length).toBeGreaterThan(0);
-    for (const dot of neck.querySelectorAll("[data-fret-marker]")) {
-      expect(dot.style.getPropertyValue("--fbv-inlay-shift")).toBe("");
+    const dots = Array.from(neck.querySelectorAll("[data-fret-marker]"));
+    expect(dots.length).toBeGreaterThan(0);
+    for (const dot of dots) {
+      const fret = dot.getAttribute("data-fret-marker");
+      if (fret !== "12") expect(["", "0"], `fret ${fret}`).toContain(dot.style.getPropertyValue("--fbv-inlay-shift"));
+      // The previous round stacked the pair on the middle band: gone.
+      expect(dot.style.getPropertyValue("--fbv-inlay-dy"), `fret ${fret}`).toBe("");
     }
   });
 
