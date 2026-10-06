@@ -523,7 +523,6 @@
     --fbv-head: 36px;     /* open-string names row, status row */
     --fbv-marker: 48px;   /* note pastille (S1-3: >= 48px) */
     --fbv-inlay: 12px;    /* fret marker dot (fits the 18px between two pastilles) */
-    --fbv-inlay-step: 13px; /* the two dots of fret 12: this far above / below the case's middle */
     /* VMU-164: look more like a neck, with tokens only. The board is a large
        surface: --surface-1 is the lightest one F1 allows there (tokens.css).
        Fret wires 3px instead of 2px. */
@@ -652,17 +651,19 @@
 
 /* Fret markers (L1a-fix1): the dots a real neck has on frets 3, 5, 7, 9, 12
    (two), 15, 17, 19, 21. Inside the row of their fret, so they follow its
-   height; every dot is centred in the band between the two MIDDLE strings
-   (guitar D / G, bass A / D: the middle of the board, --fbv-strings / 2
-   strings from its left edge), on the middle of the case; the two on 12 sit
-   one above the other, --fbv-inlay-step either side of that middle. Drawn
-   before the cells and at z-index 0, so a pastille (z-index 2) always paints
-   over a marker; with 66px strings two neighbouring pastilles leave 18px, so
-   a 12px dot does not even touch them. --border-strong, as the fret wires. */
+   height, on the middle of the case. A single dot is centred in the band
+   between the two MIDDLE strings (guitar D / G, bass A / D: the middle of the
+   board, --fbv-strings / 2 strings from its left edge). The two on 12 are
+   spread over the width like a real neck, --fbv-inlay-shift strings (-1 and
+   +1) either side of that middle: guitar between strings 2-3 and 4-5, bass
+   between 1-2 and 3-4. Drawn before the cells and at z-index 0, so a
+   pastille (z-index 2) always paints over a marker; with 66px strings two
+   neighbouring pastilles leave 18px, so a 12px dot, always in the gap between
+   two strings, does not even touch them. --border-strong, as the fret wires. */
 .fbv-inlay {
     position: absolute;
-    left: calc(var(--fbv-gutter, 28px) + var(--fbv-string, 66px) * var(--fbv-strings, 6) / 2);
-    top: calc(50% + var(--fbv-inlay-dy, 0) * var(--fbv-inlay-step, 13px));
+    left: calc(var(--fbv-gutter, 28px) + var(--fbv-string, 66px) * (var(--fbv-strings, 6) / 2 + var(--fbv-inlay-shift, 0)));
+    top: 50%;
     width: var(--fbv-inlay, 12px);
     height: var(--fbv-inlay, 12px);
     transform: translate(-50%, -50%);

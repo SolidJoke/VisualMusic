@@ -7,7 +7,15 @@
 // (src/prototype/s1Scenarios.js). They put the page into a fixed state; they
 // do not follow what the user selected. So they are drawn ONLY when the URL
 // asks for the bench (`?prototype=a&bench=1`), which is how the probe reaches
-// them; without it the page shows no scenario, label-mode or state button.
+// them; without it the page shows no scenario or state button.
+//
+// Correction after the coordinator's QA (2026-10-06): the three label-mode
+// buttons ("Noms Do Ré Mi" / "Noms C D E" / "Doigts") are NOT fixtures. They
+// are a real function (the note-name setting Gabriel uses next to the keyboard
+// and the necks): the first version of this fix hid them with the rest, so
+// without ?bench=1 nothing changed the labels any more. They are in the
+// header whatever the URL says (PrototypeALabelModes.test.jsx); this file only
+// asserts that the SCENARIOS and the L1a STATES are bench-only.
 //
 // The heavy children (instruments, sequencer, legend) are stubbed: this file
 // asserts what PrototypeA decides to render, not what they draw.
@@ -66,24 +74,24 @@ afterEach(() => {
 });
 
 describe("PrototypeA: the measuring bench's fixtures", () => {
-  it("draws no scenario, label-mode or state button without bench=1", () => {
+  it("draws no scenario or state button without bench=1", () => {
     const page = renderAt("?prototype=a");
     expect(page.querySelector('[data-s1="scenarios"]')).toBeNull();
     expect(page.querySelector('[data-s1="states"]')).toBeNull();
     expect(page.querySelectorAll("[data-scenario]")).toHaveLength(0);
-    expect(page.querySelectorAll("[data-labels]")).toHaveLength(0);
     expect(page.querySelectorAll("[data-state]")).toHaveLength(0);
     expect(page.textContent).not.toContain("Scénarios S1");
     expect(page.textContent).not.toContain("États L1a");
   });
 
-  it("draws them all with bench=1: every scenario, label mode and L1a state the probe clicks", () => {
+  it("draws them all with bench=1: every scenario and L1a state the probe clicks, and the label modes still once each", () => {
     const page = renderAt("?prototype=a&bench=1");
     expect(page.querySelector('[data-s1="scenarios"]')).not.toBeNull();
     expect(page.querySelector('[data-s1="states"]')).not.toBeNull();
     for (const s of S1_SCENARIOS) expect(page.querySelector(`[data-scenario="${s.id}"]`), s.id).not.toBeNull();
-    for (const m of S1_LABEL_MODES) expect(page.querySelector(`[data-labels="${m.id}"]`), m.id).not.toBeNull();
     for (const x of S1_EXTRA_STATES) expect(page.querySelector(`[data-state="${x.id}"]`), x.id).not.toBeNull();
+    // Not duplicated in the bench block: the probe waits on [data-labels="<id>"].
+    for (const m of S1_LABEL_MODES) expect(page.querySelectorAll(`[data-labels="${m.id}"]`), m.id).toHaveLength(1);
   });
 
   it("treats only bench=1 as the bench (not bench=0, not an empty value)", () => {

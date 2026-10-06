@@ -8,6 +8,8 @@
 //   - two buttons in the header, after the title, whose accessible names are
 //     "Mode Studio" and "Mode Dictionnaire" (the visible text is the short
 //     "Studio" / "Dictionnaire"), the active mode being aria-pressed;
+//   - each carries its parity-registry name: data-fn "nav.mode-studio" and
+//     "nav.mode-dictionnaire" (coordinator, 2026-10-06);
 //   - they switch the mode through the same setter the rail used.
 //
 // Their size (>= 48px high) and their place are measured in Chromium by the
@@ -93,6 +95,16 @@ describe("PrototypeA: the mode tabs in the header", () => {
     const titleAt = kids.findIndex((el) => el.classList.contains("proto-a__title"));
     expect(kids[titleAt + 1].matches("nav")).toBe(true);
     expect(kids[titleAt + 1].querySelectorAll("button")).toHaveLength(2);
+  });
+
+  it("names each tab for the parity registry: data-fn nav.mode-studio / nav.mode-dictionnaire", () => {
+    const page = renderPage("dictionary");
+    const header = page.querySelector("header.proto-a__header");
+    expect(header.querySelector('[aria-label="Mode Studio"]').getAttribute("data-fn")).toBe("nav.mode-studio");
+    expect(header.querySelector('[aria-label="Mode Dictionnaire"]').getAttribute("data-fn")).toBe("nav.mode-dictionnaire");
+    // One each: a data-fn names a function, so it is never on two buttons.
+    expect(page.querySelectorAll('[data-fn="nav.mode-studio"]')).toHaveLength(1);
+    expect(page.querySelectorAll('[data-fn="nav.mode-dictionnaire"]')).toHaveLength(1);
   });
 
   it("marks the active mode as pressed", () => {

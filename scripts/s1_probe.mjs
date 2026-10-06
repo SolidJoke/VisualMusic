@@ -26,15 +26,19 @@
  * vertical piano used to stop at C6, L1 study fact 0.4).
  *
  * L1a-fix1 (Gabriel's feedback on ?prototype=a, 2026-10-05): the scenario /
- * label-mode / state buttons are the probe's own fixtures, drawn only with
- * `bench=1` in the URL, so every URL below carries it. And three criteria:
+ * state buttons are the probe's own fixtures, drawn only with `bench=1` in
+ * the URL, so every state URL below carries it (the three label-mode buttons
+ * are a real function and are always there: S1-19). And four criteria:
  * S1-16, the three instrument columns keep their distances (no column
  * overlaps another, the piano keeps clear of the guitar neck, the page keeps
  * a margin after the bass, the heads are not glued to the left, on one line,
- * and the three instruments start at the same height); S1-17, the necks'
- * fret pitch shrinks linearly from the nut to the body and their markers
- * (3 5 7 9 12x2 15 17 19 21) sit between the two middle strings; S1-18, the
- * left rail is gone and its two mode buttons are tabs in the header.
+ * the three instruments start at the same height, the piano's keys fill
+ * their box evenly); S1-17, the necks' fret pitch shrinks linearly from the
+ * nut to the body and their markers (3 5 7 9 12x2 15 17 19 21) sit at the
+ * middle of their case (a single one between the two middle strings, the two
+ * on 12 spread over the width); S1-18, the left rail is gone and its two mode
+ * buttons are tabs in the header; S1-19, the label modes are one 3-segment
+ * control in the header, working without bench=1 (runNoBench).
  *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
@@ -105,13 +109,16 @@ const CRITERIA = [
   // guitar neck, the heads were glued to the left, the bass ended at the
   // window's edge. Decides like S1-15: a layout that crowds an instrument is
   // a layout that fails.
-  { id: "S1-16", decides: true, what: "instrument columns: no overlap, piano -> guitar and guitar -> bass >= 24px, right margin >= 24px, head padding-left >= 16px (one line, aligned), the three instruments start at the same height" },
+  { id: "S1-16", decides: true, what: "instrument columns: no overlap, piano -> guitar and guitar -> bass >= 24px, right margin >= 24px, head padding-left >= 16px (one line, aligned), the three instruments start at the same height, the piano's keys fill their box evenly (same empty space left and right)" },
   // L1a-fix1 (Gabriel): the frets get closer towards the body and the neck
   // carries the markers a real one has. Decides like S1-5 / S1-16.
-  { id: "S1-17", decides: true, what: "neck: fret pitch linear 84 -> 56px (>= 52 everywhere), height <= before (guitar 1682 / bass 1542px), 12px markers on 3 5 7 9 12x2 15 17 19 21 (those the neck has) between the two middle strings, under the pastilles; numbers and pastilles on their row's middle" },
+  { id: "S1-17", decides: true, what: "neck: fret pitch linear 84 -> 56px (>= 52 everywhere), height <= before (guitar 1682 / bass 1542px), 12px markers on 3 5 7 9 12x2 15 17 19 21 (those the neck has): a single one between the two middle strings, the two on 12 spread over the width (guitar 2-3 and 4-5, bass 1-2 and 3-4), under the pastilles; numbers and pastilles on their row's middle" },
   // Coordinator's amendment: the left rail is gone, its two mode buttons are
   // tabs in the header after the title.
   { id: "S1-18", decides: true, what: "mode tabs: 'Mode Studio' / 'Mode Dictionnaire' in the header after the title, >= 48px high; no left rail (the page starts at <= 24px)" },
+  // Coordinator, after her QA: the label modes are a function, not a fixture.
+  // (Their behaviour without bench=1 is checked per viewport, see runNoBench.)
+  { id: "S1-19", decides: true, what: "label modes: one 'Sur les notes' group of 3 segments (data-fn nav.noms-notes-eu / -us / nav.etiquettes-doigts) in the header, right of the tabs, >= 48px high, header still 72px, each button once, none in the centre column" },
 ];
 
 // S1-16 thresholds (L1a-fix1 brief E, as amended by the coordinator: 24px
@@ -460,6 +467,14 @@ function measureInPage() {
       headHeight: headBox ? round(r(headBox).height) : null,
       headLines: heads.length ? Math.max(...heads.map(lines)) : null,
     };
+    if (id === "piano" && cb) {
+      // The keys inside their box: what is left empty on each side. The white
+      // keys used to be 200px in a 238px box, 29px empty on the right.
+      const keys = section.querySelector(".piano-vertical");
+      const kb = keys ? r(keys) : null;
+      s1_16.piano.insetLeft = kb ? round(kb.left - cb.left) : null;
+      s1_16.piano.insetRight = kb ? round(cb.right - kb.right) : null;
+    }
   }
   const centreBox = document.querySelector('[data-s1="center"]');
   s1_16.leftMargin = centreBox ? round(r(centreBox).left) : null;
@@ -481,6 +496,37 @@ function measureInPage() {
       inHeader: Boolean(hb && boxes.every((b) => b && b.top >= hb.top - EPS && b.bottom <= hb.bottom + EPS)),
       rail: Boolean(document.querySelector(".proto-a__rail")),
       firstColumnLeft: s1_16.leftMargin,
+    };
+  }
+
+  // S1-19 (coordinator, after her QA) — the label modes ("Noms Do Ré Mi" /
+  // "Noms C D E" / "Doigts") are a real function, in the header on the right:
+  // one control with three segments titled "Sur les notes", >= 48px high, the
+  // header keeping its 72px, each button once (the probe waits on
+  // [data-labels]) and none left in the centre column.
+  {
+    const FNS = ["nav.noms-notes-eu", "nav.noms-notes-us", "nav.etiquettes-doigts"];
+    const header = document.querySelector("header.proto-a__header");
+    const hb = header ? r(header) : null;
+    const group = header ? header.querySelector('[role="group"][aria-label="Sur les notes"]') : null;
+    const btns = FNS.map((fn) => (header ? header.querySelector(`button[data-fn="${fn}"]`) : null));
+    const boxes = btns.map((b) => (b ? r(b) : null));
+    const gb = group ? r(group) : null;
+    const tabsNav = header ? header.querySelector("nav.proto-a__tabs") : null;
+    const drawerBtn = header ? header.querySelector('[data-testid="proto-drawer-toggle"]') : null;
+    out.s1_19 = {
+      group: Boolean(group),
+      present: btns.map(Boolean),
+      heights: boxes.map((b) => (b ? round(b.height) : null)),
+      widths: boxes.map((b) => (b ? round(b.width) : null)),
+      headerHeight: hb ? round(hb.height) : null,
+      inHeader: Boolean(hb && boxes.every((b) => b && b.top >= hb.top - EPS && b.bottom <= hb.bottom + EPS)),
+      // Joined segments share their 1px border: touching is allowed, overlapping by more is not.
+      sideBySide: boxes.every((b, i) => b && (i === 0 || (b.left >= boxes[i - 1].right - 1.5 && Math.abs(b.top - boxes[i - 1].top) <= 1))),
+      afterTabs: Boolean(gb && tabsNav && gb.left >= r(tabsNav).right - EPS),
+      beforeDrawer: Boolean(gb && drawerBtn && gb.right <= r(drawerBtn).left + EPS),
+      labelButtons: document.querySelectorAll("[data-labels]").length,
+      inCentre: document.querySelectorAll('[data-s1="center"] [data-labels]').length,
     };
   }
 
@@ -506,10 +552,13 @@ function measureInPage() {
       const want = rows.some((x) => x.fret === f) ? MARKS[f] || 0 : 0;
       if ((found[f] || 0) !== want) fails.push(`fret ${f}: ${found[f] || 0} marker(s), expected ${want}`);
     }
-    // Each marker (coordinator's amendment): 12px, centred between the TWO
-    // MIDDLE strings (guitar D / G, bass A / D); a single dot on the middle of
-    // its case, the two dots of fret 12 one above the other, symmetric about
-    // that middle and clear of each other; and under any pastille it touches.
+    // Each marker: 12px, on the middle of its case (vertically). Across the
+    // neck (coordinator, after her QA): a single dot between the TWO MIDDLE
+    // strings (guitar D / G, bass A / D); the two dots of fret 12 spread over
+    // the width like a real neck - guitar between strings 2-3 and 4-5, bass
+    // between 1-2 and 3-4, i.e. one string pitch either side of the board's
+    // middle, each in the gap between two strings. And under any pastille it
+    // touches.
     let dots = 0;
     const byFret = {};
     for (const d of neck.querySelectorAll("[data-fret-marker]")) {
@@ -524,20 +573,22 @@ function measureInPage() {
       const rowMidY = (row.rect.top + row.rect.bottom - bw) / 2;
       const cells = [...row.row.querySelectorAll(".fbv-cell")].map((c) => centre(r(c)).x).sort((a, b) => a - b);
       const boardMidX = (cells[0] + cells[cells.length - 1]) / 2;
-      const boxes = group.map(r).sort((a, b) => a.top - b.top);
-      for (const db of boxes) {
+      const boxes = group.map(r).sort((a, b) => a.left - b.left);
+      const stringPitch = cells.length > 1 ? cells[1] - cells[0] : 0;
+      // Where the dots must be: the board's middle for one, one string pitch
+      // either side of it for two.
+      const wantX = boxes.length === 2 ? [boardMidX - stringPitch, boardMidX + stringPitch] : [boardMidX];
+      boxes.forEach((db, i) => {
         dots++;
         const dc = centre(db);
-        if (Math.abs(dc.x - boardMidX) > 1.5) fails.push(`fret ${f} marker at x=${round(dc.x)}, ${round(dc.x - boardMidX)}px off the band between the two middle strings`);
+        if (wantX[i] === undefined || Math.abs(dc.x - wantX[i]) > 1.5) fails.push(`fret ${f} marker at x=${round(dc.x)}, expected x=${wantX[i] === undefined ? "?" : round(wantX[i])}`);
+        // In the gap between two strings, never on a string.
+        const gapMids = cells.slice(1).map((x, k) => (x + cells[k]) / 2);
+        if (!gapMids.some((x) => Math.abs(x - dc.x) <= 1.5)) fails.push(`fret ${f} marker at x=${round(dc.x)} is not between two strings`);
+        if (Math.abs(centre(db).y - rowMidY) > 1) fails.push(`fret ${f} marker ${round(centre(db).y - rowMidY)}px off the middle of its case`);
         if (Math.abs(db.width - 12) > 0.5 || Math.abs(db.height - 12) > 0.5) fails.push(`fret ${f} marker is ${round(db.width)}x${round(db.height)}px, 12px expected`);
         if (db.top < row.rect.top - EPS || db.bottom > row.rect.bottom - bw + EPS) fails.push(`fret ${f} marker leaves its case`);
-      }
-      const ys = boxes.map((b) => centre(b).y);
-      if (boxes.length === 1 && Math.abs(ys[0] - rowMidY) > 1) fails.push(`fret ${f} marker ${round(ys[0] - rowMidY)}px off the middle of its case`);
-      if (boxes.length === 2) {
-        if (Math.abs((ys[0] + ys[1]) / 2 - rowMidY) > 1) fails.push(`fret ${f} double marker is not centred on the middle of its case`);
-        if (ys[1] - ys[0] < boxes[0].height + 4) fails.push(`fret ${f} double marker: the two dots are ${round(ys[1] - ys[0])}px apart, too close`);
-      }
+      });
     }
     for (const d of neck.querySelectorAll("[data-fret-marker]")) {
       const f = Number(d.getAttribute("data-fret-marker"));
@@ -638,16 +689,42 @@ function columnsVerdict(c) {
   if (Math.max(...heights) - Math.min(...heights) > S1_16.topTolerance) fails.push(`head heights differ (${heights.join(" / ")}px)`);
   const tops = [piano, guitar, bass].map((col) => col.top);
   if (Math.max(...tops) - Math.min(...tops) > S1_16.topTolerance) fails.push(`the instruments do not start at the same height (tops ${tops.join(" / ")}px)`);
+  // 6. The keyboard's keys fill their box evenly: the same empty space on the
+  // left and on the right (Gabriel asked for padding, not a lopsided void).
+  if (!(Math.abs(piano.insetLeft - piano.insetRight) <= 1.5)) fails.push(`piano keys leave ${piano.insetLeft}px empty on the left of their box and ${piano.insetRight}px on the right`);
   const widths = [piano, guitar, bass].map((col) => round1(col.colRight - col.colLeft));
   const value =
     `columns ${widths.join(" / ")}px (piano / guitar / bass); piano -> guitar ${pianoToNeck}px, guitar -> bass ${neckToNeck}px; ` +
     `column gaps ${gapPG} / ${gapGB}px; margins left ${c.leftMargin}px, right ${rightMargin}px; head padding ${padValues.join(" / ")}px, ` +
-    `head ${heights.join(" / ")}px high on ${headLines.join(" / ")} line(s); tops ${tops.join(" / ")}px` +
+    `head ${heights.join(" / ")}px high on ${headLines.join(" / ")} line(s); tops ${tops.join(" / ")}px; ` +
+    `piano keys ${round1(piano.right - piano.left - piano.insetLeft - piano.insetRight)}px wide, ${piano.insetLeft} / ${piano.insetRight}px empty left / right` +
     (fails.length ? `; FAILED: ${fails.join(" | ")}` : "");
   return [fails.length === 0, value];
 }
 
 const round1 = (n) => Math.round(n * 10) / 10;
+
+/** S1-19: [pass, "measured values; what failed"] from the raw header label control. */
+function labelModesVerdict(t) {
+  const fails = [];
+  if (!t.group) fails.push("no 'Sur les notes' group in the header");
+  const names = ["nav.noms-notes-eu", "nav.noms-notes-us", "nav.etiquettes-doigts"];
+  t.present.forEach((p, i) => { if (!p) fails.push(`no button data-fn="${names[i]}" in the header`); });
+  if (t.present.every(Boolean)) {
+    if (t.heights.some((h) => !(h >= 48))) fails.push(`segment height ${t.heights.join(" / ")}px < 48px`);
+    if (!t.inHeader) fails.push("the segments are not inside the header");
+    if (!t.sideBySide) fails.push("the segments are not side by side");
+  }
+  if (!t.afterTabs) fails.push("the control is not to the right of the mode tabs");
+  if (!t.beforeDrawer) fails.push("the control is not to the left of the drawer button");
+  if (!(t.headerHeight <= 72.5)) fails.push(`the header is ${t.headerHeight}px high, 72px expected (no height added)`);
+  if (t.labelButtons !== 3) fails.push(`${t.labelButtons} [data-labels] buttons in the page, 3 expected (each once)`);
+  if (t.inCentre !== 0) fails.push(`${t.inCentre} label button(s) left in the centre column`);
+  const value =
+    `segments ${t.widths.join(" / ")}px wide, ${t.heights.join(" / ")}px high; header ${t.headerHeight}px` +
+    (fails.length ? `; FAILED: ${fails.join(" | ")}` : "");
+  return [fails.length === 0, value];
+}
 
 /** S1-18: [pass, "measured values; what failed"] from the raw header tabs. */
 function tabsVerdict(t) {
@@ -722,6 +799,7 @@ function verdicts(m) {
   put("S1-16", ...columnsVerdict(m.s1_16));
   put("S1-17", ...necksVerdict(m.s1_17));
   put("S1-18", ...tabsVerdict(m.s1_18));
+  put("S1-19", ...labelModesVerdict(m.s1_19));
   return v;
 }
 
@@ -771,6 +849,50 @@ async function runState(browser, viewport, state, labels) {
 // The assistant drawer (spec §1, A′): laid over the instruments, never over
 // the centre column (P0-3: "on voit la piste changer pendant qu'on règle").
 // Not an S1 criterion — reported as information, one line per viewport.
+// The page as Gabriel reaches it, WITHOUT bench=1 (S1-19, behaviour): no
+// scenario or state fixture, the three label modes there and working through
+// the real application's state - clicking "Noms C D E" turns the lit piano
+// keys' names from Do... to C..., each click moves the pressed segment.
+async function runNoBench(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  try {
+    await page.goto(`${ORIGIN}/?prototype=a&scenario=cmaj&labels=eu`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+    await page.evaluate(() => document.fonts.ready);
+    await page.locator('[data-labels="eu"].is-active').waitFor({ timeout: 10_000 });
+    const pianoTexts = () =>
+      page.evaluate(() => [...document.querySelectorAll('[data-s1="piano"] .piano-key[class*="role-"] .note-label')].map((l) => l.textContent.trim()));
+    const fails = [];
+    const fixtures = await page.evaluate(
+      () => document.querySelectorAll('[data-scenario], [data-state], [data-s1="scenarios"], [data-s1="states"]').length
+    );
+    if (fixtures !== 0) fails.push(`${fixtures} scenario / state fixture(s) without bench=1`);
+    const buttons = await page.evaluate(() => [...document.querySelectorAll("[data-labels]")].map((b) => `${b.getAttribute("data-labels")}:${b.getAttribute("data-fn")}`));
+    if (buttons.length !== 3) fails.push(`${buttons.length} label buttons without bench=1, 3 expected`);
+    const eu = await pianoTexts();
+    await page.locator('[data-labels="us"]').click();
+    await page.locator('[data-labels="us"].is-active').waitFor({ timeout: 10_000 });
+    const us = await pianoTexts();
+    if (!(eu.length > 0 && us.length === eu.length && eu.join("|") !== us.join("|"))) fails.push(`"Noms C D E" did not change the piano's names (${eu.join(" ")} -> ${us.join(" ")})`);
+    if (!us.some((t) => /^C\b/.test(t))) fails.push(`"Noms C D E": no key named C (${us.join(" ")})`);
+    await page.locator('[data-labels="fingers"]').click();
+    await page.locator('[data-labels="fingers"].is-active').waitFor({ timeout: 10_000 });
+    const euStillActive = await page.locator('[data-labels="eu"].is-active').count();
+    const usStillActive = await page.locator('[data-labels="us"].is-active').count();
+    if (euStillActive || usStillActive) fails.push('"Doigts" left another segment pressed');
+    await page.locator('[data-labels="eu"]').click();
+    await page.locator('[data-labels="eu"].is-active').waitFor({ timeout: 10_000 });
+    const back = await pianoTexts();
+    if (back.join("|") !== eu.join("|")) fails.push(`back on "Noms Do Ré Mi" the names are ${back.join(" ")}, not ${eu.join(" ")}`);
+    return { fails, value: `no fixture; label buttons ${buttons.join(" ")}; piano names ${eu.join(" ")} -> ${us.join(" ")} -> (Doigts) -> ${back.join(" ")}` };
+  } catch (err) {
+    return { fails: [String(err && err.message ? err.message : err)], value: "" };
+  } finally {
+    await page.close();
+  }
+}
+
 async function runDrawer(browser, viewport) {
   const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
   try {
@@ -811,6 +933,7 @@ if (!AS_JSON) {
 const browser = await chromium.launch({ headless: !KEEP_OPEN });
 const results = [];
 const drawerChecks = {};
+const noBenchChecks = {};
 try {
   for (const viewport of VIEWPORTS) {
     for (const scenario of STATES) {
@@ -830,6 +953,11 @@ try {
           if (pageErrors.length) console.log(`${state} page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
         }
       }
+    }
+    const nb = await runNoBench(browser, viewport);
+    noBenchChecks[viewport.label] = nb;
+    if (!AS_JSON) {
+      console.log(`${viewport.label} no-bench (S1-19, behaviour) ${nb.fails.length ? "FAIL" : "PASS"}  ${nb.value}${nb.fails.length ? `; FAILED: ${nb.fails.join(" | ")}` : ""}`);
     }
     const d = await runDrawer(browser, viewport);
     drawerChecks[viewport.label] = d;
@@ -860,11 +988,14 @@ const summary = CRITERIA.map((c) => {
   };
 });
 const decisive = summary.filter((s) => s.decides);
-const decision = decisive.every((s) => s.pass) ? "A′" : "B";
+// The page without bench=1 is the one Gabriel uses: its behaviour (S1-19) is
+// part of the decision too, in each viewport.
+const noBenchOk = Object.values(noBenchChecks).every((c) => c.fails.length === 0);
+const decision = decisive.every((s) => s.pass) && noBenchOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
@@ -873,7 +1004,8 @@ if (AS_JSON) {
     console.log(`  ${s.id.padEnd(5)} ${s.pass ? "PASS" : "FAIL"} ${String(s.passCount).padStart(2)}/${s.total}  ${s.what}${s.decides ? "" : "  [correction, not a decision criterion]"}${s.firstFail ? `\n        first fail: ${s.firstFail}` : ""}`);
   }
   console.log("  S1-14 not measured: Gabriel's reading test (10 labels per instrument, names then degrees).");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-18 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`  S1-19 no-bench behaviour: ${noBenchOk ? "PASS" : "FAIL"} in ${Object.keys(noBenchChecks).length}/${VIEWPORTS.length} viewport(s)`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-19 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

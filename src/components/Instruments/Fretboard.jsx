@@ -336,10 +336,11 @@ function Fretboard({
                     className="fbv-inlay"
                     data-fret-marker={fret}
                     aria-hidden="true"
-                    // Every dot is centred between the two middle strings; the
-                    // two on fret 12 sit one above the other, either side of the
-                    // case's middle (--fbv-inlay-dy: -1 and +1 steps of --fbv-inlay-step).
-                    style={dotCount === 2 ? { "--fbv-inlay-dy": i === 0 ? -1 : 1 } : undefined}
+                    // A single dot is centred between the two middle strings. The
+                    // two on fret 12 are spread over the width like a real neck:
+                    // one string either side of that centre (guitar: between
+                    // strings 2-3 and 4-5, bass: 1-2 and 3-4), in strings.
+                    style={dotCount === 2 ? { "--fbv-inlay-shift": i === 0 ? -1 : 1 } : undefined}
                   />
                 ))}
                 {hasBarre && (

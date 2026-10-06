@@ -34,8 +34,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { repoRootFrom } from "./lib/repoRoot.mjs";
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, "$1"), "..");
+// VMU-166: the repository root is the folder's real form, not the raw URL path
+// (a space or a "~" in the folder's path broke the old computation).
+const ROOT = repoRootFrom(import.meta.url);
 const PORT = Number(process.env.CHORDNAMES_PROBE_PORT ?? 5225);
 const ORIGIN = `http://localhost:${PORT}`;
 
