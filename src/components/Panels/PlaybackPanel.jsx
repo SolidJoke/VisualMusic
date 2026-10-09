@@ -33,7 +33,10 @@ const PlaybackPanel = ({
               min="-40"
               max="0"
               value={masterVolume}
-              onChange={(e) => setMasterVolume(e.target.value)}
+              // A number, as A′'s transport sends it (A′-ACCÈS shares this
+              // state): the string a range input hands over made the fill
+              // below ("-20" + 40) / 40 * 100 = -5100% after the first move.
+              onChange={(e) => setMasterVolume(Number(e.target.value))}
               className="premium-slider"
               style={{ '--value': `${((masterVolume + 40) / 40) * 100}%` }}
             />

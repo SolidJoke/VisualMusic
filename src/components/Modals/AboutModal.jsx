@@ -1,9 +1,11 @@
 import React from 'react';
 
 import { useAppContext } from '../../context/AppContext';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const AboutModal = ({ isOpen, onClose }) => {
   const { txt } = useAppContext();
+  useEscapeKey(isOpen, onClose);
   if (!isOpen) return null;
 
   return (

@@ -4,9 +4,13 @@ import PianoKeyboard from "../components/Instruments/PianoKeyboard";
 import Fretboard from "../components/Instruments/Fretboard";
 import SequencerPanel from "../components/Panels/SequencerPanel";
 import TheoryLegend from "../components/Panels/TheoryLegend";
+import AudioVisualizer from "../components/Visualizer/AudioVisualizer";
+import { HeaderActions } from "../components/Layout/AppHeader";
 import { MusicEngineProvider } from "../context/MusicEngineContext";
 import { PlaybackProvider } from "../context/PlaybackContext";
 import { generateChordsFromNNS } from "../core/theory";
+import { translations } from "../i18n/translations";
+import { useBpmEditor } from "../hooks/useBpmEditor";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
 
 /**
@@ -44,6 +48,25 @@ import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js"
  * data-s1-notes on the piano (absolute pitches of the notes it is handed),
  * data-s1-positions on a neck ("string:fret" of the fingering it is handed)
  * — so the probe checks the drawing against the engine, not against itself.
+ *
+ * A′-ACCÈS (Gabriel, 2026-10-06: "il manque toujours des features comme le
+ * volume"): every function of the classic design is reachable here, in a
+ * PROVISIONAL place, through the classic components themselves —
+ *   header: the classic HeaderActions (Guide, Theory, language, About; the
+ *     Debug export in the development build only), without its note-name
+ *     toggle, which "Sur les notes" already is;
+ *   transport: the tempo typed on a click (hooks/useBpmEditor.js, the
+ *     sidebar badge's own logic), the master volume on the setter the
+ *     "Instruments & Audio" window uses (VMU-025: a reader, not a new
+ *     writer), the "Math & Rythmes" and "Instruments & Audio" buttons, which
+ *     open the classic Modal windows AppDesktop builds once for both pages;
+ *   the audio visualizer as a 60px band under the transport;
+ *   Escape closes the drawer, unless a window is open over it (Escape then
+ *     closes the window only).
+ * Every interactive element carries its parity-registry name (data-fn,
+ * src/prototype/aPrimeAccess.js), and every label comes from translations.js
+ * (protoA, VMU-182) — the French table when `txt` has none (the unit tests).
+ * The dock, the column heads and zone B come later: not built here.
  */
 
 /** The parity registry's name for each label-mode button (S1_LABEL_MODES ids). */
@@ -113,8 +136,40 @@ export default function PrototypeA({
   activeProgression,
   clickedChord,
   handleChordClick,
+  // A′-ACCÈS (see the header comment).
+  headerProps,
+  modals = null,
+  modalOpen = false,
+  onOpenMath,
+  onOpenAudio,
+  masterVolume = -12,
+  setMasterVolume,
 }) {
+  // Every label of the page (VMU-182). The French table stands in when the
+  // caller hands no translations (the unit tests render with txt={}).
+  const T = txt && txt.protoA ? txt.protoA : translations.fr.protoA;
   const [drawerOpen, setDrawerOpen] = useState(() => readParams().drawer === "open");
+  const bpmEditor = useBpmEditor({ currentBpm, onCommit: handleBpmChange });
+
+  // Escape closes the drawer, like the classic windows — but not when it
+  // belongs to something on top of it: a window open over the drawer (it
+  // closes alone, Modal.jsx / HelpModal.jsx / useEscapeKey.js), an open list
+  // (CustomSelect closes it alone), a field being typed in (the tempo field
+  // cancels). Listened to on `window` in the capture phase: it runs before
+  // any of those, while the page still shows what Escape was pressed on.
+  useEffect(() => {
+    if (!drawerOpen || modalOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      const target = e.target;
+      const typing = "textarea, select, [contenteditable='true'], input[type='number'], input[type='text'], input:not([type])";
+      if (target && typeof target.closest === "function" && target.closest(typing)) return;
+      if (document.querySelector(".custom-select-container.is-open")) return;
+      setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [drawerOpen, modalOpen]);
   // The probe's fixture buttons: read once, like the other URL parameters.
   const [bench] = useState(() => readParams().bench);
   // A Studio state's chord is clicked once the base octave it needs is in
@@ -214,40 +269,39 @@ export default function PrototypeA({
       <PlaybackProvider value={playbackContextValue}>
         <div className="proto-a" data-prototype="a">
           <header className="proto-a__header">
-            <div className="proto-a__title">VisualMusic</div>
+            <div className="proto-a__title">{T.title}</div>
             {/* The mode switch (it was the left rail): two tabs, right after the title. */}
-            <nav className="proto-a__tabs" aria-label="Modes">
+            <nav className="proto-a__tabs" aria-label={T.modesAria}>
               <button
                 type="button"
                 className={`proto-a__tab ${appMode === "studio" ? "is-active" : ""}`}
-                aria-label="Mode Studio"
+                aria-label={T.tabStudioAria}
                 aria-pressed={appMode === "studio"}
                 data-fn="nav.mode-studio"
                 onClick={() => setAppMode("studio")}
               >
-                Studio
+                {T.tabStudio}
               </button>
               <button
                 type="button"
                 className={`proto-a__tab ${appMode === "dictionary" ? "is-active" : ""}`}
-                aria-label="Mode Dictionnaire"
+                aria-label={T.tabDictionaryAria}
                 aria-pressed={appMode === "dictionary"}
                 data-fn="nav.mode-dictionnaire"
                 onClick={() => setAppMode("dictionary")}
               >
-                {txt.sidebar?.dictionary || "Dictionnaire"}
+                {T.tabDictionary}
               </button>
             </nav>
-            <div className="proto-a__subtitle">Prototype A′ · banc de mesure S1</div>
+            <div className="proto-a__subtitle">{T.subtitle}</div>
             <div className="proto-a__spacer" />
             {/* The label modes: a real function (the note names / finger numbers
                 shown on the keyboard and the necks), whatever the URL says. One
-                control, three segments. The caption and the segments' texts are
-                still hard-coded French (S1_LABEL_MODES): the visible texts must
-                follow the language (VMU-182). */}
+                control, three segments; their texts follow the language
+                (VMU-182), S1_LABEL_MODES only gives what each one sets. */}
             <div className="proto-a__segmented">
-              <span className="proto-a__muted" aria-hidden="true">Sur les notes</span>
-              <div className="proto-a__segments" role="group" aria-label="Sur les notes">
+              <span className="proto-a__muted" aria-hidden="true">{T.labelsCaption}</span>
+              <div className="proto-a__segments" role="group" aria-label={T.labelsCaption}>
                 {S1_LABEL_MODES.map((m) => (
                   <button
                     key={m.id}
@@ -258,55 +312,127 @@ export default function PrototypeA({
                     data-fn={LABEL_MODE_FN[m.id]}
                     onClick={() => applyLabels(m)}
                   >
-                    {m.label}
+                    {T.labelModes[m.id]}
                   </button>
                 ))}
               </div>
             </div>
+            {/* A′-ACCÈS: Guide, Theory, language, About — the classic header's
+                own controls (HeaderActions), without its note-name toggle:
+                "Sur les notes" above is that function here. Provisional place,
+                until the header's "Aide / Réglages" (L1b-1). */}
+            {headerProps && (
+              <div className="proto-a__header-actions">
+                <HeaderActions {...headerProps} showNotation={false} />
+              </div>
+            )}
+            {/* VMU-184: put forward (mauve -> black gradient, tokens.css) until
+                the Assistant melts into the dock. */}
             <button
               type="button"
-              className={`proto-a__btn ${drawerOpen ? "is-active" : ""}`}
+              className={`proto-a__btn proto-a__assistant ${drawerOpen ? "is-active" : ""}`}
               aria-pressed={drawerOpen}
               data-testid="proto-drawer-toggle"
+              data-fn="nav.studio-harmonie"
               onClick={() => setDrawerOpen((o) => !o)}
             >
-              Assistant · {appMode === "dictionary" ? (txt.sidebar?.dictionary || "Dictionnaire") : "Studio & Harmonie"}
+              {T.assistant} · {appMode === "dictionary" ? T.dictionary : T.studioHarmony}
             </button>
           </header>
 
           <div className="proto-a__grid">
             <main className="proto-a__center" data-s1="center">
               <section className="proto-a__panel proto-a__transport" data-s1="transport">
-                <button type="button" className="proto-a__btn proto-a__btn--primary" onClick={handlePlay}>
-                  {isPlaying ? "■ Arrêter" : appMode === "dictionary" ? "▶ Écouter" : "▶ Lire la progression"}
+                <button type="button" className="proto-a__btn proto-a__btn--primary" data-fn="jouer.lecture" onClick={handlePlay}>
+                  {isPlaying ? T.stop : appMode === "dictionary" ? T.listen : T.playProgression}
                 </button>
-                <span className="proto-a__muted">Tempo</span>
-                <button
-                  type="button"
-                  className="proto-a__btn proto-a__btn--square"
-                  aria-label="Tempo moins"
-                  onClick={() => handleBpmChange(Math.max(60, currentBpm - 1))}
-                >
-                  −
+                {/* Tempo: - n + (steps of 1), and a click on n types it (VMU-181,
+                    the sidebar badge's logic: hooks/useBpmEditor.js). */}
+                <div className="proto-a__tempo" role="group" aria-label={T.tempo} data-fn="jouer.tempo">
+                  <span className="proto-a__muted" aria-hidden="true">{T.tempo}</span>
+                  <button
+                    type="button"
+                    className="proto-a__btn proto-a__btn--square"
+                    aria-label={T.tempoDown}
+                    data-fn="jouer.tempo-moins"
+                    onClick={() => handleBpmChange(Math.max(60, currentBpm - 1))}
+                  >
+                    −
+                  </button>
+                  {bpmEditor.editing ? (
+                    <input
+                      className="proto-a__bpm proto-a__bpm-input"
+                      aria-label={T.tempoInput}
+                      data-fn="jouer.tempo-saisie"
+                      {...bpmEditor.inputProps}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="proto-a__bpm"
+                      title={T.tempoEdit}
+                      data-fn="jouer.tempo-saisie"
+                      onClick={bpmEditor.start}
+                    >
+                      {currentBpm}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="proto-a__btn proto-a__btn--square"
+                    aria-label={T.tempoUp}
+                    data-fn="jouer.tempo-plus"
+                    onClick={() => handleBpmChange(Math.min(200, currentBpm + 1))}
+                  >
+                    +
+                  </button>
+                  <span className="proto-a__muted">{T.bpmUnit}</span>
+                </div>
+                <button type="button" className="proto-a__btn" aria-pressed={metronomeOn} data-fn="jouer.metronome" onClick={toggleMetronome}>
+                  {metronomeOn ? T.metronomeOn : T.metronomeOff}
                 </button>
-                <span className="proto-a__bpm">{currentBpm}</span>
-                <button
-                  type="button"
-                  className="proto-a__btn proto-a__btn--square"
-                  aria-label="Tempo plus"
-                  onClick={() => handleBpmChange(Math.min(200, currentBpm + 1))}
-                >
-                  +
+                {/* Master volume (-40..0 dB): the "Instruments & Audio" window's
+                    own state and setter (VMU-025: a second reader, no writer of
+                    its own — MasterVolumeSingleWriter.test.js). */}
+                <label className="proto-a__volume">
+                  <span className="proto-a__muted">{T.volume}</span>
+                  <input
+                    type="range"
+                    min="-40"
+                    max="0"
+                    step="1"
+                    className="proto-a__volume-slider"
+                    value={Number(masterVolume)}
+                    aria-label={T.volume}
+                    data-fn="son.volume-general"
+                    onChange={(e) => setMasterVolume && setMasterVolume(Number(e.target.value))}
+                  />
+                  <output className="proto-a__volume-value">
+                    {Number(masterVolume)} {T.db}
+                  </output>
+                </label>
+                <div className="proto-a__spacer" />
+                {/* The two classic windows, as they are (provisional, until the dock). */}
+                <button type="button" className="proto-a__btn" data-fn="composer.math-ouvrir" onClick={onOpenMath}>
+                  {T.mathRhythms}
                 </button>
-                <span className="proto-a__muted">battements / min</span>
-                <button type="button" className="proto-a__btn" aria-pressed={metronomeOn} onClick={toggleMetronome}>
-                  Métronome : {metronomeOn ? "actif" : "coupé"}
+                <button type="button" className="proto-a__btn" data-fn="son.ouvrir" onClick={onOpenAudio}>
+                  {T.instrumentsAudio}
                 </button>
               </section>
 
-              {/* The probe's fixtures (bench=1 only): see the header comment. */}
+              {/* The audio visualizer, a 60px band under the transport: the
+                  centre column's content ends far above the keyboard's bottom,
+                  so it adds no page height (S1-12, measured by S1-20). */}
+              <section className="proto-a__visualizer" data-s1="visualizer" data-fn="son.visualiseur" aria-label={T.visualizer}>
+                <AudioVisualizer analyser={musicEngineContextValue?.masterAnalyser} height="60px" />
+              </section>
+
+              {/* The probe's fixtures (bench=1 only): see the header comment.
+                  Test fixtures (registry: NON APPLICABLE), in French, removed
+                  with the bench (L1f). */}
               {bench && (
-                <section className="proto-a__panel proto-a__controls" data-s1="scenarios">
+                <section className="proto-a__panel proto-a__controls" data-s1="scenarios" data-fn="proto.scenarios">
                   <span className="proto-a__muted">Scénarios S1</span>
                   {S1_SCENARIOS.map((s) => (
                     <button
@@ -323,7 +449,7 @@ export default function PrototypeA({
               )}
 
               {bench && (
-                <section className="proto-a__panel proto-a__controls" data-s1="states">
+                <section className="proto-a__panel proto-a__controls" data-s1="states" data-fn="proto.etats">
                   <span className="proto-a__muted">États L1a</span>
                   {S1_EXTRA_STATES.map((x) => (
                     <button
@@ -339,7 +465,7 @@ export default function PrototypeA({
                 </section>
               )}
 
-              <section className="proto-a__sequencer" data-s1="sequencer">
+              <section className="proto-a__sequencer" data-s1="sequencer" data-fn="composer.grilles">
                 <SequencerPanel
                   timeline={timeline}
                   currentStep={currentStep}
@@ -349,50 +475,53 @@ export default function PrototypeA({
                 />
               </section>
 
-              <section className="proto-a__legend" data-s1="legend">
+              <section className="proto-a__legend" data-s1="legend" data-fn="nav.legende">
                 <TheoryLegend />
               </section>
             </main>
 
-            <section className="proto-a__instrument" data-s1="piano" data-s1-notes={s1Notes} aria-label="Piano">
+            <section className="proto-a__instrument" data-s1="piano" data-s1-notes={s1Notes} data-fn="jouer.piano" aria-label={T.piano}>
               <div className="proto-a__inst-head">
-                <span className="proto-a__inst-title">{txt.instrumentPiano || "Piano"}</span>
-                <span className="proto-a__muted">aigus ↑</span>
+                <span className="proto-a__inst-title">{T.piano}</span>
+                <span className="proto-a__muted">{T.pianoCaption}</span>
               </div>
               <PianoKeyboard orientation="vertical" />
             </section>
 
-            <section className="proto-a__instrument" data-s1="guitar" data-s1-positions={s1GuitarPositions} aria-label="Guitare">
+            <section className="proto-a__instrument" data-s1="guitar" data-s1-positions={s1GuitarPositions} data-fn="jouer.guitare" aria-label={T.guitar}>
               <div className="proto-a__inst-head">
-                <span className="proto-a__inst-title">{txt.instrumentGuitar || "Guitare"}</span>
-                <span className="proto-a__muted">sillet en haut, graves à gauche</span>
+                <span className="proto-a__inst-title">{T.guitar}</span>
+                <span className="proto-a__muted">{T.neckCaption}</span>
               </div>
               <Fretboard instrument="guitar" orientation="vertical" />
             </section>
 
-            <section className="proto-a__instrument" data-s1="bass" data-s1-positions={s1BassPositions} aria-label="Basse">
+            <section className="proto-a__instrument" data-s1="bass" data-s1-positions={s1BassPositions} data-fn="jouer.basse" aria-label={T.bass}>
               <div className="proto-a__inst-head">
-                <span className="proto-a__inst-title">{txt.instrumentBass || "Basse"}</span>
-                <span className="proto-a__muted">sillet en haut, graves à gauche</span>
+                <span className="proto-a__inst-title">{T.bass}</span>
+                <span className="proto-a__muted">{T.neckCaption}</span>
               </div>
               <Fretboard instrument="bass" orientation="vertical" />
             </section>
           </div>
 
           {drawerOpen && (
-            <aside className="proto-a__drawer" data-s1="drawer" aria-label="Assistant">
+            <aside className="proto-a__drawer" data-s1="drawer" aria-label={T.drawerAria}>
               <div className="proto-a__drawer-head">
                 <span className="proto-a__inst-title">
-                  {appMode === "dictionary" ? (txt.sidebar?.dictionary || "Dictionnaire") : "Studio & Harmonie"}
+                  {appMode === "dictionary" ? T.dictionary : T.studioHarmony}
                 </span>
                 <div className="proto-a__spacer" />
-                <button type="button" className="proto-a__btn" onClick={() => setDrawerOpen(false)}>
-                  Fermer
+                <button type="button" className="proto-a__btn" data-fn="nav.fermer-fenetres" onClick={() => setDrawerOpen(false)}>
+                  {T.close}
                 </button>
               </div>
               <div className="proto-a__drawer-body">{drawerPanel}</div>
             </aside>
           )}
+
+          {/* The classic windows (AppDesktop builds them once for both pages). */}
+          {modals}
         </div>
       </PlaybackProvider>
     </MusicEngineProvider>

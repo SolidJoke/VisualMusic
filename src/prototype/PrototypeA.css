@@ -205,12 +205,129 @@
   padding: 0;
 }
 
-.proto-a__bpm {
+/* The tempo: "Tempo - n + battements / min", n typed on a click (VMU-181).
+   The number is a button (it opens the field), as tall as the play button:
+   the transport keeps its one row and gains no height. */
+.proto-a__tempo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.proto-a .proto-a__bpm {
+  box-sizing: border-box;
+  height: 64px;
+  min-width: 120px;
+  padding: 0 8px;
   font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--fs-display);
-  min-width: 120px;
+  line-height: 1;
   text-align: center;
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: text;
+}
+
+.proto-a .proto-a__bpm:hover {
+  border-color: var(--border-strong);
+}
+
+.proto-a .proto-a__bpm:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* The field the number becomes: the same box, so nothing moves. */
+.proto-a .proto-a__bpm-input {
+  width: 160px;
+  background: var(--surface-2);
+  border-color: var(--select);
+}
+
+/* The master volume, -40..0 dB, its value shown. */
+.proto-a__volume {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.proto-a .proto-a__volume-slider {
+  width: 280px;
+  height: var(--hit-min);
+  margin: 0;
+  accent-color: var(--select);
+  cursor: pointer;
+}
+
+.proto-a__volume-value {
+  min-width: 6ch;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The audio visualizer: a 60px band under the transport. */
+.proto-a__visualizer {
+  min-width: 0;
+  height: 60px;
+}
+
+/* The classic header's Guide / Theory / language / About (HeaderActions),
+   at A′'s sizes: 48px targets inside the 72px header, the body font size. */
+.proto-a__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.proto-a .proto-a__header-actions .btn-header-action {
+  height: var(--hit-min);
+  min-width: 0;
+  padding: 0 20px;
+  font-size: var(--fs-body);
+  white-space: nowrap;
+}
+
+.proto-a .proto-a__header-actions .header-lang-select {
+  width: auto !important;
+  min-width: 140px;
+  height: var(--hit-min) !important;
+  font-size: var(--fs-body);
+}
+
+.proto-a .proto-a__header-actions .header-lang-select .custom-select-header {
+  min-height: var(--hit-min) !important;
+}
+
+/* VMU-184 (Gabriel, 2026-10-09): the Assistant button put forward, a mauve ->
+   black gradient through tokens (tokens.css --assistant-*), light text >=
+   4.5:1 on every stop (AssistantButtonTokens.test.js, and S1-20 in the
+   browser). F1's "no solid colour fill" relaxed for it (VMU-183). A
+   transition dressing: the Assistant will melt into the dock. */
+.proto-a .proto-a__assistant {
+  background: linear-gradient(90deg, var(--assistant-from), var(--assistant-to));
+  color: var(--assistant-text);
+  border-color: var(--assistant-border);
+  font-weight: 600;
+}
+
+.proto-a .proto-a__assistant:hover {
+  background: linear-gradient(90deg, var(--assistant-from-hover), var(--assistant-to));
+}
+
+/* Open drawer: the gradient stays, a white edge says "pressed". */
+.proto-a .proto-a__assistant.is-active {
+  background: linear-gradient(90deg, var(--assistant-from), var(--assistant-to));
+  color: var(--assistant-text);
+  border-color: var(--select);
+  box-shadow: inset 0 0 0 1px var(--select);
+}
+
+.proto-a .proto-a__assistant:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .proto-a__sequencer,

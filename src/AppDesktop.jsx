@@ -482,9 +482,84 @@ function AppDesktop() {
     />
   );
 
+  // The classic windows, built once and rendered by both pages (A′-ACCÈS):
+  // the A′ prototype opens the very same Modal, with the very same content,
+  // over the very same state — not a copy of it. Opened from the classic
+  // sidebar's buttons or from A′'s transport and header.
+  const mathRhythmsModal = (
+    <Modal isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`} columns>
+      {appMode !== "dictionary" ? (
+        <CompositionPanel
+          activeTracks={activeTracks}
+          setSuggestedBassTrack={setSuggestedBassTrack}
+          setCustomRhythm={setCustomRhythm}
+          setCustomDrums={setCustomDrums}
+          currentStep={currentStep}
+          txt={txt.comp}
+        />
+      ) : (
+        <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem", padding: "20px", textAlign: "center" }}>
+          {txt.dictNoRhythmWarning || "⚠️ Le mode Dictionnaire n'utilise pas le séquenceur rythmique."}
+        </div>
+      )}
+    </Modal>
+  );
+
+  const instrumentsAudioModal = (
+    <Modal isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio" columns>
+      <ControlPanel
+        showFingering={showFingering}
+        setShowFingering={setShowFingering}
+        showFingerNumbers={showFingerNumbers}
+        setShowFingerNumbers={setShowFingerNumbers}
+        playbackInstrument={playbackInstrument}
+        setPlaybackInstrument={setPlaybackInstrument}
+        appMode={appMode}
+        useShellVoicings={useShellVoicings}
+        setUseShellVoicings={setUseShellVoicings}
+      />
+      <PlaybackPanel
+        appMode={appMode}
+        isPlaying={isPlaying}
+        masterVolume={masterVolume}
+        setMasterVolume={setMasterVolume}
+        currentBpm={currentBpm}
+        instrumentVolumes={instrumentVolumes}
+        handleInstrumentVolumeChange={handleInstrumentVolumeChange}
+        displayMode={displayMode}
+        setDisplayMode={setDisplayMode}
+        fretboardZone={fretboardZone}
+        setFretboardZone={setFretboardZone}
+        txt={txt}
+      />
+    </Modal>
+  );
+
+  const helpModal = <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />;
+  const aboutModal = <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />;
+  const theoryModal = <TheoryModal isOpen={showTheory} onClose={() => setShowTheory(false)} txt={txt} />;
+
   if (IS_PROTOTYPE_A) {
     return (
       <PrototypeA
+        // A′-ACCÈS: the header's Guide / Theory / language / About (the
+        // classic HeaderActions), the two tool windows, the master volume on
+        // the setter the Audio window uses (VMU-025: no new writer).
+        headerProps={headerProps}
+        modals={
+          <>
+            {helpModal}
+            {aboutModal}
+            {theoryModal}
+            {mathRhythmsModal}
+            {instrumentsAudioModal}
+          </>
+        }
+        modalOpen={showMathModal || showAudioModal || showHelp || Boolean(showAbout) || Boolean(showTheory)}
+        onOpenMath={() => setShowMathModal(true)}
+        onOpenAudio={() => setShowAudioModal(true)}
+        masterVolume={masterVolume}
+        setMasterVolume={setMasterVolume}
         txt={txt}
         notation={notation}
         setNotation={setNotation}
@@ -526,10 +601,10 @@ function AppDesktop() {
 
   return (
     <div className="app-container app-container-inner theme-modern">
-      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
-      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+      {helpModal}
+      {aboutModal}
 
-      <TheoryModal isOpen={showTheory} onClose={() => setShowTheory(false)} txt={txt} />
+      {theoryModal}
 
       <div className="app-main-content">
         <AppHeader {...headerProps} />
@@ -610,50 +685,9 @@ function AppDesktop() {
             {studioHarmonyPanel}
           </Modal>
 
-          <Modal isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`} columns>
-            {appMode !== "dictionary" ? (
-              <CompositionPanel
-                activeTracks={activeTracks}
-                setSuggestedBassTrack={setSuggestedBassTrack}
-                setCustomRhythm={setCustomRhythm}
-                setCustomDrums={setCustomDrums}
-                currentStep={currentStep}
-                txt={txt.comp}
-              />
-            ) : (
-              <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem", padding: "20px", textAlign: "center" }}>
-                {txt.dictNoRhythmWarning || "⚠️ Le mode Dictionnaire n'utilise pas le séquenceur rythmique."}
-              </div>
-            )}
-          </Modal>
+          {mathRhythmsModal}
 
-          <Modal isOpen={showAudioModal} onClose={() => setShowAudioModal(false)} title="🎛️ Instruments & Audio" columns>
-            <ControlPanel
-              showFingering={showFingering}
-              setShowFingering={setShowFingering}
-              showFingerNumbers={showFingerNumbers}
-              setShowFingerNumbers={setShowFingerNumbers}
-              playbackInstrument={playbackInstrument}
-              setPlaybackInstrument={setPlaybackInstrument}
-              appMode={appMode}
-              useShellVoicings={useShellVoicings}
-              setUseShellVoicings={setUseShellVoicings}
-            />
-            <PlaybackPanel
-              appMode={appMode}
-              isPlaying={isPlaying}
-              masterVolume={masterVolume}
-              setMasterVolume={setMasterVolume}
-              currentBpm={currentBpm}
-              instrumentVolumes={instrumentVolumes}
-              handleInstrumentVolumeChange={handleInstrumentVolumeChange}
-              displayMode={displayMode}
-              setDisplayMode={setDisplayMode}
-              fretboardZone={fretboardZone}
-              setFretboardZone={setFretboardZone}
-              txt={txt}
-            />
-          </Modal>
+          {instrumentsAudioModal}
 
           {/* --- MAIN CONTENT AREA --- */}
           <div className="layout-col layout-center">

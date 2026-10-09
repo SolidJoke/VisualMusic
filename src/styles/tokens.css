@@ -51,6 +51,15 @@
   --seq-bass:   #32d583;
   --seq-rim:    #f79009;  /* = kick : aucune valeur rendue relevée — non vérifié */
   --seq-crash:  #bdc7de;  /* = hat — non vérifié */
+  /* Bouton « Assistant » d'A′ (VMU-184, Gabriel 2026-10-09) : dégradé mauve -> noir.
+     Habillage de transition (l'Assistant sera dissous dans le dock) ; écart à la
+     règle F1 « pas d'aplat de couleur » accepté par Gabriel (VMU-183).
+     Texte #ffffff : 7,23:1 sur --assistant-from, 6,04:1 au survol, 21:1 sur le noir. */
+  --assistant-from:       #6e3fa3;  /* mauve */
+  --assistant-from-hover: #7b4bb0;  /* mauve un ton plus clair (survol) */
+  --assistant-to:         var(--bg);
+  --assistant-text:       var(--text-on-select);
+  --assistant-border:     #a77bd8;  /* bord : 6,47:1 sur le noir (≥ 3:1, WCAG 1.4.11) */
   /* Instruments */
   --key-white:   #cfcfcf; /* touche blanche (pas #fff : 13 % de lumière en moins) */
   --key-black:   #1a1a1a;
