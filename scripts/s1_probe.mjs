@@ -1099,12 +1099,19 @@ async function runAccess(browser, viewport) {
   const notes = [];
   const T = 4000;
   const sel = (id) => `[data-fn="${id}"]`;
+  // What a failed step may leave open, closed before the next one: a step
+  // must not fail because the previous one left a window over the page.
+  const OVERLAYS = '.modal-overlay, .help-modal-overlay, [data-testid="custom-select-dropdown"], [data-s1="drawer"], input[data-fn="jouer.tempo-saisie"]';
   const step = async (name, body) => {
     try {
       const note = await body();
       if (note) notes.push(`${name} ${note}`);
     } catch (err) {
       fails.push(`${name}: ${String(err && err.message ? err.message : err).split("\n")[0]}`);
+      for (let i = 0; i < 4 && (await page.locator(OVERLAYS).count()); i++) {
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(200);
+      }
     }
   };
   const closesOnEscape = async (selector) => {
@@ -1137,7 +1144,9 @@ async function runAccess(browser, viewport) {
         return {
           master: modal.querySelectorAll('input[type="range"][min="-40"][max="0"]').length,
           faders: modal.querySelectorAll('input[type="range"][orient="vertical"]').length,
-          kick: /\bKick\b/.test(modal.textContent),
+          // An element whose own text is "Kick" (the textContent of the whole
+          // window runs the labels together: "...VolumesKickSnare...").
+          kick: [...modal.querySelectorAll("*")].some((el) => el.children.length === 0 && el.textContent.trim() === "Kick"),
         };
       });
       if (m.master !== 1 || m.faders !== 6 || !m.kick) throw new Error(`window content: master volume ${m.master}, faders ${m.faders}, "Kick" ${m.kick}`);
