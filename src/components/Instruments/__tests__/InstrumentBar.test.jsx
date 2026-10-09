@@ -5,9 +5,10 @@
  * object, because since #103 the keyboard shows the register of the selected
  * instrument: looking without hearing has to stay possible.
  *
- * This file covers the presentational contract only. Choosing-then-playing in
- * one gesture has its own test (`hooks/__tests__/useSelectThenPlay.test.js`),
- * because that is where the real trap is.
+ * This file covers the presentational contract only. What the play button does
+ * (play that instrument now, and make it the selected one) has its own tests:
+ * `hooks/__tests__/PlayInstrument.test.jsx` for the sound and
+ * `components/__tests__/InstrumentView.playInstrument.test.jsx` for the wiring.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, fireEvent, cleanup, within } from "@testing-library/react";

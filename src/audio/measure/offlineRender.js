@@ -500,6 +500,72 @@ export const SCENARIOS = {
   },
 
   /**
+   * INST-A2: a Dictionary chord selection (root, chord type), played the way the
+   * app plays it for ONE instrument — that instrument's realization, handed to
+   * the audio router.
+   *
+   * `single-note` and `chord` above take their notes as arguments, and no
+   * scenario of this file reads core/realization.js: none could tell "the piano
+   * and the guitar were both asked for C major" from "each was given its own
+   * notes". This one starts from the selection and the instrument and goes
+   * through the pure functions the app uses for the same question — the chord
+   * theory (noteEngine.realizeChordFromType, what useDictionaryMode lights up),
+   * the grip (fingeringLogic.getGuitarFingering / getBassFingering, with no
+   * string forced and octave 0, which is what useMusicEngine asks by default),
+   * and realization.realizeDictionarySelection — before the router.
+   *
+   * What it does not cover: the React hooks (useMusicEngine builds the same
+   * realizations from the same calls, and hooks/__tests__/PlayInstrument.test.jsx
+   * pins them to the same domain values this file's rows expect), the families
+   * other than chords, and a manually chosen position.
+   */
+  "dictionary-selection": {
+    durationSec: 1.6,
+    async body(ctx) {
+      const { engine, params, diagnostics } = ctx;
+      const [{ realizeChordFromType }, { realizeDictionarySelection }, fingering, { midiToNoteName }, { TUNINGS }] =
+        await Promise.all([
+          import("../../core/noteEngine"),
+          import("../../core/realization"),
+          import("../../core/fingeringLogic"),
+          import("../../core/theory"),
+          import("../../core/tunings"),
+        ]);
+      await loadSamplers(ctx);
+      const instrument = params.instrument ?? "piano";
+      const rootPitchClass = params.root ?? 0;
+      const chordType = params.type ?? "chord_major";
+
+      // The piano's realization IS the theoretical notes (realization.js says
+      // so itself), at the Dictionary's octave 4 + 0.
+      // `order` (the interval label) is what the screen shows; this scenario
+      // renders sound only, so it has none to give.
+      const theoreticalNotes = realizeChordFromType(rootPitchClass, chordType, 4).map((absoluteValue) => ({
+        value: absoluteValue % 12,
+        absoluteValue,
+        order: null,
+      }));
+      const grip =
+        instrument === "guitar" ? fingering.getGuitarFingering(rootPitchClass, chordType, null, 0)
+        : instrument === "bass" ? fingering.getBassFingering(rootPitchClass, chordType, null, 0)
+        : null;
+      const { notes, source } = realizeDictionarySelection({
+        instrument,
+        fingering: grip,
+        tuning: instrument === "bass" ? TUNINGS.BASS_STANDARD : TUNINGS.GUITAR_STANDARD,
+        rootPitchClass,
+        theoreticalNotes,
+      });
+      const names = notes.map((n) => midiToNoteName(n.absoluteValue));
+
+      applyDictionaryMixer(ctx, instrument);
+      diagnostics.requested = { instrument, notes: names };
+      diagnostics.realizationSource = source;
+      engine.playDictionaryNote(instrument, names, params.duration ?? 1.0, LEAD_IN_SEC);
+    },
+  },
+
+  /**
    * A calibrated sine injected into the real chain at a known level, to
    * characterise what the last link actually does to a signal.
    *

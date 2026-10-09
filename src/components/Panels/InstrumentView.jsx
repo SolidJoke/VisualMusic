@@ -7,7 +7,6 @@ import TheoryLegend from "./TheoryLegend";
 import PositionSelector from "../Layout/PositionSelector";
 import InstrumentBar from "../Instruments/InstrumentBar";
 import FoldSection from "./FoldSection";
-import { useSelectThenPlay } from "../../hooks/useSelectThenPlay";
 import { realizationRange } from "../../core/realization";
 import { formatPitchRange } from "../../core/theory";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
@@ -50,7 +49,7 @@ const InstrumentView = memo(function InstrumentView() {
     setScaleAnchor,
     playbackInstrument = "piano",
     setPlaybackInstrument,
-    playDictionaryAudio,
+    playInstrument,
     realizationsByInstrument,
   } = useMusicEngineContext();
 
@@ -72,11 +71,10 @@ const InstrumentView = memo(function InstrumentView() {
     range: formatPitchRange(realizationRange(realizationsByInstrument?.[id]), notation),
   }));
 
-  const selectAndPlay = useSelectThenPlay({
-    selected: playbackInstrument,
-    setSelected: setPlaybackInstrument,
-    play: playDictionaryAudio,
-  });
+  // A tile's play button is `playInstrument(id)` (INST-A2): it plays that
+  // instrument now and makes it the one the big play button plays. This used to
+  // go through useSelectThenPlay, which waited a render for the selection to
+  // land because the play callback was bound to the previous instrument.
 
   // The bar's phone layout is decided in the markup, with the query
   // PianoKeyboard uses. CSS cannot hide a button under 768px in this app:
@@ -114,7 +112,7 @@ const InstrumentView = memo(function InstrumentView() {
             instruments={instrumentBarItems}
             selected={playbackInstrument}
             onSelect={(id) => setPlaybackInstrument && setPlaybackInstrument(id)}
-            onPlay={selectAndPlay}
+            onPlay={playInstrument}
             playLabel={txt.playInstrument || "Jouer"}
             groupLabel={txt.instrumentBarLabel || "Instrument joué"}
             compact={isPhone}

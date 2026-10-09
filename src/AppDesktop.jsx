@@ -220,6 +220,7 @@ function AppDesktop() {
   const {
     handleChordClick,
     playDictionaryAudio,
+    playInstrument,
     autoPlayNote,
     ensureAudioReady
   } = usePlaybackHandlers({
@@ -228,6 +229,7 @@ function AppDesktop() {
     masterVolume,
     currentBpm,
     activeNotes,
+    realizationsByInstrument,
     appMode,
     currentAbsoluteNotes,
     setCurrentAbsoluteNotes,
@@ -383,9 +385,13 @@ function AppDesktop() {
     isBassOutOfRange,
     // VMU-101: the instrument bar in InstrumentView reads and sets the
     // played instrument, plays it, and shows each instrument's register.
+    // INST-A2: `playInstrument(id)` plays one instrument now and makes it the
+    // big play button's — what the tiles, and next the prototype's column
+    // heads, call. `playDictionaryAudio` stays the big play button's.
     playbackInstrument,
     setPlaybackInstrument,
     playDictionaryAudio,
+    playInstrument,
     realizationsByInstrument,
     notation
   }), [
@@ -429,6 +435,7 @@ function AppDesktop() {
     playbackInstrument,
     setPlaybackInstrument,
     playDictionaryAudio,
+    playInstrument,
     realizationsByInstrument,
     notation
   ]);

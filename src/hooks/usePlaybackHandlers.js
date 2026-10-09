@@ -11,6 +11,9 @@ import { useFretboardPlayback } from "./useFretboardPlayback";
  * @param {number} options.masterVolume
  * @param {number} options.currentBpm
  * @param {any[]} options.activeNotes
+ * @param {{piano: any[], guitar: any[], bass: any[]}} options.realizationsByInstrument
+ *   what each instrument plays for the current Dictionary selection; the
+ *   instrument play buttons read it, so they need not wait for a render
  * @param {string} options.appMode
  * @param {any[]} options.currentAbsoluteNotes
  * @param {Function} options.setCurrentAbsoluteNotes
@@ -41,6 +44,7 @@ export function usePlaybackHandlers({
   masterVolume,
   currentBpm,
   activeNotes,
+  realizationsByInstrument,
   appMode,
   currentAbsoluteNotes,
   setCurrentAbsoluteNotes,
@@ -71,15 +75,16 @@ export function usePlaybackHandlers({
     masterVolume,
   });
 
-  const { playDictionaryAudio } = useDictionaryPlayback({
+  const { playDictionaryAudio, playInstrument } = useDictionaryPlayback({
     dictRoot,
     dictType,
     dictOctave,
     playbackInstrument,
+    setPlaybackInstrument,
     guitarFingering,
     bassFingering,
     activeBrick,
-    activeNotes,
+    realizationsByInstrument,
     currentBpm,
     lastClickedContext,
     setCurrentlyPlayingNotes,
@@ -123,6 +128,7 @@ export function usePlaybackHandlers({
   return {
     handleChordClick,
     playDictionaryAudio,
+    playInstrument,
     playSingleNote,
     autoPlayNote,
     ensureAudioReady: scheduler.ensureAudioReady,

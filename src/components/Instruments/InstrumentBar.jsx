@@ -21,8 +21,11 @@ import "./InstrumentBar.css";
  * stylesheet cannot hide a button there — the first version of this component
  * tried, and shipped all four play buttons to the phone.
  *
- * Presentational only. Selecting then playing in one tap lives in
- * hooks/useSelectThenPlay.js, where the stale-closure trap is handled.
+ * Presentational only. What `onPlay(id)` does — play that instrument now and make
+ * it the one the big play button plays — is `playInstrument` in
+ * hooks/useDictionaryPlayback.js (INST-A2); it used to be select-then-play, in
+ * hooks/useSelectThenPlay.js, to get around a callback bound to the previous
+ * instrument.
  *
  * The select button and the play button are siblings, not nested: a button
  * inside a button is invalid HTML, and it would fire both handlers.
