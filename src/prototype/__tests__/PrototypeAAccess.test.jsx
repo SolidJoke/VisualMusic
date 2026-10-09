@@ -106,6 +106,18 @@ async function renderApp(search = "?prototype=a") {
 }
 
 const fn = (id) => document.querySelector(`[data-fn="${id}"]`);
+
+/** Visible as far as jsdom can tell (no layout here): in the document, and no
+ * ancestor hidden, display: none or visibility: hidden. */
+function isVisible(el) {
+  if (!el || !el.isConnected) return false;
+  for (let node = el; node && node.nodeType === 1; node = node.parentElement) {
+    if (node.hidden) return false;
+    const cs = window.getComputedStyle(node);
+    if (cs.display === "none" || cs.visibility === "hidden") return false;
+  }
+  return true;
+}
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const escape = () => fireEvent.keyDown(document.body, { key: "Escape", code: "Escape" });
 
@@ -124,7 +136,7 @@ describe("A′-ACCÈS (a): every function of the list is in the page, once, visi
     for (const f of expected) {
       const els = document.querySelectorAll(`[data-fn="${f.fn}"]`);
       expect(els.length, f.fn).toBe(1);
-      expect(els[0], f.fn).toBeVisible();
+      expect(isVisible(els[0]), f.fn).toBe(true);
     }
   });
 
@@ -132,7 +144,7 @@ describe("A′-ACCÈS (a): every function of the list is in the page, once, visi
     await renderApp("?prototype=a&drawer=open");
     for (const f of A_PRIME_ACCESS.filter((x) => x.needs === "drawer")) {
       expect(document.querySelectorAll(`[data-fn="${f.fn}"]`).length, f.fn).toBe(1);
-      expect(fn(f.fn), f.fn).toBeVisible();
+      expect(isVisible(fn(f.fn)), f.fn).toBe(true);
     }
   });
 
