@@ -642,11 +642,135 @@ const PLAN = [
       check("notes were scheduled", (r.scheduledPitchCount ?? 0) > 0, `${r.scheduledPitchCount} note events`),
     ],
   },
+
+  // ─── INST-A2: the Dictionary's selection, one row per instrument ──────
+  // Gabriel (2026-10-05): each instrument plays its own notes, and each gets a
+  // play button of its own. None of the rows above starts from a selection:
+  // `single-note` and `chord` are handed their notes. These start from "C major"
+  // and an instrument, take the instrument's realization from the pure engine
+  // (offlineRender.js, "dictionary-selection") and render it through the router.
+  //
+  // Expected values come from the domain, not from what the code returned:
+  // middle C is C4; the open C chord x32010 on a guitar in standard tuning
+  // sounds C3 E3 G3 C4 E4 (A string fret 3, D string fret 2, G open, B string
+  // fret 1, high E open); the bass plays root, fifth and octave from its A
+  // string, C2 G2 C3.
+  {
+    id: "dictionary-selection-piano",
+    title: "INST-A2: Dictionary C major chord, as the piano plays it (C4 E4 G4)",
+    spec: {
+      scenario: "dictionary-selection",
+      params: { instrument: "piano", root: 0, type: "chord_major" },
+      expectedNotes: ["C4", "E4", "G4"],
+    },
+    why:
+      "The piano's realization of C major is the theory itself, in the Dictionary's octave 4: " +
+      "C4 E4 G4. The notes handed to the router and the pitches in the rendered sound must both be those.",
+    expect: (r) => [
+      check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`),
+      check(
+        "the notes handed to the synth are C4 E4 G4",
+        sameNotes(r.requested?.notes, ["C4", "E4", "G4"]),
+        `asked for ${r.requested?.notes?.join(" ")} (${r.realizationSource})`,
+      ),
+      check("sounds C4, E4 and G4 and nothing unaccounted for", r.pitchVerdict.ok, verdictDetail(r)),
+    ],
+  },
+  {
+    id: "dictionary-selection-guitar",
+    title: "INST-A2: Dictionary C major chord, as the guitar plays it (open grip, C3 E3 G3 C4 E4)",
+    spec: {
+      scenario: "dictionary-selection",
+      params: { instrument: "guitar", root: 0, type: "chord_major" },
+      expectedNotes: ["C3", "E3", "G3", "C4", "E4"],
+    },
+    why:
+      "The guitar's realization of C major is its open grip, five strings over two octaves — not the " +
+      "piano's triad. This is the row that fails if the guitar is handed the piano's notes (the " +
+      "defect #103 removed and a play button could reintroduce).",
+    expect: (r) => [
+      check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`),
+      check(
+        "the notes handed to the synth are the open grip: C3 E3 G3 C4 E4",
+        sameNotes(r.requested?.notes, ["C3", "E3", "G3", "C4", "E4"]),
+        `asked for ${r.requested?.notes?.join(" ")} (${r.realizationSource})`,
+      ),
+      check("sounds C3, E3, G3, C4 and E4 and nothing unaccounted for", r.pitchVerdict.ok, verdictDetail(r)),
+    ],
+  },
+  {
+    id: "dictionary-selection-bass",
+    title: "INST-A2: Dictionary C major chord, as the bass plays it (asked C2 G2 C3, heard C2)",
+    spec: {
+      scenario: "dictionary-selection",
+      params: { instrument: "bass", root: 0, type: "chord_major" },
+      // Only C2 is expected in the sound: bassSynthDictionary is a MonoSynth and
+      // playDictionaryNote hands it the lowest note of a chord (AudioEngine.js).
+      expectedNotes: ["C2"],
+    },
+    why:
+      "The bass's realization of C major is root, fifth and octave (C2 G2 C3), and that is what the " +
+      "router is asked for; the synth is monophonic and sounds the lowest only. Both are what the " +
+      "app does today, recorded without changing it: whether the bass should arpeggio or sound the " +
+      "root alone is a decision for the ear (L1 study, question 4). This row moves when that is decided.",
+    expect: (r) => [
+      check("is not silent", !r.mix.silence.silent, `peak ${fmt(r.mix.peakDbfs)} dBFS`),
+      check(
+        "the notes handed to the synth are the bass's grip: C2 G2 C3",
+        sameNotes(r.requested?.notes, ["C2", "G2", "C3"]),
+        `asked for ${r.requested?.notes?.join(" ")} (${r.realizationSource})`,
+      ),
+      check("sounds C2 and nothing unaccounted for (monophonic synth)", r.pitchVerdict.ok, verdictDetail(r)),
+    ],
+  },
+  // Positive controls: the same scenario with the WRONG instrument against an
+  // expectation that belongs to another one. If the rows above could pass for
+  // any instrument, these would pass too — they must not match.
+  {
+    id: "dictionary-selection-control-guitar-as-piano",
+    title: "INST-A2 control: the guitar's render against the piano's expectation (C4 E4 G4) must NOT match",
+    spec: {
+      scenario: "dictionary-selection",
+      params: { instrument: "guitar", root: 0, type: "chord_major" },
+      expectedNotes: ["C4", "E4", "G4"],
+    },
+    why:
+      "Control for dictionary-selection-piano: if the guitar's selection were rendered with the piano's " +
+      "notes this would match, and the piano row could not tell. The guitar's grip adds C3 E3 G3 below the triad.",
+    expect: (r) => [
+      check(
+        "the guitar is not mistaken for the piano: the piano's expectation does NOT match",
+        r.pitchVerdict != null && !r.pitchVerdict.ok,
+        verdictDetail(r),
+      ),
+    ],
+  },
+  {
+    id: "dictionary-selection-control-piano-as-guitar",
+    title: "INST-A2 control: the piano's render against the guitar's expectation (open grip) must NOT match",
+    spec: {
+      scenario: "dictionary-selection",
+      params: { instrument: "piano", root: 0, type: "chord_major" },
+      expectedNotes: ["C3", "E3", "G3", "C4", "E4"],
+    },
+    why:
+      "Control for dictionary-selection-guitar, the other way round: the piano's triad lacks the three " +
+      "low notes of the guitar's grip, so the guitar's expectation must report them missing.",
+    expect: (r) => [
+      check(
+        "the piano is not mistaken for the guitar: the guitar's expectation does NOT match",
+        r.pitchVerdict != null && !r.pitchVerdict.ok,
+        verdictDetail(r),
+      ),
+    ],
+  },
 ];
 
 // ─── helpers ─────────────────────────────────────────────────────────
 
 const fmt = (n, digits = 2) => (typeof n === "number" && Number.isFinite(n) ? n.toFixed(digits) : String(n));
+/** Two note-name lists are the same list, in the same order (INST-A2 rows). */
+const sameNotes = (a, b) => Array.isArray(a) && JSON.stringify(a) === JSON.stringify(b);
 /**
  * One assertion.
  *
