@@ -42,6 +42,22 @@
  * buttons are tabs in the header; S1-19, the label modes are one 3-segment
  * control in the header, working without bench=1 (runNoBench).
  *
+ * A′-ACCÈS (brief A-PRIME-ACCES, Gabriel 2026-10-06: "il manque toujours des
+ * features comme le volume") adds S1-20, decisive, on Gabriel's page (no
+ * bench=1), at 3840x2045 (his window) and 3840x2160: every data-fn of
+ * src/prototype/aPrimeAccess.js is there once, visible, on screen and on top
+ * (elementFromPoint); each opener opens what it must (a content marker the
+ * probe knows on its own: the master-volume slider and the six faders, the
+ * euclidean circle, the CC BY credit...) and Escape closes it; the tempo is
+ * typed (90 + Enter, Escape cancels, 59 / 201 refused, 60 / 200 accepted); the
+ * page does not scroll in FR, EN, PT and ZH; and the master volume reaches the
+ * engine — the gain Tone.Destination really renders, read through a tap like
+ * scripts/tempo_probe.mjs reads the mixer, follows the transport's slider and
+ * the "Instruments & Audio" window's, which show one same value (runVolume).
+ *   npm run s1:probe -- --access-only   # S1-20 alone, without the 60 states
+ * Positive control: hide one button, S1-20 (and only S1-20) must turn red:
+ *   S1_PROBE_INJECT_CSS='[data-fn="son.ouvrir"]{visibility:hidden!important}' npm run s1:probe
+ *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
@@ -61,6 +77,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "../src/prototype/s1Scenarios.js";
+import { A_PRIME_ACCESS } from "../src/prototype/aPrimeAccess.js";
 import { repoRootFrom } from "./lib/repoRoot.mjs";
 
 // VMU-166: decoded with fileURLToPath (a space or a "~" in the path broke .pathname).
@@ -88,6 +105,15 @@ const VIEWPORTS = VIEWPORT_ARG
       { w: 3840, h: 2160, label: "3840x2160" },
       { w: 3840, h: 2020, label: "3840x2020" },
     ];
+// S1-20 (A′-ACCÈS) is measured at Gabriel's window height (2045, measured on
+// his LibreWolf) and at the full 2160; --viewport replaces both.
+const ACCESS_VIEWPORTS = VIEWPORT_ARG
+  ? VIEWPORTS
+  : [
+      { w: 3840, h: 2045, label: "3840x2045" },
+      { w: 3840, h: 2160, label: "3840x2160" },
+    ];
+const ACCESS_ONLY = flag("access-only");
 
 // Thresholds, spec §2 table. `decides` = counts for the A′ / B decision.
 const CRITERIA = [
@@ -938,6 +964,399 @@ async function runDrawer(browser, viewport) {
   }
 }
 
+// ─── S1-20 (A′-ACCÈS) ────────────────────────────────────────────────────────
+
+/** In page: where each data-fn is, and whether it is the element on top at its centre. */
+function locateFns(fns) {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const describe = (el) => {
+    if (!el) return "null";
+    const cls = typeof el.className === "string" ? el.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).join(".") : "";
+    return `${el.tagName.toLowerCase()}${cls ? `.${cls}` : ""}`;
+  };
+  return fns.map((fn) => {
+    const els = [...document.querySelectorAll(`[data-fn="${fn}"]`)];
+    const el = els[0];
+    if (!el) return { fn, count: 0 };
+    const b = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const visible = b.width > 0 && b.height > 0 && cs.visibility !== "hidden" && cs.display !== "none" && Number(cs.opacity) > 0;
+    const inViewport = b.left >= -0.5 && b.top >= -0.5 && b.right <= vw + 0.5 && b.bottom <= vh + 0.5;
+    const x = b.left + b.width / 2;
+    const y = b.top + b.height / 2;
+    const hit = x >= 0 && y >= 0 && x < vw && y < vh ? document.elementFromPoint(x, y) : null;
+    const onTop = Boolean(hit && (hit === el || el.contains(hit)));
+    return {
+      fn,
+      count: els.length,
+      visible,
+      inViewport,
+      onTop,
+      hit: onTop ? null : describe(hit),
+      tag: el.tagName.toLowerCase(),
+      rect: { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) },
+      text: (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 48),
+    };
+  });
+}
+
+/** In page: the measures S1-20 keeps an eye on after adding the new controls. */
+function accessLayout() {
+  const de = document.documentElement;
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const header = document.querySelector("header.proto-a__header");
+  const hb = header ? header.getBoundingClientRect() : null;
+  const kids = header ? [...header.children].map((c) => c.getBoundingClientRect()).filter((b) => b.width > 0) : [];
+  let headerOverlaps = 0;
+  for (let i = 1; i < kids.length; i++) if (kids[i].left < kids[i - 1].right - 0.5) headerOverlaps++;
+  const headLines = [...document.querySelectorAll(".proto-a__inst-head > *")].map((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    return new Set([...range.getClientRects()].map((q) => Math.round(q.top))).size;
+  });
+  const kb = document.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
+  const centre = document.querySelector('[data-s1="center"]');
+  const transport = document.querySelector('[data-s1="transport"]');
+  const viz = document.querySelector('[data-fn="son.visualiseur"]');
+  return {
+    scrollHeight: de.scrollHeight,
+    innerHeight: window.innerHeight,
+    scrollWidth: de.scrollWidth,
+    innerWidth: window.innerWidth,
+    headerHeight: hb ? r1(hb.height) : null,
+    headerOverlaps,
+    headerRight: kids.length ? r1(Math.max(...kids.map((b) => b.right))) : null,
+    headLines,
+    keyboardBottom: kb ? r1(kb.getBoundingClientRect().bottom) : null,
+    centreBottom: centre && centre.children.length ? r1(Math.max(...[...centre.children].map((c) => c.getBoundingClientRect().bottom))) : null,
+    transportHeight: transport ? r1(transport.getBoundingClientRect().height) : null,
+    visualizer: viz ? { top: r1(viz.getBoundingClientRect().top), height: r1(viz.getBoundingClientRect().height) } : null,
+  };
+}
+
+/** In page: the Assistant button's text against every colour stop of its background (VMU-184). */
+function assistantContrast() {
+  const el = document.querySelector('[data-fn="nav.studio-harmonie"]');
+  if (!el) return null;
+  const cs = getComputedStyle(el);
+  const parse = (s) => (String(s).match(/rgba?\([^)]*\)/g) || []).map((c) => c.match(/[\d.]+/g).slice(0, 3).map(Number));
+  const stops = parse(cs.backgroundImage);
+  if (!stops.length) stops.push(...parse(cs.backgroundColor));
+  const text = parse(cs.color)[0];
+  const lum = (rgb) => {
+    const f = (v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * f(rgb[0]) + 0.7152 * f(rgb[1]) + 0.0722 * f(rgb[2]);
+  };
+  const ratio = (a, b) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+  const ratios = stops.map((s) => ratio(text, s));
+  return {
+    color: cs.color,
+    stops: stops.map((s) => `rgb(${s.join(", ")})`),
+    min: ratios.length ? Math.round(Math.min(...ratios) * 100) / 100 : null,
+    border: cs.borderTopColor,
+    boxShadow: cs.boxShadow,
+  };
+}
+
+/** S1-20 verdict on one locateFns() row. */
+function locatedFails(row) {
+  if (row.count !== 1) return [`${row.fn}: ${row.count} element(s), 1 expected`];
+  const out = [];
+  if (!row.visible) out.push(`${row.fn}: not visible`);
+  if (!row.inViewport) out.push(`${row.fn}: off screen (${row.rect.x},${row.rect.y} ${row.rect.w}x${row.rect.h})`);
+  if (row.visible && row.inViewport && !row.onTop) out.push(`${row.fn}: covered by ${row.hit}`);
+  return out;
+}
+
+/** S1-20 verdict on one accessLayout() measure. */
+function layoutFails(where, l) {
+  const out = [];
+  if (l.scrollHeight > l.innerHeight || l.scrollWidth > l.innerWidth) out.push(`${where}: the page scrolls (${l.scrollWidth}x${l.scrollHeight} in ${l.innerWidth}x${l.innerHeight})`);
+  if (!(l.headerHeight <= 72.5)) out.push(`${where}: header ${l.headerHeight}px high, 72 expected`);
+  if (l.headerOverlaps) out.push(`${where}: ${l.headerOverlaps} header item(s) overlapping the previous one`);
+  if (l.headerRight > l.innerWidth - 24 + 0.5) out.push(`${where}: header items end at x=${l.headerRight}, past the 24px right margin`);
+  if (l.headLines.some((n) => n !== 1)) out.push(`${where}: an instrument head runs over ${l.headLines.join(" / ")} lines`);
+  return out;
+}
+
+/**
+ * S1-20 on Gabriel's page (?prototype=a, no bench, Studio as on arrival):
+ * every function there, on top; every opener opens and Escape closes; the
+ * tempo typed; the page holding in four languages.
+ */
+async function runAccess(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const notes = [];
+  const T = 4000;
+  const sel = (id) => `[data-fn="${id}"]`;
+  const step = async (name, body) => {
+    try {
+      const note = await body();
+      if (note) notes.push(`${name} ${note}`);
+    } catch (err) {
+      fails.push(`${name}: ${String(err && err.message ? err.message : err).split("\n")[0]}`);
+    }
+  };
+  const closesOnEscape = async (selector) => {
+    await page.keyboard.press("Escape");
+    await page.locator(selector).first().waitFor({ state: "detached", timeout: T });
+  };
+  let located = [];
+  const layouts = {};
+  let contrast = null;
+  try {
+    await page.goto(`${ORIGIN}/?prototype=a`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(300);
+
+    // 1. Every function of the list, where Gabriel's page shows it.
+    located = await page.evaluate(locateFns, A_PRIME_ACCESS.filter((f) => !f.needs).map((f) => f.fn));
+    for (const row of located) fails.push(...locatedFails(row));
+    layouts.studio = await page.evaluate(accessLayout);
+    fails.push(...layoutFails("Studio", layouts.studio));
+    contrast = { rest: await page.evaluate(assistantContrast) };
+
+    // 2. Each opener opens what it must, and Escape closes it.
+    await step("son.ouvrir", async () => {
+      await page.locator(sel("son.ouvrir")).click({ timeout: T });
+      await page.locator(".modal-container").waitFor({ state: "visible", timeout: T });
+      const m = await page.evaluate(() => {
+        const modal = document.querySelector(".modal-container");
+        return {
+          master: modal.querySelectorAll('input[type="range"][min="-40"][max="0"]').length,
+          faders: modal.querySelectorAll('input[type="range"][orient="vertical"]').length,
+          kick: /\bKick\b/.test(modal.textContent),
+        };
+      });
+      if (m.master !== 1 || m.faders !== 6 || !m.kick) throw new Error(`window content: master volume ${m.master}, faders ${m.faders}, "Kick" ${m.kick}`);
+      await closesOnEscape(".modal-container");
+      await page.locator(sel("son.ouvrir")).click({ timeout: T });
+      await page.locator(".modal-container .modal-close-btn").click({ timeout: T });
+      await page.locator(".modal-container").waitFor({ state: "detached", timeout: T });
+      return `opens the master volume (1) and ${m.faders} faders with "Kick"; Escape and ✕ close`;
+    });
+    await step("composer.math-ouvrir", async () => {
+      await page.locator(sel("composer.math-ouvrir")).click({ timeout: T });
+      await page.locator(".modal-container #composition-panel .euclidean-svg").waitFor({ state: "visible", timeout: T });
+      await closesOnEscape(".modal-container");
+      return "opens the euclidean circle; Escape closes";
+    });
+    await step("aide.guide", async () => {
+      await page.locator(sel("aide.guide")).click({ timeout: T });
+      await page.locator(".help-modal-overlay").waitFor({ state: "visible", timeout: T });
+      await closesOnEscape(".help-modal-overlay");
+      return "opens; Escape closes";
+    });
+    await step("aide.theorie", async () => {
+      await page.locator(sel("aide.theorie")).click({ timeout: T });
+      await page.locator(".theory-modal-content").waitFor({ state: "visible", timeout: T });
+      await closesOnEscape(".theory-modal-content");
+      return "opens; Escape closes";
+    });
+    await step("aide.a-propos", async () => {
+      await page.locator(sel("aide.a-propos")).click({ timeout: T });
+      await page.locator('.modal-content a[href*="creativecommons.org/licenses/by/3.0"]').waitFor({ state: "visible", timeout: T });
+      await closesOnEscape(".modal-content");
+      return "opens with the CC BY 3.0 credit; Escape closes";
+    });
+    await step("nav.langue", async () => {
+      const header = page.locator(`${sel("nav.langue")} .custom-select-header`);
+      await header.click({ timeout: T });
+      await page.locator('[data-testid="custom-select-dropdown"]').waitFor({ state: "visible", timeout: T });
+      await closesOnEscape('[data-testid="custom-select-dropdown"]');
+      // Each language: A′'s own labels follow it, and the page still holds.
+      const seen = [];
+      for (const lang of ["EN", "PT", "ZH", "FR"]) {
+        await header.click({ timeout: T });
+        await page.locator('[data-testid="custom-select-dropdown"] .select-item', { hasText: lang }).first().click({ timeout: T });
+        await page.waitForTimeout(300);
+        const play = (await page.locator(sel("jouer.lecture")).textContent()).trim();
+        const metro = (await page.locator(sel("jouer.metronome")).textContent()).trim();
+        if (lang !== "FR" && (/Lire la progression/.test(play) || /Métronome/.test(metro))) throw new Error(`${lang}: the transport still reads "${play}" / "${metro}"`);
+        const l = await page.evaluate(accessLayout);
+        layouts[lang] = l;
+        fails.push(...layoutFails(`language ${lang}`, l));
+        seen.push(`${lang} "${play}"`);
+      }
+      return `opens its list, Escape closes it; ${seen.join(", ")}`;
+    });
+    await step("nav.studio-harmonie", async () => {
+      await page.locator(sel("nav.studio-harmonie")).hover({ timeout: T });
+      contrast.hover = await page.evaluate(assistantContrast);
+      await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
+      await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
+      await page.mouse.move(0, viewport.h - 1);
+      contrast.active = await page.evaluate(assistantContrast);
+      const [close] = await page.evaluate(locateFns, ["nav.fermer-fenetres"]);
+      const closeFails = locatedFails(close);
+      if (closeFails.length) throw new Error(closeFails.join(" | "));
+      await closesOnEscape('[data-s1="drawer"]');
+      await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
+      await page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
+      await page.locator('[data-s1="drawer"]').waitFor({ state: "detached", timeout: T });
+      return "opens the drawer with its Fermer on top; Escape and Fermer close it";
+    });
+    await step("jouer.tempo-saisie", async () => {
+      const button = page.locator(`button${sel("jouer.tempo-saisie")}`);
+      const typeTempo = async (value, key) => {
+        await button.click({ timeout: T });
+        const input = page.locator(`input${sel("jouer.tempo-saisie")}`);
+        await input.waitFor({ state: "visible", timeout: T });
+        const focused = await page.evaluate(() => document.activeElement?.getAttribute("data-fn"));
+        if (focused !== "jouer.tempo-saisie") throw new Error(`the field is not focused (${focused})`);
+        await input.fill(String(value));
+        await input.press(key);
+        await button.waitFor({ state: "visible", timeout: T });
+        return (await button.textContent()).trim();
+      };
+      const got = [];
+      for (const [value, key, want] of [["90", "Enter", "90"], ["150", "Escape", "90"], ["59", "Enter", "90"], ["201", "Enter", "90"], ["60", "Enter", "60"], ["200", "Enter", "200"], ["95", "Enter", "95"]]) {
+        const shown = await typeTempo(value, key);
+        got.push(`${value}+${key}->${shown}`);
+        if (shown !== want) throw new Error(`${value} + ${key} shows ${shown}, ${want} expected (${got.join(", ")})`);
+      }
+      // The owner of the tempo (transportOwner.js) holds what the badge shows.
+      const ownerBpm = await page.evaluate(async () => (await import("/src/audio/transportOwner.js")).getTransportState().bpm);
+      if (ownerBpm !== 95) throw new Error(`the transport owner holds ${ownerBpm}, the badge 95`);
+      return `${got.join(", ")}; transport owner ${ownerBpm}`;
+    });
+
+    // 3. Dictionary too: the page holds without scrolling.
+    await page.locator(sel("nav.mode-dictionnaire")).click({ timeout: T });
+    await page.waitForTimeout(300);
+    layouts.dictionary = await page.evaluate(accessLayout);
+    fails.push(...layoutFails("Dictionary", layouts.dictionary));
+  } catch (err) {
+    fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
+  } finally {
+    await page.close();
+  }
+  if (contrast) {
+    for (const [state, c] of Object.entries(contrast)) {
+      if (!c || !(c.min >= 4.5)) fails.push(`Assistant button text ${c ? `${c.min}:1` : "not found"} (${state}), 4.5:1 expected`);
+    }
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  return { fails, notes, located, layouts, contrast };
+}
+
+/**
+ * Mesure 3 of the brief: the transport's volume really changes the gain the
+ * engine renders. Same technique as scripts/tempo_probe.mjs for the mixer: the
+ * page imports the live /src/audio/AudioEngine.js, a small DC (ConstantSource,
+ * 0.01) is fed into Tone.Destination's own gain node and an analyser reads
+ * that node's output: mean / DC is the gain really rendered (not a getter).
+ * Installed once, never disconnected (tempo_probe.mjs explains why).
+ */
+async function installDestinationTap() {
+  const engine = await import("/src/audio/AudioEngine.js");
+  // @ts-ignore — Tone internals: the context's Destination, its Volume's gain node
+  const dest = engine.masterAnalyser.context.destination;
+  const node = dest.input.output._gainNode;
+  const ctx = dest.context.rawContext;
+  const src = ctx.createConstantSource();
+  src.offset.value = 0.01;
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize = 2048;
+  src.connect(node);
+  node.connect(analyser);
+  src.start();
+  // @ts-ignore — page context
+  window.__destTap = { analyser, dc: 0.01, dest };
+  return ctx.state;
+}
+
+async function readDestinationTap() {
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  // @ts-ignore — page context
+  const { analyser, dc, dest } = window.__destTap;
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+  const mean = buf.reduce((a, b) => a + b, 0) / buf.length;
+  const linear = mean / dc;
+  return {
+    renderedDb: linear > 0 ? Math.round(20 * Math.log10(linear) * 100) / 100 : null,
+    toneDb: Math.round(dest.volume.value * 100) / 100,
+    ctxState: dest.context.rawContext.state,
+  };
+}
+
+async function runVolume(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const T = 4000;
+  const TOL = 0.1; // dB
+  const steps = [];
+  const setRange = (selector, value) =>
+    page.evaluate(
+      ({ selector, value }) => {
+        const el = document.querySelector(selector);
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+        setter.call(el, String(value));
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      },
+      { selector, value },
+    );
+  const expectDb = (name, read, want) => {
+    steps.push(`${name}: rendered ${read.renderedDb} dB (Tone ${read.toneDb})`);
+    if (read.renderedDb == null || Math.abs(read.renderedDb - want) > TOL) fails.push(`${name}: rendered ${read.renderedDb} dB, ${want} expected`);
+  };
+  const TRANSPORT = '[data-fn="son.volume-general"]';
+  const WINDOW = '.modal-container input[type="range"][min="-40"][max="0"]';
+  try {
+    await page.goto(`${ORIGIN}/?prototype=a&scenario=cmaj`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+    // A real click on ▶: the browser starts the audio context only after a
+    // user gesture. Then the chord rings out: the read is the output's mean.
+    await page.locator('[data-fn="jouer.lecture"]').click({ timeout: T });
+    await page.waitForTimeout(3000);
+    const state = await page.evaluate(installDestinationTap);
+    steps.push(`audio context ${state}`);
+    expectDb("at rest", await page.evaluate(readDestinationTap), -12);
+
+    await setRange(TRANSPORT, -30);
+    await page.waitForTimeout(300);
+    expectDb("transport slider -30", await page.evaluate(readDestinationTap), -30);
+    const shown = (await page.locator('[data-s1="transport"]').textContent()) || "";
+    if (!/-30 dB/.test(shown)) fails.push(`the transport does not show -30 dB`);
+
+    await page.locator('[data-fn="son.ouvrir"]').click({ timeout: T });
+    await page.locator(WINDOW).waitFor({ state: "visible", timeout: T });
+    const inWindow = await page.locator(WINDOW).inputValue();
+    steps.push(`the window's slider shows ${inWindow}`);
+    if (inWindow !== "-30") fails.push(`the window's slider shows ${inWindow}, -30 expected (one state)`);
+    await setRange(WINDOW, -6);
+    await page.waitForTimeout(300);
+    await page.keyboard.press("Escape");
+    await page.locator(".modal-container").waitFor({ state: "detached", timeout: T });
+    const inTransport = await page.locator(TRANSPORT).inputValue();
+    steps.push(`window slider -6 -> the transport's shows ${inTransport}`);
+    if (inTransport !== "-6") fails.push(`after the window's -6 the transport's slider shows ${inTransport}`);
+    expectDb("window slider -6", await page.evaluate(readDestinationTap), -6);
+  } catch (err) {
+    fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
+  } finally {
+    await page.close();
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  return { fails, steps };
+}
+
 const { chromium } = await import("playwright");
 const dev = await startDevServer();
 if (!AS_JSON) {
@@ -952,8 +1371,9 @@ const browser = await chromium.launch({ headless: !KEEP_OPEN });
 const results = [];
 const drawerChecks = {};
 const noBenchChecks = {};
+const accessChecks = {};
 try {
-  for (const viewport of VIEWPORTS) {
+  for (const viewport of ACCESS_ONLY ? [] : VIEWPORTS) {
     for (const scenario of STATES) {
       for (const labels of S1_LABEL_MODES) {
         const { m, pageErrors } = await runState(browser, viewport, scenario, labels);
@@ -985,6 +1405,30 @@ try {
         : `${viewport.label} drawer (info, P0-3) ${d.overlapPx2 === 0 ? "PASS" : "FAIL"}  drawer x=${d.drawerLeft}..${d.drawerLeft + d.drawerWidth} (${d.drawerWidth}px), centre ends at x=${d.centreRight}, overlap ${d.overlapPx2}px², covers: ${d.covered.join(", ") || "nothing"}`);
     }
   }
+  // S1-20 (A′-ACCÈS): Gabriel's page, at its own two heights.
+  for (const viewport of ACCESS_VIEWPORTS) {
+    const access = await runAccess(browser, viewport);
+    const volume = await runVolume(browser, viewport);
+    accessChecks[viewport.label] = { access, volume };
+    if (!AS_JSON) {
+      const ok = access.located.filter((row) => locatedFails(row).length === 0).length;
+      const s = access.layouts.studio;
+      const c = access.contrast || {};
+      const lead = `${viewport.label} S1-20 (access)`;
+      console.log(`${lead} ${access.fails.length ? "FAIL" : "PASS"}  ${ok}/${access.located.length} data-fn present once, visible, on screen, on top`);
+      for (const n of access.notes) console.log(`${lead}   ${n}`);
+      if (s) console.log(`${lead}   page ${s.scrollWidth}x${s.scrollHeight} in ${s.innerWidth}x${s.innerHeight}; header ${s.headerHeight}px, items end at x=${s.headerRight}; transport ${s.transportHeight}px high; visualizer y=${s.visualizer?.top} ${s.visualizer?.height}px; centre column content ends at y=${s.centreBottom}; keyboard bottom y=${s.keyboardBottom}`);
+      for (const lang of ["EN", "PT", "ZH"]) {
+        const l = access.layouts[lang];
+        if (l) console.log(`${lead}   ${lang}: page ${l.scrollWidth}x${l.scrollHeight}, header ${l.headerHeight}px, items end at x=${l.headerRight}, heads on ${l.headLines.join("/")} line(s)`);
+      }
+      for (const [state, v] of Object.entries(c)) {
+        if (v) console.log(`${lead}   Assistant button (${state}): text ${v.color} on ${v.stops.join(" -> ")}, min contrast ${v.min}:1; border ${v.border}${v.boxShadow && v.boxShadow !== "none" ? `; shadow ${v.boxShadow}` : ""}`);
+      }
+      if (access.fails.length) console.log(`${lead}   FAILED: ${access.fails.join(" | ")}`);
+      console.log(`${viewport.label} S1-20 (volume) ${volume.fails.length ? "FAIL" : "PASS"}  ${volume.steps.join("; ")}${volume.fails.length ? `; FAILED: ${volume.fails.join(" | ")}` : ""}`);
+    }
+  }
 } finally {
   await browser.close();
   if (dev.server) await dev.server.close();
@@ -1009,21 +1453,26 @@ const decisive = summary.filter((s) => s.decides);
 // The page without bench=1 is the one Gabriel uses: its behaviour (S1-19) is
 // part of the decision too, in each viewport.
 const noBenchOk = Object.values(noBenchChecks).every((c) => c.fails.length === 0);
-const decision = decisive.every((s) => s.pass) && noBenchOk ? "A′" : "B";
+// S1-20 decides too (brief A-PRIME-ACCES: "critère décisif").
+const accessOk = Object.values(accessChecks).every((c) => c.access.fails.length === 0 && c.volume.fails.length === 0);
+const accessPassCount = Object.values(accessChecks).filter((c) => c.access.fails.length === 0 && c.volume.fails.length === 0).length;
+const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
-  console.log(`\nSummary (all states: ${VIEWPORTS.length} viewports x (${nScen} scenarios + ${nExtra} L1a states) x ${S1_LABEL_MODES.length} label modes)`);
-  for (const s of summary) {
+  console.log(`\nSummary (all states: ${ACCESS_ONLY ? 0 : VIEWPORTS.length} viewports x (${nScen} scenarios + ${nExtra} L1a states) x ${S1_LABEL_MODES.length} label modes)`);
+  for (const s of ACCESS_ONLY ? [] : summary) {
     console.log(`  ${s.id.padEnd(5)} ${s.pass ? "PASS" : "FAIL"} ${String(s.passCount).padStart(2)}/${s.total}  ${s.what}${s.decides ? "" : "  [correction, not a decision criterion]"}${s.firstFail ? `\n        first fail: ${s.firstFail}` : ""}`);
   }
   console.log("  S1-14 not measured: Gabriel's reading test (10 labels per instrument, names then degrees).");
-  console.log(`  S1-19 no-bench behaviour: ${noBenchOk ? "PASS" : "FAIL"} in ${Object.keys(noBenchChecks).length}/${VIEWPORTS.length} viewport(s)`);
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-19 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`  S1-19 no-bench behaviour: ${noBenchOk ? "PASS" : "FAIL"} in ${Object.keys(noBenchChecks).length}/${ACCESS_ONLY ? 0 : VIEWPORTS.length} viewport(s)`);
+  console.log(`  S1-20 ${accessOk ? "PASS" : "FAIL"} ${accessPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  A′-ACCÈS: every function of src/prototype/aPrimeAccess.js on Gabriel's page, on top; openers open and Escape closes; tempo typed; no scroll in FR / EN / PT / ZH; the master volume reaches the engine`);
+  if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-20 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 
