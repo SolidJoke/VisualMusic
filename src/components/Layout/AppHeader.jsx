@@ -12,6 +12,11 @@ import { log } from '../../utils/debug';
  * hidden` on mobile, so at 375px these controls laid out from x=302 to x=1100
  * with no way to scroll to them — the language selector among them. The mobile
  * drawer now renders this same component, and the header row is hidden there.
+ *
+ * A′-ACCÈS: the A′ page (?prototype=a) renders it too, for the Guide, the
+ * Theory, the language and About. It already has its own note-name control
+ * ("Sur les notes"), so it passes `showNotation={false}` rather than showing a
+ * second one. Each control carries its parity-registry name (data-fn).
  */
 export function HeaderActions({
   txt,
@@ -22,7 +27,8 @@ export function HeaderActions({
   setShowTheory,
   exportDebugSnapshot,
   notation,
-  setNotation
+  setNotation,
+  showNotation = true
 }) {
   return (
     <>
@@ -40,22 +46,26 @@ export function HeaderActions({
           of the other header controls" the brief allows when DualToggle is
           too wide here.
         */}
-        <button
-          className="btn-header-action"
-          data-testid="header-notation-toggle"
-          onClick={() => {
-            const next = notation === 'us' ? 'eu' : 'us';
-            log("app", `Switching notation to ${next}`);
-            setNotation(next);
-          }}
-          aria-label={txt.noteNamesLabel}
-          title={txt.noteNamesLabel}
-        >
-          {notation === 'us' ? 'US (A, B, C)' : 'EU (Do, Ré)'}
-        </button>
+        {showNotation && (
+          <button
+            className="btn-header-action"
+            data-testid="header-notation-toggle"
+            data-fn="nav.notation"
+            onClick={() => {
+              const next = notation === 'us' ? 'eu' : 'us';
+              log("app", `Switching notation to ${next}`);
+              setNotation(next);
+            }}
+            aria-label={txt.noteNamesLabel}
+            title={txt.noteNamesLabel}
+          >
+            {notation === 'us' ? 'US (A, B, C)' : 'EU (Do, Ré)'}
+          </button>
+        )}
 
         <button
           className="btn-header-action"
+          data-fn="aide.guide"
           onClick={() => setShowHelp(true)}
           aria-label={txt.helpModal?.title || 'Aide'}
         >
@@ -65,6 +75,7 @@ export function HeaderActions({
         <button
           onClick={() => setShowTheory(true)}
           className="btn-header-action"
+          data-fn="aide.theorie"
         >
           {txt.guideTheoryBtn}
         </button>
@@ -77,11 +88,13 @@ export function HeaderActions({
           value={lang}
           onChange={setLang}
           className="header-lang-select"
+          data-fn="nav.langue"
         />
 
         <button
           onClick={() => setShowAbout(true)}
           className="btn-header-action"
+          data-fn="aide.a-propos"
         >
           {txt.about}
         </button>
@@ -90,6 +103,7 @@ export function HeaderActions({
           <button
             onClick={exportDebugSnapshot}
             className="btn-header-action"
+            data-fn="nav.debug"
             title="Export debug state as JSON"
           >
             🐛 Debug

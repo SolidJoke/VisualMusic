@@ -1,4 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
+import { useBpmEditor } from '../../hooks/useBpmEditor';
 import './Sidebar.css';
 
 /**
@@ -45,9 +46,9 @@ const Sidebar = ({
   children,
 }) => {
   const contentRef = useRef(null);
-  const [bpmEditing, setBpmEditing] = useState(false);
-  const [bpmInputVal, setBpmInputVal] = useState(currentBpm);
-  const bpmInputRef = useRef(null);
+  // The badge's inline editor (60-200, Enter / Escape): shared with A′'s
+  // transport (prototype/PrototypeA.jsx), see hooks/useBpmEditor.js.
+  const bpm = useBpmEditor({ currentBpm, onCommit: handleBpmChange });
 
   // Scroll to top when mode switches (guard against jsdom in tests)
   useEffect(() => {
@@ -56,26 +57,6 @@ const Sidebar = ({
       el.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [appMode]);
-
-  // Keep local BPM value in sync
-  useEffect(() => {
-    setBpmInputVal(currentBpm);
-  }, [currentBpm]);
-
-  // Focus the BPM input when editing starts
-  useEffect(() => {
-    if (bpmEditing) bpmInputRef.current?.select();
-  }, [bpmEditing]);
-
-  const commitBpm = () => {
-    setBpmEditing(false);
-    const num = parseInt(bpmInputVal, 10);
-    if (!isNaN(num) && num >= 60 && num <= 200) {
-      handleBpmChange(num);
-    } else {
-      setBpmInputVal(currentBpm); // revert on invalid
-    }
-  };
 
   const handlePlayClick = () => {
     if (appMode === 'dictionary' && playDictionaryAudio) {
@@ -147,25 +128,12 @@ const Sidebar = ({
           <div className="bpm-metronome-group">
             <div
               className="bpm-badge"
-              onClick={() => !bpmEditing && setBpmEditing(true)}
+              onClick={bpm.start}
               title={txt.sidebar?.clickToEditBpm || "Cliquer pour modifier le BPM"}
             >
               ♩{' '}
-              {bpmEditing ? (
-                <input
-                  ref={bpmInputRef}
-                  type="number"
-                  min="60"
-                  max="200"
-                  value={bpmInputVal}
-                  onChange={(e) => setBpmInputVal(e.target.value)}
-                  onBlur={commitBpm}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitBpm();
-                    if (e.key === 'Escape') { setBpmEditing(false); setBpmInputVal(currentBpm); }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
+              {bpm.editing ? (
+                <input {...bpm.inputProps} />
               ) : (
                 <span>{currentBpm}</span>
               )}

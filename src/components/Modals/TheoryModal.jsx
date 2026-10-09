@@ -1,7 +1,9 @@
 import React from 'react';
 import { SCALES } from '../../core/theory.js';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 const TheoryModal = ({ isOpen, onClose, txt }) => {
+  useEscapeKey(isOpen, onClose);
   if (!isOpen) return null;
 
   return (

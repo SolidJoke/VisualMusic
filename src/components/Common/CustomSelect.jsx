@@ -93,6 +93,7 @@ function computeDropdownPosition(rect, options) {
  * - value: Current value
  * - onChange: Callback function
  * - placeholder: Default text if no value
+ * - data-fn: the parity-registry name of the function, on the visible box (A′-ACCÈS)
  */
 const CustomSelect = ({
   options = [],
@@ -100,7 +101,8 @@ const CustomSelect = ({
   onChange,
   placeholder = "Sélectionner...",
   className = "",
-  "data-testid": testId
+  "data-testid": testId,
+  "data-fn": dataFn
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState(null);
@@ -210,6 +212,7 @@ const CustomSelect = ({
     <div
       className={`custom-select-container ${isOpen ? 'is-open' : ''} ${className}`}
       ref={containerRef}
+      data-fn={dataFn}
     >
       {/* Hidden native select for testing and accessibility */}
       <select 
