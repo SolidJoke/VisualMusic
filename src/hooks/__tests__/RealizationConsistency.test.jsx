@@ -132,7 +132,10 @@ async function runSelection({ root, type, octave, instrument }) {
       guitarFingering: engine.result.current.guitarFingering,
       bassFingering: engine.result.current.bassFingering,
       activeBrick,
-      activeNotes: engine.result.current.activeNotes,
+      // INST-A2: the hook reads the realization of the instrument it plays from
+      // the engine's output, as AppDesktop wires it, instead of re-running
+      // realizeDictionarySelection on the same inputs.
+      realizationsByInstrument: engine.result.current.realizationsByInstrument,
       currentBpm: 120,
       lastClickedContext: null,
       setCurrentlyPlayingNotes,

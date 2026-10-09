@@ -250,6 +250,19 @@ describe("INST-A2 — playInstrument(id) plays the realization of that instrumen
     await done;
   });
 
+  it("an id that is not an instrument is ignored: nothing is selected, nothing sounds", async () => {
+    // Storing it as the selection would leave every reader of the selection on a
+    // fallback; a caller's mistake is not half-acted on.
+    const { hook, setter } = mount({ root: 0, type: "chord_major", initial: "piano", frozen: true });
+
+    await act(async () => {
+      await hook.result.current.playback.playInstrument("ukulele");
+    });
+
+    expect(setter).not.toHaveBeenCalled();
+    expect(synthCalls()).toHaveLength(0);
+  });
+
   it("asking for the instrument already selected plays it as before", async () => {
     const { hook } = mount({ root: 0, type: "chord_major", initial: "bass" });
 

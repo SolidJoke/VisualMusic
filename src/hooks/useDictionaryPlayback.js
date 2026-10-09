@@ -5,20 +5,27 @@ import { CHORDS, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsol
 import { playDictionaryNote } from "../audio/AudioEngine";
 import { logPlaybackSequence, logNotePlay } from "../core/debugScale";
 import { getInstrumentTuning, buildAscDescSequence } from "./playbackUtils";
-import { realizeDictionarySelection } from "../core/realization";
 import { realizeScale, realizeNote } from "../core/noteEngine";
 import { calcActivePath } from "../core/fretboardLogic";
+
+/** The instruments the Dictionary can play, in the order of the instrument bar. */
+const INSTRUMENT_IDS = ["piano", "guitar", "bass"];
 
 /**
  * @param {Object} options
  * @param {any} options.dictRoot
  * @param {string} options.dictType
  * @param {number} [options.dictOctave]
- * @param {'piano'|'guitar'|'bass'} options.playbackInstrument
+ * @param {'piano'|'guitar'|'bass'} options.playbackInstrument the instrument of the
+ *   big play button — "the last instrument touched"
+ * @param {Function} options.setPlaybackInstrument records that choice
  * @param {any} options.guitarFingering
  * @param {any} options.bassFingering
  * @param {any} options.activeBrick
- * @param {any[]} options.activeNotes
+ * @param {{piano: any[], guitar: any[], bass: any[]}} options.realizationsByInstrument
+ *   what each instrument plays for the current selection (useMusicEngine): the
+ *   one realization that is both lit up and heard, for all three instruments at
+ *   once, whichever is selected
  * @param {number} options.currentBpm
  * @param {any} options.lastClickedContext
  * @param {Function} options.setCurrentlyPlayingNotes
@@ -29,37 +36,51 @@ export function useDictionaryPlayback({
   dictType,
   dictOctave = 0,
   playbackInstrument,
+  setPlaybackInstrument,
   guitarFingering,
   bassFingering,
   activeBrick,
-  activeNotes,
+  realizationsByInstrument,
   currentBpm,
   lastClickedContext,
   setCurrentlyPlayingNotes,
   scheduler,
 }) {
-  const playDictionaryAudio = useCallback(async () => {
+  /**
+   * Plays the Dictionary selection on one instrument, at once.
+   *
+   * The instrument is an argument, and so are the notes: `realizationsByInstrument`
+   * holds the three realizations of the current selection, so what is played
+   * does not depend on which instrument happens to be selected in this render.
+   * That is what the tiles' play buttons need. They used to call this right
+   * after the selection setter, in the same event, when the callback was still
+   * the previous render's and played the previous instrument — hence
+   * useSelectThenPlay, which waited a render. With the argument there is nothing
+   * to wait for.
+   *
+   * Playing does not select: `playInstrument` below does both. Without an
+   * argument — the big play button — it plays the selected instrument, as before.
+   * Anything that is not an instrument id (a click event handed over by an
+   * `onClick={playDictionaryAudio}`, say) counts as no argument.
+   *
+   * @param {'piano'|'guitar'|'bass'} [requested]
+   */
+  const playDictionaryAudio = useCallback(async (requested = playbackInstrument) => {
+    const instrument = INSTRUMENT_IDS.includes(requested) ? requested : playbackInstrument;
+
     await scheduler.ensureAudioReady();
 
     let notesToPlay = [];
     let absolutePitches = [];
 
-    // Block 2 — realization (core/realization.js). Playback and display each
-    // call this with the same inputs, so neither depends on the other's output
-    // and the two cannot drift apart. Reading the display's notes instead would
-    // have made this hook wrong in isolation: given a grip but theoretical
-    // notes, it would play the theory and ignore the neck.
-    const currentFingering =
-      playbackInstrument === "guitar" ? guitarFingering
-      : playbackInstrument === "bass" ? bassFingering
-      : null;
-    const { notes: realizedNotes } = realizeDictionarySelection({
-      instrument: playbackInstrument,
-      fingering: currentFingering,
-      tuning: getInstrumentTuning(playbackInstrument === "bass" ? "bass" : "guitar", activeBrick),
-      rootPitchClass: Number(dictRoot) % 12,
-      theoreticalNotes: activeNotes,
-    });
+    // Block 2 — realization (core/realization.js). Playback and display read the
+    // SAME array: the one useMusicEngine builds, once, for each instrument. This
+    // hook used to run realizeDictionarySelection itself, on the same inputs, so
+    // that it stayed right in isolation; with three instruments realized at once
+    // and one of them asked for by name, the engine's output is the thing to
+    // read, and a second call here would be a second place to teach every time
+    // a realization gains an input (an octave, a position).
+    const realizedNotes = realizationsByInstrument?.[instrument] ?? [];
 
     if (dictType?.includes("scale")) {
       // The scale as it exists on the instrument that owns playback, ascending.
@@ -122,7 +143,7 @@ export function useDictionaryPlayback({
       // realizeNote(n.value, 4) is the VMU-140 stand-in for the rare case it
       // doesn't, kept at the same fixed octave 4 the fallback always used —
       // this path still ignores the octave selector, unchanged from before.
-      absolutePitches = activeNotes.map((n) => n.absoluteValue ?? realizeNote(n.value, 4));
+      absolutePitches = realizedNotes.map((n) => n.absoluteValue ?? realizeNote(n.value, 4));
       notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
     }
 
@@ -131,7 +152,7 @@ export function useDictionaryPlayback({
     setCurrentlyPlayingNotes([]);
 
     if (dictType?.includes("chord")) {
-      playDictionaryNote(playbackInstrument, notesToPlay, "2n");
+      playDictionaryNote(instrument, notesToPlay, "2n");
       setCurrentlyPlayingNotes(absolutePitches);
       Tone.getDraw().schedule(() => {
         if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
@@ -140,11 +161,11 @@ export function useDictionaryPlayback({
       const noteDuration = 60 / currentBpm;
       const stepTime = noteDuration / 2;
       
-      if (playbackInstrument === "guitar" || playbackInstrument === "bass") {
-        const currentFingering = playbackInstrument === "guitar" ? guitarFingering : bassFingering;
-        
+      if (instrument === "guitar" || instrument === "bass") {
+        const currentFingering = instrument === "guitar" ? guitarFingering : bassFingering;
+
         if (!currentFingering?.scaleFrets) {
-          const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
+          const tuning = getInstrumentTuning(instrument, activeBrick);
 
           if (currentFingering?.isScaleBox) {
             const reversedTuning = [...tuning].reverse();
@@ -158,7 +179,7 @@ export function useDictionaryPlayback({
               for (let fret = startFret; fret <= endFret; fret++) {
                 const absPitch = openNote + fret;
                 if (scalePitchClasses.includes(absPitch % 12)) {
-                  boxNotes.push({ absoluteValue: absPitch, stringIndex: sIdx, fret, instrument: playbackInstrument });
+                  boxNotes.push({ absoluteValue: absPitch, stringIndex: sIdx, fret, instrument });
                 }
               }
             }
@@ -170,15 +191,15 @@ export function useDictionaryPlayback({
             const path = calcActivePath({
               contextualScaleAbsoluteValues: absolutePitches.map(p => ({ absoluteValue: typeof p === 'object' ? p.absoluteValue : p })),
               dictType,
-              lastClickedContext: lastClickedContext || { instrument: playbackInstrument, stringIndex: 0, fret: 0 },
-              instrument: playbackInstrument,
+              lastClickedContext: lastClickedContext || { instrument, stringIndex: 0, fret: 0 },
+              instrument,
               strings: [...tuning].reverse(),
               numFrets: 22
             });
 
             absolutePitches = absolutePitches.map((pitch, idx) => {
                const match = path[idx];
-               return match ? { ...match, instrument: playbackInstrument } : pitch;
+               return match ? { ...match, instrument } : pitch;
             });
           }
         }
@@ -189,8 +210,8 @@ export function useDictionaryPlayback({
         const pitch = typeof pitchOrObj === 'object' ? pitchOrObj.absoluteValue : pitchOrObj;
         const scheduleTime = sequenceBaseTime + index * stepTime;
         const noteNameStr = midiToNoteName(pitch);
-        playDictionaryNote(playbackInstrument, noteNameStr, "8n", scheduleTime);
-        const pathItem = (playbackInstrument === "guitar" || playbackInstrument === "bass")
+        playDictionaryNote(instrument, noteNameStr, "8n", scheduleTime);
+        const pathItem = (instrument === "guitar" || instrument === "bass")
           && typeof pitchOrObj === 'object'
           ? pitchOrObj
           : null;
@@ -205,8 +226,8 @@ export function useDictionaryPlayback({
         }, scheduleTime + clearDelay);
       });
     } else {
-      // Single note: play the pitch computed above from activeNotes — the one
-      // on screen. This rebuilt the name as `${root}4`, octave 4 hard-coded,
+      // Single note: play the pitch computed above from the realization — the
+      // one on screen. This rebuilt the name as `${root}4`, octave 4 hard-coded,
       // and ignored that pitch: the octave selector moved the highlighted key
       // but never the sound. Without an active note, fall back to the root at
       // the dictionary octave, not at a fixed one.
@@ -214,7 +235,7 @@ export function useDictionaryPlayback({
       const absNote = first !== undefined
         ? (typeof first === "object" ? first.absoluteValue : first)
         : computeAbsoluteNote(Number(dictRoot), dictOctave || 0);
-      playDictionaryNote(playbackInstrument, midiToNoteName(absNote), "2n");
+      playDictionaryNote(instrument, midiToNoteName(absNote), "2n");
       setCurrentlyPlayingNotes([absNote]);
       Tone.getDraw().schedule(() => {
         if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
@@ -228,12 +249,33 @@ export function useDictionaryPlayback({
     guitarFingering,
     bassFingering,
     activeBrick,
-    activeNotes,
+    realizationsByInstrument,
     currentBpm,
     lastClickedContext,
     setCurrentlyPlayingNotes,
     scheduler,
   ]);
 
-  return { playDictionaryAudio };
+  /**
+   * The play button of an instrument: that instrument plays now, and becomes the
+   * instrument of the big play button ("last instrument touched", as the tile
+   * did before — a click on a note does the same, in useFretboardPlayback).
+   *
+   * Both in the same call, in this order, with no render in between needed: the
+   * selection is recorded for the renders to come, the sound is made from the
+   * realization of `id` read from this one.
+   *
+   * @param {'piano'|'guitar'|'bass'} id
+   * @returns {Promise<void>} resolves once the sound has been handed to the synth
+   */
+  const playInstrument = useCallback((id) => {
+    // Three instruments exist; anything else is a caller's mistake, and storing
+    // it as the selection would leave every reader of playbackInstrument on a
+    // fallback. Ignore it rather than half-act on it.
+    if (!INSTRUMENT_IDS.includes(id)) return Promise.resolve();
+    setPlaybackInstrument(id);
+    return playDictionaryAudio(id);
+  }, [setPlaybackInstrument, playDictionaryAudio]);
+
+  return { playDictionaryAudio, playInstrument };
 }

@@ -21,6 +21,8 @@ import { useDictionaryMode } from "../useDictionaryMode";
 import { useStudioPlayback } from "../useStudioPlayback";
 import { useFretboardPlayback } from "../useFretboardPlayback";
 import { getAbsoluteNoteValue } from "../../core/theory";
+import { realizeDictionarySelection } from "../../core/realization";
+import { TUNINGS } from "../../core/tunings";
 import { AppProvider } from "../../context/AppContext";
 
 /**
@@ -84,24 +86,45 @@ const C_MAJOR_BOX = [
   { stringIndex: 2, fret: 4 }, { stringIndex: 2, fret: 5 },
 ];
 
+// What useMusicEngine hands useDictionaryPlayback since INST-A2: one realization
+// per instrument, built by the same function (realizeDictionarySelection) from
+// the same inputs. These tests state a grip or theoretical notes directly, so
+// the realizations are built from them here, the way the engine does.
+function realizationsOf({ dictRoot, guitarFingering, bassFingering, activeNotes }) {
+  const realize = (instrument, fingering) =>
+    realizeDictionarySelection({
+      instrument,
+      fingering,
+      tuning: instrument === "bass" ? TUNINGS.BASS_STANDARD : TUNINGS.GUITAR_STANDARD,
+      rootPitchClass: Number(dictRoot) % 12,
+      theoreticalNotes: activeNotes,
+    }).notes;
+  return {
+    piano: realize("piano", null),
+    guitar: realize("guitar", guitarFingering),
+    bass: realize("bass", bassFingering),
+  };
+}
+
 function renderDictionary(overrides) {
+  const options = {
+    dictRoot: "0",
+    dictType: "chord_major",
+    dictOctave: 0,
+    playbackInstrument: "piano",
+    guitarFingering: null,
+    bassFingering: null,
+    activeBrick: null,
+    activeNotes: [],
+    chordOctaveOffset: 0,
+    currentBpm: 120,
+    lastClickedContext: null,
+    setCurrentlyPlayingNotes,
+    scheduler,
+    ...overrides,
+  };
   return renderHook(() =>
-    useDictionaryPlayback({
-      dictRoot: "0",
-      dictType: "chord_major",
-      dictOctave: 0,
-      playbackInstrument: "piano",
-      guitarFingering: null,
-      bassFingering: null,
-      activeBrick: null,
-      activeNotes: [],
-      chordOctaveOffset: 0,
-      currentBpm: 120,
-      lastClickedContext: null,
-      setCurrentlyPlayingNotes,
-      scheduler,
-      ...overrides,
-    })
+    useDictionaryPlayback({ ...options, realizationsByInstrument: realizationsOf(options) })
   );
 }
 
@@ -140,7 +163,8 @@ function renderDictionaryChain(dictRoot, dictType, dictOctave = 0) {
       guitarFingering: null,
       bassFingering: null,
       activeBrick: null,
-      activeNotes: mode.result.current.activeNotes,
+      // The piano's realization is the theoretical notes, unchanged.
+      realizationsByInstrument: { piano: mode.result.current.activeNotes },
       currentBpm: 120,
       lastClickedContext: null,
       setCurrentlyPlayingNotes,

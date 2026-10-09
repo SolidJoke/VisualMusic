@@ -56,7 +56,8 @@ export function useFretboardPlayback({
     // `playbackInstrument` in this closure still holds the previous instrument:
     // clicking the guitar neck with the piano selected sent the guitar grip
     // (C3-E4) to the piano, an octave below the piano's own chord (VMU-105,
-    // measured in the browser). Same trap as useSelectThenPlay (#104).
+    // measured in the browser). The tiles' play buttons fell into the same trap
+    // (#104) until INST-A2 gave `playDictionaryAudio` an instrument argument.
     const inst = context?.instrument || playbackInstrument;
 
     const currentToken = scheduler.startPlaybackSession();
