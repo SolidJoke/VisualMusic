@@ -33,8 +33,10 @@
  * overlaps another, the piano keeps clear of the guitar neck, the page keeps
  * a margin after the bass, the heads are not glued to the left, on one line,
  * the three instruments start at the same height, the piano's keys fill
- * their box evenly); S1-17, the necks' fret pitch shrinks linearly from the
- * nut to the body and their markers (3 5 7 9 12x2 15 17 19 21) sit at the
+ * their box evenly); S1-17, the necks are as long as the keyboard (their
+ * bottom is the keyboard's, fix2), their fret pitch shrinks linearly from
+ * the nut to the body (first : last = 1.5) and their markers (3 5 7 9 12x2
+ * 15 17 19 21) sit at the
  * middle of their case (a single one between the two middle strings, the two
  * on 12 spread over the width); S1-18, the left rail is gone and its two mode
  * buttons are tabs in the header; S1-19, the label modes are one 3-segment
@@ -112,7 +114,11 @@ const CRITERIA = [
   { id: "S1-16", decides: true, what: "instrument columns: no overlap, piano -> guitar and guitar -> bass >= 24px, right margin >= 24px, head padding-left >= 16px (one line, aligned), the three instruments start at the same height, the piano's keys fill their box evenly (same empty space left and right)" },
   // L1a-fix1 (Gabriel): the frets get closer towards the body and the neck
   // carries the markers a real one has. Decides like S1-5 / S1-16.
-  { id: "S1-17", decides: true, what: "neck: fret pitch linear 84 -> 56px (>= 52 everywhere), height <= before (guitar 1682 / bass 1542px), 12px markers on 3 5 7 9 12x2 15 17 19 21 (those the neck has): a single one between the two middle strings, the two on 12 spread over the width (guitar 2-3 and 4-5, bass 1-2 and 3-4), under the pastilles; numbers and pastilles on their row's middle" },
+  // L1a-fix2 (Gabriel, 2026-10-06): the two necks are as long as the keyboard.
+  // The "height <= before" limit is replaced by "the bottom of each neck is the
+  // bottom of the keyboard (+-1px)", and the fixed 84 -> 56px by the same 1.5
+  // ratio on a larger scale, so that the rows fill that length.
+  { id: "S1-17", decides: true, what: "neck: its bottom is the keyboard's bottom (+-1px) and starts where it starts, fret pitch linear and strictly decreasing with first : last = 1.5 (>= 52 everywhere), 12px markers on 3 5 7 9 12x2 15 17 19 21 (those the neck has): a single one between the two middle strings, the two on 12 spread over the width (guitar 2-3 and 4-5, bass 1-2 and 3-4), under the pastilles; numbers and pastilles on their row's middle" },
   // Coordinator's amendment: the left rail is gone, its two mode buttons are
   // tabs in the header after the title.
   { id: "S1-18", decides: true, what: "mode tabs: 'Mode Studio' / 'Mode Dictionnaire' in the header after the title, >= 48px high; no left rail (the page starts at <= 24px)" },
@@ -125,9 +131,10 @@ const CRITERIA = [
 // everywhere after the UX critique — the centre keeps its 2764px).
 const S1_16 = { pianoToNeck: 24, neckToNeck: 24, columnGap: 24, rightMargin: 24, headPadding: 16, topTolerance: 1 };
 
-// S1-17 limits (L1a-fix1 brief, C): the neck is never taller than it was on
-// 69272a3, and no fret row is narrower than a 48px pastille needs.
-const S1_17 = { minPitch: 52, maxHeight: { guitar: 1682, bass: 1542 }, nearPitch: 84, farPitch: 56 };
+// S1-17 limits: no fret row is narrower than a 48px pastille needs (fix1); the
+// pitch's first : last ratio is 1.5, the 84 : 56 of fix1 kept on a larger scale
+// (fix2); a neck ends where the keyboard ends, within 1px (fix2).
+const S1_17 = { minPitch: 52, ratio: 1.5, ratioTolerance: 0.02, bottomTolerance: 1 };
 
 // ─── dev server (same pattern as scripts/style_probe.mjs) ─────────────────
 
@@ -536,6 +543,11 @@ function measureInPage() {
   const MARKS = { 3: 1, 5: 1, 7: 1, 9: 1, 12: 2, 15: 1, 17: 1, 19: 1, 21: 1 };
   const centre = (b) => ({ x: (b.left + b.right) / 2, y: (b.top + b.bottom) / 2 });
   out.s1_17 = {};
+  {
+    // The keyboard's box: the length the necks must have (fix2).
+    const kb = r(document.querySelector('[data-s1="piano"] .piano-wrapper--vertical'));
+    out.s1_17.keyboard = { top: round(kb.top), bottom: round(kb.bottom), height: round(kb.height) };
+  }
   for (const [name, neck] of Object.entries(necks)) {
     const rows = [...neck.querySelectorAll(".fbv-fret-row")]
       .map((row) => ({ fret: Number(row.dataset.fret), row, rect: r(row) }))
@@ -626,6 +638,8 @@ function measureInPage() {
     out.s1_17[name] = {
       frets: pitches.length,
       pitches: pitches.map(round),
+      top: round(r(neck).top),
+      bottom: round(r(neck).bottom),
       height: round(r(neck).height),
       dots,
       aligned,
@@ -756,15 +770,19 @@ function necksVerdict(c) {
     const min = Math.min(...p);
     const max = Math.max(...p);
     if (!strictlyDecreasing) fails.push(`${name}: fret pitch is not strictly decreasing`);
-    // The amendment's curve: linear, 84px on fret 1 down to 56px on the last.
+    // Linear, first : last = 1.5 (the 84 : 56 of fix1), whatever the scale.
     const step = p[0] - p[1];
-    if (Math.abs(p[0] - S1_17.nearPitch) > 0.5 || Math.abs(p[p.length - 1] - S1_17.farPitch) > 0.5) fails.push(`${name}: pitch runs ${p[0]} -> ${p[p.length - 1]}px, ${S1_17.nearPitch} -> ${S1_17.farPitch} expected`);
+    const ratio = p[0] / p[p.length - 1];
+    if (Math.abs(ratio - S1_17.ratio) > S1_17.ratioTolerance) fails.push(`${name}: pitch runs ${p[0]} -> ${p[p.length - 1]}px, a ratio of ${Math.round(ratio * 1000) / 1000}, ${S1_17.ratio} expected`);
     if (p.some((v, i) => i > 0 && Math.abs(p[i - 1] - v - step) > 0.3)) fails.push(`${name}: fret pitch is not linear`);
     if (!(min >= S1_17.minPitch)) fails.push(`${name}: smallest pitch ${min}px < ${S1_17.minPitch}px`);
-    if (!(n.height <= S1_17.maxHeight[name])) fails.push(`${name}: neck ${n.height}px taller than ${S1_17.maxHeight[name]}px`);
+    // fix2: as long as the keyboard - same start, same end.
+    const kb = c.keyboard;
+    if (Math.abs(n.bottom - kb.bottom) > S1_17.bottomTolerance) fails.push(`${name}: the neck ends at y=${n.bottom}, the keyboard at y=${kb.bottom} (${round1(n.bottom - kb.bottom)}px)`);
+    if (Math.abs(n.top - kb.top) > S1_17.bottomTolerance) fails.push(`${name}: the neck starts at y=${n.top}, the keyboard at y=${kb.top}`);
     for (const f of n.fails) fails.push(`${name}: ${f}`);
     if (n.failCount > n.fails.length) fails.push(`${name}: ${n.failCount - n.fails.length} more`);
-    parts.push(`${name} pitch ${max}px (fret 1) -> ${min}px (fret ${p.length}), neck ${n.height}px, ${n.dots} markers, ${n.aligned} parts on their row's middle`);
+    parts.push(`${name} pitch ${max}px (fret 1) -> ${min}px (fret ${p.length}), ratio ${Math.round(ratio * 100) / 100}, neck y ${n.top} -> ${n.bottom} (${n.height}px; keyboard y ${kb.top} -> ${kb.bottom}), ${n.dots} markers, ${n.aligned} parts on their row's middle`);
   }
   return [fails.length === 0, parts.join("; ") + (fails.length ? `; FAILED: ${fails.join(" | ")}` : "")];
 }

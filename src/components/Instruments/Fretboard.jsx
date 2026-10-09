@@ -4,7 +4,7 @@ import { getAbsoluteNoteValue } from "../../core/theory";
 import { computeFretMetadata, resolveStringStatus } from "../../core/fretboardUtils";
 import { useFretboard } from "../../hooks/useFretboard";
 import { useMediaQuery, useLandscapeMode } from "../../hooks/useMediaQuery";
-import { verticalFretPitch, INLAY_FRET_DOTS } from "./verticalNeckGeometry";
+import { verticalFretPitchCss, INLAY_FRET_DOTS } from "./verticalNeckGeometry";
 
 // Fixed string height — used for barre indicator and status row positioning.
 // Do NOT compute from window dimensions (no SSR safety, breaks on resize).
@@ -275,7 +275,7 @@ function Fretboard({
       <div
         className={`fretboard-container fretboard-container--vertical instrument-${instrument} ${outOfRange ? "is-out-of-range" : ""}`}
         data-orientation="vertical"
-        style={{ "--fbv-strings": columns.length }}
+        style={{ "--fbv-strings": columns.length, "--fbv-n": numFrets }}
         title={fingering?.isOutOfRange ? "⚠️ Accord hors tessiture instrument" : ""}
       >
         <div className={`fretboard-vertical ${outOfRange ? "fretboard--out-of-range" : ""}`}>
@@ -321,10 +321,12 @@ function Fretboard({
                 key={`fret-row-${fret}`}
                 className={`fbv-row fbv-fret-row ${fret === 0 ? "fbv-row--open" : ""}`}
                 data-fret={fret}
-                // The one position function: this row's height. Everything in
-                // the row (pastilles, number, markers) is laid out inside it.
-                // Fret 0 (the open-string row, above the nut) keeps --fbv-fret.
-                style={fret > 0 ? { "--fbv-pitch": `${verticalFretPitch(fret, numFrets)}px` } : undefined}
+                // The one position function: this row's height, its share of
+                // the neck's rows height (the page makes the neck as long as the
+                // keyboard). Everything in the row (pastilles, number, markers)
+                // is laid out inside it. Fret 0 (the open-string row, above the
+                // nut) keeps --fbv-fret.
+                style={fret > 0 ? { "--fbv-pitch": verticalFretPitchCss(fret, numFrets) } : undefined}
               >
                 <div className="fbv-gutter">
                   <span className={`fbv-fret-number ${dotCount ? "is-inlay" : ""}`}>{fret}</span>

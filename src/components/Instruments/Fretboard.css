@@ -521,12 +521,26 @@
     --fbv-fret: 70px;     /* the open-string row (fret 0, above the nut) only: every other row
                              takes its height from --fbv-pitch (verticalNeckGeometry.js) */
     --fbv-head: 36px;     /* open-string names row, status row */
+    /* L1a-fix2: the neck is as long as the page says (--fbv-h: PrototypeA.css
+       gives it the keyboard's length, one value both read). Its fret rows share
+       what is left once the fixed lines (two head rows and the open-string row)
+       are taken off, each by its share (--fbv-pitch, from verticalNeckGeometry.js).
+       Without a page's --fbv-h each row averages 70px, the neck as it was
+       (--fbv-n, its number of frets, is written by Fretboard.jsx). */
+    --fbv-rows-h: calc(var(--fbv-h, calc(2 * var(--fbv-head, 36px) + var(--fbv-fret, 70px) + var(--fbv-n, 22) * 70px)) - 2 * var(--fbv-head, 36px) - var(--fbv-fret, 70px));
     --fbv-marker: 48px;   /* note pastille (S1-3: >= 48px) */
     --fbv-inlay: 12px;    /* fret marker dot (fits the 18px between two pastilles) */
-    /* VMU-164: look more like a neck, with tokens only. The board is a large
-       surface: --surface-1 is the lightest one F1 allows there (tokens.css).
-       Fret wires 3px instead of 2px. */
-    --fbv-board: var(--surface-1);
+    /* VMU-164: look more like a neck, with tokens only. Fret wires 3px instead
+       of 2px.
+       The board's colour is ONE variable (--fbv-board), a token. F1 allows
+       --surface-1 at most on a large surface (tokens.css), which on the black
+       page (#0a0a0a on #000) made the neck almost invisible. VMU-183: the F1
+       rule for large surfaces is to be reviewed, and Gabriel (2026-10-06)
+       authorised a more marked colour for the neck, so it is --surface-3
+       (#1f1f1f) until that review. Strings, wires and markers keep their
+       contrast on it (VerticalNeckContrast.test.js); to change the board, change
+       this line only. */
+    --fbv-board: var(--surface-3);
     --fbv-wire: 3px;
     width: auto;
     margin: 0;
@@ -557,8 +571,9 @@
     height: var(--fbv-pitch, var(--fbv-fret, 70px));
     border-bottom: var(--fbv-wire, 3px) solid var(--fret-wire);
     box-sizing: border-box;
-    /* The board, from the gutter's edge across the strings. */
-    background: linear-gradient(to right, transparent var(--fbv-gutter, 28px), var(--fbv-board, var(--surface-1)) var(--fbv-gutter, 28px));
+    /* The board, from the gutter's edge across the strings (the fallback is
+       the same token as --fbv-board, never a second colour). */
+    background: linear-gradient(to right, transparent var(--fbv-gutter, 28px), var(--fbv-board, var(--surface-3)) var(--fbv-gutter, 28px));
 }
 
 /* The nut: fret 0 sits above it, off the board (the headstock side). */

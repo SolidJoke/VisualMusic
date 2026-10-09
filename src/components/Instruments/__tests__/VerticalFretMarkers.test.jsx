@@ -11,7 +11,8 @@
 //      (one position function, not a second calculation), and comes before
 //      the cells in the row so the pastilles paint over it;
 //   4. each fret row from 1 carries its pitch as the CSS variable the
-//      stylesheet reads (--fbv-pitch), the open-string row does not.
+//      stylesheet reads (--fbv-pitch), the open-string row does not. Since
+//      L1a-fix2 that pitch is the row's share of the neck's available height.
 //
 // Where the dots sit across the neck (coordinator, 2026-10-06, after her QA):
 // a single dot is centred between the two MIDDLE strings (guitar D / G, bass
@@ -33,7 +34,7 @@ import { useMusicEngine } from "../../../hooks/useMusicEngine";
 import { AppProvider, useAppContext } from "../../../context/AppContext";
 import { MusicEngineProvider } from "../../../context/MusicEngineContext";
 import Fretboard from "../Fretboard";
-import { verticalFretPitch } from "../verticalNeckGeometry";
+import { verticalFretPitchCss } from "../verticalNeckGeometry";
 import { BRICKS } from "../../../core/bricks";
 
 const originalMatchMedia = window.matchMedia;
@@ -184,7 +185,14 @@ describe.each(["guitar", "bass"])("vertical %s neck: fret markers", (instrument)
     expect(neck.querySelector('.fbv-fret-row[data-fret="0"]').style.getPropertyValue("--fbv-pitch")).toBe("");
     for (let fret = 1; fret <= frets; fret++) {
       const row = neck.querySelector(`.fbv-fret-row[data-fret="${fret}"]`);
-      expect(row.style.getPropertyValue("--fbv-pitch"), `fret ${fret}`).toBe(`${verticalFretPitch(fret, frets)}px`);
+      // L1a-fix2: not a px any more but the row's share of the height the page
+      // gives the neck (--fbv-rows-h), so the neck fills the keyboard's length.
+      expect(row.style.getPropertyValue("--fbv-pitch"), `fret ${fret}`).toBe(verticalFretPitchCss(fret, frets));
     }
+  });
+
+  it("tells the neck how many frets it has (--fbv-n), for the height it falls back on without a page", () => {
+    const neck = renderNeck(instrument);
+    expect(neck.querySelector(".fretboard-container--vertical").style.getPropertyValue("--fbv-n")).toBe(String(frets));
   });
 });
