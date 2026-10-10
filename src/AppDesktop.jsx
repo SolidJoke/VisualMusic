@@ -132,8 +132,7 @@ function AppDesktop() {
     selectedRootStringGuitar, setSelectedRootStringGuitar,
     selectedRootStringBass, setSelectedRootStringBass,
     harmonicMode, setHarmonicMode,
-    selectedVoicingIndexGuitar, setSelectedVoicingIndexGuitar,
-    selectedVoicingIndexBass, setSelectedVoicingIndexBass,
+    placementByInstrument, setPlacementIndex,
     scaleAnchor, setScaleAnchor,
     dictOctave, setDictOctave,
     activeNotes: dictActiveNotes
@@ -183,8 +182,7 @@ function AppDesktop() {
     displayMode,
     selectedRootStringGuitar,
     selectedRootStringBass,
-    selectedVoicingIndexGuitar,
-    selectedVoicingIndexBass,
+    placementByInstrument,
     dictRoot,
     dictType,
     dictActiveNotes,
@@ -201,8 +199,7 @@ function AppDesktop() {
     targetValuesByInstrument,
     guitarFingering,
     bassFingering,
-    availableGuitarFingerings,
-    availableBassFingerings,
+    placementsByInstrument,
     inversionText: rawInversion,
     isGuitarOutOfRange,
     isBassOutOfRange,
@@ -373,12 +370,10 @@ function AppDesktop() {
     fretboardZone,
     lastClickedContext,
     singlePlayContext,
-    selectedVoicingIndexGuitar,
-    setSelectedVoicingIndexGuitar,
-    selectedVoicingIndexBass,
-    setSelectedVoicingIndexBass,
-    availableGuitarFingerings,
-    availableBassFingerings,
+    // INST-B1: each neck's positions (nut -> body), the chosen one, its setter.
+    placementsByInstrument,
+    placementByInstrument,
+    setPlacementIndex,
     scaleAnchor,
     setScaleAnchor,
     isGuitarOutOfRange,
@@ -422,12 +417,9 @@ function AppDesktop() {
     fretboardZone,
     lastClickedContext,
     singlePlayContext,
-    selectedVoicingIndexGuitar,
-    setSelectedVoicingIndexGuitar,
-    selectedVoicingIndexBass,
-    setSelectedVoicingIndexBass,
-    availableGuitarFingerings,
-    availableBassFingerings,
+    placementsByInstrument,
+    placementByInstrument,
+    setPlacementIndex,
     scaleAnchor,
     setScaleAnchor,
     isGuitarOutOfRange,
@@ -479,11 +471,9 @@ function AppDesktop() {
       setHarmonicMode={setHarmonicMode}
       dictOctave={dictOctave}
       setDictOctave={setDictOctave}
-      selectedVoicingIndexGuitar={selectedVoicingIndexGuitar}
-      setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
-      selectedVoicingIndexBass={selectedVoicingIndexBass}
-      setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
-      dictActiveNotes={dictActiveNotes}
+      placementsByInstrument={placementsByInstrument}
+      placementByInstrument={placementByInstrument}
+      setPlacementIndex={setPlacementIndex}
       targetNotesPreset={targetNotesPreset}
       setTargetNotesPreset={setTargetNotesPreset}
     />

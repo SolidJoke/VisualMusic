@@ -1,10 +1,18 @@
 // @ts-check
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { resolveScaleIntervals, resolveScaleSemitones, resolveChordSemitones, NOTES } from "../core/theory";
 import { getChordIntervalLabel } from "../core/harmonyEngine";
 import { realizeScale, realizeChord, realizeNote } from "../core/noteEngine";
+import { octaveClearsPlacement } from "../core/placements";
 import { useAppContext } from "../context/AppContext";
+
+/** @typedef {{guitar: number|null, bass: number|null}} PlacementIndexes */
+
+/** No placement chosen on either neck: each shows its default. @type {PlacementIndexes} */
+const NO_PLACEMENT = { guitar: null, bass: null };
+/** @param {PlacementIndexes} prev @returns {PlacementIndexes} */
+const clearPlacements = (prev) => (prev.guitar === null && prev.bass === null ? prev : NO_PLACEMENT);
 
 export function useDictionaryMode() {
   const { state, dispatch } = useAppContext();
@@ -17,19 +25,49 @@ export function useDictionaryMode() {
   const [selectedRootStringGuitar, setSelectedRootStringGuitar] = useState(null);
   const [selectedRootStringBass, setSelectedRootStringBass] = useState(null);
   // Remove: const [harmonicMode, setHarmonicMode] = useState(false);
-  const [selectedVoicingIndexGuitar, setSelectedVoicingIndexGuitar] = useState(null);
-  const [selectedVoicingIndexBass, setSelectedVoicingIndexBass] = useState(null);
+  // INST-B1 — the chosen position of each neck: an index into
+  // core/placements.js listPlacements (nut -> body), null = the default. It
+  // replaces selectedVoicingIndexGuitar / selectedVoicingIndexBass, which held
+  // fingeringLogic.js ids ("open", 5, "pos_4", "note_5_8") in an order that was
+  // not the neck's.
+  const [placementIndex, setPlacementIndexState] = useState(NO_PLACEMENT);
   const [scaleAnchor, setScaleAnchor] = useState(null); // { stringIndex, fret, absoluteValue }
   const [dictOctave, setDictOctave] = useState(0); // -3..+3 (offset relative to octave 4)
 
-  // Reset voicing indices when root, type, OR octave changes.
-  // For scales: auto-select best position for the chosen octave (null = auto).
-  // For chords/notes: reset to null (auto-computed best fingering).
+  /**
+   * Chooses a position on one neck (`index` into its list), or null for its default.
+   * @param {string} instrument "guitar" or "bass"; anything else is ignored
+   * @param {number|null} index
+   */
+  const setPlacementIndex = useCallback((instrument, index) => {
+    if (instrument !== "guitar" && instrument !== "bass") return;
+    setPlacementIndexState((prev) => (prev[instrument] === index ? prev : { ...prev, [instrument]: index }));
+  }, []);
+
+  // What clears a chosen placement (both necks back to their default):
+  // - a new root or type, as before;
+  // - the common octave, only where it changes what is shown
+  //   (core/placements.js octaveClearsPlacement): a scale — C-06, the octave
+  //   picks the box, kept until the common octave segment goes (L1b-1 / B2) —
+  //   and a single note — the octave changes the note. A chord shape the
+  //   player chose stays: the octave does not move it.
+  // One effect, as before; the previous selection, kept in a ref, tells a new
+  // root or type from an octave change.
+  const lastSelection = useRef({ dictRoot, dictType });
   useEffect(() => {
-    setSelectedVoicingIndexGuitar(null);
-    setSelectedVoicingIndexBass(null);
+    const rootOrTypeChanged = lastSelection.current.dictRoot !== dictRoot || lastSelection.current.dictType !== dictType;
+    lastSelection.current = { dictRoot, dictType };
+    if (rootOrTypeChanged || octaveClearsPlacement(dictType)) setPlacementIndexState(clearPlacements);
     setScaleAnchor(null);
   }, [dictRoot, dictType, dictOctave]);
+
+  // { piano: { octave }, guitar: { index }, bass: { index } } — what each
+  // instrument's placement is. The piano's stays the common octave.
+  const placementByInstrument = useMemo(() => ({
+    piano: { octave: dictOctave },
+    guitar: { index: placementIndex.guitar },
+    bass: { index: placementIndex.bass },
+  }), [dictOctave, placementIndex]);
 
 
   const activeNotes = useMemo(() => {
@@ -97,8 +135,7 @@ export function useDictionaryMode() {
     selectedRootStringGuitar, setSelectedRootStringGuitar,
     selectedRootStringBass, setSelectedRootStringBass,
     harmonicMode, setHarmonicMode,
-    selectedVoicingIndexGuitar, setSelectedVoicingIndexGuitar,
-    selectedVoicingIndexBass, setSelectedVoicingIndexBass,
+    placementByInstrument, setPlacementIndex,
     scaleAnchor, setScaleAnchor,
     dictOctave, setDictOctave,
     activeNotes

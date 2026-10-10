@@ -39,12 +39,10 @@ const InstrumentView = memo(function InstrumentView() {
     setSelectedRootStringBass,
     guitarFingering,
     bassFingering,
-    availableGuitarFingerings,
-    availableBassFingerings,
-    selectedVoicingIndexGuitar,
-    setSelectedVoicingIndexGuitar,
-    selectedVoicingIndexBass,
-    setSelectedVoicingIndexBass,
+    // INST-B1 — each neck's positions (nut -> body) and the chosen one.
+    placementsByInstrument,
+    placementByInstrument,
+    setPlacementIndex,
     scaleAnchor = null,
     setScaleAnchor,
     playbackInstrument = "piano",
@@ -155,9 +153,9 @@ const InstrumentView = memo(function InstrumentView() {
               selectedRootString={selectedRootStringGuitar}
               setSelectedRootString={setSelectedRootStringGuitar}
               fingering={guitarFingering}
-              availableVoicings={availableGuitarFingerings}
-              selectedVoicingIndex={selectedVoicingIndexGuitar}
-              setSelectedVoicingIndex={setSelectedVoicingIndexGuitar}
+              placements={placementsByInstrument?.guitar ?? []}
+              placementIndex={placementByInstrument?.guitar?.index ?? null}
+              setPlacementIndex={(index) => setPlacementIndex?.("guitar", index)}
               isScaleMode={isScaleMode}
               rootVal={currentRootValue}
               scaleAnchor={scaleAnchor}
@@ -186,9 +184,9 @@ const InstrumentView = memo(function InstrumentView() {
               selectedRootString={selectedRootStringBass}
               setSelectedRootString={setSelectedRootStringBass}
               fingering={bassFingering}
-              availableVoicings={availableBassFingerings}
-              selectedVoicingIndex={selectedVoicingIndexBass}
-              setSelectedVoicingIndex={setSelectedVoicingIndexBass}
+              placements={placementsByInstrument?.bass ?? []}
+              placementIndex={placementByInstrument?.bass?.index ?? null}
+              setPlacementIndex={(index) => setPlacementIndex?.("bass", index)}
               isScaleMode={isScaleMode}
               rootVal={currentRootValue}
               scaleAnchor={scaleAnchor}

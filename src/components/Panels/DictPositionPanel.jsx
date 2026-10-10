@@ -2,23 +2,44 @@ import React from 'react';
 import VoicingAlert from '../Intelligence/VoicingAlert';
 import CustomSelect from '../Common/CustomSelect';
 import { resolveChordSemitones, resolveScaleSemitones } from '../../core/theory';
-import { getAvailableGuitarFingerings, getAvailableBassFingerings, getAvailableScaleFingerings, getAvailableSingleNoteFingerings } from '../../core/fingeringLogic';
 import { useAppContext } from '../../context/AppContext';
+
+/**
+ * INST-B1 — the window lists each neck's placements as the engine computed
+ * them (useMusicEngine's placementsByInstrument, core/placements.js
+ * listPlacements: nut -> body), the very entries the Position arrows step
+ * through, in the same order; it used to call fingeringLogic.js itself (with
+ * the standard tuning, whatever the style's). The first entry is the default
+ * placement, named by the shape it shows (txt.positionDefault); a single note
+ * has none, every place of it is lit ("Toutes les notes").
+ */
+function windowOptions(placements, txt) {
+  const label = (p) => {
+    if (p.fingering?.isScaleMode) return `${p.index + 1} ${txt.voicingOf || 'of'} ${placements.length}`;
+    if (p.stringName !== undefined) return `${txt.posNoteString || "String"} ${p.stringName} - ${txt.posNoteFret || "Fret"} ${p.fret}`;
+    return p.label;
+  };
+  const shown = placements.find((p) => p.isDefault);
+  const defaultLabel = shown
+    ? (typeof txt.positionDefault === "function" ? txt.positionDefault(label(shown)) : label(shown))
+    : (txt.voicingAllNotes || "All positions");
+  return [
+    { value: null, label: defaultLabel },
+    ...placements.map((p) => ({ value: p.index, label: label(p) })),
+  ];
+}
 
 export default function DictPositionPanel({
   family,
   dictType,
   dictRoot,
-  dictOctave,
-  dictActiveNotes,
   guitarFingering,
   bassFingering,
-  selectedVoicingIndexGuitar,
-  setSelectedVoicingIndexGuitar,
-  selectedVoicingIndexBass,
-  setSelectedVoicingIndexBass
+  placementsByInstrument = {},
+  placementByInstrument = {},
+  setPlacementIndex = () => {}
 }) {
-  const { txt, notation } = useAppContext();
+  const { txt } = useAppContext();
 
   return (
     <>
@@ -64,32 +85,9 @@ export default function DictPositionPanel({
               <div className="option-group">
                 <label className="field-label">🎸 {txt.guitarPosition || "Guitar Position"}</label>
                 <CustomSelect
-                  value={selectedVoicingIndexGuitar}
-                  onChange={setSelectedVoicingIndexGuitar}
-                  options={(() => {
-                    if (!dictType) return [];
-                    if (family === "note") {
-                      const midi = dictActiveNotes[0]?.absoluteValue;
-                      if (midi === undefined || midi === null) return [];
-                      const avail = getAvailableSingleNoteFingerings(midi, 'guitar', notation);
-                      return [
-                        { value: null, label: txt.voicingAllNotes || "All positions" },
-                        ...avail.map(p => ({ value: p.id, label: `${txt.posNoteString || "String"} ${p.stringName} - ${txt.posNoteFret || "Fret"} ${p.fret}` }))
-                      ];
-                    }
-                    if (family === "scale") {
-                      const avail = getAvailableScaleFingerings(dictRoot, dictType, 'guitar', ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'], txt.voicingOf || 'of');
-                      return [
-                        { value: null, label: txt.voicingAllNotes || "All positions" },
-                        ...avail.map(p => ({ value: p.id, label: p.label }))
-                      ];
-                    }
-                    const avail = getAvailableGuitarFingerings(dictRoot, dictType, dictOctave, notation);
-                    return [
-                      { value: null, label: txt.voicingAllNotes || "All positions" },
-                      ...avail.map(p => ({ value: p.id, label: p.label }))
-                    ];
-                  })()}
+                  value={placementByInstrument.guitar?.index ?? null}
+                  onChange={(index) => setPlacementIndex("guitar", index)}
+                  options={windowOptions(placementsByInstrument.guitar ?? [], txt)}
                 />
                 {guitarFingering?.isOutOfRange && (
                   <div className="range-warning" style={{ color: "var(--color-error)", fontSize: "0.8em", marginTop: "4px" }}>
@@ -106,32 +104,9 @@ export default function DictPositionPanel({
               <div className="option-group">
                 <label className="field-label">🎸 {txt.bassPosition || "Bass Position"}</label>
                 <CustomSelect
-                  value={selectedVoicingIndexBass}
-                  onChange={setSelectedVoicingIndexBass}
-                  options={(() => {
-                    if (!dictType) return [];
-                    if (family === "note") {
-                      const midi = dictActiveNotes[0]?.absoluteValue;
-                      if (midi === undefined || midi === null) return [];
-                      const avail = getAvailableSingleNoteFingerings(midi, 'bass', notation);
-                      return [
-                        { value: null, label: txt.voicingAllNotes || "All positions" },
-                        ...avail.map(p => ({ value: p.id, label: `${txt.posNoteString || "String"} ${p.stringName} - ${txt.posNoteFret || "Fret"} ${p.fret}` }))
-                      ];
-                    }
-                    if (family === "scale") {
-                      const avail = getAvailableScaleFingerings(dictRoot, dictType, 'bass', ['E1', 'A1', 'D2', 'G2'], txt.voicingOf || 'of');
-                      return [
-                        { value: null, label: txt.voicingAllNotes || "All positions" },
-                        ...avail.map(p => ({ value: p.id, label: p.label }))
-                      ];
-                    }
-                    const avail = getAvailableBassFingerings(dictRoot, dictType, dictOctave, notation);
-                    return [
-                      { value: null, label: txt.voicingAllNotes || "All positions" },
-                      ...avail.map(p => ({ value: p.id, label: p.label }))
-                    ];
-                  })()}
+                  value={placementByInstrument.bass?.index ?? null}
+                  onChange={(index) => setPlacementIndex("bass", index)}
+                  options={windowOptions(placementsByInstrument.bass ?? [], txt)}
                 />
                 {bassFingering?.isOutOfRange && (
                   <div className="range-warning" style={{ color: "var(--color-error)", fontSize: "0.8em", marginTop: "4px" }}>

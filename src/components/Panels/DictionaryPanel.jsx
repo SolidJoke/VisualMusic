@@ -50,11 +50,9 @@ export default function DictionaryPanel({
   setHarmonicMode,
   dictOctave,
   setDictOctave,
-  selectedVoicingIndexGuitar,
-  setSelectedVoicingIndexGuitar,
-  selectedVoicingIndexBass,
-  setSelectedVoicingIndexBass,
-  dictActiveNotes,
+  placementsByInstrument,
+  placementByInstrument,
+  setPlacementIndex,
   targetNotesPreset,
   setTargetNotesPreset
 }) {
@@ -318,14 +316,11 @@ export default function DictionaryPanel({
           family={family}
           dictType={dictType}
           dictRoot={dictRoot}
-          dictOctave={dictOctave}
-          dictActiveNotes={dictActiveNotes}
           guitarFingering={guitarFingering}
           bassFingering={bassFingering}
-          selectedVoicingIndexGuitar={selectedVoicingIndexGuitar}
-          setSelectedVoicingIndexGuitar={setSelectedVoicingIndexGuitar}
-          selectedVoicingIndexBass={selectedVoicingIndexBass}
-          setSelectedVoicingIndexBass={setSelectedVoicingIndexBass}
+          placementsByInstrument={placementsByInstrument}
+          placementByInstrument={placementByInstrument}
+          setPlacementIndex={setPlacementIndex}
         />
       </div>
     </div>

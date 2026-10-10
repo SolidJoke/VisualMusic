@@ -24,7 +24,7 @@
 // fret 10 (10-13). On the bass: root on the A string fret 3 (3-5), on the E
 // string fret 8 (8-10), on the D string fret 10 (10-12). The Do major scale:
 // five boxes starting at frets 0, 2, 4, 6, 8.
-import React from "react";
+import React, { useEffect } from "react";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, act, fireEvent } from "@testing-library/react";
 
@@ -77,7 +77,7 @@ const fr = translations.fr;
 const activeBrick = BRICKS[0];
 
 /** AppDesktop's Dictionary wiring, reduced to the position controls. */
-function Session({ ctl }) {
+function Session({ ctlRef }) {
   const { notation } = useAppContext();
   const dict = useDictionaryMode();
   const engine = useMusicEngine({
@@ -95,7 +95,10 @@ function Session({ ctl }) {
     playbackInstrument: "piano",
     targetNotesPreset: "majorMinor",
   });
-  ctl.current = { dict, engine };
+  // The latest render's hooks, for the test to drive (setDictType, ...).
+  useEffect(() => {
+    ctlRef.current = { dict, engine };
+  });
   const value = {
     ...dict,
     ...engine,
@@ -132,7 +135,7 @@ function mount() {
   const ctl = { current: null };
   const { container } = render(
     <AppProvider>
-      <Session ctl={ctl} />
+      <Session ctlRef={ctl} />
     </AppProvider>
   );
   return { container, ctl };
@@ -313,38 +316,42 @@ describe("INST-B1 — characterization: what the position controls do, kept", ()
   });
 });
 
-// ─── CHARACTERIZATION of today's ORDER (rewritten by the commit that changes it)
+// ─── The ORDER of the positions: from the nut to the body (INST-B1) ─────────
+// Before B1 these four tests pinned the old order — guitar open, E fr. 8,
+// A fr. 3, D fr. 10 (first frets 0 8 3 10); bass E, A, D (8 3 10); note Do4
+// from the low E string down (20 15 10 5 1) — and were rewritten here, in the
+// commit that changes it.
 
-describe("INST-B1 — the order of the positions (today: not from the nut to the body)", () => {
-  it("Do majeur, guitar: open, then E shape fret 8, A shape fret 3, D shape fret 10", () => {
+describe("INST-B1 — the order of the positions: from the nut to the body", () => {
+  it("Do majeur, guitar: open, A shape fret 3, E shape fret 8, D shape fret 10", () => {
     const { container, ctl } = mount();
     select(ctl, { type: "chord_major" });
     const chosen = cycle(container, "guitar").filter((s) => s.chosen);
-    expect(chosen.map((s) => s.label)).toEqual(["Open", "Mi-forme (fr. 8)", "La-forme (fr. 3)", "Ré-forme (fr. 10)"]);
-    expect(chosen.map((s) => s.frets[0])).toEqual([0, 8, 3, 10]);
+    expect(chosen.map((s) => s.label)).toEqual(["Open", "La-forme (fr. 3)", "Mi-forme (fr. 8)", "Ré-forme (fr. 10)"]);
+    expect(chosen.map((s) => s.frets[0])).toEqual([0, 3, 8, 10]);
   });
 
-  it("Do majeur, bass: E string fret 8, A string fret 3, D string fret 10", () => {
+  it("Do majeur, bass: A string fret 3, E string fret 8, D string fret 10", () => {
     const { container, ctl } = mount();
     select(ctl, { type: "chord_major" });
     const chosen = cycle(container, "bass").filter((s) => s.chosen);
-    expect(chosen.map((s) => s.label)).toEqual(["Corde Mi", "Corde La", "Corde Ré"]);
-    expect(chosen.map((s) => s.frets[0])).toEqual([8, 3, 10]);
+    expect(chosen.map((s) => s.label)).toEqual(["Corde La", "Corde Mi", "Corde Ré"]);
+    expect(chosen.map((s) => s.frets[0])).toEqual([3, 8, 10]);
   });
 
-  it("note Do4, guitar: from the low E string (fret 20) up to the B string (fret 1)", () => {
+  it("note Do4, guitar: from the B string (fret 1) to the low E string (fret 20)", () => {
     const { container, ctl } = mount();
     select(ctl, { type: "single_note" });
     const chosen = cycle(container, "guitar").filter((s) => s.chosen);
-    expect(chosen.map((s) => s.frets[0])).toEqual([20, 15, 10, 5, 1]);
+    expect(chosen.map((s) => s.frets[0])).toEqual([1, 5, 10, 15, 20]);
   });
 
-  it("the positions window, Do majeur: guitar open, E, A, D; bass E, A, D", () => {
+  it("the positions window, Do majeur: guitar open, A, E, D; bass A, E, D — the arrows' order", () => {
     const { container, ctl } = mount();
     select(ctl, { type: "chord_major" });
     const [guitar, bass] = windowOptions(container);
-    expect(guitar.slice(1)).toEqual(["Open", "Mi-shape (fr. 8)", "La-shape (fr. 3)", "Ré-shape (fr. 10)"]);
-    expect(bass.slice(1)).toEqual(["Corde Mi", "Corde La", "Corde Ré"]);
+    expect(guitar.slice(1)).toEqual(["Open", "La-shape (fr. 3)", "Mi-shape (fr. 8)", "Ré-shape (fr. 10)"]);
+    expect(bass.slice(1)).toEqual(["Corde La", "Corde Mi", "Corde Ré"]);
   });
 });
 

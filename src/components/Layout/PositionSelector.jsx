@@ -3,18 +3,35 @@ import { useAppContext } from '../../context/AppContext';
 import { NOTES } from '../../core/theory';
 
 /**
- * PositionSelector Component
- * 
- * Handles navigation between different fingering variants or scale positions.
+ * What the arrows show for one placement of core/placements.js: a scale box is
+ * numbered from the nut, "3 sur 5" (it read "3 eu 5": the notation code was
+ * passed as fingeringLogic.js's separator); a shape keeps its own label, with
+ * "-shape" in the page's language.
  */
-const PositionSelector = ({ 
-  instrumentType, 
-  selectedRootString, 
-  setSelectedRootString, 
-  fingering, 
-  availableVoicings,
-  selectedVoicingIndex, 
-  setSelectedVoicingIndex,
+function placementText(placement, count, txt) {
+  if (placement.fingering?.isScaleMode) return `${placement.index + 1} ${txt.voicingOf || "of"} ${count}`;
+  return placement.label.replace('-shape', `-${txt.shapeLabel || 'shape'}`);
+}
+
+/**
+ * PositionSelector Component
+ *
+ * Handles navigation between different fingering variants or scale positions.
+ *
+ * INST-B1 — it steps through `placements` (useMusicEngine's
+ * placementsByInstrument[instrument], core/placements.js listPlacements:
+ * nut -> body) by index; `placementIndex` null = the default placement, whose
+ * label is the shape actually shown (txt.positionDefault) — a single note has
+ * none: every place of it is lit, "Toutes les notes".
+ */
+const PositionSelector = ({
+  instrumentType,
+  selectedRootString,
+  setSelectedRootString,
+  fingering,
+  placements = [],
+  placementIndex = null,
+  setPlacementIndex,
   isScaleMode,
   rootVal,
   scaleAnchor,
@@ -37,27 +54,35 @@ const PositionSelector = ({
     { idx: 1, label: getNoteLabel(2), openVal: 2 },
   ];
 
+  // The chosen entry's rank, or -1 when the index points nowhere (a list that
+  // changed under it): the arrows then behave as they did for an unknown id.
+  const count = placements.length;
+  const current = Number.isInteger(placementIndex) && placementIndex >= 0 && placementIndex < count ? placementIndex : -1;
+  const defaultPlacement = placements.find((p) => p.isDefault) ?? null;
+
   const handlePrevVoicing = () => {
-    if (!availableVoicings || availableVoicings.length === 0) return;
-    if (selectedVoicingIndex === null) {
-      setSelectedVoicingIndex(availableVoicings[availableVoicings.length - 1].id);
-    } else {
-      const currIdx = availableVoicings.findIndex(v => v.id === selectedVoicingIndex);
-      if (currIdx <= 0) setSelectedVoicingIndex(null);
-      else setSelectedVoicingIndex(availableVoicings[currIdx - 1].id);
-    }
+    if (count === 0) return;
+    if (placementIndex === null) setPlacementIndex(count - 1);
+    else if (current <= 0) setPlacementIndex(null);
+    else setPlacementIndex(current - 1);
   };
 
   const handleNextVoicing = () => {
-    if (!availableVoicings || availableVoicings.length === 0) return;
-    if (selectedVoicingIndex === null) {
-      setSelectedVoicingIndex(availableVoicings[0].id);
-    } else {
-      const currIdx = availableVoicings.findIndex(v => v.id === selectedVoicingIndex);
-      if (currIdx === availableVoicings.length - 1) setSelectedVoicingIndex(null);
-      else setSelectedVoicingIndex(availableVoicings[currIdx + 1].id);
-    }
+    if (count === 0) return;
+    if (placementIndex === null) setPlacementIndex(0);
+    else if (current === count - 1) setPlacementIndex(null);
+    else setPlacementIndex(current + 1);
   };
+
+  let shownLabel;
+  if (placementIndex !== null) {
+    shownLabel = current >= 0 ? placementText(placements[current], count, txt) : "Position";
+  } else if (defaultPlacement) {
+    const text = placementText(defaultPlacement, count, txt);
+    shownLabel = typeof txt.positionDefault === "function" ? txt.positionDefault(text) : text;
+  } else {
+    shownLabel = isScaleMode ? txt.fullNeck : txt.voicingAllNotes;
+  }
 
   return (
     <div style={{ marginBottom: "15px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
@@ -70,14 +95,14 @@ const PositionSelector = ({
           {strings.map(str => {
             const rootInThisString = (rootVal - str.openVal + 12) % 12;
             const fretText = rootInThisString === 0 ? txt.fretOpen : `${txt.fretPrefix}${rootInThisString}`;
-            const isActive = selectedRootString === str.idx && selectedVoicingIndex === null;
+            const isActive = selectedRootString === str.idx && placementIndex === null;
             return (
               <button
                 key={str.idx}
                 className={`btn-premium ${isActive ? " active" : ""}`}
                 onClick={() => {
                   setSelectedRootString(isActive ? null : str.idx);
-                  setSelectedVoicingIndex(null);
+                  setPlacementIndex(null);
                 }}
                 style={{ padding: "5px 12px", fontSize: "12px", borderRadius: "15px" }}
                 title={`${txt.rootOnString || "Root on"} ${str.label}`}
@@ -100,10 +125,10 @@ const PositionSelector = ({
           </button>
       )}
 
-      {selectedVoicingIndex !== null && (
-          <button 
+      {placementIndex !== null && (
+          <button
             className="btn-premium active"
-            onClick={() => setSelectedVoicingIndex(null)}
+            onClick={() => setPlacementIndex(null)}
             style={{ padding: "5px 15px", fontSize: "11px", borderRadius: "15px", marginBottom: "5px" }}
           >
              ✕ {txt.resetVoicing || "Reset Voicing"}
@@ -125,10 +150,7 @@ const PositionSelector = ({
           </button>
           
           <span style={{ color: "var(--text-primary)", fontSize: "12px", minWidth: "120px", textAlign: "center", fontWeight: "500" }}>
-            {selectedVoicingIndex === null 
-              ? (isScaleMode ? txt.fullNeck : txt.voicingAllNotes) 
-              : ((availableVoicings?.find(v => v.id === selectedVoicingIndex)?.label || "Position")
-                  .replace('-shape', `-${txt.shapeLabel || 'shape'}`))}
+            {shownLabel}
           </span>
 
           <button 
