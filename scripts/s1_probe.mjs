@@ -502,7 +502,7 @@ function measureInPage() {
         shown,
         parts: shown ? (label.children.length ? [...label.children].map((c) => c.textContent.trim()) : [label.textContent.trim()]) : [],
         fontSize: carriers.length ? Math.min(...carriers.map((e) => parseFloat(getComputedStyle(e).fontSize))) : null,
-        contrast: carriers.length ? round(Math.min(...carriers.map((e) => textContrast(e, key, bg)))) : null,
+        contrast: carriers.length ? Math.round(Math.min(...carriers.map((e) => textContrast(e, key, bg))) * 100) / 100 : null,
         inside: shown ? inside(tr, r(key)) : false,
       });
       if (shown) labelsOfKeys.push({ key, label, tr });
@@ -977,10 +977,16 @@ function namedKeysVerdict(k, notation) {
   if (k.pairs) fails.push(`${k.pairs} overlapping pairs: ${k.examples.join(" | ")}`);
   const sizes = named.map((x) => x.fontSize);
   const weakest = named.reduce((w, x) => (w === null || x.contrast < w.contrast ? x : w), null);
+  // The weakest contrast of each family, so the two tokens show separately.
+  const minOf = (pred) => {
+    const c = named.filter(pred).map((x) => x.contrast);
+    return c.length ? `${Math.min(...c)}:1` : "n/a";
+  };
   const value =
     `${named.length}/${S1_22.keys} keys named (${unplayed.length - unplayed.filter((x) => !x.shown).length}/${unplayed.length} unplayed, ${asExpected} as expected in "${notation}"), ` +
     `${named.length - unreadable.length} readable, min ${sizes.length ? Math.min(...sizes) : "n/a"}px, ` +
-    `min contrast ${weakest ? `${weakest.contrast}:1 ("${weakest.parts.join(" ")}" ${weakest.lit ? "lit" : "unplayed"} ${weakest.black ? "black" : "white"})` : "n/a"}, ${k.pairs} overlapping pairs`;
+    `min contrast ${weakest ? `${weakest.contrast}:1 ("${weakest.parts.join(" ")}" ${weakest.lit ? "lit" : "unplayed"} ${weakest.black ? "black" : "white"})` : "n/a"} ` +
+    `[unplayed white ${minOf((x) => !x.lit && !x.black)}, unplayed black ${minOf((x) => !x.lit && x.black)}, lit ${minOf((x) => x.lit)}], ${k.pairs} overlapping pairs`;
   return [fails.length === 0, value + (fails.length ? `; FAILED: ${fails.join(" | ")}` : "")];
 }
 
