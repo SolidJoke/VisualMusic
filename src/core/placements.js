@@ -116,10 +116,16 @@ export function scalePositionForOctave(octave, count) {
  * - chord: no — the octave does not move a shape (it only decides which shape
  *   is the default), so a shape the player chose stays.
  *
+ * L1b-1b — in A′ the octave is the piano's own setting (its column head) and no
+ * longer picks a box (`pianoOwnsOctave`): there it clears a single note's place
+ * only, since the octave is part of the note.
+ *
  * @param {string|null|undefined} type
+ * @param {{pianoOwnsOctave?: boolean}} [options]
  */
-export function octaveClearsPlacement(type) {
+export function octaveClearsPlacement(type, { pianoOwnsOctave = false } = {}) {
   const family = familyOf(type);
+  if (pianoOwnsOctave) return family === "note";
   return family === "scale" || family === "note";
 }
 

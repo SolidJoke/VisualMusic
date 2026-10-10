@@ -22,7 +22,9 @@
   --proto-piano-col: 248px;    /* the piano's column: its inset + its keyboard */
   --proto-piano-inset: 10px;   /* the keyboard's left inset inside that column */
   --proto-head-pad: 16px;      /* the three instrument heads' left padding (aligned) */
-  --proto-head-h: 72px;        /* one head: title + caption, one line each, same in the three columns */
+  /* L1b-1b: one head = two 48px rows (name + ▶, then ‹ setting ›) and a 4px
+     gap, the same in the three columns (UX critique § 2: 100px). */
+  --proto-head-h: 100px;
 
   /* The instruments' length (L1a-fix2, Gabriel: the two necks as long as the
      keyboard). ONE value, derived from the keyboard: its white keys (the
@@ -30,12 +32,18 @@
      keyboard box's padding and border (8 + 1 each side, the theme's). The
      keyboard reads --proto-key for its keys (below), the necks read --fbv-h
      (Fretboard.css turns it into their rows): neither carries a number of its
-     own. S1-17 measures that each neck ends where the keyboard ends. */
-  --proto-key: 62px;
+     own. S1-17 measures that each neck ends where the keyboard ends.
+     L1b-1b: 62 -> 61px. The heads grew by 28px (72 -> 100); one pixel per
+     white key gives 29px back, so the keyboard's bottom stays above Gabriel's
+     window bottom by >= 40px at 3840 x 2045 (S1-21: 1995, margin 50; a 100px
+     head alone would leave 21px). S1-8 (>= 52px) and S1-5 (>= 64px up to
+     fret 12) still hold. The other lever, the column's 24px top padding, was
+     kept: it aligns the heads with the transport's top (y 96). */
+  --proto-key: 61px;
   --proto-keys: 29;
   --proto-piano-chrome: 18px;
-  --proto-inst-h: calc(var(--proto-keys, 29) * var(--proto-key, 62px) + var(--proto-piano-chrome, 18px));
-  --fbv-h: var(--proto-inst-h, calc(29 * 62px + 18px));
+  --proto-inst-h: calc(var(--proto-keys, 29) * var(--proto-key, 61px) + var(--proto-piano-chrome, 18px));
+  --fbv-h: var(--proto-inst-h, calc(29 * 61px + 18px));
 
   position: relative;
   min-height: 100vh;
@@ -365,31 +373,108 @@
   --piano-v-width: 100%;
   /* The key thickness is the page's (--proto-key): the keyboard's length and
      the necks' are the same variable, not two numbers kept equal by hand. */
-  --piano-v-key: var(--proto-key, 62px);
+  --piano-v-key: var(--proto-key, 61px);
 }
 
-/* One head, the same in the three columns: a fixed height and one line each
-   (the bass's caption wrapped to two lines, its head was 86px against 72 and
-   its neck 14px lower than the guitar's), padded alike so the titles align. */
+/* One head, the same in the three columns (L1b-1b, InstrumentHead.jsx): a
+   fixed height, two rows of one line each, padded alike so the names align.
+   (The bass's caption once wrapped to two lines and pushed its neck 14px
+   lower; the captions are now the columns' tooltip.) */
 .proto-a__inst-head {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: space-between;
   box-sizing: border-box;
-  height: var(--proto-head-h, 72px);
+  height: var(--proto-head-h, 100px);
   padding-left: var(--proto-head-pad, 16px);
+  /* A neck's column is min-content (exactly its neck): without this, a label
+     too long for the head would widen the column by its own width - taking it
+     from the centre column, silently - instead of showing as an overflow,
+     where S1-21 measures it (found by S1-21's wide-label positive control). */
+  contain: inline-size;
 }
 
-.proto-a__inst-head > * {
+/* A row: its controls side by side, on one line, as tall as a hit target. */
+.proto-a__head-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--hit-min);
+  min-width: 0;
   white-space: nowrap;
 }
 
-/* The caption at the label size (18px at 3840, the instruments' own label
-   size) rather than the body size: "sillet en haut, graves à gauche" at the
-   body size is 281px, more than the bass column's 276px beside its padding -
-   which is what made it wrap. */
-.proto-a__inst-head .proto-a__muted {
+/* Row 1: the name, a toggle (it chooses the instrument that sounds). Pressed
+   like the mode tabs: surface-3, light border. */
+.proto-a .proto-a__head-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--hit-min);
+  padding: 0 12px;
+  text-align: left;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-emph);
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.proto-a .proto-a__head-name.is-active {
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
+}
+
+/* ▶ and the arrows: square 48px targets. */
+.proto-a .proto-a__head-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hit-min);
+  height: var(--hit-min);
+  padding: 0;
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--fs-emph);
+  cursor: pointer;
+}
+
+.proto-a .proto-a__head-btn:disabled {
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+  cursor: default;
+}
+
+.proto-a .proto-a__head-name:focus-visible,
+.proto-a .proto-a__head-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Row 2: the setting's label, at the instruments' label size (18px at 3840,
+   not larger: the bass column holds 276 - 2 x 48 - 2 x 4 = 172px of it). */
+.proto-a__head-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
   font-size: var(--fs-label);
+  color: var(--text-primary);
+}
+
+/* The Studio's shape, read-only: no arrows, the label under the name. */
+.proto-a__head-setting.is-readonly .proto-a__head-label {
+  text-align: left;
+  padding-left: 13px;
+  color: var(--text-secondary);
 }
 
 .proto-a__inst-title {

@@ -1,17 +1,8 @@
 import React from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { NOTES } from '../../core/theory';
-
-/**
- * What the arrows show for one placement of core/placements.js: a scale box is
- * numbered from the nut, "3 sur 5" (it read "3 eu 5": the notation code was
- * passed as fingeringLogic.js's separator); a shape keeps its own label, with
- * "-shape" in the page's language.
- */
-function placementText(placement, count, txt) {
-  if (placement.fingering?.isScaleMode) return `${placement.index + 1} ${txt.voicingOf || "of"} ${count}`;
-  return placement.label.replace('-shape', `-${txt.shapeLabel || 'shape'}`);
-}
+// L1b-1b: the label and the cycle are shared with A′'s column heads (one copy).
+import { placementLabel, stepPlacement } from '../Instruments/placementLabel';
 
 /**
  * PositionSelector Component
@@ -54,35 +45,16 @@ const PositionSelector = ({
     { idx: 1, label: getNoteLabel(2), openVal: 2 },
   ];
 
-  // The chosen entry's rank, or -1 when the index points nowhere (a list that
-  // changed under it): the arrows then behave as they did for an unknown id.
-  const count = placements.length;
-  const current = Number.isInteger(placementIndex) && placementIndex >= 0 && placementIndex < count ? placementIndex : -1;
-  const defaultPlacement = placements.find((p) => p.isDefault) ?? null;
-
-  const handlePrevVoicing = () => {
-    if (count === 0) return;
-    if (placementIndex === null) setPlacementIndex(count - 1);
-    else if (current <= 0) setPlacementIndex(null);
-    else setPlacementIndex(current - 1);
+  // The arrows step nut -> body and back to the default (placementLabel.js
+  // stepPlacement); nothing happens on an empty list.
+  const step = (direction) => {
+    const next = stepPlacement(placements, placementIndex, direction);
+    if (next !== undefined) setPlacementIndex(next);
   };
+  const handlePrevVoicing = () => step(-1);
+  const handleNextVoicing = () => step(1);
 
-  const handleNextVoicing = () => {
-    if (count === 0) return;
-    if (placementIndex === null) setPlacementIndex(0);
-    else if (current === count - 1) setPlacementIndex(null);
-    else setPlacementIndex(current + 1);
-  };
-
-  let shownLabel;
-  if (placementIndex !== null) {
-    shownLabel = current >= 0 ? placementText(placements[current], count, txt) : "Position";
-  } else if (defaultPlacement) {
-    const text = placementText(defaultPlacement, count, txt);
-    shownLabel = typeof txt.positionDefault === "function" ? txt.positionDefault(text) : text;
-  } else {
-    shownLabel = isScaleMode ? txt.fullNeck : txt.voicingAllNotes;
-  }
+  const shownLabel = placementLabel({ placements, placementIndex, isScaleMode, txt });
 
   return (
     <div style={{ marginBottom: "15px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>

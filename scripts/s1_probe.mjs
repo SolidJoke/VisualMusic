@@ -63,8 +63,28 @@
  * keys (29 white + 20 black) are all named, each name readable (>= 18px,
  * >= 4.5:1 against what is really behind it, inside its key), no two labels
  * overlapping; an unplayed key reads its name in the notation of the label
- * mode (a C with its octave, a black key with its flat). S1-21 is the next
- * slice's: it will be added there.
+ * mode (a C with its octave, a black key with its flat).
+ *
+ * L1b-1b (the column heads: name, ▶ per instrument, ‹ Octave / Position ›)
+ * adds S1-21, decisive, on Gabriel's page at 3840x2045 and 3840x2160, in FR /
+ * EN / PT / ZH, in the Dictionary and the Studio (runHeads): each head 100px
+ * (+-1), the same in the three columns, two rows of one line each, every
+ * control >= 48x48 and on top (elementFromPoint), the setting's label fitting
+ * its room, the keyboard's bottom >= 40px above the window's (<= 2005 at 2045),
+ * no scroll; the controls the mode must show (aPrimeAccess.js), each once; the
+ * piano's label equal to an ORACLE computed here from data-s1-notes. Then what
+ * the controls do, against literal anchors and invariances: › › on the guitar
+ * changes the guitar's data-s1-positions only (open 0-3 -> A shape 3-5), › › on
+ * the bass the bass's only (A string 3-5 -> E string 8-10), › on the piano
+ * shifts data-s1-notes by 12 and leaves both necks; the Do major scale's box
+ * stays the octave 0's (C-06 cut in A′). S1-16 and S1-20 keep their "one line"
+ * per ROW of a head (reformulated: a row's text boxes grouped into horizontal
+ * bands); S1-20 now also walks the Dictionary-only functions (needs:
+ * "dictionary": the heads' ▶ and the position arrows) in the Dictionary.
+ * Positive controls (L1b-1b report): a 140px head turns S1-21 red
+ *   S1_PROBE_INJECT_CSS='.proto-a{--proto-head-h:140px!important}' npm run s1:probe
+ * and labels made too wide for their room turn S1-21's width check red alone
+ *   S1_PROBE_INJECT_CSS='.proto-a__head-label{letter-spacing:6px!important}' npm run s1:probe -- --access-only
  * Positive control: S1-22 prints "N/49 keys named". Giving the keyboard its old
  * look (unplayed names hidden except the Cs) drops N from 49 to 7 in Do majeur
  * and 9 in Sol#m7, and only S1-22 turns red (S1-1, -2, -4, -10 stay green):
@@ -612,13 +632,36 @@ function measureInPage() {
   for (const id of ["piano", "guitar", "bass"]) {
     const section = document.querySelector(`[data-s1="${id}"]`);
     const content = section.querySelector(id === "piano" ? ".piano-wrapper--vertical" : ".fretboard-container--vertical");
+    // The head's ROWS (its children): L1a-fix1's title and caption, one line
+    // each; since L1b-1b two rows of controls (name + ▶, ‹ setting ›).
     const heads = [...section.querySelectorAll(".proto-a__inst-head > *")];
     const headBox = section.querySelector(".proto-a__inst-head");
-    // Lines a head's text runs over: the distinct tops of its text rectangles.
+    // Lines a row's text runs over. L1b-1b reformulation (same meaning, "one
+    // line per row"): the row's text boxes grouped into horizontal bands — a
+    // box that overlaps a band vertically is on that line. It used to count
+    // the distinct tops of the row's text, which held while a row was one
+    // span, but a row of "‹ Do4 – Sol4 ›" centres a 24px arrow and an 18px
+    // label on one line with different tops; a wrapped label still makes a
+    // second band below the first.
     const lines = (el) => {
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      return new Set([...range.getClientRects()].map((q) => Math.round(q.top))).size;
+      const rects = [];
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        if (!n.textContent.trim()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        rects.push(...[...range.getClientRects()].filter((q) => q.width > 0 && q.height > 0));
+      }
+      rects.sort((a, b) => a.top - b.top);
+      let bands = 0;
+      let bottom = -Infinity;
+      for (const q of rects) {
+        if (q.top >= bottom - 0.5) {
+          bands++;
+          bottom = q.bottom;
+        } else bottom = Math.max(bottom, q.bottom);
+      }
+      return bands;
     };
     const sb = r(section);
     const cb = content ? r(content) : null;
@@ -852,11 +895,12 @@ function columnsVerdict(c) {
   }
   const padValues = Object.values(pads).filter(Number.isFinite);
   if (padValues.length && Math.max(...padValues) - Math.min(...padValues) > 1) fails.push(`head padding differs between columns (${padValues.join(" / ")}px)`);
-  // 5. Heads on one line, the same height in the three columns, so that the
-  // three instruments start at the same height (a two-line head used to push
-  // the bass neck 14px below the guitar's).
+  // 5. Each row of a head on one line, the same height in the three columns, so
+  // that the three instruments start at the same height (a two-line head used
+  // to push the bass neck 14px below the guitar's). headLines is the most
+  // lines any row of that head runs over (L1b-1b: per row, the heads have two).
   const headLines = [piano, guitar, bass].map((col) => col.headLines);
-  if (headLines.some((n) => n !== 1)) fails.push(`a head runs over ${headLines.join(" / ")} lines (piano / guitar / bass), one expected`);
+  if (headLines.some((n) => n !== 1)) fails.push(`a head row runs over ${headLines.join(" / ")} lines (piano / guitar / bass), one per row expected`);
   const heights = [piano, guitar, bass].map((col) => col.headHeight);
   if (Math.max(...heights) - Math.min(...heights) > S1_16.topTolerance) fails.push(`head heights differ (${heights.join(" / ")}px)`);
   const tops = [piano, guitar, bass].map((col) => col.top);
@@ -1190,10 +1234,29 @@ function accessLayout() {
   const kids = header ? [...header.children].map((c) => c.getBoundingClientRect()).filter((b) => b.width > 0) : [];
   let headerOverlaps = 0;
   for (let i = 1; i < kids.length; i++) if (kids[i].left < kids[i - 1].right - 0.5) headerOverlaps++;
+  // One entry per head ROW: the lines its text runs over, as horizontal bands
+  // (L1b-1b reformulation, the same as S1-16's: a row of "‹ label ›" is one
+  // line although its arrow and its label have different tops). A row with no
+  // text (the Studio's empty setting row) counts as one line.
   const headLines = [...document.querySelectorAll(".proto-a__inst-head > *")].map((el) => {
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    return new Set([...range.getClientRects()].map((q) => Math.round(q.top))).size;
+    const rects = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!n.textContent.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      rects.push(...[...range.getClientRects()].filter((q) => q.width > 0 && q.height > 0));
+    }
+    rects.sort((a, b) => a.top - b.top);
+    let bands = 0;
+    let bottom = -Infinity;
+    for (const q of rects) {
+      if (q.top >= bottom - 0.5) {
+        bands++;
+        bottom = q.bottom;
+      } else bottom = Math.max(bottom, q.bottom);
+    }
+    return Math.max(bands, 1);
   });
   const kb = document.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
   const centre = document.querySelector('[data-s1="center"]');
@@ -1422,11 +1485,16 @@ async function runAccess(browser, viewport) {
       return `${got.join(", ")}; transport owner ${ownerBpm}`;
     });
 
-    // 3. Dictionary too: the page holds without scrolling.
+    // 3. Dictionary too: the page holds without scrolling, and (L1b-1b) the
+    // functions only the Dictionary has — the heads' ▶ and the necks' position
+    // arrows — are there once, visible, on screen, on top.
     await page.locator(sel("nav.mode-dictionnaire")).click({ timeout: T });
     await page.waitForTimeout(300);
     layouts.dictionary = await page.evaluate(accessLayout);
     fails.push(...layoutFails("Dictionary", layouts.dictionary));
+    const dictLocated = await page.evaluate(locateFns, A_PRIME_ACCESS.filter((f) => f.needs === "dictionary").map((f) => f.fn));
+    for (const row of dictLocated) fails.push(...locatedFails(row).map((f) => `Dictionary: ${f}`));
+    located = [...located, ...dictLocated];
   } catch (err) {
     fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
   } finally {
@@ -1546,6 +1614,327 @@ async function runVolume(browser, viewport) {
   return { fails, steps };
 }
 
+// ─── S1-21 (L1b-1b): the column heads ───────────────────────────────────────
+
+// S1-21 thresholds (brief L1b-1b): a 100px head (+-1), the same in the three
+// columns, 48px targets, the keyboard's bottom at least 40px above the window's
+// (3840 x 2045: <= 2005), the setting's label at the instruments' label size.
+const S1_21 = { head: 100, headTolerance: 1, target: 48, minMargin: 40, labelFont: 18 };
+
+// The piano's label is checked against an ORACLE computed here from what the
+// engine hands the piano (data-s1-notes), never read from the page: the names
+// are S1-22's own table (sharps, the page's default notation "eu"), and the
+// format is the app's range ("low – high", or one name).
+const headName = (midi) => `${S1_22.names.eu.sharp[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
+function pianoRangeOracle(notesAttr) {
+  const n = String(notesAttr || "").split(" ").filter(Boolean).map(Number);
+  if (!n.length) return "";
+  const lo = Math.min(...n);
+  const hi = Math.max(...n);
+  return lo === hi ? headName(lo) : `${headName(lo)} – ${headName(hi)}`;
+}
+/** Lowest-highest fret of a neck's data-s1-positions ("string:fret ..."). */
+function fretSpan(positions) {
+  const f = String(positions || "").split(" ").filter(Boolean).map((p) => Number(p.split(":")[1]));
+  return f.length ? `${Math.min(...f)}-${Math.max(...f)}` : "none";
+}
+
+/** In page: the three heads, raw (S1-21). */
+function headsMeasure() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const r = (el) => el.getBoundingClientRect();
+  const round = (n) => Math.round(n * 10) / 10;
+  // Lines a row's text runs over: its text boxes grouped into horizontal bands
+  // (the same reading as S1-16 and S1-20).
+  const bands = (el) => {
+    const rects = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (!n.textContent.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(n);
+      rects.push(...[...range.getClientRects()].filter((q) => q.width > 0 && q.height > 0));
+    }
+    rects.sort((a, b) => a.top - b.top);
+    let count = 0;
+    let bottom = -Infinity;
+    for (const q of rects) {
+      if (q.top >= bottom - 0.5) {
+        count++;
+        bottom = q.bottom;
+      } else bottom = Math.max(bottom, q.bottom);
+    }
+    return count;
+  };
+  const cols = {};
+  for (const id of ["piano", "guitar", "bass"]) {
+    const section = document.querySelector(`[data-s1="${id}"]`);
+    const head = section ? section.querySelector(".proto-a__inst-head") : null;
+    if (!head) {
+      cols[id] = null;
+      continue;
+    }
+    const hb = r(head);
+    const sb = r(section);
+    const targets = [...head.querySelectorAll("button")].map((b) => {
+      const q = r(b);
+      const x = q.left + q.width / 2;
+      const y = q.top + q.height / 2;
+      const hit = x >= 0 && y >= 0 && x < vw && y < vh ? document.elementFromPoint(x, y) : null;
+      return {
+        fn: b.getAttribute("data-fn"),
+        w: round(q.width),
+        h: round(q.height),
+        onTop: Boolean(hit && (hit === b || b.contains(hit))),
+        inViewport: q.left >= -0.5 && q.top >= -0.5 && q.right <= vw + 0.5 && q.bottom <= vh + 0.5,
+      };
+    });
+    const label = head.querySelector(".proto-a__head-label");
+    let labelInfo = null;
+    if (label) {
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      const text = label.textContent.trim();
+      const tr = range.getBoundingClientRect();
+      const lb = r(label);
+      const prev = label.previousElementSibling;
+      const next = label.nextElementSibling;
+      labelInfo = {
+        text,
+        fontSize: parseFloat(getComputedStyle(label).fontSize),
+        textWidth: round(tr.width),
+        boxWidth: round(lb.width),
+        fits: !text || (label.scrollWidth <= label.clientWidth + 0.5 && tr.left >= lb.left - 0.5 && tr.right <= lb.right + 0.5),
+        clearOfArrows: !text || ((!prev || tr.left >= r(prev).right - 0.5) && (!next || tr.right <= r(next).left + 0.5)),
+        insideColumn: !text || (tr.left >= sb.left - 0.5 && tr.right <= sb.right + 0.5),
+      };
+    }
+    const name = head.querySelector(".proto-a__head-name");
+    const instrument = section.querySelector(id === "piano" ? ".piano-wrapper--vertical" : ".fretboard-container--vertical");
+    cols[id] = {
+      height: round(hb.height),
+      top: round(hb.top),
+      // The head must not be wider than its instrument: a neck's column is
+      // min-content, so a head that grows widens the column (and narrows the
+      // centre) instead of overflowing - a label check alone would not see it.
+      headRight: round(hb.right),
+      headScroll: head.scrollWidth > head.clientWidth + 0.5,
+      instrumentRight: instrument ? round(r(instrument).right) : null,
+      rows: [...head.children].map((row) => bands(row)),
+      targets,
+      label: labelInfo,
+      name: name ? { text: name.textContent.trim(), fits: name.scrollWidth <= name.clientWidth + 0.5 } : null,
+      notes: section.getAttribute("data-s1-notes"),
+      positions: section.getAttribute("data-s1-positions"),
+    };
+  }
+  const kb = document.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
+  return {
+    cols,
+    keyboardBottom: kb ? round(r(kb).bottom) : null,
+    scrollHeight: document.documentElement.scrollHeight,
+    innerHeight: vh,
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: vw,
+  };
+}
+
+/** The head controls a mode must show, from the shared list (aPrimeAccess.js). */
+function headFnsFor(mode) {
+  return A_PRIME_ACCESS.filter(
+    (f) => f.where === "instruments" && /^jouer\.(instrument-|octave-|position-)/.test(f.fn) && (!f.needs || (f.needs === "dictionary" && mode === "dictionary"))
+  ).map((f) => f.fn);
+}
+
+/** S1-21 verdict on one headsMeasure(): the list of what failed. */
+function headsFails(where, h, { mode, studioOctave = 0 }) {
+  const out = [];
+  const ids = ["piano", "guitar", "bass"];
+  if (ids.some((id) => !h.cols[id])) return [`${where}: a column has no head`];
+  const heights = ids.map((id) => h.cols[id].height);
+  for (const [i, id] of ids.entries()) {
+    if (Math.abs(heights[i] - S1_21.head) > S1_21.headTolerance) out.push(`${where}: ${id} head ${heights[i]}px, ${S1_21.head} +-${S1_21.headTolerance} expected`);
+  }
+  if (Math.max(...heights) - Math.min(...heights) > S1_21.headTolerance) out.push(`${where}: heads differ (${heights.join(" / ")}px)`);
+  for (const id of ids) {
+    const c = h.cols[id];
+    if (c.rows.length !== 2) out.push(`${where}: ${id} head has ${c.rows.length} rows, 2 expected`);
+    c.rows.forEach((n, k) => {
+      if (n > 1) out.push(`${where}: ${id} row ${k + 1} runs over ${n} lines`);
+    });
+    for (const t of c.targets) {
+      if (!(t.w >= S1_21.target - 0.5 && t.h >= S1_21.target - 0.5)) out.push(`${where}: ${t.fn} ${t.w}x${t.h}px, ${S1_21.target}x${S1_21.target} expected`);
+      if (!t.inViewport) out.push(`${where}: ${t.fn} off screen`);
+      else if (!t.onTop) out.push(`${where}: ${t.fn} not on top (elementFromPoint)`);
+    }
+    if (c.name && !c.name.fits) out.push(`${where}: ${id} name "${c.name.text}" does not fit its button`);
+    if (!(c.headRight <= c.instrumentRight + 0.5)) out.push(`${where}: ${id} head ends at x=${c.headRight}, past its instrument (x=${c.instrumentRight})`);
+    if (c.headScroll) out.push(`${where}: ${id} head's content overflows it`);
+    if (c.label) {
+      if (!c.label.fits) out.push(`${where}: ${id} label "${c.label.text}" ${c.label.textWidth}px does not fit its ${c.label.boxWidth}px`);
+      if (!c.label.clearOfArrows) out.push(`${where}: ${id} label "${c.label.text}" runs under an arrow`);
+      if (!c.label.insideColumn) out.push(`${where}: ${id} label "${c.label.text}" leaves its column`);
+      if (c.label.text && !(c.label.fontSize >= S1_21.labelFont)) out.push(`${where}: ${id} label at ${c.label.fontSize}px, ${S1_21.labelFont} expected`);
+    } else if (id === "piano") out.push(`${where}: the piano has no setting label`);
+  }
+  // The controls the mode must show, each once (the list is aPrimeAccess.js's).
+  const want = headFnsFor(mode);
+  const have = ids.flatMap((id) => h.cols[id].targets.map((t) => t.fn));
+  const missing = want.filter((fn) => have.filter((x) => x === fn).length !== 1);
+  const extra = have.filter((fn) => !want.includes(fn));
+  if (missing.length) out.push(`${where}: ${missing.join(", ")} not there once`);
+  if (extra.length) out.push(`${where}: ${extra.join(", ")} should not be there in ${mode}`);
+  // The piano's label against the oracle: its range in the Dictionary, the base
+  // octave's C in the Studio.
+  const expected = mode === "dictionary" ? pianoRangeOracle(h.cols.piano.notes) : `${S1_22.names.eu.sharp[0]}${4 + studioOctave}`;
+  const shown = h.cols.piano.label ? h.cols.piano.label.text : null;
+  if (shown !== expected) out.push(`${where}: the piano reads "${shown}", the oracle "${expected}"`);
+  // Room under the keyboard, and no scroll.
+  const margin = h.innerHeight - h.keyboardBottom;
+  if (!(margin >= S1_21.minMargin)) out.push(`${where}: keyboard bottom y=${h.keyboardBottom}, ${round1(margin)}px above the window's bottom, ${S1_21.minMargin} expected`);
+  if (h.scrollHeight > h.innerHeight || h.scrollWidth > h.innerWidth) out.push(`${where}: the page scrolls (${h.scrollWidth}x${h.scrollHeight} in ${h.innerWidth}x${h.innerHeight})`);
+  return out;
+}
+
+/**
+ * S1-21 on Gabriel's page (no bench): the heads in FR / EN / PT / ZH, in the
+ * Dictionary and the Studio — 100px, two rows of one line, 48px targets on
+ * top, the labels fitting, the keyboard's bottom >= 40px above the window's;
+ * then what the controls do (FR, Dictionary), against literal anchors (Do
+ * majeur: guitar open 0-3 -> A shape 3-5, bass A string 3-5 -> E string 8-10,
+ * piano 60 64 67 -> 72 76 79; the scale's box of the octave 0 starts at fret 4)
+ * and invariances (› on the guitar changes the guitar's positions only, › on
+ * the piano shifts the piano's notes by 12 and leaves both necks).
+ */
+async function runHeads(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const notes = [];
+  const layouts = {};
+  const T = 4000;
+  const sel = (id) => `[data-fn="${id}"]`;
+  const open = async (scenario) => {
+    await page.goto(`${ORIGIN}/?prototype=a&scenario=${scenario}`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+    await page.evaluate(() => document.fonts.ready);
+    await page.locator(`${sel("nav.mode-dictionnaire")}[aria-pressed="true"]`).waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(300);
+  };
+  const read = () =>
+    page.evaluate(() => {
+      const col = (id) => document.querySelector(`[data-s1="${id}"]`);
+      const label = (id) => {
+        const el = col(id).querySelector(".proto-a__head-label");
+        return el ? el.textContent.trim() : null;
+      };
+      return {
+        notes: col("piano").getAttribute("data-s1-notes"),
+        guitar: col("guitar").getAttribute("data-s1-positions"),
+        bass: col("bass").getAttribute("data-s1-positions"),
+        labels: { piano: label("piano"), guitar: label("guitar"), bass: label("bass") },
+      };
+    });
+  const click = async (fnId) => {
+    await page.locator(sel(fnId)).click({ timeout: T });
+    await page.waitForTimeout(250);
+  };
+  const expectEq = (what, got, want) => {
+    if (got !== want) fails.push(`${what}: ${JSON.stringify(got)}, ${JSON.stringify(want)} expected`);
+  };
+  const shifted = (n, by) => String(n || "").split(" ").filter(Boolean).map((x) => Number(x) + by).join(" ");
+  try {
+    await open("cmaj");
+    // 1. The layout, in four languages and both modes.
+    const langHeader = page.locator(`${sel("nav.langue")} .custom-select-header`);
+    for (const lang of ["FR", "EN", "PT", "ZH"]) {
+      if (lang !== "FR") {
+        await langHeader.click({ timeout: T });
+        await page.locator('[data-testid="custom-select-dropdown"] .select-item', { hasText: lang }).first().click({ timeout: T });
+        await page.waitForTimeout(300);
+      }
+      for (const mode of ["dictionary", "studio"]) {
+        await page.locator(sel(mode === "dictionary" ? "nav.mode-dictionnaire" : "nav.mode-studio")).click({ timeout: T });
+        await page.waitForTimeout(300);
+        const h = await page.evaluate(headsMeasure);
+        layouts[`${lang} ${mode}`] = h;
+        fails.push(...headsFails(`${lang} ${mode}`, h, { mode }));
+      }
+    }
+    await langHeader.click({ timeout: T });
+    await page.locator('[data-testid="custom-select-dropdown"] .select-item', { hasText: "FR" }).first().click({ timeout: T });
+    await page.locator(sel("nav.mode-dictionnaire")).click({ timeout: T });
+    await page.waitForTimeout(300);
+
+    // 2. What the controls do (FR, Dictionary, Do majeur).
+    const s0 = await read();
+    expectEq("Do majeur: piano notes", s0.notes, "60 64 67");
+    expectEq("Do majeur: piano label (oracle)", s0.labels.piano, pianoRangeOracle(s0.notes));
+    expectEq("Do majeur: guitar label", s0.labels.guitar, "Open (auto)");
+    expectEq("Do majeur: guitar frets", fretSpan(s0.guitar), "0-3");
+    expectEq("Do majeur: bass label", s0.labels.bass, "Corde La (auto)");
+    expectEq("Do majeur: bass frets", fretSpan(s0.bass), "3-5");
+    await click("jouer.position-guitar-suiv");
+    await click("jouer.position-guitar-suiv");
+    const s2 = await read();
+    expectEq("guitar › ›: guitar label", s2.labels.guitar, "La-forme (fr. 3)");
+    expectEq("guitar › ›: guitar frets", fretSpan(s2.guitar), "3-5");
+    expectEq("guitar › ›: bass positions (unchanged)", s2.bass, s0.bass);
+    expectEq("guitar › ›: piano notes (unchanged)", s2.notes, s0.notes);
+    notes.push(`guitar › ›: guitar ${fretSpan(s0.guitar)} "${s0.labels.guitar}" -> ${fretSpan(s2.guitar)} "${s2.labels.guitar}"; bass ${fretSpan(s0.bass)} -> ${fretSpan(s2.bass)}; piano [${s0.notes}] -> [${s2.notes}]`);
+    await click("jouer.position-bass-suiv");
+    await click("jouer.position-bass-suiv");
+    const s4 = await read();
+    expectEq("bass › ›: bass label", s4.labels.bass, "Corde Mi");
+    expectEq("bass › ›: bass frets", fretSpan(s4.bass), "8-10");
+    expectEq("bass › ›: guitar positions (unchanged)", s4.guitar, s2.guitar);
+    expectEq("bass › ›: piano notes (unchanged)", s4.notes, s0.notes);
+    notes.push(`bass › ›: bass ${fretSpan(s2.bass)} -> ${fretSpan(s4.bass)} "${s4.labels.bass}"; guitar ${fretSpan(s2.guitar)} -> ${fretSpan(s4.guitar)}; piano [${s2.notes}] -> [${s4.notes}]`);
+    await click("jouer.octave-piano-suiv");
+    const s5 = await read();
+    expectEq("piano ›: piano notes (+12)", s5.notes, shifted(s4.notes, 12));
+    expectEq("piano ›: piano label (oracle)", s5.labels.piano, pianoRangeOracle(s5.notes));
+    expectEq("piano ›: piano label", s5.labels.piano, "Do5 – Sol5");
+    expectEq("piano ›: guitar positions (unchanged)", s5.guitar, s4.guitar);
+    expectEq("piano ›: bass positions (unchanged)", s5.bass, s4.bass);
+    expectEq("piano ›: guitar label (kept)", s5.labels.guitar, s4.labels.guitar);
+    notes.push(`piano ›: piano [${s4.notes}] "${s4.labels.piano}" -> [${s5.notes}] "${s5.labels.piano}"; guitar ${fretSpan(s4.guitar)} -> ${fretSpan(s5.guitar)}; bass ${fretSpan(s4.bass)} -> ${fretSpan(s5.bass)}`);
+    await click("jouer.octave-piano-prec");
+    expectEq("piano ‹: piano notes back", (await read()).notes, s4.notes);
+
+    // The scale: the octave no longer picks the box (C-06 cut in A′).
+    await open("cmajscale");
+    const t0 = await read();
+    if (!fretSpan(t0.guitar).startsWith("4-")) fails.push(`Do major scale: the guitar's default box is ${fretSpan(t0.guitar)}, the octave 0's (from fret 4) expected`);
+    await click("jouer.octave-piano-suiv");
+    const t1 = await read();
+    expectEq("scale, piano ›: piano notes (+12)", t1.notes, shifted(t0.notes, 12));
+    expectEq("scale, piano ›: guitar box (unchanged)", t1.guitar, t0.guitar);
+    expectEq("scale, piano ›: bass box (unchanged)", t1.bass, t0.bass);
+    notes.push(`scale, piano ›: guitar box ${fretSpan(t0.guitar)} -> ${fretSpan(t1.guitar)}, bass box ${fretSpan(t0.bass)} -> ${fretSpan(t1.bass)}, piano ${pianoRangeOracle(t0.notes)} -> ${pianoRangeOracle(t1.notes)}`);
+
+    // The Studio: the piano's arrows are the base octave.
+    await page.locator(sel("nav.mode-studio")).click({ timeout: T });
+    await page.waitForTimeout(300);
+    const u0 = await read();
+    await click("jouer.octave-piano-suiv");
+    const u1 = await read();
+    expectEq("Studio: piano label at rest", u0.labels.piano, "Do4");
+    expectEq("Studio, piano ›: piano label", u1.labels.piano, "Do5");
+    notes.push(`Studio, piano ›: "${u0.labels.piano}" -> "${u1.labels.piano}"`);
+    await click("jouer.octave-piano-prec");
+  } catch (err) {
+    fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
+  } finally {
+    await page.close();
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  return { fails, notes, layouts };
+}
+
 const { chromium } = await import("playwright");
 const dev = await startDevServer();
 if (!AS_JSON) {
@@ -1561,6 +1950,7 @@ const results = [];
 const drawerChecks = {};
 const noBenchChecks = {};
 const accessChecks = {};
+const headsChecks = {};
 try {
   for (const viewport of ACCESS_ONLY ? [] : VIEWPORTS) {
     for (const scenario of STATES) {
@@ -1617,6 +2007,25 @@ try {
       if (access.fails.length) console.log(`${lead}   FAILED: ${access.fails.join(" | ")}`);
       console.log(`${viewport.label} S1-20 (volume) ${volume.fails.length ? "FAIL" : "PASS"}  ${volume.steps.join("; ")}${volume.fails.length ? `; FAILED: ${volume.fails.join(" | ")}` : ""}`);
     }
+    // S1-21 (L1b-1b): the column heads, at the same two heights.
+    const heads = await runHeads(browser, viewport);
+    headsChecks[viewport.label] = heads;
+    if (!AS_JSON) {
+      const lead = `${viewport.label} S1-21 (heads)`;
+      console.log(`${lead} ${heads.fails.length ? "FAIL" : "PASS"}  heads 100 +-1px x3, one line per row, 48px targets on top, labels fitting, keyboard >= ${S1_21.minMargin}px above the window's bottom; FR / EN / PT / ZH x Dictionary / Studio`);
+      for (const [key, h] of Object.entries(heads.layouts)) {
+        const c = h.cols;
+        if (!c.piano || !c.guitar || !c.bass) {
+          console.log(`${lead}   ${key}: a head is missing`);
+          continue;
+        }
+        const labels = ["piano", "guitar", "bass"].map((id) => `${id} "${c[id].label ? c[id].label.text : "-"}"${c[id].label && c[id].label.text ? ` ${c[id].label.textWidth}/${c[id].label.boxWidth}px` : ""}`).join(", ");
+        const smallest = Math.min(...["piano", "guitar", "bass"].flatMap((id) => c[id].targets.map((t) => Math.min(t.w, t.h))));
+        console.log(`${lead}   ${key}: heads ${c.piano.height} / ${c.guitar.height} / ${c.bass.height}px at y=${c.piano.top}, rows ${c.piano.rows.join("+")} / ${c.guitar.rows.join("+")} / ${c.bass.rows.join("+")} line(s), ${["piano", "guitar", "bass"].reduce((n, id) => n + c[id].targets.length, 0)} targets (smallest ${smallest}px); ${labels}; keyboard bottom y=${h.keyboardBottom}, margin ${round1(h.innerHeight - h.keyboardBottom)}px; page ${h.scrollWidth}x${h.scrollHeight} in ${h.innerWidth}x${h.innerHeight}`);
+      }
+      for (const n of heads.notes) console.log(`${lead}   ${n}`);
+      if (heads.fails.length) console.log(`${lead}   FAILED: ${heads.fails.join(" | ")}`);
+    }
   }
 } finally {
   await browser.close();
@@ -1645,11 +2054,14 @@ const noBenchOk = Object.values(noBenchChecks).every((c) => c.fails.length === 0
 // S1-20 decides too (brief A-PRIME-ACCES: "critère décisif").
 const accessOk = Object.values(accessChecks).every((c) => c.access.fails.length === 0 && c.volume.fails.length === 0);
 const accessPassCount = Object.values(accessChecks).filter((c) => c.access.fails.length === 0 && c.volume.fails.length === 0).length;
-const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk ? "A′" : "B";
+// S1-21 decides too (brief L1b-1b: "critère de sonde S1-21 « têtes » (décisif)").
+const headsOk = Object.values(headsChecks).every((c) => c.fails.length === 0);
+const headsPassCount = Object.values(headsChecks).filter((c) => c.fails.length === 0).length;
+const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
@@ -1660,8 +2072,9 @@ if (AS_JSON) {
   console.log("  S1-14 not measured: Gabriel's reading test (10 labels per instrument, names then degrees).");
   console.log(`  S1-19 no-bench behaviour: ${noBenchOk ? "PASS" : "FAIL"} in ${Object.keys(noBenchChecks).length}/${ACCESS_ONLY ? 0 : VIEWPORTS.length} viewport(s)`);
   console.log(`  S1-20 ${accessOk ? "PASS" : "FAIL"} ${accessPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  A′-ACCÈS: every function of src/prototype/aPrimeAccess.js on Gabriel's page, on top; openers open and Escape closes; tempo typed; no scroll in FR / EN / PT / ZH; the master volume reaches the engine`);
+  console.log(`  S1-21 ${headsOk ? "PASS" : "FAIL"} ${headsPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1b heads: 100 +-1px x3, one line per row, 48px targets on top, labels fitting, keyboard >= ${S1_21.minMargin}px above the window's bottom, no scroll (FR / EN / PT / ZH x Dictionary / Studio); › on the guitar moves the guitar only, › on the piano shifts its notes by 12 and leaves the necks`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-20, S1-22 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-22 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

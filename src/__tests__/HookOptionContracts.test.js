@@ -158,6 +158,14 @@ describe("hook option contracts", () => {
     expect(required).not.toContain("selectedVoicingIndexBass");
   });
 
+  it("useDictionaryMode and useMusicEngine require pianoOwnsOctave (L1b-1b: A′ cuts the octave from the necks, the classic page does not)", () => {
+    // Required = declared without a default: AppDesktop must say, for each
+    // page, whether the Dictionary octave is the piano's own setting (A′) or
+    // still picks the necks' default position (the classic page, C-06).
+    expect(hooks.get("useDictionaryMode")?.required ?? []).toContain("pianoOwnsOctave");
+    expect(hooks.get("useMusicEngine")?.required ?? []).toContain("pianoOwnsOctave");
+  });
+
   it("chaque site d'appel fournit les options déclarées sans valeur par défaut", () => {
     const violations = [];
     const checked = [];
