@@ -64,8 +64,10 @@ const pitches = (n) => Array.from({ length: n }, (_, i) => verticalFretPitch(i +
 const sum = (a) => a.reduce((x, y) => x + y, 0);
 
 describe("the premise: what the page's CSS says", () => {
-  it("has a keyboard 1816px high (29 white keys of 62px + 18px of box), the necks' fixed lines 142px", () => {
-    expect(geo()).toEqual({ keyboard: 1816, fixed: 142, rows: 1674 });
+  // L1b-1b: the keys went from 62 to 61px to give back the 28px the 100px
+  // column heads take (PrototypeA.css --proto-key): 1816 -> 1787px.
+  it("has a keyboard 1787px high (29 white keys of 61px + 18px of box), the necks' fixed lines 142px", () => {
+    expect(geo()).toEqual({ keyboard: 1787, fixed: 142, rows: 1645 });
   });
 
   it("gives the keyboard and the necks ONE height variable: --fbv-h and the key thickness come from --proto-*", () => {

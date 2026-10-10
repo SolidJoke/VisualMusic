@@ -14,7 +14,17 @@ const NO_PLACEMENT = { guitar: null, bass: null };
 /** @param {PlacementIndexes} prev @returns {PlacementIndexes} */
 const clearPlacements = (prev) => (prev.guitar === null && prev.bass === null ? prev : NO_PLACEMENT);
 
-export function useDictionaryMode() {
+/**
+ * @param {Object} [options]
+ * @param {boolean} options.pianoOwnsOctave L1b-1b — true on A′ (?prototype=a):
+ *   the octave is the piano's own setting (its column head), so changing it
+ *   clears a chosen position only for a single note (the octave is part of the
+ *   note), never a chord shape or a scale box. false on the classic page:
+ *   unchanged (a scale box is cleared too, C-06). No default value: AppDesktop
+ *   says it for each page (HookOptionContracts). Omitted (the unit tests that
+ *   call the hook bare), it reads as false: the classic behaviour.
+ */
+export function useDictionaryMode({ pianoOwnsOctave } = { pianoOwnsOctave: false }) {
   const { state, dispatch } = useAppContext();
   const { harmonicMode } = state;
   const setHarmonicMode = (val) => dispatch({ type: 'SET_HARMONIC_MODE', payload: val });
@@ -53,13 +63,16 @@ export function useDictionaryMode() {
   //   player chose stays: the octave does not move it.
   // One effect, as before; the previous selection, kept in a ref, tells a new
   // root or type from an octave change.
+  // L1b-1b: on A′ (pianoOwnsOctave) the octave clears a single note's place only.
   const lastSelection = useRef({ dictRoot, dictType });
   useEffect(() => {
     const rootOrTypeChanged = lastSelection.current.dictRoot !== dictRoot || lastSelection.current.dictType !== dictType;
     lastSelection.current = { dictRoot, dictType };
-    if (rootOrTypeChanged || octaveClearsPlacement(dictType)) setPlacementIndexState(clearPlacements);
+    if (rootOrTypeChanged || octaveClearsPlacement(dictType, { pianoOwnsOctave: Boolean(pianoOwnsOctave) })) {
+      setPlacementIndexState(clearPlacements);
+    }
     setScaleAnchor(null);
-  }, [dictRoot, dictType, dictOctave]);
+  }, [dictRoot, dictType, dictOctave, pianoOwnsOctave]);
 
   // { piano: { octave }, guitar: { index }, bass: { index } } — what each
   // instrument's placement is. The piano's stays the common octave.

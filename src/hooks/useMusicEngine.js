@@ -21,9 +21,15 @@ import { getChordTargetNotes, getModeTargetNote } from "../core/targetNotes";
 /**
  * INST-B1 — what one neck's position list is about, for listPlacements. The
  * branching is the one the former availableGuitarFingerings /
- * availableBassFingerings memos used, unchanged — including its Studio quirk:
- * with a chord clicked and the Dictionary left on a single note, the arrows
- * list that note's places.
+ * availableBassFingerings memos used.
+ *
+ * L1b-1b removed its Studio quirk: with a chord clicked and the Dictionary left
+ * on a single note (its default type), the Studio's list was that note's
+ * places, while the neck drew the chord's shape (fingeringFor below) — so a
+ * label read from the list named something the neck did not show ("Toutes les
+ * notes" under a C chord). The Studio's list is now always the chord's: A′'s
+ * column heads name the shape the neck shows from it. The Studio still does not
+ * read the chosen index (unchanged).
  * @returns {import("../core/placements").Selection|null}
  */
 function placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString }) {
@@ -35,7 +41,6 @@ function placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictAc
     return { family: "chord", type: dictType, root: Number(dictRoot), octave: dictOctave, rootString };
   }
   if (!effectiveChord) return null;
-  if (dictType === "single_note") return noteSelection();
   return {
     family: "chord",
     type: resolveNnsToChordType(effectiveChord.nns),
@@ -146,6 +151,14 @@ function fingeringFor({ instrument, placements, index, rootString, appMode, dict
  *   one of core/targetNotes.js's TARGET_NOTES_PRESETS. Defaults to
  *   "majorMinor" — good without any setting, since a beginner will not
  *   change it (brief decision #2).
+ * @param {boolean} options.pianoOwnsOctave L1b-1b — true on A′ (?prototype=a):
+ *   in the Dictionary the octave is the piano's own setting (its column head),
+ *   so it no longer decides the necks' default position — a chord's default
+ *   shape and a scale's default box are those of the octave 0 (C-06 cut), and
+ *   the necks do not move when the piano's octave does. A single note keeps its
+ *   octave (it is part of the note). false on the classic page: unchanged. No
+ *   default value: AppDesktop says it for each page (HookOptionContracts);
+ *   omitted (the unit tests), it reads as false.
  */
 export function useMusicEngine({
   appMode,
@@ -165,8 +178,15 @@ export function useMusicEngine({
   dictOctave,
   notation,
   playbackInstrument = 'piano',
-  targetNotesPreset = 'majorMinor'
+  targetNotesPreset = 'majorMinor',
+  pianoOwnsOctave
 }) {
+  // L1b-1b — the octave the necks' default position is chosen at, in the
+  // Dictionary: the common octave on the classic page, the octave 0 on A′ (the
+  // octave is the piano's there). Read only by the placement list and the
+  // chord's default shape below; the notes themselves (dictActiveNotes, the
+  // piano's realization, a single note's places) keep the real octave.
+  const neckOctave = pianoOwnsOctave ? 0 : dictOctave;
 
   // VMU-129 — while the sequencer plays, the studio-mode chord the
   // instruments show is the one it is currently playing, not the last
@@ -336,14 +356,14 @@ export function useMusicEngine({
   const bassIndex = placementByInstrument?.bass?.index ?? null;
 
   const guitarPlacements = useMemo(() => listPlacements(
-    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString: selectedRootStringGuitar }),
+    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString: selectedRootStringGuitar }),
     { id: "guitar", tuning: guitarTuning, notation }
-  ), [appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, selectedRootStringGuitar, guitarTuning, notation]);
+  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, selectedRootStringGuitar, guitarTuning, notation]);
 
   const bassPlacements = useMemo(() => listPlacements(
-    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString: selectedRootStringBass }),
+    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString: selectedRootStringBass }),
     { id: "bass", tuning: bassTuning, notation }
-  ), [appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, selectedRootStringBass, bassTuning, notation]);
+  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, selectedRootStringBass, bassTuning, notation]);
 
   const placementsByInstrument = useMemo(() => ({
     guitar: guitarPlacements,
@@ -355,13 +375,13 @@ export function useMusicEngine({
   // default shape in the Studio.
   const rawGuitarFingering = useMemo(() => fingeringFor({
     instrument: "guitar", placements: guitarPlacements, index: guitarIndex, rootString: selectedRootStringGuitar,
-    appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset,
-  }), [guitarPlacements, guitarIndex, selectedRootStringGuitar, appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset]);
+    appMode, dictType, dictRoot, dictOctave: neckOctave, effectiveChord, chordOctaveOffset,
+  }), [guitarPlacements, guitarIndex, selectedRootStringGuitar, appMode, dictType, dictRoot, neckOctave, effectiveChord, chordOctaveOffset]);
 
   const rawBassFingering = useMemo(() => fingeringFor({
     instrument: "bass", placements: bassPlacements, index: bassIndex, rootString: selectedRootStringBass,
-    appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset,
-  }), [bassPlacements, bassIndex, selectedRootStringBass, appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset]);
+    appMode, dictType, dictRoot, dictOctave: neckOctave, effectiveChord, chordOctaveOffset,
+  }), [bassPlacements, bassIndex, selectedRootStringBass, appMode, dictType, dictRoot, neckOctave, effectiveChord, chordOctaveOffset]);
 
   // A `suggestedInversionIndex` memo used to sit here, computing a voice-leading
   // suggestion from a `prevAbsoluteNotes` option. It was stillborn: AppDesktop

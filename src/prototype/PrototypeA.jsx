@@ -8,10 +8,13 @@ import AudioVisualizer from "../components/Visualizer/AudioVisualizer";
 import { HeaderActions } from "../components/Layout/AppHeader";
 import { MusicEngineProvider } from "../context/MusicEngineContext";
 import { PlaybackProvider } from "../context/PlaybackContext";
-import { generateChordsFromNNS } from "../core/theory";
+import { generateChordsFromNNS, formatPitchRange, midiToDisplayName } from "../core/theory";
+import { realizationRange } from "../core/realization";
+import { placementLabel, stepPlacement } from "../components/Instruments/placementLabel";
 import { translations } from "../i18n/translations";
 import { useBpmEditor } from "../hooks/useBpmEditor";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
+import InstrumentHead from "./InstrumentHead";
 
 /**
  * S1 prototype — layout A′ at 3840px (VMU-135 / 035, VMU-155).
@@ -66,7 +69,21 @@ import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js"
  * Every interactive element carries its parity-registry name (data-fn,
  * src/prototype/aPrimeAccess.js), and every label comes from translations.js
  * (protoA, VMU-182) — the French table when `txt` has none (the unit tests).
- * The dock, the column heads and zone B come later: not built here.
+ * The dock and zone B come later: not built here.
+ *
+ * L1b-1b — the column heads (InstrumentHead.jsx, 100px, two rows): the
+ * instrument's name chooses the instrument that sounds, in both modes; ▶ plays
+ * it (Dictionary only, playInstrument(id)); under them the instrument's own
+ * setting. The piano's ‹ Octave ›: in the Dictionary the common octave, which
+ * on this page sets the piano alone (AppDesktop passes pianoOwnsOctave: the
+ * necks' default position no longer follows it, C-06 cut), its label the
+ * piano's range; in the Studio the "Octave de base" of the Studio window —
+ * which also moves the loop's chords and the MIDI export — its label the base
+ * octave's C. The necks' ‹ Position ›: INST-B1's list (placementLabel.js, the
+ * classic PositionSelector's words and cycle), shown when the fingering is
+ * (showFingering); in the Studio the shape shown, read-only (the Studio does
+ * not read the index). The captions ("aigus ↑", the neck's) are the columns'
+ * tooltip and accessible name.
  */
 
 /** The parity registry's name for each label-mode button (S1_LABEL_MODES ids). */
@@ -133,6 +150,7 @@ export default function PrototypeA({
   harmonicMode = false,
   setHarmonicMode,
   setChordOctaveOffset,
+  setCurrentAbsoluteNotes,
   activeProgression,
   clickedChord,
   handleChordClick,
@@ -266,6 +284,71 @@ export default function PrototypeA({
     if (appMode === "dictionary" && playDictionaryAudio) playDictionaryAudio();
     else if (togglePlayback) togglePlayback();
   };
+
+  // ─── L1b-1b: the column heads (see the header comment) ───────────────────
+  const engine = musicEngineContextValue || {};
+  const isDictionary = appMode === "dictionary";
+  // The classic words of a position (voicingOf, shapeLabel, positionDefault...)
+  // live in the page's main table; the French one when `txt` has none.
+  const TX = txt && txt.protoA ? txt : translations.fr;
+  const OCTAVE_MIN = -3;
+  const OCTAVE_MAX = 3;
+  const octave = Number(isDictionary ? dictOctave : chordOctaveOffset) || 0;
+  const setOctave = (value) => {
+    const v = Math.max(OCTAVE_MIN, Math.min(OCTAVE_MAX, value));
+    if (isDictionary) {
+      if (setDictOctave) setDictOctave(v);
+      return;
+    }
+    // The Studio window's "Octave de base", with its own two calls
+    // (StudioPanel.jsx): the offset — read by the loop (useSequencer) and the
+    // MIDI export (SequencerPanel) — then the clicked chord's notes cleared, so
+    // that the next chord is voiced at the new octave.
+    if (setChordOctaveOffset) setChordOctaveOffset(v);
+    if (setCurrentAbsoluteNotes) setCurrentAbsoluteNotes([]);
+  };
+  const pianoLabel = isDictionary
+    ? formatPitchRange(realizationRange(engine.realizationsByInstrument?.piano), notation)
+    : midiToDisplayName(60 + 12 * octave, notation);
+  const pianoSetting = {
+    groupLabel: T.octaveGroup,
+    label: pianoLabel,
+    prev: { fn: "jouer.octave-piano-prec", label: T.octaveDown, disabled: octave <= OCTAVE_MIN, onClick: () => setOctave(octave - 1) },
+    next: { fn: "jouer.octave-piano-suiv", label: T.octaveUp, disabled: octave >= OCTAVE_MAX, onClick: () => setOctave(octave + 1) },
+  };
+  const isScaleMode = isDictionary && typeof dictType === "string" && dictType.includes("scale");
+  const neckSetting = (id) => {
+    if (!engine.showFingering) return null;
+    const placements = engine.placementsByInstrument?.[id] ?? [];
+    if (!isDictionary) {
+      // The Studio shows the clicked (or playing) chord's default shape and
+      // does not read the index: its label, without arrows; empty before any chord.
+      return { groupLabel: T.positionGroup, label: placements.length ? placementLabel({ placements, placementIndex: null, isScaleMode: false, txt: TX }) : "" };
+    }
+    const index = engine.placementByInstrument?.[id]?.index ?? null;
+    const go = (direction) => {
+      const nextIndex = stepPlacement(placements, index, direction);
+      if (nextIndex !== undefined && engine.setPlacementIndex) engine.setPlacementIndex(id, nextIndex);
+    };
+    return {
+      groupLabel: T.positionGroup,
+      label: placementLabel({ placements, placementIndex: index, isScaleMode, txt: TX }),
+      prev: { fn: `jouer.position-${id}-prec`, label: T.positionPrev, disabled: placements.length === 0, onClick: () => go(-1) },
+      next: { fn: `jouer.position-${id}-suiv`, label: T.positionNext, disabled: placements.length === 0, onClick: () => go(1) },
+    };
+  };
+  const chosenInstrument = engine.playbackInstrument || "piano";
+  const head = (id, name, setting) => (
+    <InstrumentHead
+      id={id}
+      name={name}
+      chooseTitle={T.chooseInstrument}
+      selected={chosenInstrument === id}
+      onSelect={() => engine.setPlaybackInstrument && engine.setPlaybackInstrument(id)}
+      play={isDictionary ? { label: `${T.play} — ${name}`, onPlay: () => engine.playInstrument && engine.playInstrument(id) } : null}
+      setting={setting}
+    />
+  );
 
   return (
     <MusicEngineProvider value={musicEngineContextValue}>
@@ -483,27 +566,41 @@ export default function PrototypeA({
               </section>
             </main>
 
-            <section className="proto-a__instrument" data-s1="piano" data-s1-notes={s1Notes} data-fn="jouer.piano" aria-label={T.piano}>
-              <div className="proto-a__inst-head">
-                <span className="proto-a__inst-title">{T.piano}</span>
-                <span className="proto-a__muted">{T.pianoCaption}</span>
-              </div>
+            {/* L1b-1b: the captions left the heads for the columns' tooltip
+                and accessible name; the heads carry the name, ▶ and the setting. */}
+            <section
+              className="proto-a__instrument"
+              data-s1="piano"
+              data-s1-notes={s1Notes}
+              data-fn="jouer.piano"
+              aria-label={`${T.piano} — ${T.pianoCaption}`}
+              title={T.pianoCaption}
+            >
+              {head("piano", T.piano, pianoSetting)}
               <PianoKeyboard orientation="vertical" />
             </section>
 
-            <section className="proto-a__instrument" data-s1="guitar" data-s1-positions={s1GuitarPositions} data-fn="jouer.guitare" aria-label={T.guitar}>
-              <div className="proto-a__inst-head">
-                <span className="proto-a__inst-title">{T.guitar}</span>
-                <span className="proto-a__muted">{T.neckCaption}</span>
-              </div>
+            <section
+              className="proto-a__instrument"
+              data-s1="guitar"
+              data-s1-positions={s1GuitarPositions}
+              data-fn="jouer.guitare"
+              aria-label={`${T.guitar} — ${T.neckCaption}`}
+              title={T.neckCaption}
+            >
+              {head("guitar", T.guitar, neckSetting("guitar"))}
               <Fretboard instrument="guitar" orientation="vertical" />
             </section>
 
-            <section className="proto-a__instrument" data-s1="bass" data-s1-positions={s1BassPositions} data-fn="jouer.basse" aria-label={T.bass}>
-              <div className="proto-a__inst-head">
-                <span className="proto-a__inst-title">{T.bass}</span>
-                <span className="proto-a__muted">{T.neckCaption}</span>
-              </div>
+            <section
+              className="proto-a__instrument"
+              data-s1="bass"
+              data-s1-positions={s1BassPositions}
+              data-fn="jouer.basse"
+              aria-label={`${T.bass} — ${T.neckCaption}`}
+              title={T.neckCaption}
+            >
+              {head("bass", T.bass, neckSetting("bass"))}
               <Fretboard instrument="bass" orientation="vertical" />
             </section>
           </div>

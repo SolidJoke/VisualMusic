@@ -111,7 +111,8 @@ export default function InstrumentBar({
   );
 }
 
-function PlayGlyph() {
+/** The ▶ glyph, shared with A′'s column heads (src/prototype/InstrumentHead.jsx, L1b-1b). */
+export function PlayGlyph() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M8 5.5 L18.5 12 L8 18.5 Z" fill="currentColor" />

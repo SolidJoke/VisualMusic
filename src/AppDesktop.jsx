@@ -136,7 +136,12 @@ function AppDesktop() {
     scaleAnchor, setScaleAnchor,
     dictOctave, setDictOctave,
     activeNotes: dictActiveNotes
-  } = useDictionaryMode();
+  } = useDictionaryMode({
+    // L1b-1b: on A′ the octave is the piano's own setting (its column head):
+    // it no longer picks nor clears the necks' positions. The classic page
+    // keeps its common octave as it is.
+    pianoOwnsOctave: IS_PROTOTYPE_A
+  });
 
   // --- Sequencer (Playback engine) ---
   // Called before useMusicEngine: VMU-129 needs the sequencer's isPlaying
@@ -189,7 +194,9 @@ function AppDesktop() {
     dictOctave,
     notation,
     playbackInstrument,
-    targetNotesPreset
+    targetNotesPreset,
+    // L1b-1b: see useDictionaryMode above — the same page, the same answer.
+    pianoOwnsOctave: IS_PROTOTYPE_A
   });
 
   const {
@@ -589,6 +596,11 @@ function AppDesktop() {
         harmonicMode={harmonicMode}
         setHarmonicMode={setHarmonicMode}
         setChordOctaveOffset={setChordOctaveOffset}
+        // L1b-1b: the piano head's ‹ Octave › in the Studio is the "Octave de
+        // base" of the Studio window, with that window's own two calls (the
+        // offset, then the clicked chord's notes cleared: the next chord is
+        // voiced at the new octave).
+        setCurrentAbsoluteNotes={setCurrentAbsoluteNotes}
         activeProgression={activeProgression}
         clickedChord={clickedChord}
         handleChordClick={handleChordClick}

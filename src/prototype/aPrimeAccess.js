@@ -16,7 +16,9 @@
  *   where   header | transport | centre | instruments | drawer
  *   opens   what a click opens: audio | math | guide | theory | about |
  *           language (the list) | drawer | tempo-field
- *   needs   "drawer": only there once the Assistant drawer is open
+ *   needs   "drawer": only there once the Assistant drawer is open;
+ *           "dictionary": only in the Dictionary mode (L1b-1b: the heads' ▶,
+ *           and the position arrows, read-only in the Studio)
  *   devOnly only in the development build (import.meta.env.DEV), never clicked
  */
 export const A_PRIME_ACCESS = [
@@ -50,6 +52,22 @@ export const A_PRIME_ACCESS = [
   { fn: "jouer.piano", where: "instruments" },
   { fn: "jouer.guitare", where: "instruments" },
   { fn: "jouer.basse", where: "instruments" },
+  // L1b-1b — the column heads: the name chooses the instrument that sounds
+  // (both modes), ▶ plays it (Dictionary), the piano's ‹ Octave › (both modes:
+  // the Studio's base octave there), the necks' ‹ Position › (Dictionary; the
+  // Studio shows the shape, read-only).
+  { fn: "jouer.instrument-tuile-piano", where: "instruments" },
+  { fn: "jouer.instrument-tuile-guitar", where: "instruments" },
+  { fn: "jouer.instrument-tuile-bass", where: "instruments" },
+  { fn: "jouer.instrument-play-piano", where: "instruments", needs: "dictionary" },
+  { fn: "jouer.instrument-play-guitar", where: "instruments", needs: "dictionary" },
+  { fn: "jouer.instrument-play-bass", where: "instruments", needs: "dictionary" },
+  { fn: "jouer.octave-piano-prec", where: "instruments" },
+  { fn: "jouer.octave-piano-suiv", where: "instruments" },
+  { fn: "jouer.position-guitar-prec", where: "instruments", needs: "dictionary" },
+  { fn: "jouer.position-guitar-suiv", where: "instruments", needs: "dictionary" },
+  { fn: "jouer.position-bass-prec", where: "instruments", needs: "dictionary" },
+  { fn: "jouer.position-bass-suiv", where: "instruments", needs: "dictionary" },
   // The Assistant drawer, once open
   { fn: "nav.fermer-fenetres", where: "drawer", needs: "drawer" },
 ];

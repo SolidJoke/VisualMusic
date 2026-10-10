@@ -380,7 +380,16 @@ export const translations = {
       guitar: "Guitare",
       bass: "Basse",
       pianoCaption: "aigus ↑",
-      neckCaption: "sillet en haut, graves à gauche"
+      neckCaption: "sillet en haut, graves à gauche",
+      // L1b-1b: the column heads (name, ▶, ‹ Octave / Position ›).
+      play: "Jouer",
+      chooseInstrument: "Choisir l'instrument qui joue (sans le lancer)",
+      octaveGroup: "Octave du piano",
+      octaveDown: "Octave plus grave",
+      octaveUp: "Octave plus aiguë",
+      positionGroup: "Position sur le manche",
+      positionPrev: "Position précédente",
+      positionNext: "Position suivante"
     },
     suggestedVoicings: "Voicings suggérés :",
     voicingImpossible: "⛔ Voicing impossible",
@@ -762,7 +771,15 @@ export const translations = {
       guitar: "Guitar",
       bass: "Bass",
       pianoCaption: "treble ↑",
-      neckCaption: "nut on top, low strings left"
+      neckCaption: "nut on top, low strings left",
+      play: "Play",
+      chooseInstrument: "Choose the instrument that plays (without starting it)",
+      octaveGroup: "Piano octave",
+      octaveDown: "Octave down",
+      octaveUp: "Octave up",
+      positionGroup: "Position on the neck",
+      positionPrev: "Previous position",
+      positionNext: "Next position"
     },
     suggestedVoicings: "Suggested voicings:",
     voicingImpossible: "⛔ Unplayable voicing",
@@ -1083,7 +1100,15 @@ export const translations = {
       guitar: "Guitarra",
       bass: "Baixo",
       pianoCaption: "agudos ↑",
-      neckCaption: "pestana em cima, graves à esq."
+      neckCaption: "pestana em cima, graves à esq.",
+      play: "Tocar",
+      chooseInstrument: "Escolher o instrumento que toca (sem tocar)",
+      octaveGroup: "Oitava do piano",
+      octaveDown: "Oitava abaixo",
+      octaveUp: "Oitava acima",
+      positionGroup: "Posição no braço",
+      positionPrev: "Posição anterior",
+      positionNext: "Posição seguinte"
     },
     suggestedVoicings: "Voicings sugeridos:",
     voicingImpossible: "⛔ Voicing impossível",
@@ -1443,7 +1468,15 @@ export const translations = {
       guitar: "吉他",
       bass: "贝斯",
       pianoCaption: "高音 ↑",
-      neckCaption: "琴枕在上，低音弦在左"
+      neckCaption: "琴枕在上，低音弦在左",
+      play: "播放",
+      chooseInstrument: "选择演奏的乐器（不播放）",
+      octaveGroup: "钢琴八度",
+      octaveDown: "降低八度",
+      octaveUp: "升高八度",
+      positionGroup: "指板位置",
+      positionPrev: "上一个位置",
+      positionNext: "下一个位置"
     },
     suggestedVoicings: "建议的声位:",
     voicingImpossible: "⛔ 无法演奏的声位",
