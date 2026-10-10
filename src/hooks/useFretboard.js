@@ -29,7 +29,7 @@ const getNumFrets = (instrument) => instrument === "bass" ? 20 : 22;
 export function useFretboard(instrument) {
   const numFrets = getNumFrets(instrument);
   const {
-    activeNotes: rawActiveNotes = [],
+    realizationsByInstrument,
     fretboardActiveNotes,
     currentRootValue: rootValue = 0,
     targetValuesByInstrument = {},
@@ -54,7 +54,15 @@ export function useFretboard(instrument) {
   const { notation } = useAppContext();
 
   // ── Dérivations simples (pas de useMemo — calculs synchrones négligeables) ──
-  const activeNotes = fretboardActiveNotes || rawActiveNotes;
+  // INST-A1 — this neck reads ITS OWN realization, whichever instrument is
+  // chosen. It read `activeNotes`, the chosen instrument's: the cells were
+  // already its own (the fingering mask decides them), but its labels (degree
+  // or note name), part of its roles and the horizontal neck's automatic window
+  // came from the other instrument — with the guitar chosen, the bass moved to
+  // the guitar's frets (VMU-160's root cause). `fretboardActiveNotes` (Studio,
+  // a chord clicked or playing) still comes first; in the Studio the three
+  // realizations are the same theory, so the fallback is unchanged there.
+  const activeNotes = fretboardActiveNotes || (realizationsByInstrument?.[instrument] ?? []);
   const fingering = instrument === "bass" ? bassFingering : guitarFingering;
   const isOutOfRange = instrument === "bass" ? isBassOutOfRange : isGuitarOutOfRange;
   const dictType = appMode === "dictionary" ? rawDictType : null;

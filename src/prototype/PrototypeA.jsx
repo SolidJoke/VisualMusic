@@ -45,7 +45,7 @@ import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js"
  *
  * S1-15 (L1a, "toute note active a sa touche ou sa pastille"): each
  * instrument column carries what the engine asks it to show —
- * data-s1-notes on the piano (absolute pitches of the notes it is handed),
+ * data-s1-notes on the piano (absolute pitches of its own realization, INST-A1),
  * data-s1-positions on a neck ("string:fret" of the fingering it is handed)
  * — so the probe checks the drawing against the engine, not against itself.
  *
@@ -252,7 +252,10 @@ export default function PrototypeA({
   };
 
   // S1-15: what the engine hands each instrument (see the header comment).
-  const s1Notes = (musicEngineContextValue?.activeNotes || [])
+  // INST-A1: the piano's own realization, the one the keyboard draws — not
+  // `activeNotes` (the chosen instrument's), which made the probe compare the
+  // keyboard with the guitar's grip whenever the guitar was chosen.
+  const s1Notes = (musicEngineContextValue?.realizationsByInstrument?.piano || [])
     .filter((n) => Number.isFinite(n?.absoluteValue))
     .map((n) => n.absoluteValue)
     .join(" ");

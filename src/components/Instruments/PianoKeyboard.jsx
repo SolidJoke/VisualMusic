@@ -36,7 +36,7 @@ const FLAT_EQUIVALENTS = {
  */
 function PianoKeyboard({ orientation = "horizontal" } = {}) {
   const {
-    activeNotes = [],
+    realizationsByInstrument,
     currentRootValue: rootValue = 0,
     targetValuesByInstrument = {},
     autoPlayNote: onNoteClick,
@@ -45,6 +45,13 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
     dictType: rawDictType = null,
     appMode
   } = useMusicEngineContext();
+  // INST-A1 — the keyboard shows the PIANO's realization, whichever instrument
+  // is chosen. It read `activeNotes`, the chosen instrument's realization
+  // (useMusicEngine.js), so choosing the guitar lit the guitar's grip here
+  // (Do majeur: C3 E3 G3 C4 E4 instead of C4 E4 G4). Keys, roles, labels, the
+  // scrubber's dots and the vertical window all read this one array. In the
+  // Studio the three realizations are the same theory, so nothing changes there.
+  const activeNotes = realizationsByInstrument?.piano ?? [];
   // VMU-123 — piano gets the shared target notes (unlike the bass, which
   // never does; see useFretboard.js's instrument-keyed suppression).
   const targetValues = targetValuesByInstrument.piano || [];
@@ -242,6 +249,12 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
     const isActive = !!activeNote;
     const isPlaying = currentlyPlayingNotes.some(item => {
       if (typeof item === 'object' && item !== null) {
+        // INST-A1 — a note tagged with another instrument (the guitar's or the
+        // bass's realization, as the Dictionary's playback publishes it) is
+        // not the piano's to flash: the same rule core/fretboardUtils.js's
+        // resolvePlayingState applies to a neck. An untagged note (a bare
+        // pitch, the piano's own realization, the Studio loop) still flashes.
+        if (item.instrument && item.instrument !== "piano") return false;
         return item.absoluteValue === absoluteValue;
       }
       return item === absoluteValue;
