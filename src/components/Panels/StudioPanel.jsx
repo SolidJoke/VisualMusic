@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BRICKS } from '../../core/bricks';
+import { styleOptions } from '../../core/selectionOptions';
 import {
   SCALES,
   DIMINISHED_CHORD_TYPES,
@@ -138,15 +138,7 @@ const StudioPanel = ({
             <CustomSelect
               value={currentBrickIndex}
               onChange={(val) => setCurrentBrickIndex(Number(val))}
-              options={[
-                { label: "🎷 Jazz & Bossa", items: BRICKS.filter(b => b._group === 'jazz').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-                { label: "🌍 World & Groove", items: BRICKS.filter(b => b._group === 'world').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-                { label: "🎤 Urban & Hip-Hop", items: BRICKS.filter(b => b._group === 'urban').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-                { label: "🎓 Progressions Expertes (NNS)", items: BRICKS.filter(b => b._group === 'expert_progressions').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] || b.name.en })) },
-                { label: "🎹 Pop & Funk", items: BRICKS.filter(b => b._group === 'pop').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-                { label: "🎸 Rock & Metal", items: BRICKS.filter(b => b._group === 'rock').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-                { label: "🎧 Electronic", items: BRICKS.filter(b => b._group === 'electronic').map(b => ({ value: BRICKS.indexOf(b), label: b.name[lang] })) },
-              ]}
+              options={styleOptions(lang)}
             />
           </LcdScreen>
         </div>

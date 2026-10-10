@@ -290,7 +290,7 @@ describe("VMU-185 (e): choosing a style", () => {
 });
 
 describe("VMU-185 (f): one owner of the lists - the row offers what the drawer offers", () => {
-  const drawerStudio = (lang) =>
+  const drawerStudio = () =>
     render(
       <AppProvider>
         <StudioPanel
@@ -347,7 +347,7 @@ describe("VMU-185 (f): one owner of the lists - the row offers what the drawer o
     expect(bandValues).toHaveLength(BRICKS.length);
     expect(new Set(bandValues).size).toBe(BRICKS.length);
     cleanup();
-    const drawer = drawerStudio("fr");
+    const drawer = drawerStudio();
     const drawerValues = valuesOf(selectWith(drawer, "0"));
     expect(drawerValues).toHaveLength(BRICKS.length);
     expect(sorted(bandValues)).toEqual(sorted(drawerValues));

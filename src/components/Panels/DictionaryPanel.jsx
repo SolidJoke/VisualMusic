@@ -1,41 +1,24 @@
 import React from "react";
 import { useAppContext } from "../../context/AppContext";
-import { NOTES, SCALES, SCALE_CATEGORIES, CHORDS, CHORD_CATEGORIES, getRecommendedScalesForChord, resolveChordFromShortName, getRelatedScales } from "../../core/theory";
+import { NOTES, SCALES, CHORDS, getRecommendedScalesForChord, resolveChordFromShortName, getRelatedScales } from "../../core/theory";
 import CustomSelect from "../Common/CustomSelect";
 import { log } from "../../utils/debug";
 import HarmonicSeriesPanel from "./HarmonicSeriesPanel";
 import extendedData from "../../core/extendedTheoryData.json";
 import DictPositionPanel from './DictPositionPanel';
 import DictChordPanel from './DictChordPanel';
-import { SCALE_LABEL_MAP } from '../../core/constants';
 import TargetNotesSelector from '../Common/TargetNotesSelector';
-
-// Group scales by category, sorted by category order
-function getGroupedScales() {
-  const groups = {};
-  Object.entries(SCALES).forEach(([key, scale]) => {
-    if (!groups[scale.category]) groups[scale.category] = [];
-    groups[scale.category].push(key);
-  });
-  return Object.entries(SCALE_CATEGORIES)
-    .sort(([, a], [, b]) => a.order - b.order)
-    .filter(([cat]) => groups[cat])
-    .map(([cat, meta]) => ({ category: cat, labelKey: meta.labelKey, items: groups[cat] }));
-}
-
-// Group chords by category, sorted by category order
-function getGroupedChords() {
-  const groups = {};
-  Object.entries(CHORDS).forEach(([key, chord]) => {
-    if (!groups[chord.category]) groups[chord.category] = [];
-    groups[chord.category].push(key);
-  });
-  return Object.entries(CHORD_CATEGORIES)
-    .sort(([, a], [, b]) => a.order - b.order)
-    .filter(([cat]) => groups[cat])
-    .map(([cat, meta]) => ({ category: cat, labelKey: meta.labelKey, items: groups[cat] }));
-}
-
+// VMU-185: the lists and the family <-> dictType rule have one owner, shared
+// with A′'s direct selectors (src/prototype/SelectionRow.jsx).
+import {
+  getGroupedScales,
+  getGroupedChords,
+  scaleOptions,
+  rootNoteOptions,
+  familyOptions,
+  dictFamily,
+  dictTypeForFamily,
+} from "../../core/selectionOptions";
 
 export default function DictionaryPanel({
   dictRoot,
@@ -58,16 +41,11 @@ export default function DictionaryPanel({
 }) {
   const { lang, txt, notation } = useAppContext();
   // Derive family from dictType
-  const family = dictType === "single_note"
-    ? "note"
-    : (dictType && typeof dictType === 'string' && dictType.startsWith("chord_"))
-      ? "chord"
-      : "scale";
+  const family = dictFamily(dictType);
 
   const handleFamilyChange = (newFamily) => {
-    if (newFamily === "note") setDictType("single_note");
-    else if (newFamily === "chord") setDictType("chord_major");
-    else if (newFamily === "scale") setDictType("scale_major");
+    const next = dictTypeForFamily(newFamily);
+    if (next) setDictType(next);
   };
 
   const groupedScales = getGroupedScales();
@@ -148,10 +126,7 @@ export default function DictionaryPanel({
               log("dictionary", `Changing root to ${val}`);
               setDictRoot(val);
             }}
-            options={NOTES.map((n) => ({
-              value: n.value,
-              label: notation === "us" ? n.us : n.eu
-            }))}
+            options={rootNoteOptions(notation)}
             data-testid="select-root-note"
           />
         </div>
@@ -166,11 +141,7 @@ export default function DictionaryPanel({
         <div className="select-group">
           <label className="field-label">{txt.structType}</label>
           <div className="btn-segment-group">
-            {[
-              { key: "note", label: txt.familyNote || "🎵 Note" },
-              { key: "chord", label: txt.familyChord || "🎸 Accords" },
-              { key: "scale", label: txt.familyScale || "🎹 Gammes" },
-            ].map((f) => (
+            {familyOptions(txt).map((f) => (
               <button
                 key={f.key}
                 onClick={() => handleFamilyChange(f.key)}
@@ -263,13 +234,7 @@ export default function DictionaryPanel({
             <CustomSelect
               value={dictType}
               onChange={(val) => setDictType(val)}
-              options={groupedScales.map((group) => ({
-                label: txt[group.labelKey] || group.category,
-                items: group.items.map((scaleKey) => ({
-                  value: scaleKey,
-                  label: txt[SCALE_LABEL_MAP[scaleKey]] || scaleKey
-                }))
-              }))}
+              options={scaleOptions(groupedScales, txt)}
             />
 
             {/* Emotion/description card for scales */}

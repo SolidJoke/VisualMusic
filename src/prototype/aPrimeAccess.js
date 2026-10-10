@@ -18,7 +18,13 @@
  *           language (the list) | drawer | tempo-field
  *   needs   "drawer": only there once the Assistant drawer is open;
  *           "dictionary": only in the Dictionary mode (L1b-1b: the heads' ▶,
- *           and the position arrows, read-only in the Studio)
+ *           and the position arrows, read-only in the Studio);
+ *           VMU-185, the direct selectors (second row of the transport block),
+ *           each only in the state where the control exists:
+ *           "studio": only in the Studio (the style menu);
+ *           "dictionary:chord" / "dictionary:scale": only in the Dictionary
+ *           with the family Chords / Scales (their type menu; a single note
+ *           has none)
  *   devOnly only in the development build (import.meta.env.DEV), never clicked
  */
 export const A_PRIME_ACCESS = [
@@ -44,6 +50,16 @@ export const A_PRIME_ACCESS = [
   { fn: "son.volume-general", where: "transport" },
   { fn: "composer.math-ouvrir", where: "transport", opens: "math" },
   { fn: "son.ouvrir", where: "transport", opens: "audio" },
+  // VMU-185 — the direct selectors: a second row of the transport block (the
+  // Assistant drawer holds the same controls and hides the necks). Registry
+  // names reused: composer.style, dico.fondamentale, dico.famille,
+  // dico.type-accord, dico.type-gamme. "where" is "centre" (the centre column's
+  // transport block, not the top row of it).
+  { fn: "composer.style", where: "centre", needs: "studio" },
+  { fn: "dico.famille", where: "centre", needs: "dictionary" },
+  { fn: "dico.fondamentale", where: "centre", needs: "dictionary" },
+  { fn: "dico.type-accord", where: "centre", needs: "dictionary:chord" },
+  { fn: "dico.type-gamme", where: "centre", needs: "dictionary:scale" },
   // Centre column
   { fn: "son.visualiseur", where: "centre" },
   { fn: "composer.grilles", where: "centre" },

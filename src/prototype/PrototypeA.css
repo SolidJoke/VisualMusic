@@ -276,6 +276,104 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* VMU-185 - the direct selectors (SelectionRow.jsx): a second row of the
+   transport block. flex-basis 100% gives it a row of its own in the block's
+   wrapping flex (the top row - play, tempo, metronome, volume, the two
+   windows - stays as it was). One row, as tall as a hit target, in the Studio
+   (the style menu) and in the Dictionary (family, root note, type): the block
+   does not change height from one mode to the other. */
+.proto-a__selection {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 40px;
+  min-width: 0;
+  min-height: var(--hit-min);
+}
+
+.proto-a__field {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* CustomSelect is width: 100% of its parent: here each one has a width of its
+   own, wide enough for its longest name (S1-23 measures that no name is cut). */
+.proto-a__field .custom-select-container {
+  width: var(--proto-sel-w, 480px);
+  flex: 0 0 auto;
+}
+
+.proto-a__field--style .custom-select-container {
+  --proto-sel-w: var(--proto-sel-style-w, 640px);
+}
+
+.proto-a__field--root .custom-select-container {
+  --proto-sel-w: var(--proto-sel-root-w, 200px);
+}
+
+.proto-a__field--type .custom-select-container {
+  --proto-sel-w: var(--proto-sel-type-w, 560px);
+}
+
+/* The closed field at A′'s sizes: a 48px target, the body font size. */
+.proto-a .proto-a__selection .custom-select-header {
+  min-height: var(--hit-min);
+  padding: 0 16px;
+}
+
+.proto-a .proto-a__selection .custom-select-header .current-value {
+  font-size: var(--fs-body);
+}
+
+.proto-a .proto-a__selection .custom-select-header .arrow {
+  font-size: var(--fs-label);
+}
+
+/* The family: three joined segments, pressed like the mode tabs. */
+.proto-a__family {
+  display: flex;
+}
+
+.proto-a .proto-a__family-btn {
+  height: var(--hit-min);
+  padding: 0 20px;
+  background: var(--bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.proto-a .proto-a__family-btn + .proto-a__family-btn {
+  margin-left: -1px;
+}
+
+.proto-a .proto-a__family-btn:first-child {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.proto-a .proto-a__family-btn:last-child {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.proto-a .proto-a__family-btn.is-active {
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
+  /* The pressed segment's light border draws over its neighbours'. */
+  position: relative;
+  z-index: 1;
+}
+
+.proto-a .proto-a__family-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 /* The audio visualizer: a 60px band under the transport. */
 .proto-a__visualizer {
   min-width: 0;
