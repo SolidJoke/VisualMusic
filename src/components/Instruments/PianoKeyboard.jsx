@@ -133,6 +133,7 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
     orderToDisplay,
     isSubtle,
     oneLine = false,
+    nameOnly = false,
   ) => {
     const noteInfo = NOTES.at(i);
     let labelContent = <span>{noteInfo[notation]}</span>;
@@ -146,6 +147,12 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
         </>
       );
     }
+
+    // L1b-1a — the name of an UNPLAYED key of the vertical keyboard: the note
+    // (and the flat equivalent of a black key) in the current notation and
+    // nothing else. No degree, and no harmonic rank line: that line belongs to
+    // the keys that sound, it stays on them (the harmonic block below).
+    if (nameOnly) return labelContent;
 
     if (orderToDisplay) {
       labelContent = (
@@ -316,16 +323,22 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
       if (k.isActive || k.isPlaying) {
         return renderKeyLabel(k.i, k.isActive, k.activeNote, k.isBlack, k.orderToDisplay, k.isSubtle, true);
       }
-      // Inactive keys stay blank, except each C, named with its octave
-      // (spec §3: "le nom de chaque Do (Do2…Do6) sur sa touche").
+      // L1b-1a (Gabriel: the names beside the instruments please him, he wants
+      // them on every key, and he is a beginner) — an unplayed key is named
+      // too, by the same note-name function as a lit one: the note, and the flat
+      // equivalent of a black key, in the current notation. Each C keeps its
+      // octave (spec §3: "le nom de chaque Do (Do2…Do6) sur sa touche").
       if (k.i === 0) {
         return <span className="piano-octave-name">{`${k.noteInfo[notation]}${k.octave + 2}`}</span>;
       }
-      return null;
+      return renderKeyLabel(k.i, false, null, k.isBlack, null, false, true, true);
     };
 
     const renderVerticalKey = (k, top) => {
       const label = renderVerticalLabel(k);
+      // An unplayed key's name is a quiet grey (two tokens, see the CSS); a key
+      // that sounds keeps its role colour.
+      const labelClass = k.isActive || k.isPlaying ? "note-label" : "note-label note-label--unplayed";
       return (
         <div
           key={`v-${k.absoluteValue}`}
@@ -335,7 +348,7 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
           style={{ top }}
           onClick={() => onNoteClick && onNoteClick(k.noteName, { instrument: "piano" })}
         >
-          {label && <div className="note-label">{label}</div>}
+          {label && <div className={labelClass}>{label}</div>}
         </div>
       );
     };

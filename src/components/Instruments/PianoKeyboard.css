@@ -409,5 +409,27 @@
 .piano-vertical .piano-octave-name {
     font-family: var(--font-mono);
     font-weight: 500;
-    color: var(--on-role);
+    /* The colour of its label: the quiet grey of an unplayed key (below). */
+    color: inherit;
+}
+
+/* L1b-1a: the name of an UNPLAYED key is a quiet grey, one token per key
+   colour (the muted grey of the page does not read on the white key, 2.16:1).
+   A key that sounds carries no such class: it keeps its role colour. */
+.piano-vertical .note-label--unplayed {
+    font-weight: 500;
+}
+
+.piano-vertical .white-key .note-label--unplayed {
+    color: var(--key-name-on-white);
+}
+
+.piano-vertical .black-key .note-label--unplayed {
+    color: var(--key-name-on-black);
+}
+
+/* The flat name is dimmed to 0.9 on a lit key (.flat-label); on the black key
+   that pulls the grey under 4.5:1, so an unplayed key's flat name is full. */
+.piano-vertical .note-label--unplayed .flat-label {
+    opacity: 1;
 }

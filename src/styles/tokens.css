@@ -64,6 +64,12 @@
   --key-white:   #cfcfcf; /* touche blanche (pas #fff : 13 % de lumière en moins) */
   --key-black:   #1a1a1a;
   --key-edge:    #000000;
+  /* Nom d'une touche NON jouée du piano vertical d'A′ (L1b-1a) : gris discret ;
+     une touche jouée garde sa couleur de rôle. Deux jetons, car le gris muet
+     de la page (--text-muted, #8c8c8c) ne lit pas sur la touche blanche (2,16:1).
+     Les contrastes sont mesurés dans la page par s1_probe (S1-22). */
+  --key-name-on-white: #555555;           /* sur --key-white : 4,79:1 */
+  --key-name-on-black: var(--text-muted); /* sur --key-black : 5,18:1 */
   --fret-wire:   var(--border-strong);
   --string:      #8c8c8c;
   --fret-inlay:  #333333;
