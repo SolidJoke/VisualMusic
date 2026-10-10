@@ -10,6 +10,7 @@
 //
 // Print the full table:  B1_MEASURE=1 npx vitest run src/core/__tests__/placementsMeasure.test.js
 import { describe, it, expect } from "vitest";
+import process from "node:process";
 import { listPlacements, isOutsideTessitura, tessitura } from "../placements";
 import { realizeDictionarySelection } from "../realization";
 import { SCALES, CHORDS, NOTES } from "../theory";
