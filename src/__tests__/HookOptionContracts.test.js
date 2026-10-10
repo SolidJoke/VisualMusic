@@ -148,6 +148,16 @@ describe("hook option contracts", () => {
     expect(hooks.get("usePlaybackHandlers")?.required.length).toBeGreaterThan(20);
   });
 
+  it("useMusicEngine requires placementByInstrument (INST-B1), which replaced the two voicing indexes", () => {
+    // Required = declared without a default: a call site that forgets it
+    // fails the test below, instead of every neck silently showing its
+    // default position.
+    const required = hooks.get("useMusicEngine")?.required ?? [];
+    expect(required).toContain("placementByInstrument");
+    expect(required).not.toContain("selectedVoicingIndexGuitar");
+    expect(required).not.toContain("selectedVoicingIndexBass");
+  });
+
   it("chaque site d'appel fournit les options déclarées sans valeur par défaut", () => {
     const violations = [];
     const checked = [];
