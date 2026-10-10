@@ -58,6 +58,21 @@
  * Positive control: hide one button, S1-20 (and only S1-20) must turn red:
  *   S1_PROBE_INJECT_CSS='[data-fn="son.ouvrir"]{visibility:hidden!important}' npm run s1:probe
  *
+ * L1b-1a (Gabriel: "le nom des notes ... sur toutes les touches du piano")
+ * adds S1-22, decisive, in every state of the matrix: the vertical piano's 49
+ * keys (29 white + 20 black) are all named, each name readable (>= 18px,
+ * >= 4.5:1 against what is really behind it, inside its key), no two labels
+ * overlapping; an unplayed key reads its name in the notation of the label
+ * mode (a C with its octave, a black key with its flat). S1-21 is the next
+ * slice's: it will be added there.
+ * Positive control: S1-22 prints "N/49 keys named". Giving the keyboard its old
+ * look (unplayed names hidden except the Cs) drops N from 49 to 7 in Do majeur
+ * and 9 in Sol#m7, and only S1-22 turns red (S1-1, -2, -4, -10 stay green):
+ *   S1_PROBE_INJECT_CSS='.piano-vertical .note-label--unplayed > :not(.piano-octave-name){display:none!important}' npm run s1:probe -- --only=cmaj,gsm7
+ * and the grey put back to the page's muted grey on the white keys drops the
+ * readable count and the contrast, again with S1-22 alone red:
+ *   S1_PROBE_INJECT_CSS='.piano-vertical .white-key .note-label--unplayed{color:#8c8c8c!important}' npm run s1:probe -- --only=cmaj,gsm7
+ *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
@@ -151,6 +166,10 @@ const CRITERIA = [
   // Coordinator, after her QA: the label modes are a function, not a fixture.
   // (Their behaviour without bench=1 is checked per viewport, see runNoBench.)
   { id: "S1-19", decides: true, what: "label modes: one 'Sur les notes' group of 3 segments (data-fn nav.noms-notes-eu / -us / nav.etiquettes-doigts) in the header, right of the tabs, >= 48px high, header still 72px, each button once, none in the centre column" },
+  // L1b-1a (Gabriel: "le nom des notes ... sur toutes les touches du piano"; he
+  // is a beginner). S1-21 is the next slice's (the instrument heads): it will
+  // be added there, nothing is renumbered.
+  { id: "S1-22", decides: true, what: "piano: all 49 keys named (an unplayed key by its name, a C with its octave, a black key with its flat), each name readable: >= 18px, >= 4.5:1 against what is behind it, inside its key; no two labels overlap" },
 ];
 
 // S1-16 thresholds (L1a-fix1 brief E, as amended by the coordinator: 24px
@@ -161,6 +180,22 @@ const S1_16 = { pianoToNeck: 24, neckToNeck: 24, columnGap: 24, rightMargin: 24,
 // pitch's first : last ratio is 1.5, the 84 : 56 of fix1 kept on a larger scale
 // (fix2); a neck ends where the keyboard ends, within 1px (fix2).
 const S1_17 = { minPitch: 52, ratio: 1.5, ratioTolerance: 0.02, bottomTolerance: 1 };
+
+// S1-22 (L1b-1a): the vertical keyboard counted by hand (29 white + 20 black =
+// 49 keys), the label size of S1-1, WCAG's 4.5:1 for normal text, and what an
+// UNPLAYED key must say in each notation (a played key keeps its role label,
+// or in harmonic mode its rank line: only its being readable is checked). The
+// names are written here, not imported from the component (PianoKeyboard.jsx
+// NOTES / FLAT_EQUIVALENTS): the page must not grade itself.
+const S1_22 = {
+  keys: 49,
+  minFont: 18,
+  minContrast: 4.5,
+  names: {
+    eu: { sharp: ["Do", "Do#", "Ré", "Ré#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si"], flat: { 1: "Réb", 3: "Mib", 6: "Solb", 8: "Lab", 10: "Sib" } },
+    us: { sharp: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"], flat: { 1: "Db", 3: "Eb", 6: "Gb", 8: "Ab", 10: "Bb" } },
+  },
+};
 
 // ─── dev server (same pattern as scripts/style_probe.mjs) ─────────────────
 
@@ -393,6 +428,103 @@ function measureInPage() {
     widestBlack,
     bottom: round(r(piano).bottom),
   };
+
+  // S1-22 (L1b-1a) — raw measures of the 49 keys' names: for every key of the
+  // vertical piano, its label's text parts, whether it is a lit key, the
+  // smallest font size and the smallest contrast of its text against what is
+  // REALLY behind it (the key's own fill, else the page's; opacity counted),
+  // and whether the text sits inside its key. Then the overlaps among the
+  // labels and between a label and another key's black key. The thresholds,
+  // the 49 and the expected names are applied in namedKeysVerdict(), written
+  // there on purpose and NOT imported from the component: the page must not
+  // grade itself.
+  {
+    const parseRgb = (s) => {
+      const m = /rgba?\(([^)]+)\)/.exec(s || "");
+      if (!m) return null;
+      const p = m[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+      return { r: p[0], g: p[1], b: p[2], a: p[3] === undefined ? 1 : p[3] };
+    };
+    const over = (top, base) => ({
+      r: top.r * top.a + base.r * (1 - top.a),
+      g: top.g * top.a + base.g * (1 - top.a),
+      b: top.b * top.a + base.b * (1 - top.a),
+    });
+    // What is painted behind an element: its ancestors' fills, bottom up.
+    const backdrop = (el) => {
+      const layers = [];
+      for (let e = el; e; e = e.parentElement) {
+        const c = parseRgb(getComputedStyle(e).backgroundColor);
+        if (c && c.a > 0) {
+          layers.push(c);
+          if (c.a >= 1) break;
+        }
+      }
+      let base = { r: 255, g: 255, b: 255 };
+      for (const c of layers.reverse()) base = over(c, base);
+      return base;
+    };
+    const lum = (c) => {
+      const f = (v) => {
+        const x = v / 255;
+        return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+    };
+    const ratio = (a, b) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    // The colour a text really has on screen: its colour times the opacity of
+    // the element and of every ancestor up to the key, over the key's backdrop.
+    const textContrast = (el, key, bg) => {
+      const c = parseRgb(getComputedStyle(el).color);
+      if (!c) return NaN; // a colour syntax this probe does not read: unreadable, never "passes"
+      let alpha = c.a;
+      for (let e = el; e && e !== key.parentElement; e = e.parentElement) alpha *= parseFloat(getComputedStyle(e).opacity);
+      return ratio(over({ ...c, a: alpha }, bg), bg);
+    };
+    const s1_22 = { keys: [], pairs: 0, examples: [] };
+    const labelsOfKeys = [];
+    for (const key of piano.querySelectorAll(".piano-key")) {
+      const label = key.querySelector(".note-label");
+      const shown = Boolean(label && visible(label) && label.textContent.trim());
+      const bg = backdrop(key);
+      const carriers = shown
+        ? [label, ...label.querySelectorAll("*")].filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()))
+        : [];
+      const tr = shown ? textRect(label) : null;
+      s1_22.keys.push({
+        abs: Number(key.getAttribute("data-abs")),
+        title: key.getAttribute("title"),
+        lit: [...key.classList].some((c) => c.startsWith("role-")),
+        black: key.classList.contains("black-key"),
+        shown,
+        parts: shown ? (label.children.length ? [...label.children].map((c) => c.textContent.trim()) : [label.textContent.trim()]) : [],
+        fontSize: carriers.length ? Math.min(...carriers.map((e) => parseFloat(getComputedStyle(e).fontSize))) : null,
+        contrast: carriers.length ? Math.round(Math.min(...carriers.map((e) => textContrast(e, key, bg))) * 100) / 100 : null,
+        inside: shown ? inside(tr, r(key)) : false,
+      });
+      if (shown) labelsOfKeys.push({ key, label, tr });
+    }
+    const blackKeys = [...piano.querySelectorAll(".black-key")];
+    for (let i = 0; i < labelsOfKeys.length; i++) {
+      for (let j = i + 1; j < labelsOfKeys.length; j++) {
+        if (area(labelsOfKeys[i].tr, labelsOfKeys[j].tr) > 0.01) {
+          s1_22.pairs++;
+          if (s1_22.examples.length < 5) s1_22.examples.push(`${describe(labelsOfKeys[i].label)} x ${describe(labelsOfKeys[j].label)}`);
+        }
+      }
+      for (const bk of blackKeys) {
+        if (bk === labelsOfKeys[i].key) continue;
+        if (area(labelsOfKeys[i].tr, r(bk)) > 0.01) {
+          s1_22.pairs++;
+          if (s1_22.examples.length < 5) s1_22.examples.push(`${describe(labelsOfKeys[i].label)} x ${describe(bk)}`);
+        }
+      }
+    }
+    out.s1_22 = s1_22;
+  }
 
   // S1-11 — the centre column the V3 timeline would get. The spec's own
   // formula: (column content width - 262px of track names) / 64 steps, a
@@ -813,6 +945,51 @@ function necksVerdict(c) {
   return [fails.length === 0, parts.join("; ") + (fails.length ? `; FAILED: ${fails.join(" | ")}` : "")];
 }
 
+/**
+ * S1-22: [pass, "measured values; what failed"] from the raw key names. The
+ * number printed first ("N/49 named") is the quantity the positive controls
+ * move: hiding the unplayed names drops it from 49 to the lit keys plus the
+ * unplayed Cs (7 in Do majeur, 9 in Sol#m7, the count of the old keyboard).
+ */
+function namedKeysVerdict(k, notation) {
+  const fails = [];
+  const total = k.keys.length;
+  if (total !== S1_22.keys) fails.push(`${total} keys, ${S1_22.keys} expected`);
+  const named = k.keys.filter((x) => x.shown);
+  const unnamed = k.keys.filter((x) => !x.shown);
+  if (unnamed.length) fails.push(`${unnamed.length} key(s) without a visible name: ${unnamed.slice(0, 4).map((x) => `${x.title}@${x.abs}`).join(", ")}${unnamed.length > 4 ? " ..." : ""}`);
+  const unreadable = named.filter((x) => !(x.fontSize >= S1_22.minFont) || !(x.contrast >= S1_22.minContrast) || !x.inside);
+  for (const x of unreadable.slice(0, 4)) fails.push(`"${x.parts.join(" ")}"@${x.abs} (${x.lit ? "lit" : "unplayed"}, ${x.black ? "black" : "white"} key): ${x.fontSize}px, ${x.contrast}:1${x.inside ? "" : ", text outside its key"}`);
+  if (unreadable.length > 4) fails.push(`${unreadable.length - 4} more unreadable`);
+  const names = S1_22.names[notation];
+  const unplayed = k.keys.filter((x) => !x.lit);
+  let asExpected = 0;
+  const wrong = [];
+  for (const x of unplayed.filter((y) => y.shown)) {
+    if (!names) break;
+    const pc = x.abs % 12;
+    const want = x.black ? [names.sharp[pc], names.flat[pc]] : pc === 0 ? [`${names.sharp[0]}${Math.floor(x.abs / 12) - 1}`] : [names.sharp[pc]];
+    if (JSON.stringify(x.parts) === JSON.stringify(want)) asExpected++;
+    else wrong.push(`@${x.abs} reads [${x.parts.join(" ")}], [${want.join(" ")}] expected`);
+  }
+  if (!names) fails.push(`no expected names for notation "${notation}"`);
+  if (wrong.length) fails.push(`${wrong.length} unplayed key(s) not named as expected: ${wrong.slice(0, 3).join("; ")}`);
+  if (k.pairs) fails.push(`${k.pairs} overlapping pairs: ${k.examples.join(" | ")}`);
+  const sizes = named.map((x) => x.fontSize);
+  const weakest = named.reduce((w, x) => (w === null || x.contrast < w.contrast ? x : w), null);
+  // The weakest contrast of each family, so the two tokens show separately.
+  const minOf = (pred) => {
+    const c = named.filter(pred).map((x) => x.contrast);
+    return c.length ? `${Math.min(...c)}:1` : "n/a";
+  };
+  const value =
+    `${named.length}/${S1_22.keys} keys named (${unplayed.length - unplayed.filter((x) => !x.shown).length}/${unplayed.length} unplayed, ${asExpected} as expected in "${notation}"), ` +
+    `${named.length - unreadable.length} readable, min ${sizes.length ? Math.min(...sizes) : "n/a"}px, ` +
+    `min contrast ${weakest ? `${weakest.contrast}:1 ("${weakest.parts.join(" ")}" ${weakest.lit ? "lit" : "unplayed"} ${weakest.black ? "black" : "white"})` : "n/a"} ` +
+    `[unplayed white ${minOf((x) => !x.lit && !x.black)}, unplayed black ${minOf((x) => !x.lit && x.black)}, lit ${minOf((x) => x.lit)}], ${k.pairs} overlapping pairs`;
+  return [fails.length === 0, value + (fails.length ? `; FAILED: ${fails.join(" | ")}` : "")];
+}
+
 function verdicts(m) {
   const v = {};
   const put = (id, pass, value) => (v[id] = { pass, value });
@@ -844,6 +1021,7 @@ function verdicts(m) {
   put("S1-17", ...necksVerdict(m.s1_17));
   put("S1-18", ...tabsVerdict(m.s1_18));
   put("S1-19", ...labelModesVerdict(m.s1_19));
+  put("S1-22", ...namedKeysVerdict(m.s1_22, m.expectedNotation));
   return v;
 }
 
@@ -878,6 +1056,8 @@ async function runState(browser, viewport, state, labels) {
     }
     await page.waitForTimeout(200);
     const m = await page.evaluate(measureInPage);
+    // The notation the label mode asks for: what S1-22 expects an unplayed key to read.
+    m.expectedNotation = labels.notation;
     if (SHOT) {
       fs.mkdirSync(path.join(ROOT, "probe.local"), { recursive: true });
       await page.screenshot({ path: path.join(ROOT, "probe.local", `s1-${viewport.label}-${state.id}-${labels.id}.png`) });
@@ -1481,7 +1661,7 @@ if (AS_JSON) {
   console.log(`  S1-19 no-bench behaviour: ${noBenchOk ? "PASS" : "FAIL"} in ${Object.keys(noBenchChecks).length}/${ACCESS_ONLY ? 0 : VIEWPORTS.length} viewport(s)`);
   console.log(`  S1-20 ${accessOk ? "PASS" : "FAIL"} ${accessPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  A′-ACCÈS: every function of src/prototype/aPrimeAccess.js on Gabriel's page, on top; openers open and Escape closes; tempo typed; no scroll in FR / EN / PT / ZH; the master volume reaches the engine`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-20 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-20, S1-22 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

@@ -92,6 +92,32 @@ import { A_PRIME_ACCESS } from "../aPrimeAccess";
 
 const FR = translations.fr;
 
+// A′ is a React.lazy chunk (AppDesktop): the first render of this file waits for
+// a dynamic import. Alone it takes ~0.3 s; in the full suite (147 files, many
+// workers sharing one transform server) it was measured at 0.3-0.5 s and, on a
+// busy machine, it can pass the 1 s default of waitFor, leaving the Suspense
+// fallback in the page. This is the ONE wait on that chunk, and it is explicit
+// and large. It only bounds how long a slow import may take: every real failure
+// (a missing data-fn, a window that does not open) is asserted AFTER the page is
+// mounted and fails at once, with its own message.
+const LAZY_LOAD_TIMEOUT = 10_000;
+// The test's own timeout (5 s by default) must outlast that wait, or it would
+// cut the wait short with a bare "Test timed out" instead of the message below.
+vi.setConfig({ testTimeout: LAZY_LOAD_TIMEOUT + 5_000 });
+
+async function waitForPrototype() {
+  await waitFor(() => expect(document.querySelector('[data-prototype="a"]')).not.toBeNull(), {
+    timeout: LAZY_LOAD_TIMEOUT,
+    onTimeout: (error) =>
+      new Error(
+        document.querySelector('[data-testid="loading"]')
+          ? `A′ is still behind the Suspense fallback after ${LAZY_LOAD_TIMEOUT} ms: its lazy chunk did not resolve.`
+          : `A′ ([data-prototype="a"]) is not in the page although the lazy chunk resolved.\n${error.message}`
+      ),
+  });
+  return document.querySelector('[data-prototype="a"]');
+}
+
 async function renderApp(search = "?prototype=a") {
   window.history.replaceState({}, "", `/${search}`);
   render(
@@ -101,8 +127,7 @@ async function renderApp(search = "?prototype=a") {
       </Suspense>
     </AppProvider>
   );
-  await waitFor(() => expect(document.querySelector('[data-prototype="a"]')).not.toBeNull());
-  return document.querySelector('[data-prototype="a"]');
+  return waitForPrototype();
 }
 
 const fn = (id) => document.querySelector(`[data-fn="${id}"]`);
