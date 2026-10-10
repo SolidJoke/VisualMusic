@@ -24,12 +24,12 @@
  * that it took (otherwise an invariance would hold vacuously):
  *   normal  the instrument bar's tile (button[data-instrument]); its
  *           aria-pressed must turn "true".
- *   proto   it has no tile: a click on a note of that instrument chooses it
- *           (useFretboardPlayback.js autoPlayNote). The probe clicks a key or a
- *           cell whose pitch class is not the root's (a root click on a scale
- *           would set the contextual scale and change every label), waits for
- *           that note to flash ("is-playing", the click's own feedback), then
- *           for every flash to end, and only then reads the columns.
+ *   proto   L1b-1b: the column head's name, the page's own gesture for "this
+ *           instrument plays" (button[data-fn="jouer.instrument-tuile-<id>"],
+ *           it chooses without playing); its aria-pressed must turn "true".
+ *           (Before the heads, A′ had no such control and the probe clicked a
+ *           note of that instrument, which chose it as a side effect of
+ *           useFretboardPlayback.js autoPlayNote.)
  *
  * Positive control: put back the old reading in ONE component, e.g. in
  * src/components/Instruments/PianoKeyboard.jsx read `activeNotes` from the
@@ -245,45 +245,16 @@ async function openProto(page, sel) {
 }
 
 /** Chooses `id` with the page's own gesture; returns null, or why it did not take. */
-async function choose(page, kind, id, sel) {
-  if (kind === "normal") {
-    const tile = page.locator(`.instrument-bar__select[data-instrument="${id}"]`);
-    await tile.click();
-    try {
-      await page.locator(`.instrument-bar__select[data-instrument="${id}"][aria-pressed="true"]`).waitFor({ timeout: 5_000 });
-    } catch {
-      return `the ${id} tile is not pressed after a click`;
-    }
-    await page.waitForTimeout(150);
-    return null;
-  }
-  // proto: click a note of that instrument whose pitch class is not the root's.
-  // A LIT one first: in a chord or a scale the fingering mask stops an unlit
-  // cell from flashing (core/fretboardUtils.js resolveVoicingMask), so the
-  // click's own feedback would never show. The note family lights only the
-  // root: any other note then (no fingering, no mask).
-  const scope = SCOPES.proto[id];
-  const cells = id === "piano" ? `${scope} .piano-key[data-abs]` : `${scope} .fbv-cell[data-abs]`;
-  const index = await page.evaluate(
-    ({ cells, rootPc, isPiano }) => {
-      const all = [...document.querySelectorAll(cells)];
-      const notRoot = (el) => Number(el.getAttribute("data-abs")) % 12 !== rootPc;
-      const lit = (el) => (isPiano ? [...el.classList].some((c) => c.startsWith("role-")) : !!el.querySelector(".note-marker"));
-      const best = all.findIndex((el) => notRoot(el) && lit(el));
-      return best >= 0 ? best : all.findIndex(notRoot);
-    },
-    { cells, rootPc: sel.rootPc, isPiano: id === "piano" }
-  );
-  if (index < 0) return `no ${id} note outside the root to click`;
-  await page.locator(cells).nth(index).click();
+async function choose(page, kind, id) {
+  // normal: the instrument bar's tile; proto (L1b-1b): the column head's name.
+  const button = kind === "normal" ? `.instrument-bar__select[data-instrument="${id}"]` : `[data-fn="jouer.instrument-tuile-${id}"]`;
+  const what = kind === "normal" ? "tile" : "head's name";
+  await page.locator(button).click();
   try {
-    await page.locator(`${scope} .is-playing`).first().waitFor({ timeout: 10_000 });
+    await page.locator(`${button}[aria-pressed="true"]`).waitFor({ timeout: 5_000 });
   } catch {
-    return `the clicked ${id} note never flashed: the click did not reach the instrument`;
+    return `the ${id} ${what} is not pressed after a click`;
   }
-  // The flash lasts 0.5s (useFretboardPlayback.js): read only once nothing on
-  // the page flashes any more.
-  await page.waitForFunction(() => document.querySelectorAll(".is-playing").length === 0, null, { timeout: 10_000 });
   await page.waitForTimeout(150);
   return null;
 }
@@ -348,7 +319,7 @@ try {
         for (const chosen of CHOICES) {
           // The page starts with the piano chosen (AppContext default): the
           // first "piano" is the start state, the last one a real choice back.
-          const why = readings.length === 0 && chosen === "piano" && kind === "proto" ? null : await choose(page, kind, chosen, sel);
+          const why = readings.length === 0 && chosen === "piano" && kind === "proto" ? null : await choose(page, kind, chosen);
           if (why) {
             setupError = why;
             break;

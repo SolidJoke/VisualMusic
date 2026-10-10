@@ -381,6 +381,20 @@ describe("L1b-1b (f): the Studio — no ▶ in the heads, the shape shown withou
     expect(headLabel("piano")).toBe("Do3");
   });
 
+  it("with a chord clicked, the arrow clears its notes like the Studio window's octave does (the next chord is voiced at the new octave)", async () => {
+    await renderApp("?prototype=a&bench=1");
+    await press(document.querySelector('[data-state="studio-oct2"]'));
+    await settle();
+    const seq = () => document.querySelector('[data-testid="sequencer-stub"]').getAttribute("data-octave");
+    expect(seq()).toBe("2");
+    expect(pianoNotes().length).toBeGreaterThan(0);
+    expect(headLabel("piano")).toBe("Do6");
+    await press(fn("jouer.octave-piano-prec"));
+    expect(seq()).toBe("1");
+    expect(headLabel("piano")).toBe("Do5");
+    expect(pianoNotes()).toEqual([]);
+  });
+
   it("the name chooses the instrument in the Studio too (the one a clicked chord sounds on)", async () => {
     await renderApp("?prototype=a");
     await press(fn("jouer.instrument-tuile-bass"));
