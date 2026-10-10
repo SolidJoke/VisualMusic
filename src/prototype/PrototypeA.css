@@ -307,15 +307,15 @@
 }
 
 .proto-a__field--style .custom-select-container {
-  --proto-sel-w: var(--proto-sel-style-w, 640px);
+  --proto-sel-w: var(--proto-sel-style-w, 440px);
 }
 
 .proto-a__field--root .custom-select-container {
-  --proto-sel-w: var(--proto-sel-root-w, 200px);
+  --proto-sel-w: var(--proto-sel-root-w, 160px);
 }
 
 .proto-a__field--type .custom-select-container {
-  --proto-sel-w: var(--proto-sel-type-w, 560px);
+  --proto-sel-w: var(--proto-sel-type-w, 440px);
 }
 
 /* The closed field at A′'s sizes: a 48px target, the body font size. */
