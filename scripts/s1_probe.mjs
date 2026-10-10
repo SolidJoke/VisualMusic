@@ -1711,9 +1711,16 @@ function headsMeasure() {
       };
     }
     const name = head.querySelector(".proto-a__head-name");
+    const instrument = section.querySelector(id === "piano" ? ".piano-wrapper--vertical" : ".fretboard-container--vertical");
     cols[id] = {
       height: round(hb.height),
       top: round(hb.top),
+      // The head must not be wider than its instrument: a neck's column is
+      // min-content, so a head that grows widens the column (and narrows the
+      // centre) instead of overflowing - a label check alone would not see it.
+      headRight: round(hb.right),
+      headScroll: head.scrollWidth > head.clientWidth + 0.5,
+      instrumentRight: instrument ? round(r(instrument).right) : null,
       rows: [...head.children].map((row) => bands(row)),
       targets,
       label: labelInfo,
@@ -1762,6 +1769,8 @@ function headsFails(where, h, { mode, studioOctave = 0 }) {
       else if (!t.onTop) out.push(`${where}: ${t.fn} not on top (elementFromPoint)`);
     }
     if (c.name && !c.name.fits) out.push(`${where}: ${id} name "${c.name.text}" does not fit its button`);
+    if (!(c.headRight <= c.instrumentRight + 0.5)) out.push(`${where}: ${id} head ends at x=${c.headRight}, past its instrument (x=${c.instrumentRight})`);
+    if (c.headScroll) out.push(`${where}: ${id} head's content overflows it`);
     if (c.label) {
       if (!c.label.fits) out.push(`${where}: ${id} label "${c.label.text}" ${c.label.textWidth}px does not fit its ${c.label.boxWidth}px`);
       if (!c.label.clearOfArrows) out.push(`${where}: ${id} label "${c.label.text}" runs under an arrow`);
