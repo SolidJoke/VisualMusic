@@ -1,24 +1,108 @@
 // @ts-check
 import { useMemo } from "react";
-import { 
-  getGuitarFingering, 
-  getBassFingering, 
-  getAvailableGuitarFingerings, 
-  getAvailableBassFingerings, 
-  getAvailableScaleFingerings,
-  getAvailableSingleNoteFingerings
-} from "../core/fingeringLogic";
+import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
 import {
   getScaleNotes,
   resolveChordSemitones,
-  resolveNnsToChordType,
-  isNoteInRange,
-  computeAbsoluteNote
+  resolveNnsToChordType
 } from "../core/theory";
 import { TUNINGS } from "../core/tunings";
 import { getInversionType, getChordIntervalLabel } from "../core/harmonyEngine";
 import { realizeDictionarySelection } from "../core/realization";
+import {
+  listPlacements,
+  resolvePlacement,
+  familyOf,
+  tessitura,
+  isOutsideTessitura
+} from "../core/placements";
 import { getChordTargetNotes, getModeTargetNote } from "../core/targetNotes";
+
+/**
+ * INST-B1 — what one neck's position list is about, for listPlacements. The
+ * branching is the one the former availableGuitarFingerings /
+ * availableBassFingerings memos used, unchanged — including its Studio quirk:
+ * with a chord clicked and the Dictionary left on a single note, the arrows
+ * list that note's places.
+ * @returns {import("../core/placements").Selection|null}
+ */
+function placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString }) {
+  /** @returns {import("../core/placements").Selection} */
+  const noteSelection = () => ({ family: "note", type: "single_note", notePitch: dictActiveNotes?.[0]?.absoluteValue ?? null });
+  if (appMode === "dictionary" && dictType) {
+    if (dictType.includes("scale")) return { family: "scale", type: dictType, root: dictRoot, octave: dictOctave };
+    if (dictType === "single_note") return noteSelection();
+    return { family: "chord", type: dictType, root: Number(dictRoot), octave: dictOctave, rootString };
+  }
+  if (!effectiveChord) return null;
+  if (dictType === "single_note") return noteSelection();
+  return {
+    family: "chord",
+    type: resolveNnsToChordType(effectiveChord.nns),
+    root: effectiveChord.rootNote.value,
+    octave: chordOctaveOffset || 0,
+    rootString,
+  };
+}
+
+/**
+ * fingeringLogic.js's map `{ [string]: { [fret]: finger } }` as the neck reads
+ * it: `{ [string]: { fret, status, finger } }` (MusicState v2). Unchanged by
+ * INST-B1, only moved out of the hook (it reads no state).
+ */
+function toV2(fingering, instrument) {
+  if (!fingering) return null;
+  const v2Map = {};
+  const rawMap = fingering.fingeringMap;
+  if (!rawMap) return fingering;
+  const maxString = instrument === 'bass' ? 3 : 5;
+
+  for (let i = 0; i <= maxString; i++) {
+    const stringData = rawMap[i];
+    if (!stringData || stringData.X) {
+      v2Map[i] = { fret: -1, status: 'muted' };
+    } else if (stringData[0] === 'O' || stringData.O) {
+      v2Map[i] = { fret: 0, status: 'open' };
+    } else {
+      const fret = Object.keys(stringData).find(k => !isNaN(Number(k)));
+      v2Map[i] = {
+        fret: parseInt(fret),
+        status: 'played',
+        finger: stringData[fret]
+      };
+    }
+  }
+  return { ...fingering, fingeringMap: v2Map };
+}
+
+/**
+ * What one neck draws.
+ * - Dictionary: the chosen placement, or the default one — for a chord the
+ *   shape fingeringLogic.js picks from the root string and the octave
+ *   (listPlacements marks it, and it is computed again here only if no entry
+ *   matched); for a scale the box the octave picks (C-06, core/placements.js);
+ *   for a single note none (every place of the note is lit).
+ * - Studio: the clicked chord's default shape, unchanged — the chosen index is
+ *   not read there, as before.
+ */
+function fingeringFor({ instrument, placements, index, rootString, appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset }) {
+  const getDefault = instrument === "bass" ? getBassFingering : getGuitarFingering;
+  if (appMode === "dictionary" && dictType) {
+    const placement = resolvePlacement(placements, index);
+    if (dictType.includes("scale")) {
+      const box = placement?.fingering;
+      if (box?.scaleFrets) return { scaleFrets: box.scaleFrets, isScaleMode: true, startFret: box.startFret, endFret: box.endFret };
+      return null;
+    }
+    if (dictType === "single_note") return placement ? toV2(placement.fingering, instrument) : null;
+    if (!dictType.includes("chord")) return null;
+    if (placement) return toV2(placement.fingering, instrument);
+    return toV2(getDefault(Number(dictRoot), dictType, rootString, dictOctave), instrument);
+  }
+  if (!effectiveChord) return null;
+  const offset = appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0);
+  return toV2(getDefault(effectiveChord.rootNote.value, resolveNnsToChordType(effectiveChord.nns), rootString, offset), instrument);
+}
 
 /**
  * useMusicEngine Hook
@@ -43,8 +127,12 @@ import { getChordTargetNotes, getModeTargetNote } from "../core/targetNotes";
  * @param {string} options.displayMode
  * @param {any} options.selectedRootStringGuitar
  * @param {any} options.selectedRootStringBass
- * @param {any} options.selectedVoicingIndexGuitar
- * @param {any} options.selectedVoicingIndexBass
+ * @param {{piano?: {octave: number}, guitar?: {index: number|null}, bass?: {index: number|null}}} options.placementByInstrument
+ *   INST-B1 — the chosen position of each neck (useDictionaryMode): an index
+ *   into that neck's list (`placementsByInstrument`, nut -> body), null = the
+ *   default. Read in the Dictionary only, as the voicing indexes it replaces
+ *   were; the Studio shows the default shape. No default value: a call site
+ *   that forgets it fails HookOptionContracts.
  * @param {any} options.dictRoot
  * @param {string} options.dictType
  * @param {any[]} options.dictActiveNotes
@@ -70,8 +158,7 @@ export function useMusicEngine({
   displayMode,
   selectedRootStringGuitar,
   selectedRootStringBass,
-  selectedVoicingIndexGuitar,
-  selectedVoicingIndexBass,
+  placementByInstrument,
   dictRoot,
   dictType,
   dictActiveNotes,
@@ -236,203 +323,45 @@ export function useMusicEngine({
     return "";
   }, [effectiveChord, effectiveAbsoluteNotes]);
 
-  // --- 3. Fingering Logic (Guitar & Bass) ---
-  
-  const toV2 = (fingering, instrument) => {
-    if (!fingering) return null;
-    const v2Map = {};
-    const rawMap = fingering.fingeringMap;
-    if (!rawMap) return fingering;
-    const maxString = instrument === 'bass' ? 3 : 5;
-    
-    for (let i = 0; i <= maxString; i++) {
-      const stringData = rawMap[i];
-      if (!stringData || stringData.X) {
-        v2Map[i] = { fret: -1, status: 'muted' };
-      } else if (stringData[0] === 'O' || stringData.O) {
-        v2Map[i] = { fret: 0, status: 'open' };
-      } else {
-        const fret = Object.keys(stringData).find(k => !isNaN(Number(k)));
-        v2Map[i] = { 
-          fret: parseInt(fret), 
-          status: 'played',
-          finger: stringData[fret]
-        };
-      }
-    }
-    return { ...fingering, fingeringMap: v2Map };
-  };
+  // --- 3. Placements and Fingering Logic (Guitar & Bass) ---
+  //
+  // INST-B1 — each neck's positions, from core/placements.js: the shapes
+  // fingeringLogic.js offers, ordered from the nut to the body, each with its
+  // fret bounds, the span it sounds and whether it is the default. The Position
+  // arrows, the positions window and (L1b-1) the column heads read these lists
+  // and nothing else. In the Studio the list is the clicked chord's, as before.
+  const guitarTuning = activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD;
+  const bassTuning = activeBrick?.bassStrings || TUNINGS.BASS_STANDARD;
+  const guitarIndex = placementByInstrument?.guitar?.index ?? null;
+  const bassIndex = placementByInstrument?.bass?.index ?? null;
 
-  const guitarFingering = useMemo(() => {
-    let rootVal, chordType;
-    if (appMode === "dictionary" && dictType) {
-      if (dictType?.includes("scale")) {
-        const tuning = activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD;
-        const avail = getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning);
-        if (avail.length === 0) return null;
+  const guitarPlacements = useMemo(() => listPlacements(
+    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString: selectedRootStringGuitar }),
+    { id: "guitar", tuning: guitarTuning, notation }
+  ), [appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, selectedRootStringGuitar, guitarTuning, notation]);
 
-        let pos;
-        if (selectedVoicingIndexGuitar !== null) {
-          // Manual selection: use explicitly chosen position
-          pos = avail.find(p => p.id === selectedVoicingIndexGuitar);
-        }
-        if (!pos) {
-          // Auto-select: map dictOctave (-3..+3) linearly to position index (0..N-1)
-          // avail is sorted low fret → high fret; lower octave = lower position
-          const octaveNorm = Math.max(-3, Math.min(3, Number(dictOctave ?? 0)));
-          const posIdx = Math.round((octaveNorm + 3) / 6 * (avail.length - 1));
-          pos = avail[Math.max(0, Math.min(avail.length - 1, posIdx))];
-        }
-        if (pos?.scaleFrets) return { scaleFrets: pos.scaleFrets, isScaleMode: true, startFret: pos.startFret, endFret: pos.endFret };
-        return null;
-      }
-      if (dictType === "single_note") {
-        if (selectedVoicingIndexGuitar !== null && dictActiveNotes?.length > 0) {
-          const avail = getAvailableSingleNoteFingerings(dictActiveNotes[0].absoluteValue, 'guitar', notation);
-          const found = avail.find(p => p.id === selectedVoicingIndexGuitar);
-          if (found) return toV2(found.fingering, 'guitar');
-        }
-        return null;
-      }
-      if (!dictType || !dictType?.includes("chord")) return null;
-      rootVal = Number(dictRoot);
-      chordType = dictType;
-    } else {
-      if (!effectiveChord) return null;
-      rootVal = effectiveChord.rootNote.value;
-      chordType = resolveNnsToChordType(effectiveChord.nns);
-    }
+  const bassPlacements = useMemo(() => listPlacements(
+    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString: selectedRootStringBass }),
+    { id: "bass", tuning: bassTuning, notation }
+  ), [appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, selectedRootStringBass, bassTuning, notation]);
 
-    if (appMode === "dictionary" && selectedVoicingIndexGuitar !== null) {
-      const avail = getAvailableGuitarFingerings(rootVal, chordType, dictOctave, notation);
-      const found = avail.find(p => String(p.id) === String(selectedVoicingIndexGuitar));
-      if (found) return toV2(found.fingering, 'guitar');
-    }
+  const placementsByInstrument = useMemo(() => ({
+    guitar: guitarPlacements,
+    bass: bassPlacements,
+  }), [guitarPlacements, bassPlacements]);
 
-    const offset = appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0);
-    return toV2(getGuitarFingering(rootVal, chordType, selectedRootStringGuitar, offset), 'guitar');
-  }, [effectiveChord, selectedRootStringGuitar, appMode, dictRoot, dictType, selectedVoicingIndexGuitar, activeBrick.guitarStrings, dictOctave, chordOctaveOffset, notation]);
+  // What each neck draws (fingeringFor, above the hook): the chosen
+  // placement or the default one in the Dictionary, the clicked chord's
+  // default shape in the Studio.
+  const rawGuitarFingering = useMemo(() => fingeringFor({
+    instrument: "guitar", placements: guitarPlacements, index: guitarIndex, rootString: selectedRootStringGuitar,
+    appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset,
+  }), [guitarPlacements, guitarIndex, selectedRootStringGuitar, appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset]);
 
-  const availableGuitarFingerings = useMemo(() => {
-    let rootVal, chordType;
-    if (appMode === "dictionary" && dictType) {
-      rootVal = Number(dictRoot);
-      chordType = dictType;
-      if (dictType?.includes("scale")) {
-        const tuning = activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD;
-        return getAvailableScaleFingerings(dictRoot, dictType, 'guitar', tuning, notation);
-      }
-    } else {
-      if (!effectiveChord) return [];
-      rootVal = effectiveChord.rootNote.value;
-      chordType = resolveNnsToChordType(effectiveChord.nns);
-    }
-
-    if (dictType === "single_note") {
-      if (dictActiveNotes.length > 0) {
-        return getAvailableSingleNoteFingerings(dictActiveNotes[0].absoluteValue, 'guitar', notation);
-      }
-      return [];
-    }
-
-    return getAvailableGuitarFingerings(rootVal, chordType, appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0), notation);
-  }, [effectiveChord, appMode, dictRoot, dictType, activeBrick.guitarStrings, chordOctaveOffset, dictOctave, notation]);
-
-  const bassFingering = useMemo(() => {
-    let rootVal, chordType;
-    if (appMode === "dictionary" && dictType) {
-      if (dictType?.includes("scale")) {
-        const tuning = activeBrick?.bassStrings || TUNINGS.BASS_STANDARD;
-        const avail = getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning);
-        if (avail.length === 0) return null;
-
-        let pos;
-        if (selectedVoicingIndexBass !== null) {
-          pos = avail.find(p => String(p.id) === String(selectedVoicingIndexBass));
-        }
-        if (!pos) {
-          const octaveNorm = Math.max(-3, Math.min(3, Number(dictOctave ?? 0)));
-          const posIdx = Math.round((octaveNorm + 3) / 6 * (avail.length - 1));
-          pos = avail[Math.max(0, Math.min(avail.length - 1, posIdx))];
-        }
-        if (pos?.scaleFrets) return { scaleFrets: pos.scaleFrets, isScaleMode: true, startFret: pos.startFret, endFret: pos.endFret };
-        return null;
-      }
-      if (dictType === "single_note") {
-        if (selectedVoicingIndexBass !== null && dictActiveNotes?.length > 0) {
-          const avail = getAvailableSingleNoteFingerings(dictActiveNotes[0].absoluteValue, 'bass', notation);
-          const found = avail.find(p => p.id === selectedVoicingIndexBass);
-          if (found) return toV2(found.fingering, 'bass');
-        }
-        return null;
-      }
-      if (!dictType || !dictType?.includes("chord")) return null;
-      rootVal = Number(dictRoot);
-      chordType = dictType;
-    } else {
-      if (!effectiveChord) return null;
-      rootVal = effectiveChord.rootNote.value;
-      chordType = resolveNnsToChordType(effectiveChord.nns);
-    }
-
-    if (appMode === "dictionary" && selectedVoicingIndexBass !== null) {
-      const avail = getAvailableBassFingerings(rootVal, chordType, dictOctave, notation);
-      const found = avail.find(p => String(p.id) === String(selectedVoicingIndexBass));
-      if (found) return toV2(found.fingering, 'bass');
-    }
-
-    const offset = appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0);
-    return toV2(getBassFingering(rootVal, chordType, selectedRootStringBass, offset), 'bass');
-  }, [effectiveChord, selectedRootStringBass, appMode, dictRoot, dictType, selectedVoicingIndexBass, activeBrick.bassStrings, dictOctave, chordOctaveOffset, notation]);
-
-  const availableBassFingerings = useMemo(() => {
-    let rootVal, chordType;
-    if (appMode === "dictionary" && dictType) {
-      rootVal = Number(dictRoot);
-      chordType = dictType;
-      if (dictType?.includes("scale")) {
-        const tuning = activeBrick?.bassStrings || TUNINGS.BASS_STANDARD;
-        return getAvailableScaleFingerings(dictRoot, dictType, 'bass', tuning, notation);
-      }
-    } else {
-      if (!effectiveChord) return [];
-      rootVal = effectiveChord.rootNote.value;
-      chordType = resolveNnsToChordType(effectiveChord.nns);
-    }
-    if (dictType === "single_note") {
-      if (dictActiveNotes.length > 0) {
-        return getAvailableSingleNoteFingerings(dictActiveNotes[0].absoluteValue, 'bass', notation);
-      }
-      return [];
-    }
-    return getAvailableBassFingerings(rootVal, chordType, appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0), notation);
-  }, [effectiveChord, appMode, dictRoot, dictType, activeBrick.bassStrings, chordOctaveOffset, dictOctave, notation]);
-
-  // isOutOfRange: covers both chords AND scales (Option A: warning only, audio is not blocked)
-  const isGuitarOutOfRange = useMemo(() => {
-    if (appMode !== "dictionary") return false;
-    if (dictType?.includes("chord")) {
-      return !!(!guitarFingering || guitarFingering.isOutOfRange);
-    }
-    if (dictType?.includes("scale")) {
-      // Check if the root note itself is out of guitar range at the selected octave
-      const rootMidi = computeAbsoluteNote(Number(dictRoot ?? 0), dictOctave ?? 0);
-      return !isNoteInRange(rootMidi, 'guitar');
-    }
-    return false;
-  }, [appMode, dictType, guitarFingering, dictRoot, dictOctave]);
-
-  const isBassOutOfRange = useMemo(() => {
-    if (appMode !== "dictionary") return false;
-    if (dictType?.includes("chord")) {
-      return !!(!bassFingering || bassFingering.isOutOfRange);
-    }
-    if (dictType?.includes("scale")) {
-      const rootMidi = computeAbsoluteNote(Number(dictRoot ?? 0), dictOctave ?? 0);
-      return !isNoteInRange(rootMidi, 'bass');
-    }
-    return false;
-  }, [appMode, dictType, bassFingering, dictRoot, dictOctave]);
+  const rawBassFingering = useMemo(() => fingeringFor({
+    instrument: "bass", placements: bassPlacements, index: bassIndex, rootString: selectedRootStringBass,
+    appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset,
+  }), [bassPlacements, bassIndex, selectedRootStringBass, appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset]);
 
   // A `suggestedInversionIndex` memo used to sit here, computing a voice-leading
   // suggestion from a `prevAbsoluteNotes` option. It was stillborn: AppDesktop
@@ -465,17 +394,57 @@ export function useMusicEngine({
     }
     const realizeFor = (instrument) => realizeDictionarySelection({
       instrument,
-      fingering: instrument === "guitar" ? guitarFingering
-        : instrument === "bass" ? bassFingering
+      fingering: instrument === "guitar" ? rawGuitarFingering
+        : instrument === "bass" ? rawBassFingering
         : null,
-      tuning: instrument === "bass"
-        ? (activeBrick?.bassStrings || TUNINGS.BASS_STANDARD)
-        : (activeBrick?.guitarStrings || TUNINGS.GUITAR_STANDARD),
+      tuning: instrument === "bass" ? bassTuning : guitarTuning,
       rootPitchClass: Number(dictRoot) % 12,
       theoreticalNotes: musicContext.activeNotes,
     });
     return { piano: realizeFor("piano"), guitar: realizeFor("guitar"), bass: realizeFor("bass") };
-  }, [appMode, guitarFingering, bassFingering, activeBrick, dictRoot, musicContext.activeNotes]);
+  }, [appMode, rawGuitarFingering, rawBassFingering, guitarTuning, bassTuning, dictRoot, musicContext.activeNotes]);
+
+  // --- 4bis. Out-of-range warning (INST-B1) ---
+  //
+  // Computed on what the neck plays: the realization (open string of the
+  // style's tuning + fret, realization.js) against the pitches that tuning
+  // reaches (core/placements.js tessitura). It used to add the common octave to
+  // the frets (`case + octave x 12`, fingeringLogic.js analyzeVoicing) — for a
+  // scale, to test the root at that octave — although the octave never moves
+  // a shape: Do majeur showed the same A shape at -1 and +1 and warned at -1
+  // only. Chords and scales, as before; a single note never warned and still
+  // does not. The Studio is untouched (its chord octave, VMU-115 / A3).
+  const isGuitarOutOfRange = useMemo(() => {
+    if (appMode !== "dictionary") return false;
+    const family = familyOf(dictType);
+    if (family !== "chord" && family !== "scale") return false;
+    return isOutsideTessitura(realizations.guitar.notes, tessitura("guitar", guitarTuning));
+  }, [appMode, dictType, realizations, guitarTuning]);
+
+  const isBassOutOfRange = useMemo(() => {
+    if (appMode !== "dictionary") return false;
+    const family = familyOf(dictType);
+    if (family !== "chord" && family !== "scale") return false;
+    return isOutsideTessitura(realizations.bass.notes, tessitura("bass", bassTuning));
+  }, [appMode, dictType, realizations, bassTuning]);
+
+  // The fingering each neck draws carries the same warning: Fretboard.jsx and
+  // DictPositionPanel.jsx read `fingering.isOutOfRange`, which fingeringLogic.js
+  // still computes the old way. In the Dictionary, for a chord or a scale, that
+  // flag is replaced by the one above, so every reader agrees with it.
+  const guitarFingering = useMemo(() => {
+    if (appMode !== "dictionary" || !rawGuitarFingering) return rawGuitarFingering;
+    const family = familyOf(dictType);
+    if (family !== "chord" && family !== "scale") return rawGuitarFingering;
+    return { ...rawGuitarFingering, isOutOfRange: isGuitarOutOfRange };
+  }, [appMode, dictType, rawGuitarFingering, isGuitarOutOfRange]);
+
+  const bassFingering = useMemo(() => {
+    if (appMode !== "dictionary" || !rawBassFingering) return rawBassFingering;
+    const family = familyOf(dictType);
+    if (family !== "chord" && family !== "scale") return rawBassFingering;
+    return { ...rawBassFingering, isOutOfRange: isBassOutOfRange };
+  }, [appMode, dictType, rawBassFingering, isBassOutOfRange]);
 
   const realization = realizations[playbackInstrument] ?? realizations.piano;
 
@@ -494,8 +463,7 @@ export function useMusicEngine({
     inversionText,
     guitarFingering,
     bassFingering,
-    availableGuitarFingerings,
-    availableBassFingerings,
+    placementsByInstrument,
     isGuitarOutOfRange,
     isBassOutOfRange
   };

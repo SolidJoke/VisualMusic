@@ -68,16 +68,24 @@ describe('useMusicEngine', () => {
     expect(result.current.guitarFingering.isOutOfRange).toBe(true);
   });
 
-  it('detects out of range specifically for bass in dictionary mode', () => {
-    const bassOutOfRangeParams = {
+  // INST-B1 — this test used to expect `true`: the warning added the octave
+  // to the frets (`case + octave x 12`, fingeringLogic.js analyzeVoicing), so
+  // Do majeur at +2 looked two octaves too high. But the octave does not move
+  // a bass shape: what is drawn and played at +2 is the same root-fifth-octave
+  // on the A string, frets 3-5, C2 G2 C3 (36 43 48), well inside the bass's
+  // E1..F4 (28..65). The warning now reads that shape.
+  it('Dictionary, bass, Do majeur at octave +2: the shape played is C2 G2 C3, inside the range — no warning', () => {
+    const params = {
       ...defaultParams,
       appMode: 'dictionary',
       dictRoot: '0', // C
       dictType: 'chord_major',
-      dictOctave: 2 // C4/C5 area
+      dictOctave: 2
     };
-    const { result } = renderHook(() => useMusicEngine(bassOutOfRangeParams));
-    expect(result.current.isBassOutOfRange).toBe(true);
+    const { result } = renderHook(() => useMusicEngine(params));
+    expect(result.current.realizationsByInstrument.bass.map((n) => n.absoluteValue)).toEqual([36, 43, 48]);
+    expect(result.current.isBassOutOfRange).toBe(false);
+    expect(result.current.bassFingering.isOutOfRange).toBe(false);
   });
 
   // VMU-117 — the "Vue instrument: Accords/Basse/Les deux" instrument-view
