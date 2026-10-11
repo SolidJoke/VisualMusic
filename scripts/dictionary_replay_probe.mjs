@@ -119,7 +119,7 @@ const UNDATED_SPREAD_MS = 20; // a chord / a note: each note reads Tone.now() in
 const ENERGY_UP = 0.25; // a sanity bound: the older-play readings above decide; this catches a play that is plainly louder
 const ENERGY_DOWN = 0.3; // the master compressor, still down from a louder moment, takes some back
 const SHAPE_FACTOR = 1.5;
-const SHAPE_MARGIN = 0.15;
+const SHAPE_MARGIN = 0.25;
 const LEVEL_TOLERANCE = 0.2;
 
 // ─── dev server (same pattern as scripts/metronome_probe.mjs) ───────────────
@@ -489,7 +489,11 @@ function readRun(run, wholeSeconds, naturalStops = null) {
   // cannot tell a chord that rings on from one that was cut; this can.
   const naturalOf = new Map();
   for (const n of newest) {
-    if (n.kind === "buffer" && n.stops.length) naturalOf.set(n.sig, n.stops[n.stops.length - 1] - n.when);
+    // Two natural dates, both relative to the start: the native stop() argument (a date in the future when
+    // the timer fires) and the disconnect() call (made when Tone cleans the note up, earlier than that date).
+    if (n.kind === "buffer" && n.stops.length && n.severedAtCtx !== null) {
+      naturalOf.set(n.sig, { stop: n.stops[n.stops.length - 1] - n.when, sever: n.severedAtCtx - n.when });
+    }
   }
   let soundingAtCut = 0;
   let stoppedEarly = 0;
@@ -497,13 +501,14 @@ function readRun(run, wholeSeconds, naturalStops = null) {
     for (const n of older) {
       const natural = naturalStops.get(n.sig);
       if (n.kind !== "buffer" || n.when >= cutCtx || natural === undefined) continue;
-      if (n.when + natural <= cutCtx + 0.3) continue; // over, or about to be: nothing to bring forward
+      if (n.when + natural.stop <= cutCtx + 0.6) continue; // over, or ends within the 0.4 s Tone takes to stop one: no difference to see
       soundingAtCut++;
       const lastStop = n.stops.length ? n.stops[n.stops.length - 1] : Infinity;
       // Cut short = its stop() came early, or it was taken out of the graph early (a note the engine
-      // found not yet started at its own cut, a few ms before this one is seen to have started).
+      // found not yet started at its own cut, a few ms before this one is seen to have started):
+      // each against the date the same sample has when nobody interferes.
       const severed = n.severedAtCtx !== null ? n.severedAtCtx : Infinity;
-      if (Math.min(lastStop, severed) <= n.when + natural - 0.15) stoppedEarly++;
+      if (lastStop <= n.when + natural.stop - 0.15 || severed <= n.when + natural.sever - 0.15) stoppedEarly++;
     }
   }
   // Events (pitch, amplitude, filter...) the older plays scheduled for the cut or later and nothing took back.
