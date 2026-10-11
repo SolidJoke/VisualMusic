@@ -138,7 +138,7 @@ async function chooseStyle(page, brick) {
 async function openStudio(browser, notation, pageErrors, viewport = { width: 1920, height: 1080 }) {
   const page = await browser.newPage({ viewport });
   page.on("pageerror", (e) => pageErrors.push(String(e)));
-  await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
   await page.locator(".sidebar-cta-btn, .bottom-nav-btn").first().waitFor({ state: "attached", timeout: 15_000 });
 
   if (notation) {

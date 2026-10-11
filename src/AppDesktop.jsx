@@ -35,13 +35,13 @@ import {
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import AppHeader, { HeaderActions } from './components/Layout/AppHeader';
+import { IS_PROTOTYPE_A } from "./layout";
 
-// S1 prototype (VMU-135): layout A′ with vertical instruments, reached only
-// through ?prototype=a and linked nowhere. Lazy, so the normal app never
-// downloads it; AppRouter's Suspense covers the load.
+// S1 prototype (VMU-135): layout A′ with vertical instruments. Since VMU-188 it
+// is the page on a desktop; src/layout.js decides which page is shown (the one
+// owner of that choice). Lazy, so the classic app never downloads it;
+// AppRouter's Suspense covers the load.
 const PrototypeA = React.lazy(() => import("./prototype/PrototypeA"));
-const IS_PROTOTYPE_A =
-  typeof window !== "undefined" && new URLSearchParams(window.location.search).get("prototype") === "a";
 
 function AppDesktop() {
   const { lang, txt, notation, state, dispatch } = useAppContext();

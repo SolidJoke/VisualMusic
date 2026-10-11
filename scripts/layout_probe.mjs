@@ -183,7 +183,7 @@ async function runState(browser, viewport, state) {
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
   try {
-    await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
     // App boot (audio sampler preload kick-off, first render) — wait for the
     // sidebar CTA buttons rather than a fixed sleep.
     await page.locator(".sidebar-cta-btn, .bottom-nav-btn").first().waitFor({ state: "visible", timeout: 15_000 });

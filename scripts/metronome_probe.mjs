@@ -133,7 +133,7 @@ function installProbe() {
 // ─── page actions ──────────────────────────────────────────────────────
 
 async function waitForAppReady(page) {
-  await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
   await page.locator('[data-testid="btn-mode-studio"], .sidebar-cta-btn, .bottom-nav-btn').first().waitFor({
     state: "visible",
     timeout: 15_000,

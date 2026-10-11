@@ -112,7 +112,7 @@ function installProbe() {
 // ─── page actions ───────────────────────────────────────────────────────
 
 async function waitForAppReady(page) {
-  await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
   await page.locator('[data-testid="btn-mode-studio"]').first().waitFor({ state: "attached", timeout: 15_000 });
   await page.locator('[data-testid="btn-mode-studio"]').first().evaluate((el) => el.click());
   await page.locator(".bpm-badge").first().waitFor({ state: "attached", timeout: 15_000 });

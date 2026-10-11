@@ -214,7 +214,7 @@ async function selectInPanel(page, sel) {
 
 /** Normal page: Dictionary mode, the selection through the "Studio & Harmonie" window. */
 async function openNormal(page, sel) {
-  await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
   await page.locator(".sidebar-cta-btn").first().waitFor({ state: "visible", timeout: 20_000 });
   await page.locator('[data-testid="btn-mode-dictionary"]').click();
   await page.locator(".instrument-bar").waitFor({ state: "visible", timeout: 10_000 });
