@@ -4,6 +4,7 @@ import { CHORDS, NOTES, getChordShortName, getAbsoluteChordSuggestions } from '.
 import { useAppContext } from '../../context/AppContext';
 import expertData from '../../core/expert_theory_data.json';
 import { SCALE_LABEL_MAP, CHORD_LABEL_MAP } from '../../core/constants';
+import { chordOptions } from '../../core/selectionOptions';
 
 export default function DictChordPanel({
   dictType,
@@ -56,13 +57,7 @@ export default function DictChordPanel({
       <CustomSelect
         value={dictType}
         onChange={(val) => setDictType(val)}
-        options={groupedChords.map((group) => ({
-          label: txt[group.labelKey] || group.category,
-          items: group.items.map((chordKey) => ({
-            value: chordKey,
-            label: txt[CHORD_LABEL_MAP[chordKey]] || CHORDS[chordKey]?.key || chordKey
-          }))
-        }))}
+        options={chordOptions(groupedChords, txt)}
       />
 
       {/* Emotion/description card for chords */}

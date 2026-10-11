@@ -565,6 +565,11 @@ function AppDesktop() {
         masterVolume={masterVolume}
         setMasterVolume={setMasterVolume}
         txt={txt}
+        // VMU-185: the direct selectors read the language and set the Studio's
+        // style through the same state and setter as the drawer's StudioPanel.
+        lang={lang}
+        currentBrickIndex={currentBrickIndex}
+        setCurrentBrickIndex={setCurrentBrickIndex}
         notation={notation}
         setNotation={setNotation}
         appMode={appMode}

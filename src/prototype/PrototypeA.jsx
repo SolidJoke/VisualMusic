@@ -15,6 +15,7 @@ import { translations } from "../i18n/translations";
 import { useBpmEditor } from "../hooks/useBpmEditor";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
 import InstrumentHead from "./InstrumentHead";
+import SelectionRow from "./SelectionRow";
 
 /**
  * S1 prototype — layout A′ at 3840px (VMU-135 / 035, VMU-155).
@@ -84,6 +85,14 @@ import InstrumentHead from "./InstrumentHead";
  * (showFingering); in the Studio the shape shown, read-only (the Studio does
  * not read the index). The captions ("aigus ↑", the neck's) are the columns'
  * tooltip and accessible name.
+ *
+ * VMU-185 — the direct selectors (SelectionRow.jsx): a second row of the
+ * transport block, under the tempo / metronome / volume row, holds the Studio's
+ * style menu, or the Dictionary's family, root note and chord / scale type.
+ * Gabriel (2026-10-10): the Assistant drawer hides the necks, and he changes
+ * style, note or structure "sans quitter le clavier ou les manches". The lists
+ * and the family rule are src/core/selectionOptions.js's, shared with the
+ * drawer's panels; the state and setters are the drawer's.
  */
 
 /** The parity registry's name for each label-mode button (S1_LABEL_MODES ids). */
@@ -162,6 +171,11 @@ export default function PrototypeA({
   onOpenAudio,
   masterVolume = -12,
   setMasterVolume,
+  // VMU-185: the direct selectors (SelectionRow.jsx) - the page's language and
+  // the Studio's style, on the same state and setters the drawer's panels use.
+  lang = "fr",
+  currentBrickIndex,
+  setCurrentBrickIndex,
 }) {
   // Every label of the page (VMU-182). The French table stands in when the
   // caller hands no translations (the unit tests render with txt={}).
@@ -505,6 +519,23 @@ export default function PrototypeA({
                 <button type="button" className="proto-a__btn" data-fn="son.ouvrir" onClick={onOpenAudio}>
                   {T.instrumentsAudio}
                 </button>
+                {/* VMU-185: a second row of this same block - the Studio's style,
+                    the Dictionary's family, root note and type - so that they
+                    change without opening the Assistant drawer (which hides the
+                    necks). The top row above is untouched. */}
+                <SelectionRow
+                  T={T}
+                  txt={TX}
+                  lang={lang}
+                  notation={notation}
+                  isDictionary={isDictionary}
+                  currentBrickIndex={currentBrickIndex}
+                  setCurrentBrickIndex={setCurrentBrickIndex}
+                  dictRoot={dictRoot}
+                  setDictRoot={setDictRoot}
+                  dictType={dictType}
+                  setDictType={setDictType}
+                />
               </section>
 
               {/* The audio visualizer, a 60px band under the transport: the

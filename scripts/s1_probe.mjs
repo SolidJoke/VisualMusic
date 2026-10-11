@@ -93,6 +93,42 @@
  * readable count and the contrast, again with S1-22 alone red:
  *   S1_PROBE_INJECT_CSS='.piano-vertical .white-key .note-label--unplayed{color:#8c8c8c!important}' npm run s1:probe -- --only=cmaj,gsm7
  *
+ * VMU-185 (the direct selectors: the Studio's style, the Dictionary's family,
+ * root note and chord / scale type, a second row of the transport block) adds
+ * S1-23, decisive, on Gabriel's page at 3840x2045 and 3840x2160, in FR / EN / PT
+ * / ZH, in the Studio and the Dictionary (a single note, chords, scales), each
+ * with the Assistant drawer closed and open (runSelection): the row is a direct
+ * child of [data-s1="transport"], the top row's controls still in the block
+ * above it; each state holds exactly its controls (composer.style / dico.famille
+ * + dico.fondamentale + dico.type-accord or dico.type-gamme, none of the others),
+ * each once, visible, >= 48px high, text >= 18px, on top at its centre; no name
+ * cut (the longest name of each menu, measured in the field's font, fits the
+ * room the field gives it); the row and the block keep ONE height in every state
+ * (+-1px; the block <= 190px, it was 98); the page does not scroll and the
+ * keyboard's bottom stays >= 40px above the window's; each menu's open list is
+ * entirely in the window with its first option on top. Then what the controls
+ * do (FR), against theory.js read through the module graph (CHORDS, SCALES,
+ * generateChordsFromNNS, bricks.json) and literal anchors: each menu holds the
+ * data's own entries (12 notes, every chord, every scale, every style); root Do
+ * -> Re moves data-s1-notes by +2 (60 64 67 -> 62 66 69); Majeur -> Mineur
+ * lowers the third (60 64 67 -> 60 63 67); Gammes + a scale give the scale's
+ * pitch classes and change data-s1-positions; a single note has no type menu;
+ * in the Studio a style changes the name shown, the tempo it imposes and the
+ * chord names of the sequencer's DAW helper; the row and the drawer show one
+ * state. Failures are tagged [presence] [foreground] [size] [fit] [height]
+ * [scroll] [lists] [function] so a positive control can be shown to move one.
+ *   npm run s1:probe -- --selection-only   # S1-23 alone
+ * Positive controls (VMU-185 report): hiding the row turns [presence] red (and
+ * S1-20, whose data-fn go missing)
+ *   S1_PROBE_INJECT_CSS='[data-s1="selection"]{display:none!important}' npm run s1:probe -- --access-only
+ * a transparent veil over it turns [foreground] red alone
+ *   S1_PROBE_INJECT_CSS='[data-s1="selection"]{position:relative!important}[data-s1="selection"]::after{content:"";position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:auto}' npm run s1:probe -- --selection-only
+ * a 160px item in it turns [height] red alone (the page does not scroll)
+ *   S1_PROBE_INJECT_CSS='[data-s1="selection"]::after{content:"";display:block;width:100px;height:160px}' npm run s1:probe -- --selection-only
+ * and two mutations of src/prototype/SelectionRow.jsx (the probe reads classes
+ * React computes, not CSS): wiring the root note's onChange to setDictType, or
+ * giving the chord type menu the scale list, turn [function] red.
+ *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
@@ -148,7 +184,9 @@ const ACCESS_VIEWPORTS = VIEWPORT_ARG
       { w: 3840, h: 2045, label: "3840x2045" },
       { w: 3840, h: 2160, label: "3840x2160" },
     ];
-const ACCESS_ONLY = flag("access-only");
+// --selection-only: S1-23 alone (VMU-185), without the 60 states, S1-20 and S1-21.
+const SELECTION_ONLY = flag("selection-only");
+const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY;
 
 // Thresholds, spec §2 table. `decides` = counts for the A′ / B decision.
 const CRITERIA = [
@@ -1372,7 +1410,8 @@ async function runAccess(browser, viewport) {
     await page.waitForTimeout(300);
 
     // 1. Every function of the list, where Gabriel's page shows it.
-    located = await page.evaluate(locateFns, A_PRIME_ACCESS.filter((f) => !f.needs).map((f) => f.fn));
+    // (VMU-185: the Studio's style menu is "needs: studio" - there on arrival.)
+    located = await page.evaluate(locateFns, A_PRIME_ACCESS.filter((f) => !f.needs || f.needs === "studio").map((f) => f.fn));
     for (const row of located) fails.push(...locatedFails(row));
     layouts.studio = await page.evaluate(accessLayout);
     fails.push(...layoutFails("Studio", layouts.studio));
@@ -1495,6 +1534,14 @@ async function runAccess(browser, viewport) {
     const dictLocated = await page.evaluate(locateFns, A_PRIME_ACCESS.filter((f) => f.needs === "dictionary").map((f) => f.fn));
     for (const row of dictLocated) fails.push(...locatedFails(row).map((f) => `Dictionary: ${f}`));
     located = [...located, ...dictLocated];
+    // VMU-185: the type menus exist only for their family: Chords, then Scales.
+    for (const [index, needs] of [[1, "dictionary:chord"], [2, "dictionary:scale"]]) {
+      await page.locator(`${sel("dico.famille")} button`).nth(index).click({ timeout: T });
+      await page.waitForTimeout(300);
+      const typeLocated = await page.evaluate(locateFns, A_PRIME_ACCESS.filter((f) => f.needs === needs).map((f) => f.fn));
+      for (const row of typeLocated) fails.push(...locatedFails(row).map((f) => `Dictionary (${needs}): ${f}`));
+      located = [...located, ...typeLocated];
+    }
   } catch (err) {
     fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
   } finally {
@@ -1935,6 +1982,551 @@ async function runHeads(browser, viewport) {
   return { fails, notes, layouts };
 }
 
+// ─── S1-23 (VMU-185): the direct selectors ──────────────────────────────────
+//
+// A second row of the transport block holds the Studio's style menu, or the
+// Dictionary's family, root note and chord / scale type (src/prototype/
+// SelectionRow.jsx). S1-23 measures it on Gabriel's page in FR / EN / PT / ZH,
+// in the Studio and in the Dictionary (a single note, chords, scales), then
+// drives it and checks what it does to the keyboard, the necks and the
+// sequencer against an ORACLE computed from src/core/theory.js (its tables
+// CHORDS / SCALES and generateChordsFromNNS, read through the dev server's
+// module graph) and literal anchors (Do majeur = 60 64 67), never from what the
+// row itself shows.
+
+// Thresholds (brief VMU-185): 48px targets, labels >= 18px (the centre's), the
+// block no taller than 190px (98 before), the row and the block the same height
+// in every state (+-1px), the keyboard's bottom >= 40px above the window's.
+const S1_23 = { target: 48, label: 18, maxBlock: 190, heightTolerance: 1, minMargin: 40 };
+const SELECTION_FNS = ["composer.style", "dico.famille", "dico.fondamentale", "dico.type-accord", "dico.type-gamme"];
+// The top row's controls: still in the block, above the new row, untouched.
+const SELECTION_TOP_FNS = [
+  "jouer.lecture",
+  "jouer.tempo",
+  "jouer.tempo-moins",
+  "jouer.tempo-saisie",
+  "jouer.tempo-plus",
+  "jouer.metronome",
+  "son.volume-general",
+  "composer.math-ouvrir",
+  "son.ouvrir",
+];
+// Exactly what each state holds: the names listed, none of the others.
+const SELECTION_EXPECTED = {
+  studio: ["composer.style"],
+  note: ["dico.famille", "dico.fondamentale"],
+  chord: ["dico.famille", "dico.fondamentale", "dico.type-accord"],
+  scale: ["dico.famille", "dico.fondamentale", "dico.type-gamme"],
+};
+const SELECTION_STATES = Object.keys(SELECTION_EXPECTED);
+
+/** In page: the row, its controls and the block, raw (S1-23). */
+function selectionMeasure({ fns, topFns }) {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const r = (el) => el.getBoundingClientRect();
+  const round = (n) => Math.round(n * 10) / 10;
+  const transport = document.querySelector('[data-s1="transport"]');
+  const rows = [...document.querySelectorAll('[data-s1="selection"]')];
+  const row = rows[0] || null;
+  const visible = (el) => {
+    const b = r(el);
+    const cs = getComputedStyle(el);
+    return b.width > 0 && b.height > 0 && cs.visibility !== "hidden" && cs.display !== "none" && Number(cs.opacity) > 0;
+  };
+  const onTop = (el) => {
+    const b = r(el);
+    const x = b.left + b.width / 2;
+    const y = b.top + b.height / 2;
+    if (x < 0 || y < 0 || x >= vw || y >= vh) return false;
+    const hit = document.elementFromPoint(x, y);
+    return Boolean(hit && (hit === el || el.contains(hit)));
+  };
+  const canvas = document.createElement("canvas").getContext("2d");
+  const found = {};
+  for (const fn of fns) {
+    const els = [...document.querySelectorAll(`[data-fn="${fn}"]`)];
+    const el = els[0];
+    if (!el) {
+      found[fn] = { count: 0 };
+      continue;
+    }
+    const isSelect = el.classList.contains("custom-select-container");
+    const targets = isSelect ? [el.querySelector(".custom-select-header")] : [...el.querySelectorAll("button")];
+    const item = {
+      count: els.length,
+      visible: visible(el),
+      inRow: Boolean(row && row.contains(el)),
+      rect: { x: Math.round(r(el).left), y: Math.round(r(el).top), w: round(r(el).width), h: round(r(el).height) },
+      targets: targets.map((t) => ({
+        w: round(r(t).width),
+        h: round(r(t).height),
+        onTop: onTop(t),
+        font: parseFloat(getComputedStyle(isSelect ? t.querySelector(".current-value") : t).fontSize),
+      })),
+    };
+    if (isSelect) {
+      // The longest name of the list against the room the closed field gives
+      // it (canvas text width in the field's own font): no ellipsis, whichever
+      // entry is chosen.
+      const cv = el.querySelector(".current-value");
+      const cs = getComputedStyle(cv);
+      canvas.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const labels = [...el.querySelectorAll("select option")].map((o) => o.textContent);
+      const widest = labels.reduce((best, t) => {
+        const w = canvas.measureText(t).width;
+        return w > best.w ? { w, t } : best;
+      }, { w: 0, t: "" });
+      // The room the field gives a name: its content box minus the arrow and
+      // the arrow's margin (the name's own span is as wide as the name shown,
+      // so its width says nothing about the room).
+      const header = targets[0];
+      const hcs = getComputedStyle(header);
+      const arrow = header.querySelector(".arrow");
+      const room = header.clientWidth - parseFloat(hcs.paddingLeft) - parseFloat(hcs.paddingRight) - arrow.offsetWidth - parseFloat(getComputedStyle(arrow).marginLeft);
+      item.fit = { box: round(room), widest: round(widest.w), label: widest.t, shownCut: cv.scrollWidth > cv.clientWidth + 0.5, options: labels.length };
+    } else {
+      item.fit = { buttonsCut: targets.some((b) => b.scrollWidth > b.clientWidth + 0.5) };
+    }
+    found[fn] = item;
+  }
+  const tops = topFns.map((fn) => {
+    const els = [...document.querySelectorAll(`[data-fn="${fn}"]`)];
+    const el = els[0];
+    return {
+      fn,
+      count: els.length,
+      inTransport: Boolean(el && transport && transport.contains(el)),
+      outsideRow: Boolean(el && !(row && row.contains(el))),
+      above: Boolean(el && row && (r(row).height === 0 || r(el).bottom <= r(row).top + 0.5)),
+    };
+  });
+  const fields = row ? [...row.querySelectorAll(".proto-a__field")].map((f) => r(f)).sort((a, b) => a.left - b.left) : [];
+  let overlaps = 0;
+  for (let i = 1; i < fields.length; i++) if (fields[i].left < fields[i - 1].right - 0.5) overlaps++;
+  const tr = transport ? r(transport) : null;
+  const trCs = transport ? getComputedStyle(transport) : null;
+  const innerRight = tr ? tr.right - parseFloat(trCs.paddingRight) - parseFloat(trCs.borderRightWidth) : null;
+  const kb = document.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
+  const de = document.documentElement;
+  return {
+    rowCount: rows.length,
+    rowIsChild: Boolean(row && transport && row.parentElement === transport),
+    row: row ? { x: Math.round(r(row).left), y: Math.round(r(row).top), w: round(r(row).width), h: round(r(row).height) } : null,
+    transportHeight: tr ? round(tr.height) : null,
+    transportTop: tr ? round(tr.top) : null,
+    found,
+    tops,
+    labels: row ? [...row.querySelectorAll(".proto-a__muted")].map((e) => ({ text: e.textContent.trim(), font: parseFloat(getComputedStyle(e).fontSize) })) : [],
+    overlaps,
+    lines: new Set(fields.map((f) => Math.round(f.top / 4))).size,
+    rowRight: fields.length ? round(Math.max(...fields.map((f) => f.right))) : null,
+    innerRight: innerRight === null ? null : round(innerRight),
+    keyboardBottom: kb ? round(r(kb).bottom) : null,
+    scrollHeight: de.scrollHeight,
+    innerHeight: vh,
+    scrollWidth: de.scrollWidth,
+    innerWidth: vw,
+  };
+}
+
+/** S1-23 verdict on one selectionMeasure(): the list of what failed. */
+function selectionFails(where, m, state) {
+  // Each failure carries the sub-criterion it belongs to ([presence],
+  // [foreground], [size], [fit], [height], [scroll], [lists], [function]): a
+  // positive control must turn exactly one of them red.
+  const out = [];
+  if (m.rowCount !== 1) out.push(`[presence] ${where}: ${m.rowCount} selection row(s), 1 expected`);
+  if (!m.rowIsChild) out.push(`[presence] ${where}: the row is not a direct child of the transport block`);
+  const want = SELECTION_EXPECTED[state];
+  for (const fn of SELECTION_FNS) {
+    const f = m.found[fn];
+    if (!want.includes(fn)) {
+      if (f.count !== 0) out.push(`[presence] ${where}: ${fn} present (${f.count}), none expected in this state`);
+      continue;
+    }
+    if (f.count !== 1) {
+      out.push(`[presence] ${where}: ${fn}: ${f.count} element(s), 1 expected`);
+      continue;
+    }
+    if (!f.visible) {
+      out.push(`[presence] ${where}: ${fn}: not visible`);
+      continue;
+    }
+    if (!f.inRow) out.push(`[presence] ${where}: ${fn}: not in the row`);
+    for (const t of f.targets) {
+      if (!(t.h >= S1_23.target - 0.5)) out.push(`[size] ${where}: ${fn}: a target ${t.w}x${t.h}px, ${S1_23.target}px high expected`);
+      if (!t.onTop) out.push(`[foreground] ${where}: ${fn}: a target is covered at its centre`);
+      if (!(t.font >= S1_23.label)) out.push(`[size] ${where}: ${fn}: text ${t.font}px, ${S1_23.label}px expected`);
+    }
+    if (f.fit.box !== undefined && f.fit.widest > f.fit.box) out.push(`[fit] ${where}: ${fn}: the longest name "${f.fit.label}" needs ${f.fit.widest}px, the field gives it ${f.fit.box}px`);
+    if (f.fit.shownCut) out.push(`[fit] ${where}: ${fn}: the shown name is cut`);
+    if (f.fit.buttonsCut) out.push(`[fit] ${where}: ${fn}: a button's text is cut`);
+  }
+  for (const t of m.tops) {
+    if (t.count !== 1) out.push(`[presence] ${where}: top row ${t.fn}: ${t.count} element(s), 1 expected`);
+    else if (!t.inTransport || !t.outsideRow || !t.above) out.push(`[presence] ${where}: top row ${t.fn} moved (in the block ${t.inTransport}, outside the row ${t.outsideRow}, above it ${t.above})`);
+  }
+  for (const l of m.labels) if (!(l.font >= S1_23.label)) out.push(`[size] ${where}: label "${l.text}" ${l.font}px, ${S1_23.label}px expected`);
+  if (m.overlaps) out.push(`[fit] ${where}: ${m.overlaps} field(s) overlapping the previous one`);
+  if (m.lines !== 1) out.push(`[fit] ${where}: the row runs over ${m.lines} lines, 1 expected`);
+  if (m.rowRight !== null && m.rowRight > m.innerRight + 0.5) out.push(`[fit] ${where}: the row ends at x=${m.rowRight}, past the block's inner edge (${m.innerRight})`);
+  if (m.row && m.row.h > S1_23.target + 2) out.push(`[height] ${where}: the row is ${m.row.h}px high, one ${S1_23.target}px line expected`);
+  if (m.transportHeight > S1_23.maxBlock) out.push(`[height] ${where}: the block is ${m.transportHeight}px high, ${S1_23.maxBlock} at most`);
+  if (m.scrollHeight > m.innerHeight || m.scrollWidth > m.innerWidth) out.push(`[scroll] ${where}: the page scrolls (${m.scrollWidth}x${m.scrollHeight} in ${m.innerWidth}x${m.innerHeight})`);
+  const margin = m.innerHeight - m.keyboardBottom;
+  if (!(margin >= S1_23.minMargin)) out.push(`[scroll] ${where}: keyboard bottom y=${m.keyboardBottom}, ${round1(margin)}px above the window's bottom, ${S1_23.minMargin} expected`);
+  return out;
+}
+
+/** The sub-criterion a failed click belongs to: Playwright says why it could not click. */
+function clickFailureTag(err) {
+  const text = String(err && err.message ? err.message : err);
+  if (/intercepts pointer events/.test(text)) return "foreground";
+  if (/not visible|waiting for element to be visible|element is not visible/.test(text)) return "presence";
+  return "function";
+}
+
+/** In page: the open list of a CustomSelect, raw. */
+function openListMeasure() {
+  const dd = document.querySelector('[data-testid="custom-select-dropdown"]');
+  if (!dd) return null;
+  const b = dd.getBoundingClientRect();
+  const items = [...dd.querySelectorAll(".select-item")];
+  const first = items[0];
+  const fb = first ? first.getBoundingClientRect() : null;
+  const hit = fb ? document.elementFromPoint(fb.left + fb.width / 2, fb.top + fb.height / 2) : null;
+  const de = document.documentElement;
+  return {
+    rect: { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height) },
+    inWindow: b.left >= -0.5 && b.top >= -0.5 && b.right <= window.innerWidth + 0.5 && b.bottom <= window.innerHeight + 0.5,
+    firstOnTop: Boolean(hit && dd.contains(hit)),
+    firstLabel: first ? first.textContent.trim() : null,
+    items: items.length,
+    direction: dd.getAttribute("data-open-direction"),
+    scrollHeight: de.scrollHeight,
+    innerHeight: window.innerHeight,
+  };
+}
+
+/**
+ * S1-23 on Gabriel's page (no bench): the row in FR / EN / PT / ZH, Studio and
+ * Dictionary (a note, chords, scales), its open lists with the drawer closed
+ * and open; then what it does (FR), against the oracle and literal anchors.
+ */
+async function runSelection(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const notes = [];
+  const layouts = {};
+  const lists = [];
+  const T = 4000;
+  const sel = (id) => `[data-fn="${id}"]`;
+  const args = { fns: SELECTION_FNS, topFns: SELECTION_TOP_FNS };
+  const open = async (query) => {
+    await page.goto(`${ORIGIN}/?prototype=a${query}`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(300);
+  };
+  // Reaching a state for the MEASURES goes through the DOM (el.click()), not the
+  // pointer: a covered or hidden control must still be put in its state to be
+  // measured, and then fails its own sub-criterion (foreground, presence)
+  // instead of aborting the run. What a user does with the pointer is checked
+  // after (openList, choose), with real clicks.
+  const goState = async (state) => {
+    if (state === "studio") {
+      await page.locator(sel("nav.mode-studio")).evaluate((el) => el.click());
+    } else {
+      await page.locator(sel("nav.mode-dictionnaire")).evaluate((el) => el.click());
+      await page.locator(`${sel("dico.famille")} button`).nth({ note: 0, chord: 1, scale: 2 }[state]).evaluate((el) => el.click(), null, { timeout: T });
+    }
+    await page.waitForTimeout(300);
+  };
+  const openList = async (fn, where) => {
+    try {
+      await page.locator(`${sel(fn)} .custom-select-header`).click({ timeout: T });
+      await page.locator('[data-testid="custom-select-dropdown"]').waitFor({ state: "visible", timeout: T });
+    } catch (err) {
+      fails.push(`[${clickFailureTag(err)}] ${where}: ${fn}: cannot open the list with the pointer (${String(err && err.message ? err.message : err).split("\n")[0]})`);
+      // A list half opened must not stay over the next step - but Escape with
+      // no list open would close the drawer, so only when there is one.
+      if (await page.locator('[data-testid="custom-select-dropdown"]').count()) await page.keyboard.press("Escape");
+      return;
+    }
+    const m = await page.evaluate(openListMeasure);
+    await page.keyboard.press("Escape");
+    await page.locator('[data-testid="custom-select-dropdown"]').waitFor({ state: "detached", timeout: T });
+    lists.push({ where, fn, ...m });
+    if (!m.inWindow) fails.push(`[lists] ${where}: ${fn}: the open list (${m.rect.x},${m.rect.y} ${m.rect.w}x${m.rect.h}) is not entirely in the window`);
+    if (!m.firstOnTop) fails.push(`[lists] ${where}: ${fn}: the first option ("${m.firstLabel}") is covered`);
+    if (m.items < 2) fails.push(`[lists] ${where}: ${fn}: the open list holds ${m.items} option(s)`);
+    if (m.scrollHeight > m.innerHeight) fails.push(`[scroll] ${where}: ${fn}: the page scrolls while the list is open (${m.scrollHeight} in ${m.innerHeight})`);
+  };
+  const expectEq = (what, got, want) => {
+    if (JSON.stringify(got) !== JSON.stringify(want)) fails.push(`[function] ${what}: ${JSON.stringify(got)}, ${JSON.stringify(want)} expected`);
+  };
+  const langHeader = page.locator(`${sel("nav.langue")} .custom-select-header`);
+  const pickLang = async (lang) => {
+    await langHeader.click({ timeout: T });
+    await page.locator('[data-testid="custom-select-dropdown"] .select-item', { hasText: lang }).first().click({ timeout: T });
+    await page.waitForTimeout(300);
+  };
+  try {
+    await open("&scenario=cmaj");
+    // 1. Every language, every state: presence and absence, on top, 48px, the
+    // block's height, the lists open (drawer closed, then open).
+    for (const lang of ["FR", "EN", "PT", "ZH"]) {
+      if (lang !== "FR") await pickLang(lang);
+      for (const drawer of [false, true]) {
+        if (drawer) await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
+        if (drawer) await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
+        for (const state of SELECTION_STATES) {
+          const where = `${lang} ${state}${drawer ? " + drawer" : ""}`;
+          await goState(state);
+          const m = await page.evaluate(selectionMeasure, args);
+          layouts[where] = m;
+          fails.push(...selectionFails(where, m, state));
+          for (const fn of SELECTION_EXPECTED[state].filter((id) => id !== "dico.famille")) await openList(fn, where);
+        }
+        if (drawer) {
+          await page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
+          await page.locator('[data-s1="drawer"]').waitFor({ state: "detached", timeout: T });
+        }
+      }
+    }
+    await pickLang("FR");
+    // The block and the row have ONE height, in every state and language.
+    const rows = Object.values(layouts).map((m) => m.row && m.row.h).filter((h) => h !== null);
+    const blocks = Object.values(layouts).map((m) => m.transportHeight);
+    const spread = (a) => round1(Math.max(...a) - Math.min(...a));
+    if (spread(rows) > S1_23.heightTolerance) fails.push(`[height] the row's height varies by ${spread(rows)}px between states (${Math.min(...rows)}-${Math.max(...rows)}), ${S1_23.heightTolerance} at most`);
+    if (spread(blocks) > S1_23.heightTolerance) fails.push(`[height] the block's height varies by ${spread(blocks)}px between states (${Math.min(...blocks)}-${Math.max(...blocks)}), ${S1_23.heightTolerance} at most`);
+    notes.push(`row ${Math.min(...rows)}-${Math.max(...rows)}px, block ${Math.min(...blocks)}-${Math.max(...blocks)}px over ${Object.keys(layouts).length} states (4 languages x 4 states x drawer closed / open)`);
+    // The counts a positive control moves: what is present, what is on top.
+    let expectedCount = 0;
+    let foundCount = 0;
+    let targetCount = 0;
+    let topCount = 0;
+    for (const [where, m] of Object.entries(layouts)) {
+      const state = SELECTION_STATES.find((s) => where.includes(` ${s}`));
+      for (const fn of SELECTION_EXPECTED[state]) {
+        expectedCount++;
+        const f = m.found[fn];
+        if (f.count === 1 && f.visible) foundCount++;
+        for (const t of f.targets || []) {
+          targetCount++;
+          if (t.onTop) topCount++;
+        }
+      }
+    }
+    notes.push(`controls: ${foundCount}/${expectedCount} present once and visible; ${topCount}/${targetCount} targets on top at their centre`);
+    // A control that is missing cannot be driven: say so once (as [presence]),
+    // not again as a pile of timeouts.
+    if (fails.some((f) => f.startsWith("[presence]"))) {
+      notes.push("behaviour steps skipped: a control is missing, there is nothing to drive");
+      if (pageErrors.length) fails.push(`[function] page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+      return { fails, notes, layouts, lists };
+    }
+
+    // 2. What it does (FR, Do majeur). The oracle comes from theory.js, read
+    // through the module graph the page itself runs on.
+    await open("&scenario=cmaj");
+    const theory = await page.evaluate(async () => {
+      const t = await import("/src/core/theory.js");
+      const bricks = (await import("/src/data/bricks.json")).default;
+      return {
+        chords: Object.fromEntries(Object.entries(t.CHORDS).map(([k, v]) => [k, v.semitones])),
+        scales: Object.fromEntries(Object.entries(t.SCALES).map(([k, v]) => [k, v.intervals])),
+        bricks: bricks.map((b) => ({
+          fr: b.name.fr,
+          bpm: b.bpm,
+          chords: t.generateChordsFromNNS(b.rootValue, b.scaleKey, b.nnsProgression).map((c) => c.chordNameEU),
+        })),
+      };
+    });
+    const uniq = (a) => [...new Set(a)].sort((x, y) => x - y);
+    const pcs = (notes) => uniq(String(notes || "").split(" ").filter(Boolean).map((n) => Number(n) % 12));
+    const chordPcs = (root, type) => uniq(theory.chords[type].map((s) => (root + s) % 12));
+    const scalePcs = (root, type) => {
+      let acc = 0;
+      const out = [root % 12];
+      for (const step of theory.scales[type].slice(0, -1)) {
+        acc += step;
+        out.push((root + acc) % 12);
+      }
+      return uniq(out);
+    };
+    const shifted = (n, by) => String(n || "").split(" ").filter(Boolean).map((x) => Number(x) + by).join(" ");
+    const read = () =>
+      page.evaluate(() => ({
+        notes: document.querySelector('[data-s1="piano"]').getAttribute("data-s1-notes"),
+        guitar: document.querySelector('[data-s1="guitar"]').getAttribute("data-s1-positions"),
+        bass: document.querySelector('[data-s1="bass"]').getAttribute("data-s1-positions"),
+      }));
+    const shown = (fn) => page.evaluate((id) => document.querySelector(`[data-fn="${id}"] .current-value`).textContent.trim(), fn);
+    /** Choose `value` in the row's list, by clicking its entry; returns the entry's text. */
+    const choose = async (fn, value) => {
+      const label = await page.evaluate(({ id, v }) => {
+        const o = document.querySelector(`[data-fn="${id}"] select option[value="${v}"]`);
+        return o ? o.textContent : null;
+      }, { id: fn, v: String(value) });
+      if (label === null) throw new Error(`${fn}: no option with value ${value}`);
+      await page.locator(`${sel(fn)} .custom-select-header`).click({ timeout: T });
+      const exact = new RegExp(`^\\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`);
+      await page.locator('[data-testid="custom-select-dropdown"] .select-item').filter({ hasText: exact }).first().click({ timeout: T });
+      await page.waitForTimeout(250);
+      const now = await shown(fn);
+      if (now !== label) fails.push(`[function] ${fn}: chose "${label}", the field shows "${now}"`);
+      return label;
+    };
+    const family = async (index) => {
+      await page.locator(`${sel("dico.famille")} button`).nth(index).click({ timeout: T });
+      await page.waitForTimeout(250);
+      const pressed = await page.evaluate(() => [...document.querySelectorAll('[data-fn="dico.famille"] button')].map((b) => b.getAttribute("aria-pressed")));
+      expectEq(`family button ${index}: pressed states`, pressed, [0, 1, 2].map((i) => String(i === index)));
+    };
+    const present = (fn) => page.locator(sel(fn)).count();
+    const optionValues = (fn) => page.evaluate((id) => [...document.querySelectorAll(`[data-fn="${id}"] select option`)].map((o) => o.value), fn);
+
+    // Literal anchors on what each menu holds (the data's own tables, not the
+    // other menus): the twelve notes; every chord of CHORDS and only those;
+    // every scale of SCALES and only those.
+    expectEq("root note menu: the twelve notes, in order", await optionValues("dico.fondamentale"), Array.from({ length: 12 }, (_, i) => String(i)));
+    expectEq("chord type menu: every chord of theory.js CHORDS, only those", (await optionValues("dico.type-accord")).sort(), Object.keys(theory.chords).sort());
+    await family(2);
+    expectEq("scale type menu: every scale of theory.js SCALES, only those", (await optionValues("dico.type-gamme")).sort(), Object.keys(theory.scales).sort());
+    await family(1);
+
+    const s0 = await read();
+    expectEq("Do majeur: piano notes (literal)", s0.notes, "60 64 67");
+    expectEq("Do majeur: pitch classes (theory.js CHORDS)", pcs(s0.notes), chordPcs(0, "chord_major"));
+    const reLabel = await choose("dico.fondamentale", 2);
+    const s1 = await read();
+    expectEq(`root ${reLabel}: piano notes, +2 semitones`, s1.notes, shifted(s0.notes, 2));
+    expectEq(`root ${reLabel}: piano notes (literal)`, s1.notes, "62 66 69");
+    expectEq(`root ${reLabel}: pitch classes (theory.js)`, pcs(s1.notes), chordPcs(2, "chord_major"));
+    notes.push(`root Do -> ${reLabel}: piano [${s0.notes}] -> [${s1.notes}] (+2); pitch classes ${JSON.stringify(pcs(s1.notes))}`);
+    await choose("dico.fondamentale", 0);
+    expectEq("root back to Do: piano notes", (await read()).notes, s0.notes);
+    const minLabel = await choose("dico.type-accord", "chord_minor");
+    const s2 = await read();
+    const lowered = s0.notes.split(" ").map((n, i) => (i === 1 ? Number(n) - 1 : Number(n))).join(" ");
+    expectEq(`chord ${minLabel}: the third falls one semitone`, s2.notes, lowered);
+    expectEq(`chord ${minLabel}: piano notes (literal)`, s2.notes, "60 63 67");
+    expectEq(`chord ${minLabel}: pitch classes (theory.js)`, pcs(s2.notes), chordPcs(0, "chord_minor"));
+    notes.push(`chord Majeur -> "${minLabel}": piano [${s0.notes}] -> [${s2.notes}]; pitch classes ${JSON.stringify(pcs(s2.notes))}`);
+    await family(2);
+    const s3 = await read();
+    expectEq("Gammes: type menu present, chord type menu gone", [await present("dico.type-gamme"), await present("dico.type-accord")], [1, 0]);
+    expectEq("Gammes: pitch classes of scale_major (theory.js SCALES)", pcs(s3.notes), scalePcs(0, "scale_major"));
+    if (s3.guitar === s2.guitar) fails.push("[function] Gammes: the guitar's positions did not change from the chord's");
+    const scaleMinLabel = await choose("dico.type-gamme", "scale_minor");
+    const s4 = await read();
+    expectEq(`scale "${scaleMinLabel}": pitch classes (theory.js SCALES)`, pcs(s4.notes), scalePcs(0, "scale_minor"));
+    if (s4.guitar === s3.guitar) fails.push(`[function] scale "${scaleMinLabel}": the guitar's positions did not change from the major scale's`);
+    if (s4.notes === s3.notes) fails.push(`[function] scale "${scaleMinLabel}": the piano's notes did not change from the major scale's`);
+    notes.push(`scale Majeure -> "${scaleMinLabel}": piano pitch classes ${JSON.stringify(pcs(s3.notes))} -> ${JSON.stringify(pcs(s4.notes))}; guitar ${fretSpan(s3.guitar)} -> ${fretSpan(s4.guitar)}`);
+    await family(0);
+    const s5 = await read();
+    expectEq("Note unique: no type menu", [await present("dico.type-accord"), await present("dico.type-gamme")], [0, 0]);
+    expectEq("Note unique: one pitch class, the root's", pcs(s5.notes), [0]);
+    await family(1);
+    expectEq("Accords again: the family's first type, Do majeur", (await read()).notes, "60 64 67");
+
+    // The row and the drawer are ONE state: a root chosen in the row is the
+    // drawer's, and the other way round.
+    await choose("dico.fondamentale", 7);
+    await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
+    await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
+    const drawerRoot = await page.evaluate(() => document.querySelector('[data-s1="drawer"] [data-testid="select-root-note"]').value);
+    expectEq("row -> drawer: the drawer's root note", drawerRoot, "7");
+    await page.locator('[data-s1="drawer"] .custom-select-container:has([data-testid="select-root-note"]) .custom-select-header').click({ timeout: T });
+    await page.locator('[data-testid="custom-select-dropdown"] .select-item').filter({ hasText: /^\s*Mi\s*$/ }).first().click({ timeout: T });
+    await page.waitForTimeout(250);
+    expectEq("drawer -> row: the row's root note", await shown("dico.fondamentale"), "Mi");
+    notes.push(`row <-> drawer: root Sol in the row = "7" in the drawer; Mi chosen in the drawer = "${await shown("dico.fondamentale")}" in the row`);
+    await page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
+    await page.locator('[data-s1="drawer"]').waitFor({ state: "detached", timeout: T });
+
+    // The Studio: a style changes the name shown, the tempo it imposes and the
+    // progression the sequencer shows (the chord names of the DAW helper under
+    // the grids, [data-testid="daw-helper-chords"] .daw-helper__chord-name).
+    await page.locator(sel("nav.mode-studio")).click({ timeout: T });
+    await page.waitForTimeout(300);
+    const chordsShown = () => page.evaluate(() => [...document.querySelectorAll('[data-testid="daw-helper-chords"] .daw-helper__chord-name')].map((e) => e.textContent.trim()));
+    const tempoShown = () => page.evaluate(() => document.querySelector('button[data-fn="jouer.tempo-saisie"]').textContent.trim());
+    const seen = [];
+    expectEq("style menu: every style of bricks.json, by index", (await optionValues("composer.style")).map(Number).sort((a, b) => a - b), theory.bricks.map((_, i) => i));
+    for (const index of [1, 2]) {
+      const label = await choose("composer.style", index);
+      const want = theory.bricks[index];
+      expectEq(`style ${index}: the name shown (theory data: bricks.json name.fr)`, label, want.fr);
+      const chords = await chordsShown();
+      expectEq(`style ${index}: the sequencer's chords (theory.js generateChordsFromNNS)`, chords.slice(0, want.chords.length), want.chords);
+      expectEq(`style ${index}: the tempo it imposes (bricks.json bpm)`, await tempoShown(), String(want.bpm));
+      seen.push({ index, label, chords, bpm: await tempoShown() });
+    }
+    if (JSON.stringify(seen[0].chords) === JSON.stringify(seen[1].chords)) fails.push("[function] the two styles show the same progression in the sequencer");
+    notes.push(`styles: ${seen.map((s) => `#${s.index} "${s.label}" ${s.bpm} bpm, sequencer chords [${s.chords.join(" ")}] (read: .daw-helper__chord-name under data-testid daw-helper-chords)`).join(" ; ")}`);
+
+    // VMU-126 (observation, not a criterion): a style change clears the edits
+    // the Studio holds. Load a Quick Start in the drawer, then change the style
+    // through the ROW: the same clearing, two clicks from a closed drawer.
+    await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
+    await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
+    const before = await chordsShown();
+    await page.locator('[data-s1="drawer"] button.btn-premium[title*=" - "]').first().click({ timeout: T });
+    await page.waitForTimeout(300);
+    const quick = await chordsShown();
+    await choose("composer.style", 1);
+    const after = await chordsShown();
+    notes.push(`VMU-126 observed: style #2 chords [${before.join(" ")}] -> Quick Start in the drawer [${quick.join(" ")}] -> style #1 chosen in the ROW [${after.join(" ")}] (the Quick Start is gone, as with the drawer's own menu)`);
+    await page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
+  } catch (err) {
+    fails.push(`[${clickFailureTag(err)}] ${String(err && err.message ? err.message : err).split("\n")[0]}`);
+  } finally {
+    await page.close();
+  }
+  if (pageErrors.length) fails.push(`[function] page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  return { fails, notes, layouts, lists };
+}
+
+/** S1-23 on one viewport: run it, keep the verdict, print it. */
+async function reportSelection(browser, viewport) {
+  const selection = await runSelection(browser, viewport);
+  selectionChecks[viewport.label] = selection;
+  if (AS_JSON) return;
+  const lead = `${viewport.label} S1-23 (selection)`;
+  console.log(`${lead} ${selection.fails.length ? "FAIL" : "PASS"}  the row in the transport block: presence / absence per state, on top, 48px, one height, no scroll, no cut name; open lists in the window (drawer closed / open); the controls drive the keyboard, the necks and the sequencer; FR / EN / PT / ZH x Studio / Dictionary (note, chords, scales)`);
+  for (const [key, m] of Object.entries(selection.layouts)) {
+    if (!/^(FR|ZH) (studio|chord|scale)( \+ drawer)?$/.test(key)) continue;
+    const kids = SELECTION_FNS.filter((fn) => m.found[fn] && m.found[fn].count).map((fn) => `${fn} ${m.found[fn].rect.w}x${m.found[fn].rect.h}${m.found[fn].fit && m.found[fn].fit.widest !== undefined ? ` (longest name ${m.found[fn].fit.widest}/${m.found[fn].fit.box}px)` : ""}`);
+    console.log(`${lead}   ${key}: block ${m.transportHeight}px, row ${m.row ? m.row.h : "-"}px at y=${m.row ? m.row.y : "-"}; ${kids.join(", ")}; keyboard bottom y=${m.keyboardBottom}, margin ${round1(m.innerHeight - m.keyboardBottom)}px; page ${m.scrollWidth}x${m.scrollHeight} in ${m.innerWidth}x${m.innerHeight}`);
+  }
+  const byFn = {};
+  for (const l of selection.lists) {
+    const k = `${l.fn}${l.where.includes("drawer") ? " (drawer open)" : " (drawer closed)"}`;
+    byFn[k] = byFn[k] || { n: 0, inWindow: 0, onTop: 0 };
+    byFn[k].n++;
+    if (l.inWindow) byFn[k].inWindow++;
+    if (l.firstOnTop) byFn[k].onTop++;
+  }
+  console.log(`${lead}   open lists: ${Object.entries(byFn).map(([k, v]) => `${k} ${v.n} opened, ${v.inWindow} in the window, ${v.onTop} first option on top`).join("; ")}`);
+  for (const n of selection.notes) console.log(`${lead}   ${n}`);
+  // Failures per sub-criterion: a positive control must move exactly one.
+  const tags = {};
+  for (const f of selection.fails) {
+    const tag = (f.match(/^\[(\w+)\]/) || [, "other"])[1];
+    tags[tag] = (tags[tag] || 0) + 1;
+  }
+  console.log(`${lead}   sub-criteria failing: ${Object.keys(tags).length ? Object.entries(tags).map(([k, n]) => `${k} x${n}`).join(", ") : "none"}`);
+  if (selection.fails.length) console.log(`${lead}   FAILED: ${selection.fails.join(" | ")}`);
+}
+
 const { chromium } = await import("playwright");
 const dev = await startDevServer();
 if (!AS_JSON) {
@@ -1951,6 +2543,7 @@ const drawerChecks = {};
 const noBenchChecks = {};
 const accessChecks = {};
 const headsChecks = {};
+const selectionChecks = {};
 try {
   for (const viewport of ACCESS_ONLY ? [] : VIEWPORTS) {
     for (const scenario of STATES) {
@@ -1986,6 +2579,10 @@ try {
   }
   // S1-20 (A′-ACCÈS): Gabriel's page, at its own two heights.
   for (const viewport of ACCESS_VIEWPORTS) {
+    if (SELECTION_ONLY) {
+      await reportSelection(browser, viewport);
+      continue;
+    }
     const access = await runAccess(browser, viewport);
     const volume = await runVolume(browser, viewport);
     accessChecks[viewport.label] = { access, volume };
@@ -2026,6 +2623,8 @@ try {
       for (const n of heads.notes) console.log(`${lead}   ${n}`);
       if (heads.fails.length) console.log(`${lead}   FAILED: ${heads.fails.join(" | ")}`);
     }
+    // S1-23 (VMU-185): the direct selectors, at the same two heights.
+    await reportSelection(browser, viewport);
   }
 } finally {
   await browser.close();
@@ -2057,11 +2656,14 @@ const accessPassCount = Object.values(accessChecks).filter((c) => c.access.fails
 // S1-21 decides too (brief L1b-1b: "critère de sonde S1-21 « têtes » (décisif)").
 const headsOk = Object.values(headsChecks).every((c) => c.fails.length === 0);
 const headsPassCount = Object.values(headsChecks).filter((c) => c.fails.length === 0).length;
-const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk ? "A′" : "B";
+// S1-23 decides too (brief VMU-185: "critère de sonde S1-23 « sélection directe » (décisif)").
+const selectionOk = Object.values(selectionChecks).every((c) => c.fails.length === 0);
+const selectionPassCount = Object.values(selectionChecks).filter((c) => c.fails.length === 0).length;
+const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
@@ -2073,8 +2675,9 @@ if (AS_JSON) {
   console.log(`  S1-19 no-bench behaviour: ${noBenchOk ? "PASS" : "FAIL"} in ${Object.keys(noBenchChecks).length}/${ACCESS_ONLY ? 0 : VIEWPORTS.length} viewport(s)`);
   console.log(`  S1-20 ${accessOk ? "PASS" : "FAIL"} ${accessPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  A′-ACCÈS: every function of src/prototype/aPrimeAccess.js on Gabriel's page, on top; openers open and Escape closes; tempo typed; no scroll in FR / EN / PT / ZH; the master volume reaches the engine`);
   console.log(`  S1-21 ${headsOk ? "PASS" : "FAIL"} ${headsPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1b heads: 100 +-1px x3, one line per row, 48px targets on top, labels fitting, keyboard >= ${S1_21.minMargin}px above the window's bottom, no scroll (FR / EN / PT / ZH x Dictionary / Studio); › on the guitar moves the guitar only, › on the piano shifts its notes by 12 and leaves the necks`);
+  console.log(`  S1-23 ${selectionOk ? "PASS" : "FAIL"} ${selectionPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-185 direct selectors: a second row of the transport block holding the Studio's style / the Dictionary's family, root note and type (none for a note), on top, 48px, one height in every state (block <= ${S1_23.maxBlock}px), no scroll, no cut name, open lists in the window (drawer closed and open), and they drive the keyboard / necks / sequencer against theory.js (FR / EN / PT / ZH)`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-22 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-23 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

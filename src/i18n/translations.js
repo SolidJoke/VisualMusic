@@ -389,7 +389,13 @@ export const translations = {
       octaveUp: "Octave plus aiguë",
       positionGroup: "Position sur le manche",
       positionPrev: "Position précédente",
-      positionNext: "Position suivante"
+      positionNext: "Position suivante",
+      // VMU-185: the direct selectors, a second row of the transport block.
+      selectionAria: "Choix direct du style, de la note et du type",
+      selectionStyle: "Style",
+      selectionFamily: "Famille",
+      selectionRoot: "Note de base",
+      selectionType: "Type"
     },
     suggestedVoicings: "Voicings suggérés :",
     voicingImpossible: "⛔ Voicing impossible",
@@ -779,7 +785,13 @@ export const translations = {
       octaveUp: "Octave up",
       positionGroup: "Position on the neck",
       positionPrev: "Previous position",
-      positionNext: "Next position"
+      positionNext: "Next position",
+      // VMU-185: the direct selectors, a second row of the transport block.
+      selectionAria: "Direct choice of style, note and type",
+      selectionStyle: "Style",
+      selectionFamily: "Family",
+      selectionRoot: "Root note",
+      selectionType: "Type"
     },
     suggestedVoicings: "Suggested voicings:",
     voicingImpossible: "⛔ Unplayable voicing",
@@ -1108,7 +1120,13 @@ export const translations = {
       octaveUp: "Oitava acima",
       positionGroup: "Posição no braço",
       positionPrev: "Posição anterior",
-      positionNext: "Posição seguinte"
+      positionNext: "Posição seguinte",
+      // VMU-185: the direct selectors, a second row of the transport block.
+      selectionAria: "Escolha direta de estilo, nota e tipo",
+      selectionStyle: "Estilo",
+      selectionFamily: "Família",
+      selectionRoot: "Nota fundamental",
+      selectionType: "Tipo"
     },
     suggestedVoicings: "Voicings sugeridos:",
     voicingImpossible: "⛔ Voicing impossível",
@@ -1476,7 +1494,13 @@ export const translations = {
       octaveUp: "升高八度",
       positionGroup: "指板位置",
       positionPrev: "上一个位置",
-      positionNext: "下一个位置"
+      positionNext: "下一个位置",
+      // VMU-185: the direct selectors, a second row of the transport block.
+      selectionAria: "直接选择风格、音符和类型",
+      selectionStyle: "风格",
+      selectionFamily: "类别",
+      selectionRoot: "根音",
+      selectionType: "类型"
     },
     suggestedVoicings: "建议的声位:",
     voicingImpossible: "⛔ 无法演奏的声位",
