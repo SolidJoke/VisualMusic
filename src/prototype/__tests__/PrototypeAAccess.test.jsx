@@ -360,3 +360,15 @@ describe("A′-ACCÈS: the audio visualizer", () => {
     expect(viz.getAttribute("data-height")).toBe("60px");
   });
 });
+
+describe("A′ header: the internal subtitle is gone (VMU-188)", () => {
+  it("renders no bench subtitle in the header, and no language still carries the key", async () => {
+    await renderApp("?prototype=a");
+    expect(document.querySelector(".proto-a__title")).not.toBeNull();
+    expect(document.querySelector(".proto-a__subtitle")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/banc de mesure|measuring bench|bancada de medi|测量台/);
+    for (const table of Object.values(translations)) {
+      expect(table.protoA).not.toHaveProperty("subtitle");
+    }
+  });
+});

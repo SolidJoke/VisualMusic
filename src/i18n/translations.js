@@ -347,7 +347,6 @@ export const translations = {
     // VMU-182 (A′-ACCÈS): every label of the A′ page (?prototype=a), none hard-coded.
     protoA: {
       title: "VisualMusic",
-      subtitle: "Prototype A′ · banc de mesure S1",
       modesAria: "Modes",
       tabStudio: "Studio",
       tabDictionary: "Dictionnaire",
@@ -744,7 +743,6 @@ export const translations = {
     },
     protoA: {
       title: "VisualMusic",
-      subtitle: "Prototype A′ · S1 measuring bench",
       modesAria: "Modes",
       tabStudio: "Studio",
       tabDictionary: "Dictionary",
@@ -1079,7 +1077,6 @@ export const translations = {
     },
     protoA: {
       title: "VisualMusic",
-      subtitle: "Protótipo A′ · bancada de medição S1",
       modesAria: "Modos",
       tabStudio: "Estúdio",
       tabDictionary: "Dicionário",
@@ -1453,7 +1450,6 @@ export const translations = {
     },
     protoA: {
       title: "VisualMusic",
-      subtitle: "原型 A′ · S1 测量台",
       modesAria: "模式",
       tabStudio: "工作室",
       tabDictionary: "字典",
