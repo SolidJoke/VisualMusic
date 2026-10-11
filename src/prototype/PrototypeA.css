@@ -70,7 +70,6 @@
   color: var(--text-secondary);
 }
 
-.proto-a__subtitle,
 .proto-a__muted {
   color: var(--text-secondary);
   font-size: var(--fs-body);

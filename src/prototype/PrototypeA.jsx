@@ -379,7 +379,6 @@ export default function PrototypeA({
                 {T.tabDictionary}
               </button>
             </nav>
-            <div className="proto-a__subtitle">{T.subtitle}</div>
             <div className="proto-a__spacer" />
             {/* The label modes: a real function (the note names / finger numbers
                 shown on the keyboard and the necks), whatever the URL says. One
