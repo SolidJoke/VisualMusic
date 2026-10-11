@@ -152,8 +152,8 @@ describe("VMU-188: which page the app shows", () => {
   });
 
   it("(f) one owner: only src/layout.js reads the layout or prototype parameter", () => {
-    // vitest runs from the repository root (npm test): src/ is there.
-    const srcDir = path.resolve(process.cwd(), "src");
+    // Relative to the working directory: npm test runs from the repository root.
+    const srcDir = path.resolve("src");
     const READ = /\.(get|has)\(\s*["'](layout|prototype)["']\s*\)/;
     const readers = [];
     const walk = (dir) => {
