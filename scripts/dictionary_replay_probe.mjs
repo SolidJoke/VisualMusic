@@ -165,7 +165,7 @@ async function startDevServer() {
  * [playbackTime, mean square] pair per 512-frame block.
  */
 function installProbe() {
-  const vm = { ctx: null, nodes: [], blocks: [], blockLen: 0, tapSources: 0 };
+  const vm = { ctx: null, nodes: [], blocks: [], blockLen: 0, tapSources: 0, automation: [] };
   // @ts-ignore — page context
   window.__vm = vm;
   const recs = new WeakMap();
@@ -234,6 +234,42 @@ function installProbe() {
     }
     return result;
   };
+
+  // What every AudioParam still has scheduled, with Web Audio's own rules for taking it back:
+  // cancelScheduledValues(t) removes the events at or after t, cancelAndHoldAtTime(t) those after t.
+  // This is how the bass is seen: one oscillator carries every note of a scale, and the pitch of
+  // each is an event on a signal, so a note that is still "pending" is a pitch event that is
+  // still scheduled. (A source node has no such thing to observe: see the sampler lines.)
+  const lists = new WeakMap();
+  const listOf = (param) => {
+    let list = lists.get(param);
+    if (!list) {
+      list = [];
+      lists.set(param, list);
+      vm.automation.push(list);
+    }
+    return list;
+  };
+  const addsEvent = ["setValueAtTime", "linearRampToValueAtTime", "exponentialRampToValueAtTime", "setTargetAtTime", "setValueCurveAtTime"];
+  for (const name of addsEvent) {
+    const orig = AudioParam.prototype[name];
+    AudioParam.prototype[name] = function patched(...a) {
+      listOf(this).push({ time: a[1] ?? 0, wall: performance.now() });
+      return orig.apply(this, a);
+    };
+  }
+  const origCancel = AudioParam.prototype.cancelScheduledValues;
+  AudioParam.prototype.cancelScheduledValues = function cancelScheduledValues(t) {
+    const list = listOf(this);
+    for (let i = list.length - 1; i >= 0; i--) if (list[i].time >= t) list.splice(i, 1);
+    return origCancel.call(this, t);
+  };
+  const origHold = AudioParam.prototype.cancelAndHoldAtTime;
+  AudioParam.prototype.cancelAndHoldAtTime = function cancelAndHoldAtTime(t) {
+    const list = listOf(this);
+    for (let i = list.length - 1; i >= 0; i--) if (list[i].time > t) list.splice(i, 1);
+    return origHold.call(this, t);
+  };
 }
 
 // ─── page actions ───────────────────────────────────────────────────────────
@@ -292,6 +328,8 @@ async function resetLogs(page) {
     window.__vm.nodes.length = 0;
     // @ts-ignore
     window.__vm.blocks.length = 0;
+    // @ts-ignore
+    window.__vm.automation.forEach((list) => (list.length = 0));
   });
 }
 
@@ -335,7 +373,13 @@ async function runPlays(page, plays) {
   const data = await page.evaluate(() => {
     // @ts-ignore
     const vm = window.__vm;
-    return { nodes: vm.nodes.slice(), blocks: vm.blocks.slice(), blockLen: vm.blockLen, tapSources: vm.tapSources };
+    return {
+      nodes: vm.nodes.slice(),
+      blocks: vm.blocks.slice(),
+      blockLen: vm.blockLen,
+      tapSources: vm.tapSources,
+      automation: vm.automation.flatMap((list) => list.map((e) => ({ ...e }))),
+    };
   });
   return { clicks, ...data };
 }
@@ -431,6 +475,9 @@ function readRun(run, wholeSeconds) {
   const cutCtx = lastPress + CUT_SLIVER_S;
   const olderPending = older.filter((n) => n.when >= cutCtx);
   const olderAudible = olderPending.filter(audibleAtStart);
+  // Events (pitch, amplitude, filter...) the older plays scheduled for the cut or later and nothing took back.
+  const lastPressWall = run.clicks[run.clicks.length - 1].t;
+  const olderAutomation = run.automation.filter((e) => e.wall < lastPressWall && e.time >= cutCtx).length;
   const near = energy(run, ref + 0.15, ref + 0.5);
   const whole = energy(run, ref + 0.15, ref + wholeSeconds);
   const shape = envelopeGrid(run, ref + 0.15, ref + wholeSeconds);
@@ -449,6 +496,7 @@ function readRun(run, wholeSeconds) {
     olderTotal: older.length,
     olderPending: olderPending.length,
     olderAudible: olderAudible.length,
+    olderAutomation,
     near,
     whole,
     shape,
@@ -542,7 +590,11 @@ try {
       const level = levelOf(r.shape, mask) / levelOf(ref.a.shape, mask);
       const sampler = sc.as !== "bass";
       // (1) the older plays: no start at or after the cut can still be heard
-      const quiet = r.olderAudible === 0;
+      // For a bass playing alone there is no source node to look at: what the older play left scheduled
+      // on the signals of the one voice (a pitch event per note) is what is counted. Not asked of a
+      // mixed scenario: a sampler's own gain events would be counted there, and they are not audible.
+      const bassAlone = sc.plays.every((p) => p.selector === HEAD_PLAY("bass"));
+      const quiet = r.olderAudible === 0 && (!bassAlone || r.olderAutomation === 0);
       // (2) the newest play: the same sources (sample and pitch) at the same offsets as one press alone —
       // for the samplers (the bass is one oscillator the whole play through: Tone restarts it or not,
       // so what it started says nothing). The offsets of a chord or a note are as spread as the audio
@@ -571,7 +623,7 @@ try {
       }
       if (!AS_JSON) {
         console.log(`${ok ? "PASS" : "FAIL"}  ${sc.name}   (gap ${r.gapsMs.map((g) => f(g, 0)).join("/")} ms, sources: ${r.kinds})`);
-        console.log(`        older plays: ${r.olderPending} starts at or after the cut, ${r.olderAudible} still audible (silenced: ${r.olderPending - r.olderAudible})${quiet ? "" : "   <-- NOT QUIET"}`);
+        console.log(`        older plays: ${r.olderPending} starts at or after the cut, ${r.olderAudible} still audible (silenced: ${r.olderPending - r.olderAudible})${bassAlone ? `; ${r.olderAutomation} signal events still scheduled at or after the cut` : ""}${quiet ? "" : "   <-- NOT QUIET"}`);
         console.log(`        newest play: ${r.newestCount} starts (baseline ${ref.a.newestCount}), offsets deviate by at most ${f(devMs, 3)} ms (limit ${f(offsetsLimit, 1)})${sameNotes ? "" : "   <-- NOT THE SAME NOTES"}`);
         console.log(`        output vs one press alone: energy near x${f(nearRatio)}, whole x${f(wholeRatio)}; envelope distance ${f(shape)}; sustain level x${f(level)}${energyOk && shapeOk && levelOk ? "" : "   <-- NOT THE SAME OUTPUT"}`);
         console.log(`                                   (two single presses against each other: near x${f(ref.noiseNear)}, whole x${f(ref.noiseWhole)}, distance ${f(ref.noiseShape)}, level x${f(ref.noiseLevel)})`);
