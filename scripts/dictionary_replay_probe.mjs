@@ -9,55 +9,66 @@
  * la seconde." A scale is scheduled whole, up front (useDictionaryPlayback.js:
  * one playDictionaryNote(..., time) per note), and nothing took the notes back.
  *
- * What it does — same method as scripts/metronome_probe.mjs (VMU-163-fix2),
- * which it follows: the REAL page (`/?prototype=a`, Chromium), the REAL buttons
- * (the three column heads' play buttons and the big "Ecouter" button), the
- * Web Audio methods wrapped before any app script runs, the scheduled dates
- * read back. For each family (scale of C major, chord C major, single note C)
- * and each instrument (piano, guitar, bass):
+ * Same method as scripts/metronome_probe.mjs (VMU-163-fix2): the REAL page
+ * (`/?prototype=a`, Chromium), the REAL buttons (the three column heads' play
+ * buttons and the big "Ecouter" button), the Web Audio methods wrapped before
+ * any app script runs, the scheduled dates read back — plus a tap on what
+ * reaches the output. For each family (scale of C major, scale of A minor
+ * pentatonic, chord C major, single note C) it plays:
  *
- *   baseline  one press of the play button, alone (twice: the second gives the
- *             noise floor of the energy ratio below)
- *   double    press, wait ~0.6 s, press again; also: guitar then bass (another
- *             instrument), press then the big "Ecouter", three presses
+ *   baseline  one press of an instrument's play button, alone — twice, the
+ *             second gives the noise floor of every reading below
+ *   double    press, wait (0.6 s for a scale, 0.2 s for a chord or a note,
+ *             which last a second), press again; also: another instrument
+ *             second (guitar then bass, piano then guitar), the big "Ecouter"
+ *             second, three presses 0.3 s apart
  *
- * and prints, for each, three things:
+ * and prints, for each, what the NEWEST play and the OLDER ones did:
  *
- *   starts    the native `start(when)` dates (AudioBufferSourceNode for the
- *             samplers, OscillatorNode for the bass) of the OLDER plays that
- *             fall at or after the instant the last press was handled, and how
- *             many of them can still be heard: a source is "silenced" when it
- *             was stopped at or before its start date, or disconnected from the
- *             graph before it. Before the fix every one of them is audible
- *             (that is the defect: a second scale on top of the first); after
- *             it, none. The newest play must schedule the same notes, at the
- *             same offsets, as a baseline press (max deviation printed).
- *   energy    the mean-square energy that actually reaches the output, tapped
- *             at the destination by a ScriptProcessor, in two windows after
- *             the newest play's first note: "near" (0.15 s - 0.50 s) and
- *             "whole" (to the end of the newest play), as a ratio to the same
- *             window of the baseline. ~1.0 when only the newest play sounds,
- *             well above when an older one still does. The second baseline
- *             against the first gives the noise floor of that ratio. This is
- *             the only way to see the bass: a Tone.MonoSynth keeps its
- *             oscillators scheduled and silences them through its envelope,
- *             which no start/stop date shows.
+ *   older plays   the native `start(when)` dates (AudioBufferSourceNode for the
+ *                 samplers) that fall at or after the instant the last press was
+ *                 handled, and how many of them can still be heard: a source is
+ *                 "silenced" when it was stopped at or before its start date, or
+ *                 disconnected from the graph before it. Before the fix all of
+ *                 them are audible (that is the defect: a second scale on top of
+ *                 the first); after it, none.
+ *   newest play   the same sources (sample and pitch: buffer length and
+ *                 playback rate) at the same offsets as a baseline press. A
+ *                 chord's or a note's notes are not dated by the engine (each
+ *                 reads Tone.now() in its own call), so their offsets are
+ *                 allowed 20 ms of spread; a scale's, 1.5 ms.
+ *   output        what reaches the destination, tapped by a ScriptProcessor:
+ *                 the energy in two windows after the newest play's first note
+ *                 ("near" 0.15-0.5 s, "whole" to the end of the play), the
+ *                 distance between its amplitude envelope and the baseline's,
+ *                 and its sustain level (the median of the envelope where the
+ *                 baseline sounds). Samplers: energy and envelope. The bass
+ *                 (one Tone.MonoSynth: one oscillator, three signals for every
+ *                 note, no source per note) shows nothing in the dates, and its
+ *                 accents are too random from press to press for an energy or
+ *                 an envelope; its sustain level is what is compared (it nearly
+ *                 doubles when two plays interleave).
  *
- * WHAT THIS IS NOT: it is not listening. "starts" are scheduled dates; "energy"
- * is the render of a headless Chromium's AudioContext, compared window to
- * window. Whether it SOUNDS right (no click at the cut, the new scale clean) is
- * for Gabriel's ears. Gecko (LibreWolf) is not measured.
+ * WHAT THIS IS NOT: it is not listening. "Dates" are scheduled start dates;
+ * "output" is the render of a headless Chromium's AudioContext, compared window
+ * to window. Whether it SOUNDS right (no click at the cut, the new scale
+ * clean) is for Gabriel's ears. Gecko (LibreWolf) is not measured. Chords and
+ * notes pressed again while the first still rings show nothing in the dates (all
+ * starts precede the second press): only the output speaks for them.
  *
- * Positive control: restore the old hook (git checkout origin/main --
- * src/hooks/useDictionaryPlayback.js, or just comment the stopDictionaryVoices()
- * call) and run again: the scale/chord/note lines of every instrument turn red,
- * with the older plays' audible starts and the energy ratio printed. To prove
- * each instrument is covered on its own, make stop() of one voice kind a no-op
- * (e.g. the bass voice in src/audio/dictionaryVoices.js): only that instrument
- * goes red.
+ * Positive control: take the stop out (git checkout origin/main --
+ * src/hooks/useDictionaryPlayback.js, or comment its stopDictionaryVoices()
+ * call) and run again: nearly every line turns red, with the older plays'
+ * audible starts and the output ratios printed. To show an instrument is
+ * covered on its own, make the stop of one kind of voice a no-op in
+ * src/audio/dictionaryVoices.js (the bass's monoSynthVoice, say): only that
+ * instrument's lines turn red.
  *
  *   npm run dictionary_replay:probe                  # port 5214 by default
- *   npm run dictionary_replay:probe -- --only=scale  # or chord, note (comma list)
+ *   npm run dictionary_replay:probe -- --only=scale  # or apenta, chord, note (comma list)
+ *   npm run dictionary_replay:probe -- --scenario="bass then bass"
+ *   npm run dictionary_replay:probe -- --verbose     # every source of every press
+ *   npm run dictionary_replay:probe -- --envelope    # and the envelopes, per 50 ms
  *   npm run dictionary_replay:probe -- --json
  *   DICTIONARY_REPLAY_PROBE_PORT=5214 npm run dictionary_replay:probe
  *
@@ -76,6 +87,7 @@ const args = process.argv.slice(2);
 const AS_JSON = args.includes("--json");
 const KEEP_OPEN = args.includes("--headed");
 const VERBOSE = args.includes("--verbose");
+const ENVELOPE = args.includes("--envelope");
 const ONLY = (args.find((a) => a.startsWith("--only=")) || "").slice("--only=".length).split(",").filter(Boolean);
 const ONLY_SCENARIO = (args.find((a) => a.startsWith("--scenario=")) || "").slice("--scenario=".length);
 
@@ -87,21 +99,28 @@ const INSTRUMENTS = ["piano", "guitar", "bass"];
 // while the first still rings.
 const FAMILIES = [
   { id: "scale", label: "scale of C major", url: "cmajscale", gapMs: 600 },
-  { id: "chord", label: "chord C major", url: "cmaj", gapMs: 300 },
-  { id: "note", label: "single note C", url: "cmaj", panelFamily: 0, gapMs: 300 },
+  // The bass plays only the notes of the scale that lie in its current position on the neck: 3 notes
+  // for C major (C3 D3 C3, under a second), 9 for A minor pentatonic. Too short to leave anything
+  // pending at the second press, so the bass gets its own scale here.
+  { id: "apenta", label: "scale of A minor pentatonic (bass: 9 notes, guitar: 11)", url: "apenta", gapMs: 600 },
+  { id: "chord", label: "chord C major", url: "cmaj", gapMs: 200, undatedNotes: true },
+  { id: "note", label: "single note C", url: "cmaj", panelFamily: 0, gapMs: 200, undatedNotes: true },
 ];
 
 const LOOKAHEAD_S = 0.1; // Tone.now() = currentTime + this: where a press's first note lands
 const CUT_SLIVER_S = 0.02; // see readRun
 // How long the whole newest play lasts, per family, at the default tempo (15 notes x 0.25 s; a 2n).
-const WHOLE_SECONDS = { scale: 4.0, chord: 1.4, note: 1.4 };
+const WHOLE_SECONDS = { scale: 4.0, apenta: 3.0, chord: 1.4, note: 1.4 };
 // Verdict limits (see the doc comment). Every limit on the output is the noise floor measured
 // in the same run (two single presses compared with each other) plus a margin, never a constant
 // alone. PROVISIONAL until calibrated against main and the fix (see the VMU-187 report).
 const STARTS_TOLERANCE_MS = 1;
-const NOISE_MARGIN = 0.1;
+const UNDATED_SPREAD_MS = 20; // a chord / a note: each note reads Tone.now() in its own call
+const ENERGY_UP = 0.12; // a still-sounding older play adds a share of the newest one's energy
+const ENERGY_DOWN = 0.3; // the master compressor, still down from a louder moment, takes some back
 const SHAPE_FACTOR = 1.5;
 const SHAPE_MARGIN = 0.15;
+const LEVEL_TOLERANCE = 0.2;
 
 // ─── dev server (same pattern as scripts/metronome_probe.mjs) ───────────────
 
@@ -165,6 +184,8 @@ function installProbe() {
           t: performance.now(),
           stops: [],
           severedAtCtx: null,
+          // Which note it is: the sampler picks a sample and bends it (playbackRate) to the pitch.
+          sig: this.buffer ? `${this.buffer.duration.toFixed(3)}@${this.playbackRate.value.toFixed(4)}` : "",
         };
         recs.set(this, rec);
         vm.nodes.push(rec);
@@ -357,7 +378,17 @@ function envelopeGrid(run, from, to) {
     while (k + 1 < run.blocks.length && run.blocks[k + 1][0] <= t) k++;
     grid.push(run.blocks.length ? Math.sqrt(run.blocks[k][1]) : 0);
   }
-  return grid;
+  // A 50 ms box filter: a sharp attack landing a few ms earlier or later (the phase of the
+  // blocks, the audio clock's quantum) must not read as a different envelope.
+  return grid.map((_, i) => {
+    let sum = 0;
+    let n = 0;
+    for (let j = Math.max(0, i - 2); j <= Math.min(grid.length - 1, i + 2); j++) {
+      sum += grid[j];
+      n++;
+    }
+    return sum / n;
+  });
 }
 
 /** How far apart two envelopes are: ||a - b|| / ||b||. 0 = identical. */
@@ -371,6 +402,18 @@ function shapeDistance(a, b) {
   return den === 0 ? Infinity : Math.sqrt(num / den);
 }
 
+/** Where the baseline envelope is at least a tenth of its peak: the part of the play that sounds. */
+function activeMask(grid) {
+  const peak = Math.max(...grid);
+  return grid.map((v) => v >= 0.1 * peak);
+}
+
+/** The median of an envelope over the active part: its level between the accents, not the accents. */
+function levelOf(grid, mask) {
+  const values = grid.filter((_, i) => mask[i]).sort((x, y) => x - y);
+  return values.length ? values[Math.floor(values.length / 2)] : 0;
+}
+
 /** What one run says about its newest play and the older ones. */
 function readRun(run, wholeSeconds) {
   const groups = groupByPress(run);
@@ -382,6 +425,7 @@ function readRun(run, wholeSeconds) {
   const ref = lastPress + LOOKAHEAD_S;
   const first = newest.length ? Math.min(...newest.map((n) => n.when)) : ref;
   const offsets = newest.map((n) => n.when - first).sort((a, b) => a - b);
+  const sigs = newest.map((n) => n.sig).sort();
   // The cut is made while the newest press is handled, a few ms after the click returned: a note
   // that starts inside that sliver is "already sounding" for the engine, not pending.
   const cutCtx = lastPress + CUT_SLIVER_S;
@@ -394,13 +438,14 @@ function readRun(run, wholeSeconds) {
   if (VERBOSE) {
     groups.forEach((g, i) => {
       const t0 = run.clicks[i].ctx;
-      console.log(`        [press ${i + 1} at ctx ${f(t0, 3)}] ${g.length} sources: ` + g.map((n) => `${n.kind[0]}@${f(n.when - t0, 3)}${n.stops.length ? ` stop${f(n.stops[n.stops.length - 1] - t0, 3)}` : ""}${n.severedAtCtx !== null ? ` cut${f(n.severedAtCtx - t0, 3)}` : ""}`).join(" "));
+      console.log(`        [press ${i + 1} at ctx ${f(t0, 3)}] ${g.length} sources: ` + g.map((n) => `${n.kind[0]}@${f(n.when - t0, 3)}${n.sig ? `(${n.sig})` : ""}${n.stops.length ? ` stop${f(n.stops[n.stops.length - 1] - t0, 3)}` : ""}${n.severedAtCtx !== null ? ` cut${f(n.severedAtCtx - t0, 3)}` : ""}`).join(" "));
     });
   }
   return {
     plays: groups.map((g) => g.length),
     newestCount: newest.length,
     offsets,
+    sigs,
     olderTotal: older.length,
     olderPending: olderPending.length,
     olderAudible: olderAudible.length,
@@ -459,8 +504,19 @@ try {
         noiseNear: b.near / a.near,
         noiseWhole: b.whole / a.whole,
         noiseShape: shapeDistance(b.shape, a.shape),
+        noiseLevel: levelOf(b.shape, activeMask(a.shape)) / levelOf(a.shape, activeMask(a.shape)),
         noiseOffsetsMs: maxOffsetDeviationMs(b.offsets, a.offsets),
       };
+    }
+
+    // Information, not a verdict: the big "Ecouter" button alone (the guitar chosen without playing,
+    // through its head's name) against the guitar's own play button alone. Same notes, same samples;
+    // if their energy differs, a difference in a later "then Ecouter" line is not the cut's.
+    await press(page, '[data-fn="jouer.instrument-tuile-guitar"]');
+    await page.waitForTimeout(300);
+    const bigAlone = readRun(await runPlays(page, [{ selector: BIG_PLAY }]), WHOLE_SECONDS[family.id]);
+    if (!AS_JSON) {
+      console.log(`    (info) Ecouter alone vs guitar's play button alone: ${bigAlone.newestCount} starts (${baseline.guitar.a.newestCount}), energy near x${f(bigAlone.near / baseline.guitar.a.near)}, whole x${f(bigAlone.whole / baseline.guitar.a.whole)}`);
     }
 
     const gap = family.gapMs;
@@ -482,28 +538,43 @@ try {
       const nearRatio = r.near / ref.a.near;
       const wholeRatio = r.whole / ref.a.whole;
       const shape = shapeDistance(r.shape, ref.a.shape);
-      const noise = Math.max(Math.abs(ref.noiseNear - 1), Math.abs(ref.noiseWhole - 1));
+      const mask = activeMask(ref.a.shape);
+      const level = levelOf(r.shape, mask) / levelOf(ref.a.shape, mask);
+      const sampler = sc.as !== "bass";
       // (1) the older plays: no start at or after the cut can still be heard
       const quiet = r.olderAudible === 0;
-      // (2) the newest play: the same sources at the same offsets as one press alone — for the samplers
-      // (the bass is one oscillator the whole play through: Tone restarts it or not, a count says nothing)
-      const offsetsLimit = Math.max(STARTS_TOLERANCE_MS, ref.noiseOffsetsMs + 1.5);
-      const sameNotes = sc.as === "bass" || (r.newestCount === ref.a.newestCount && devMs <= offsetsLimit);
-      // (3) what reaches the output: the energy and the shape of the newest play, those of a press alone
-      // Two-sided: a second scale on top of the first adds energy (the samplers, x1.6-x2.2 on main);
-      // the bass, one voice, loses some instead (x0.6-x0.7 on main) — both are "not the newest play alone".
-      const energyOk = Math.abs(nearRatio - 1) <= noise + NOISE_MARGIN && Math.abs(wholeRatio - 1) <= noise + NOISE_MARGIN + 0.05;
-      const shapeOk = shape <= SHAPE_FACTOR * ref.noiseShape + SHAPE_MARGIN;
-      const ok = quiet && sameNotes && energyOk && shapeOk;
+      // (2) the newest play: the same sources (sample and pitch) at the same offsets as one press alone —
+      // for the samplers (the bass is one oscillator the whole play through: Tone restarts it or not,
+      // so what it started says nothing). The offsets of a chord or a note are as spread as the audio
+      // clock makes them: each note reads Tone.now() in its own call (measured 0-12 ms on unchanged code).
+      const offsetsLimit = family.undatedNotes ? UNDATED_SPREAD_MS : Math.max(STARTS_TOLERANCE_MS, ref.noiseOffsetsMs + 1.5);
+      const sameSigs = r.sigs.length === ref.a.sigs.length && r.sigs.every((s, i) => s === ref.a.sigs[i]);
+      const sameNotes = !sampler || (sameSigs && devMs <= offsetsLimit);
+      // (3) what reaches the output is that of one press alone. A second scale on top of the first adds
+      // energy (the samplers: x1.2-x2.5 on main); the bass, one voice, does not get louder, it gets
+      // muddled (its sustain level between accents doubles) and its accents are too random from press
+      // to press (noise floor up to 0.35) for an energy or a shape: its level is what is compared.
+      const noiseLevel = Math.abs(ref.noiseLevel - 1);
+      const energyOk = !sampler || (nearRatio <= 1 + ENERGY_UP && nearRatio >= 1 - ENERGY_DOWN && wholeRatio <= 1 + ENERGY_UP && wholeRatio >= 1 - ENERGY_DOWN);
+      const shapeOk = !sampler || shape <= SHAPE_FACTOR * ref.noiseShape + SHAPE_MARGIN;
+      const levelOk = Math.abs(level - 1) <= LEVEL_TOLERANCE + noiseLevel;
+      const ok = quiet && sameNotes && energyOk && shapeOk && levelOk;
       if (!ok) failures++;
       const rest = { ...r };
       delete rest.shape; // the grid is for the comparison, not for the report
-      results.push({ family: family.id, scenario: sc.name, ok, ...rest, devMs, nearRatio, wholeRatio, shape, noise, refCount: ref.a.newestCount });
+      results.push({ family: family.id, scenario: sc.name, ok, ...rest, devMs, nearRatio, wholeRatio, shape, level, refCount: ref.a.newestCount });
+      if (ENVELOPE && !AS_JSON) {
+        const every5 = (g) => g.filter((_, i) => i % 5 === 0).map((v) => Math.round(v * 1000));
+        console.log(`        envelope x1000 per 50 ms, baseline a: ${every5(ref.a.shape).join(" ")}`);
+        console.log(`        envelope x1000 per 50 ms, baseline b: ${every5(ref.b.shape).join(" ")}`);
+        console.log(`        envelope x1000 per 50 ms, this run  : ${every5(r.shape).join(" ")}`);
+      }
       if (!AS_JSON) {
         console.log(`${ok ? "PASS" : "FAIL"}  ${sc.name}   (gap ${r.gapsMs.map((g) => f(g, 0)).join("/")} ms, sources: ${r.kinds})`);
         console.log(`        older plays: ${r.olderPending} starts at or after the cut, ${r.olderAudible} still audible (silenced: ${r.olderPending - r.olderAudible})${quiet ? "" : "   <-- NOT QUIET"}`);
         console.log(`        newest play: ${r.newestCount} starts (baseline ${ref.a.newestCount}), offsets deviate by at most ${f(devMs, 3)} ms (limit ${f(offsetsLimit, 1)})${sameNotes ? "" : "   <-- NOT THE SAME NOTES"}`);
-        console.log(`        output vs one press alone: energy near x${f(nearRatio)}, whole x${f(wholeRatio)} (noise floor of two single presses: near x${f(ref.noiseNear)}, whole x${f(ref.noiseWhole)}); envelope distance ${f(shape)} (noise floor ${f(ref.noiseShape)})${energyOk && shapeOk ? "" : "   <-- NOT THE SAME OUTPUT"}`);
+        console.log(`        output vs one press alone: energy near x${f(nearRatio)}, whole x${f(wholeRatio)}; envelope distance ${f(shape)}; sustain level x${f(level)}${energyOk && shapeOk && levelOk ? "" : "   <-- NOT THE SAME OUTPUT"}`);
+        console.log(`                                   (two single presses against each other: near x${f(ref.noiseNear)}, whole x${f(ref.noiseWhole)}, distance ${f(ref.noiseShape)}, level x${f(ref.noiseLevel)})`);
       }
     }
     await page.close();

@@ -18,6 +18,7 @@ import * as Tone from "tone";
 import { DRUM_PRESETS, BASS_PRESETS, BASS_BASE_VOLUME_DB, PIANO_PRESET } from "./InstrumentPresets";
 import { log } from "../utils/debug";
 import { unlockAudio } from "./transportOwner";
+import { triggerSamplerVoice, monoSynthVoice, polySynthVoice, combineVoices } from "./dictionaryVoices";
 
 // ─── Safety & Analysis: Hard Limiter and FFT ──────────────────────────
 // VMU-020 — this used to be a `Tone.Compressor` named `masterLimiter` and
@@ -522,10 +523,17 @@ export const hatSynth = new Tone.NoiseSynth({
 
 /**
  * Plays a note or chord using the selected instrument, enforcing realistic physical ranges.
- * @param {'piano'|'guitar'|'bass'} instrument 
- * @param {string|string[]} notes 
- * @param {string|number} duration 
+ *
+ * Returns a voice — what this call put into the audio graph and how to take it
+ * back (dictionaryVoices.js) — or null when nothing was played. The Dictionary
+ * hook keeps the voices of a playback and stops them when the next one starts
+ * (VMU-187); the Studio's sequencer calls this too and ignores the return, so
+ * nothing it schedules can be taken back from a Dictionary button.
+ * @param {'piano'|'guitar'|'bass'} instrument
+ * @param {string|string[]} notes
+ * @param {string|number} duration
  * @param {number} [time]
+ * @returns {import("./dictionaryVoices").DictionaryVoice | null}
  */
 export function playDictionaryNote(instrument, notes, duration, time) {
   const noteArray = Array.isArray(notes) ? notes : [notes];
@@ -549,7 +557,7 @@ export function playDictionaryNote(instrument, notes, duration, time) {
     }
   });
 
-  if (filteredNotes.length === 0) return; // Physically impossible note = silence
+  if (filteredNotes.length === 0) return null; // Physically impossible note = silence
 
   if (instrument === "bass") {
     // bassSynthDictionary is MonoSynth; we only play the root/lowest note of a chord
@@ -568,6 +576,7 @@ export function playDictionaryNote(instrument, notes, duration, time) {
     // its genre-dependent bass timbre changes (VMU-025, tranche T2, out of
     // scope here).
     bassSynthDictionary.triggerAttackRelease(lowestNote, duration, time);
+    return bassDictionaryVoice;
   } else if (instrument === "guitar") {
     const gSynth = getGuitarSynth();
     if (!time && gSynth.releaseAll) gSynth.releaseAll();
@@ -582,17 +591,20 @@ export function playDictionaryNote(instrument, notes, duration, time) {
       // quiet sample as well as cut a loud one. It is a single scalar per
       // call, not one per note, so a chord's notes are triggered one at a
       // time here rather than as one array call, each at the same `time`.
-      filteredNotes.forEach((n) => {
-        gSynth.triggerAttackRelease(n, duration, time, guitarSampleVelocity(n));
-      });
-    } else {
-      gSynth.triggerAttackRelease(filteredNotes, duration, time);
+      // VMU-187: triggerSamplerVoice is `triggerAttackRelease` (same sources,
+      // same dates) that keeps hold of the sources it makes.
+      return combineVoices(
+        filteredNotes.map((n) => triggerSamplerVoice(gSynth, n, duration, time, guitarSampleVelocity(n)))
+      );
     }
-  } else {
-    const pSynth = getPianoSynth();
-    if (!time && pSynth.releaseAll) pSynth.releaseAll();
-    pSynth.triggerAttackRelease(filteredNotes, duration, time);
+    gSynth.triggerAttackRelease(filteredNotes, duration, time);
+    return polySynthVoice(gSynth);
   }
+  const pSynth = getPianoSynth();
+  if (!time && pSynth.releaseAll) pSynth.releaseAll();
+  if (pSynth === pianoSampler) return triggerSamplerVoice(pSynth, filteredNotes, duration, time);
+  pSynth.triggerAttackRelease(filteredNotes, duration, time);
+  return polySynthVoice(pSynth);
 }
 
 // ─── Bass ────────────────────────────────────────────────────────────
@@ -650,6 +662,10 @@ export const bassSynth = buildMonoBassSynth(
 // (sustain 0.4 vs electronic's 0.1), which no amount of volume compensation
 // corrects.
 export const bassSynthDictionary = buildMonoBassSynth(BASS_BASE_VOLUME_DB, BASS_PRESETS.electronic);
+
+// What taking a Dictionary bass note back means (VMU-187): the one voice carries
+// every note, so it is one handle for all of them. See dictionaryVoices.js.
+const bassDictionaryVoice = monoSynthVoice(bassSynthDictionary);
 
 // ─── Genre Switching ─────────────────────────────────────────────────
 

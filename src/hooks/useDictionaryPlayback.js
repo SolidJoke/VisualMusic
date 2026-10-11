@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import * as Tone from 'tone';
 import { CHORDS, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute, midiToNoteName, computeAbsoluteNote } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
+import { rememberDictionaryVoice, stopDictionaryVoices } from "../audio/dictionaryVoices";
 import { logPlaybackSequence, logNotePlay } from "../core/debugScale";
 import { getInstrumentTuning, buildAscDescSequence } from "./playbackUtils";
 import { realizeScale, realizeNote } from "../core/noteEngine";
@@ -147,12 +148,21 @@ export function useDictionaryPlayback({
       notesToPlay = absolutePitches.map((p) => midiToNoteName(typeof p === "object" ? p.absoluteValue : p));
     }
 
+    // VMU-187 — a new playback stops the previous one, whichever button started
+    // either: the notes it had already made sound and the ones it had scheduled
+    // for later (a scale is scheduled whole, up front). The session token below
+    // only gates what the display does; it takes nothing back from the audio
+    // graph. Done here, after the await and in the same turn as the scheduling
+    // that follows, so two presses can never interleave their notes; and for
+    // what THIS hook played only — the Studio's notes are not remembered.
+    stopDictionaryVoices();
+
     const currentToken = scheduler.startPlaybackSession();
-    
+
     setCurrentlyPlayingNotes([]);
 
     if (dictType?.includes("chord")) {
-      playDictionaryNote(instrument, notesToPlay, "2n");
+      rememberDictionaryVoice(playDictionaryNote(instrument, notesToPlay, "2n"));
       setCurrentlyPlayingNotes(absolutePitches);
       Tone.getDraw().schedule(() => {
         if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
@@ -210,7 +220,7 @@ export function useDictionaryPlayback({
         const pitch = typeof pitchOrObj === 'object' ? pitchOrObj.absoluteValue : pitchOrObj;
         const scheduleTime = sequenceBaseTime + index * stepTime;
         const noteNameStr = midiToNoteName(pitch);
-        playDictionaryNote(instrument, noteNameStr, "8n", scheduleTime);
+        rememberDictionaryVoice(playDictionaryNote(instrument, noteNameStr, "8n", scheduleTime));
         const pathItem = (instrument === "guitar" || instrument === "bass")
           && typeof pitchOrObj === 'object'
           ? pitchOrObj
@@ -235,7 +245,7 @@ export function useDictionaryPlayback({
       const absNote = first !== undefined
         ? (typeof first === "object" ? first.absoluteValue : first)
         : computeAbsoluteNote(Number(dictRoot), dictOctave || 0);
-      playDictionaryNote(instrument, midiToNoteName(absNote), "2n");
+      rememberDictionaryVoice(playDictionaryNote(instrument, midiToNoteName(absNote), "2n"));
       setCurrentlyPlayingNotes([absNote]);
       Tone.getDraw().schedule(() => {
         if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
