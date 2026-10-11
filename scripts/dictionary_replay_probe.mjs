@@ -116,7 +116,7 @@ const WHOLE_SECONDS = { scale: 4.0, apenta: 3.0, chord: 1.4, note: 1.4 };
 // alone. PROVISIONAL until calibrated against main and the fix (see the VMU-187 report).
 const STARTS_TOLERANCE_MS = 1;
 const UNDATED_SPREAD_MS = 20; // a chord / a note: each note reads Tone.now() in its own call
-const ENERGY_UP = 0.12; // a still-sounding older play adds a share of the newest one's energy
+const ENERGY_UP = 0.25; // a sanity bound: the older-play readings above decide; this catches a play that is plainly louder
 const ENERGY_DOWN = 0.3; // the master compressor, still down from a louder moment, takes some back
 const SHAPE_FACTOR = 1.5;
 const SHAPE_MARGIN = 0.15;
@@ -254,7 +254,7 @@ function installProbe() {
   for (const name of addsEvent) {
     const orig = AudioParam.prototype[name];
     AudioParam.prototype[name] = function patched(...a) {
-      listOf(this).push({ time: a[1] ?? 0, wall: performance.now() });
+      listOf(this).push({ time: a[1] ?? 0, wall: performance.now(), ctx: vm.ctx ? vm.ctx.currentTime : 0 });
       return orig.apply(this, a);
     };
   }
@@ -459,7 +459,7 @@ function levelOf(grid, mask) {
 }
 
 /** What one run says about its newest play and the older ones. */
-function readRun(run, wholeSeconds) {
+function readRun(run, wholeSeconds, naturalStops = null) {
   const groups = groupByPress(run);
   const newest = groups[groups.length - 1];
   const older = groups.slice(0, -1).flat();
@@ -470,14 +470,46 @@ function readRun(run, wholeSeconds) {
   const first = newest.length ? Math.min(...newest.map((n) => n.when)) : ref;
   const offsets = newest.map((n) => n.when - first).sort((a, b) => a - b);
   const sigs = newest.map((n) => n.sig).sort();
-  // The cut is made while the newest press is handled, a few ms after the click returned: a note
-  // that starts inside that sliver is "already sounding" for the engine, not pending.
-  const cutCtx = lastPress + CUT_SLIVER_S;
+  // The cut is made while the newest press is handled, after the click returned (a few ms, or the tens
+  // of ms a render of this page takes): a note or an event that falls before that instant has already
+  // started for the engine, it is not pending. The instant is read from the first thing the newest
+  // press did to the audio graph (a source it started, a signal it scheduled).
+  const lastPressWallMs = run.clicks[run.clicks.length - 1].t;
+  const handledAt = Math.min(
+    ...newest.map((n) => n.ctxAtCall),
+    ...run.automation.filter((e) => e.wall >= lastPressWallMs).map((e) => e.ctx),
+  );
+  const cutCtx = Math.max(lastPress + CUT_SLIVER_S, Number.isFinite(handledAt) ? handledAt - 0.005 : 0);
   const olderPending = older.filter((n) => n.when >= cutCtx);
   const olderAudible = olderPending.filter(audibleAtStart);
+  // Sampler notes that were sounding at the cut and had a good while left (a baseline press tells how
+  // long each sample rings: its last native stop() minus its start): was the stop brought forward?
+  // Tone's own stop() is timer-driven, so the native stop() date is when the note really ended.
+  // Two copies of the same sample half a second apart add or cancel by phase, so the output alone
+  // cannot tell a chord that rings on from one that was cut; this can.
+  const naturalOf = new Map();
+  for (const n of newest) {
+    if (n.kind === "buffer" && n.stops.length) naturalOf.set(n.sig, n.stops[n.stops.length - 1] - n.when);
+  }
+  let soundingAtCut = 0;
+  let stoppedEarly = 0;
+  if (naturalStops) {
+    for (const n of older) {
+      const natural = naturalStops.get(n.sig);
+      if (n.kind !== "buffer" || n.when >= cutCtx || natural === undefined) continue;
+      if (n.when + natural <= cutCtx + 0.3) continue; // over, or about to be: nothing to bring forward
+      soundingAtCut++;
+      const lastStop = n.stops.length ? n.stops[n.stops.length - 1] : Infinity;
+      if (lastStop <= n.when + natural - 0.15) stoppedEarly++;
+    }
+  }
   // Events (pitch, amplitude, filter...) the older plays scheduled for the cut or later and nothing took back.
   const lastPressWall = run.clicks[run.clicks.length - 1].t;
-  const olderAutomation = run.automation.filter((e) => e.wall < lastPressWall && e.time >= cutCtx).length;
+  const olderAutomationEvents = run.automation.filter((e) => e.wall < lastPressWall && e.time >= cutCtx);
+  const olderAutomation = olderAutomationEvents.length;
+  if (VERBOSE && olderAutomation > 0) {
+    console.log(`        signal events left by the older plays, seconds after the last press: ${olderAutomationEvents.map((e) => f(e.time - lastPress, 3)).join(" ")}`);
+  }
   const near = energy(run, ref + 0.15, ref + 0.5);
   const whole = energy(run, ref + 0.15, ref + wholeSeconds);
   const shape = envelopeGrid(run, ref + 0.15, ref + wholeSeconds);
@@ -497,6 +529,9 @@ function readRun(run, wholeSeconds) {
     olderPending: olderPending.length,
     olderAudible: olderAudible.length,
     olderAutomation,
+    naturalOf,
+    soundingAtCut,
+    stoppedEarly,
     near,
     whole,
     shape,
@@ -567,6 +602,10 @@ try {
       console.log(`    (info) Ecouter alone vs guitar's play button alone: ${bigAlone.newestCount} starts (${baseline.guitar.a.newestCount}), energy near x${f(bigAlone.near / baseline.guitar.a.near)}, whole x${f(bigAlone.whole / baseline.guitar.a.whole)}`);
     }
 
+    // How long each sample of this family really rings (last native stop - start), from the baseline presses.
+    const naturalAll = new Map();
+    for (const id of INSTRUMENTS) for (const [sig, offset] of baseline[id].a.naturalOf) naturalAll.set(sig, offset);
+
     const gap = family.gapMs;
     const scenarios = [];
     for (const id of INSTRUMENTS) {
@@ -580,7 +619,7 @@ try {
     for (const sc of scenarios) {
       if (ONLY_SCENARIO && !sc.name.includes(ONLY_SCENARIO)) continue;
       const run = await runPlays(page, sc.plays);
-      const r = readRun(run, WHOLE_SECONDS[family.id]);
+      const r = readRun(run, WHOLE_SECONDS[family.id], naturalAll);
       const ref = baseline[sc.as];
       const devMs = maxOffsetDeviationMs(r.offsets, ref.a.offsets);
       const nearRatio = r.near / ref.a.near;
@@ -594,7 +633,8 @@ try {
       // on the signals of the one voice (a pitch event per note) is what is counted. Not asked of a
       // mixed scenario: a sampler's own gain events would be counted there, and they are not audible.
       const bassAlone = sc.plays.every((p) => p.selector === HEAD_PLAY("bass"));
-      const quiet = r.olderAudible === 0 && (!bassAlone || r.olderAutomation === 0);
+      const ringsOn = r.soundingAtCut - r.stoppedEarly;
+      const quiet = r.olderAudible === 0 && ringsOn === 0 && (!bassAlone || r.olderAutomation === 0);
       // (2) the newest play: the same sources (sample and pitch) at the same offsets as one press alone —
       // for the samplers (the bass is one oscillator the whole play through: Tone restarts it or not,
       // so what it started says nothing). The offsets of a chord or a note are as spread as the audio
@@ -614,6 +654,7 @@ try {
       if (!ok) failures++;
       const rest = { ...r };
       delete rest.shape; // the grid is for the comparison, not for the report
+      delete rest.naturalOf;
       results.push({ family: family.id, scenario: sc.name, ok, ...rest, devMs, nearRatio, wholeRatio, shape, level, refCount: ref.a.newestCount });
       if (ENVELOPE && !AS_JSON) {
         const every5 = (g) => g.filter((_, i) => i % 5 === 0).map((v) => Math.round(v * 1000));
@@ -623,7 +664,7 @@ try {
       }
       if (!AS_JSON) {
         console.log(`${ok ? "PASS" : "FAIL"}  ${sc.name}   (gap ${r.gapsMs.map((g) => f(g, 0)).join("/")} ms, sources: ${r.kinds})`);
-        console.log(`        older plays: ${r.olderPending} starts at or after the cut, ${r.olderAudible} still audible (silenced: ${r.olderPending - r.olderAudible})${bassAlone ? `; ${r.olderAutomation} signal events still scheduled at or after the cut` : ""}${quiet ? "" : "   <-- NOT QUIET"}`);
+        console.log(`        older plays: ${r.olderPending} starts at or after the cut, ${r.olderAudible} still audible (silenced: ${r.olderPending - r.olderAudible}); ${r.soundingAtCut} sounding at the cut with time to spare, ${r.stoppedEarly} stopped early${bassAlone ? `; ${r.olderAutomation} signal events still scheduled at or after the cut` : ""}${quiet ? "" : "   <-- NOT QUIET"}`);
         console.log(`        newest play: ${r.newestCount} starts (baseline ${ref.a.newestCount}), offsets deviate by at most ${f(devMs, 3)} ms (limit ${f(offsetsLimit, 1)})${sameNotes ? "" : "   <-- NOT THE SAME NOTES"}`);
         console.log(`        output vs one press alone: energy near x${f(nearRatio)}, whole x${f(wholeRatio)}; envelope distance ${f(shape)}; sustain level x${f(level)}${energyOk && shapeOk && levelOk ? "" : "   <-- NOT THE SAME OUTPUT"}`);
         console.log(`                                   (two single presses against each other: near x${f(ref.noiseNear)}, whole x${f(ref.noiseWhole)}, distance ${f(ref.noiseShape)}, level x${f(ref.noiseLevel)})`);
