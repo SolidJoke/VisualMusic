@@ -500,7 +500,10 @@ function readRun(run, wholeSeconds, naturalStops = null) {
       if (n.when + natural <= cutCtx + 0.3) continue; // over, or about to be: nothing to bring forward
       soundingAtCut++;
       const lastStop = n.stops.length ? n.stops[n.stops.length - 1] : Infinity;
-      if (lastStop <= n.when + natural - 0.15) stoppedEarly++;
+      // Cut short = its stop() came early, or it was taken out of the graph early (a note the engine
+      // found not yet started at its own cut, a few ms before this one is seen to have started).
+      const severed = n.severedAtCtx !== null ? n.severedAtCtx : Infinity;
+      if (Math.min(lastStop, severed) <= n.when + natural - 0.15) stoppedEarly++;
     }
   }
   // Events (pitch, amplitude, filter...) the older plays scheduled for the cut or later and nothing took back.
