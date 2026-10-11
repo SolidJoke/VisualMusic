@@ -195,7 +195,7 @@ async function runState(browser, viewport, mode, { blockFonts = null } = {}) {
     await page.route(pattern, (route) => route.abort());
   }
   try {
-    await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
     await page.locator(".sidebar-cta-btn, .bottom-nav-btn").first().waitFor({ state: "visible", timeout: 15_000 });
 
     const isPhone = viewport.w < 768;
@@ -267,7 +267,7 @@ async function runActiveStates(browser) {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   const out = {};
   try {
-    await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
     await page.locator(".sidebar-cta-btn").first().waitFor({ state: "visible", timeout: 15_000 });
     const openPopup = async () => {
       await page.locator(".sidebar-cta-btn").first().click(); // "Studio & Harmonie"
@@ -330,7 +330,7 @@ function verifyActiveStates(r) {
 async function runAxeState(browser, { label, dictionary, modal, injectControl }) {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   try {
-    await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
     await page.locator(".sidebar-cta-btn").first().waitFor({ state: "visible", timeout: 15_000 });
     if (dictionary) await page.locator('[data-testid="btn-mode-dictionary"]').click();
     if (modal) {
@@ -373,7 +373,7 @@ async function runAxeState(browser, { label, dictionary, modal, injectControl })
 async function captureBlackRatio(browser) {
   const page = await browser.newPage({ viewport: { width: 3840, height: 2160 } });
   try {
-    await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
     await page.locator(".sidebar-cta-btn, .bottom-nav-btn").first().waitFor({ state: "visible", timeout: 15_000 });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(500);

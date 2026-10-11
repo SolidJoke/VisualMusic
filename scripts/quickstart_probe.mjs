@@ -102,7 +102,7 @@ async function main() {
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
   try {
-    await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
     await page.locator(".sidebar-cta-btn").first().waitFor({ state: "visible", timeout: 15_000 });
     await page.locator(".sidebar-cta-btn").first().click(); // "Studio & Harmonie"
     await page.locator(".modal-container").first().waitFor({ state: "visible", timeout: 5_000 });
