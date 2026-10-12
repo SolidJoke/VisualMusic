@@ -78,6 +78,8 @@ export const A_PRIME_ACCESS = [
   { fn: "jouer.instrument-play-piano", where: "instruments", needs: "dictionary" },
   { fn: "jouer.instrument-play-guitar", where: "instruments", needs: "dictionary" },
   { fn: "jouer.instrument-play-bass", where: "instruments", needs: "dictionary" },
+  // VMU-186: "instruments" = the Dictionary's piano head; in the Studio the same
+  // pair sits in the selection row ("Octave des accords"), never on the head too.
   { fn: "jouer.octave-piano-prec", where: "instruments" },
   { fn: "jouer.octave-piano-suiv", where: "instruments" },
   { fn: "jouer.position-guitar-prec", where: "instruments", needs: "dictionary" },

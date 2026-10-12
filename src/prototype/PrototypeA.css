@@ -298,6 +298,24 @@
   min-width: 0;
 }
 
+/* VMU-186 - the Studio's "Octave des accords": the label, then ‹ Do4 › made of
+   the heads' own 48px arrows (.proto-a__head-btn) and label, 4px apart as in a
+   head. The value is a note name ("Do4", "Sol♯6"): a width of its own keeps the
+   arrows from moving when it changes. */
+.proto-a__field--octave {
+  gap: 4px;
+}
+
+.proto-a__field--octave > .proto-a__muted {
+  margin-right: 12px;
+}
+
+.proto-a__field--octave .proto-a__head-label {
+  flex: 0 0 auto;
+  min-width: 5ch;
+  padding: 0 8px;
+}
+
 /* CustomSelect is width: 100% of its parent: here each one has a width of its
    own, wide enough for its longest name (S1-23 measures that no name is cut). */
 .proto-a__field .custom-select-container {
