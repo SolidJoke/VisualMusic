@@ -346,6 +346,14 @@ export const translations = {
     },
     // VMU-182 (A′-ACCÈS): every label of the A′ page (?prototype=a), none hard-coded.
     protoA: {
+      // VMU-126/050: the confirmation before a change of style or mode erases edits.
+      confirmKeep: "Garder mes modifications",
+      confirmStyleTitle: "Changer de style ?",
+      confirmStyleBody: "Tu as modifié la progression, le rythme ou la batterie. Changer de style efface ces modifications.",
+      confirmStyleAction: "Changer de style",
+      confirmModeTitle: "Changer de mode ?",
+      confirmModeBody: "Tu as modifié la progression, le rythme ou la batterie. Changer de mode efface ces modifications.",
+      confirmModeAction: "Changer de mode",
       title: "VisualMusic",
       modesAria: "Modes",
       tabStudio: "Studio",
@@ -742,6 +750,14 @@ export const translations = {
       metronomeOff: "Metronome off"
     },
     protoA: {
+      // VMU-126/050: the confirmation before a change of style or mode erases edits.
+      confirmKeep: "Keep my changes",
+      confirmStyleTitle: "Change style?",
+      confirmStyleBody: "You changed the progression, the rhythm or the drums. Changing style erases these changes.",
+      confirmStyleAction: "Change style",
+      confirmModeTitle: "Change mode?",
+      confirmModeBody: "You changed the progression, the rhythm or the drums. Changing mode erases these changes.",
+      confirmModeAction: "Change mode",
       title: "VisualMusic",
       modesAria: "Modes",
       tabStudio: "Studio",
@@ -1076,6 +1092,14 @@ export const translations = {
       metronomeOff: "Metrônomo desativado"
     },
     protoA: {
+      // VMU-126/050: the confirmation before a change of style or mode erases edits.
+      confirmKeep: "Manter as minhas alterações",
+      confirmStyleTitle: "Mudar de estilo?",
+      confirmStyleBody: "Você alterou a progressão, o ritmo ou a bateria. Mudar de estilo apaga essas alterações.",
+      confirmStyleAction: "Mudar de estilo",
+      confirmModeTitle: "Mudar de modo?",
+      confirmModeBody: "Você alterou a progressão, o ritmo ou a bateria. Mudar de modo apaga essas alterações.",
+      confirmModeAction: "Mudar de modo",
       title: "VisualMusic",
       modesAria: "Modos",
       tabStudio: "Estúdio",
@@ -1449,6 +1473,14 @@ export const translations = {
       metronomeOff: "节拍器已关闭"
     },
     protoA: {
+      // VMU-126/050: the confirmation before a change of style or mode erases edits.
+      confirmKeep: "保留我的修改",
+      confirmStyleTitle: "切换风格？",
+      confirmStyleBody: "你修改了和弦进行、节奏或鼓点。切换风格会清除这些修改。",
+      confirmStyleAction: "切换风格",
+      confirmModeTitle: "切换模式？",
+      confirmModeBody: "你修改了和弦进行、节奏或鼓点。切换模式会清除这些修改。",
+      confirmModeAction: "切换模式",
       title: "VisualMusic",
       modesAria: "模式",
       tabStudio: "工作室",

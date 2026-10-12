@@ -6,6 +6,7 @@ import { getChordIntervalLabel } from "../core/harmonyEngine";
 import { realizeScale, realizeChord, realizeNote } from "../core/noteEngine";
 import { octaveClearsPlacement } from "../core/placements";
 import { useAppContext } from "../context/AppContext";
+import { loadPersisted } from "../utils/persistedState";
 
 /** @typedef {{guitar: number|null, bass: number|null}} PlacementIndexes */
 
@@ -29,8 +30,10 @@ export function useDictionaryMode({ pianoOwnsOctave } = { pianoOwnsOctave: false
   const { harmonicMode } = state;
   const setHarmonicMode = (val) => dispatch({ type: 'SET_HARMONIC_MODE', payload: val });
 
-  const [dictRoot, setDictRoot] = useState(0);
-  const [dictType, setDictType] = useState("single_note");
+  // VMU-050: the root, type and octave the last visit left (validated; the
+  // defaults when nothing usable is stored).
+  const [dictRoot, setDictRoot] = useState(() => loadPersisted().dictRoot ?? 0);
+  const [dictType, setDictType] = useState(() => loadPersisted().dictType ?? "single_note");
   const [fretboardZone, setFretboardZone] = useState("all");
   const [selectedRootStringGuitar, setSelectedRootStringGuitar] = useState(null);
   const [selectedRootStringBass, setSelectedRootStringBass] = useState(null);
@@ -42,7 +45,7 @@ export function useDictionaryMode({ pianoOwnsOctave } = { pianoOwnsOctave: false
   // not the neck's.
   const [placementIndex, setPlacementIndexState] = useState(NO_PLACEMENT);
   const [scaleAnchor, setScaleAnchor] = useState(null); // { stringIndex, fret, absoluteValue }
-  const [dictOctave, setDictOctave] = useState(0); // -3..+3 (offset relative to octave 4)
+  const [dictOctave, setDictOctave] = useState(() => loadPersisted().dictOctave ?? 0); // -3..+3 (offset relative to octave 4)
 
   /**
    * Chooses a position on one neck (`index` into its list), or null for its default.

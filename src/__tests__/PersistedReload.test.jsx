@@ -232,7 +232,7 @@ describe("VMU-050 - a damaged memory never stops the app", () => {
   });
 
   it("an out-of-range octave is ignored and the other fields still apply", () => {
-    plant({ v: 1, appMode: "dictionary", lang: "en", dictOctave: 17, dictRoot: 5 });
+    plant({ v: 1, appMode: "dictionary", lang: "en", dictType: "chord_major", dictOctave: 17, dictRoot: 5 });
     mount();
     openWindow();
     expect(screen.getByTestId("dictionary-panel")).toBeTruthy();
