@@ -138,6 +138,12 @@ const headLabel = (id) => {
   return el ? el.textContent.trim() : null;
 };
 
+/** The Studio's "Octave des accords" (VMU-186): its value, in the selection row, not on the piano head. */
+const chordOctaveLabel = () => {
+  const el = document.querySelector('[data-testid="selection-chord-octave"] .proto-a__head-label');
+  return el ? el.textContent.trim() : null;
+};
+
 /** What a neck draws, from PrototypeA's data-s1-positions: its lowest and highest fret. */
 function neckFrets(id) {
   const raw = document.querySelector(`[data-s1="${id}"]`).getAttribute("data-s1-positions") || "";
@@ -371,14 +377,14 @@ describe("L1b-1b (f): the Studio — no ▶ in the heads, the shape shown withou
     await renderApp("?prototype=a");
     const seq = () => document.querySelector('[data-testid="sequencer-stub"]').getAttribute("data-octave");
     expect(seq()).toBe("0");
-    expect(headLabel("piano")).toBe("Do4");
+    expect(chordOctaveLabel()).toBe("Do4");
     await press(fn("jouer.octave-piano-suiv"));
     expect(seq()).toBe("1");
-    expect(headLabel("piano")).toBe("Do5");
+    expect(chordOctaveLabel()).toBe("Do5");
     await press(fn("jouer.octave-piano-prec"));
     await press(fn("jouer.octave-piano-prec"));
     expect(seq()).toBe("-1");
-    expect(headLabel("piano")).toBe("Do3");
+    expect(chordOctaveLabel()).toBe("Do3");
   });
 
   it("with a chord clicked, the arrow clears its notes like the Studio window's octave does (the next chord is voiced at the new octave)", async () => {
@@ -388,10 +394,10 @@ describe("L1b-1b (f): the Studio — no ▶ in the heads, the shape shown withou
     const seq = () => document.querySelector('[data-testid="sequencer-stub"]').getAttribute("data-octave");
     expect(seq()).toBe("2");
     expect(pianoNotes().length).toBeGreaterThan(0);
-    expect(headLabel("piano")).toBe("Do6");
+    expect(chordOctaveLabel()).toBe("Do6");
     await press(fn("jouer.octave-piano-prec"));
     expect(seq()).toBe("1");
-    expect(headLabel("piano")).toBe("Do5");
+    expect(chordOctaveLabel()).toBe("Do5");
     expect(pianoNotes()).toEqual([]);
   });
 
