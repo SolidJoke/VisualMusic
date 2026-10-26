@@ -24,6 +24,7 @@ import {
   familyOptions,
   dictFamily,
   dictTypeForFamily,
+  dictTypeOnFamilyClick,
 } from "../selectionOptions";
 
 const leaves = (options) => options.flatMap((o) => (o.items ? o.items : [o]));
@@ -111,5 +112,23 @@ describe("selectionOptions: the family <-> dictType rule", () => {
       translations.fr.familyScale,
     ]);
     expect(familyOptions({}).map((f) => f.label)).toEqual(["🎵 Note", "🎸 Accords", "🎹 Gammes"]);
+  });
+});
+
+describe("VMU-189: dictTypeOnFamilyClick", () => {
+  it("does nothing (null) when the family is already active", () => {
+    expect(dictTypeOnFamilyClick("note", "single_note")).toBeNull();
+    expect(dictTypeOnFamilyClick("chord", "chord_m7")).toBeNull();
+    expect(dictTypeOnFamilyClick("scale", "scale_minor")).toBeNull();
+  });
+
+  it("picks a family's first type when another family is chosen", () => {
+    expect(dictTypeOnFamilyClick("chord", "scale_minor")).toBe("chord_major");
+    expect(dictTypeOnFamilyClick("note", "chord_m7")).toBe("single_note");
+    expect(dictTypeOnFamilyClick("scale", "single_note")).toBe("scale_major");
+  });
+
+  it("returns null for an unknown family", () => {
+    expect(dictTypeOnFamilyClick("other", "scale_minor")).toBeNull();
   });
 });

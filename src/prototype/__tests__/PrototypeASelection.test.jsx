@@ -252,18 +252,23 @@ describe("VMU-185 (d): choosing a family", () => {
     fireEvent.click(button);
   };
 
-  it("Chords -> setDictType('chord_major'), Scales -> 'scale_major', Single note -> 'single_note'", () => {
+  it("Chords -> setDictType('chord_major'), Single note -> 'single_note'", () => {
     const setDictType = vi.fn();
     const setDictRoot = vi.fn();
     const page = renderPage({ appMode: "dictionary", dictType: "scale_blues", setDictType, setDictRoot });
     press(page, translations.fr.familyChord);
     expect(setDictType).toHaveBeenLastCalledWith("chord_major");
-    press(page, translations.fr.familyScale);
-    expect(setDictType).toHaveBeenLastCalledWith("scale_major");
     press(page, translations.fr.familyNote);
     expect(setDictType).toHaveBeenLastCalledWith("single_note");
-    expect(setDictType).toHaveBeenCalledTimes(3);
+    expect(setDictType).toHaveBeenCalledTimes(2);
     expect(setDictRoot, "a family changes the type only").not.toHaveBeenCalled();
+  });
+
+  it("VMU-189: pressing the family that is already active calls nothing", () => {
+    const setDictType = vi.fn();
+    const page = renderPage({ appMode: "dictionary", dictType: "scale_blues", setDictType });
+    press(page, translations.fr.familyScale);
+    expect(setDictType).not.toHaveBeenCalled();
   });
 });
 

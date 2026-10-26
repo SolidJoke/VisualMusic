@@ -17,7 +17,7 @@ import {
   rootNoteOptions,
   familyOptions,
   dictFamily,
-  dictTypeForFamily,
+  dictTypeOnFamilyClick,
 } from "../../core/selectionOptions";
 
 export default function DictionaryPanel({
@@ -44,7 +44,7 @@ export default function DictionaryPanel({
   const family = dictFamily(dictType);
 
   const handleFamilyChange = (newFamily) => {
-    const next = dictTypeForFamily(newFamily);
+    const next = dictTypeOnFamilyClick(newFamily, dictType);
     if (next) setDictType(next);
   };
 

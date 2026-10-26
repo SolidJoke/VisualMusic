@@ -9,7 +9,7 @@ import {
   scaleOptions,
   familyOptions,
   dictFamily,
-  dictTypeForFamily,
+  dictTypeOnFamilyClick,
 } from "../core/selectionOptions";
 
 /**
@@ -127,7 +127,10 @@ export default function SelectionRow({
                   type="button"
                   className={`proto-a__family-btn ${family === f.key ? "is-active" : ""}`}
                   aria-pressed={family === f.key}
-                  onClick={() => setDictType(dictTypeForFamily(f.key))}
+                  onClick={() => {
+                    const next = dictTypeOnFamilyClick(f.key, dictType);
+                    if (next) setDictType(next);
+                  }}
                 >
                   {f.label}
                 </button>
