@@ -185,10 +185,12 @@ const ACCESS_VIEWPORTS = VIEWPORT_ARG
       { w: 3840, h: 2160, label: "3840x2160" },
     ];
 // --selection-only: S1-23 alone (VMU-185), without the 60 states, S1-20 and S1-21.
-// --confirm-only: S1-24 alone (VMU-126 / VMU-050).
+// --confirm-only: S1-25 alone (VMU-126 / VMU-050).
 const CONFIRM_ONLY = flag("confirm-only");
 const SELECTION_ONLY = flag("selection-only");
-const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CONFIRM_ONLY;
+// --chord-octave-only: S1-24 alone (VMU-186).
+const CHORD_OCTAVE_ONLY = flag("chord-octave-only");
+const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY;
 
 // Thresholds, spec §2 table. `decides` = counts for the A′ / B decision.
 const CRITERIA = [
@@ -1793,11 +1795,13 @@ function headsMeasure() {
 function headFnsFor(mode) {
   return A_PRIME_ACCESS.filter(
     (f) => f.where === "instruments" && /^jouer\.(instrument-|octave-|position-)/.test(f.fn) && (!f.needs || (f.needs === "dictionary" && mode === "dictionary"))
+      // VMU-186: in the Studio the octave pair left the piano head for the selection row (S1-24).
+      && !(mode === "studio" && f.fn.startsWith("jouer.octave-"))
   ).map((f) => f.fn);
 }
 
 /** S1-21 verdict on one headsMeasure(): the list of what failed. */
-function headsFails(where, h, { mode, studioOctave = 0 }) {
+function headsFails(where, h, { mode }) {
   const out = [];
   const ids = ["piano", "guitar", "bass"];
   if (ids.some((id) => !h.cols[id])) return [`${where}: a column has no head`];
@@ -1825,7 +1829,7 @@ function headsFails(where, h, { mode, studioOctave = 0 }) {
       if (!c.label.clearOfArrows) out.push(`${where}: ${id} label "${c.label.text}" runs under an arrow`);
       if (!c.label.insideColumn) out.push(`${where}: ${id} label "${c.label.text}" leaves its column`);
       if (c.label.text && !(c.label.fontSize >= S1_21.labelFont)) out.push(`${where}: ${id} label at ${c.label.fontSize}px, ${S1_21.labelFont} expected`);
-    } else if (id === "piano") out.push(`${where}: the piano has no setting label`);
+    } else if (id === "piano" && mode === "dictionary") out.push(`${where}: the piano has no setting label`);
   }
   // The controls the mode must show, each once (the list is aPrimeAccess.js's).
   const want = headFnsFor(mode);
@@ -1834,9 +1838,9 @@ function headsFails(where, h, { mode, studioOctave = 0 }) {
   const extra = have.filter((fn) => !want.includes(fn));
   if (missing.length) out.push(`${where}: ${missing.join(", ")} not there once`);
   if (extra.length) out.push(`${where}: ${extra.join(", ")} should not be there in ${mode}`);
-  // The piano's label against the oracle: its range in the Dictionary, the base
-  // octave's C in the Studio.
-  const expected = mode === "dictionary" ? pianoRangeOracle(h.cols.piano.notes) : `${S1_22.names.eu.sharp[0]}${4 + studioOctave}`;
+  // The piano's label against the oracle: its range in the Dictionary; in the
+  // Studio none (VMU-186: the base octave is "Octave des accords", S1-24).
+  const expected = mode === "dictionary" ? pianoRangeOracle(h.cols.piano.notes) : null;
   const shown = h.cols.piano.label ? h.cols.piano.label.text : null;
   if (shown !== expected) out.push(`${where}: the piano reads "${shown}", the oracle "${expected}"`);
   // Room under the keyboard, and no scroll.
@@ -1965,16 +1969,12 @@ async function runHeads(browser, viewport) {
     expectEq("scale, piano ›: bass box (unchanged)", t1.bass, t0.bass);
     notes.push(`scale, piano ›: guitar box ${fretSpan(t0.guitar)} -> ${fretSpan(t1.guitar)}, bass box ${fretSpan(t0.bass)} -> ${fretSpan(t1.bass)}, piano ${pianoRangeOracle(t0.notes)} -> ${pianoRangeOracle(t1.notes)}`);
 
-    // The Studio: the piano's arrows are the base octave.
+    // The Studio (VMU-186): the piano head has no setting; the base octave is
+    // "Octave des accords" in the selection row, measured by S1-24.
     await page.locator(sel("nav.mode-studio")).click({ timeout: T });
     await page.waitForTimeout(300);
     const u0 = await read();
-    await click("jouer.octave-piano-suiv");
-    const u1 = await read();
-    expectEq("Studio: piano label at rest", u0.labels.piano, "Do4");
-    expectEq("Studio, piano ›: piano label", u1.labels.piano, "Do5");
-    notes.push(`Studio, piano ›: "${u0.labels.piano}" -> "${u1.labels.piano}"`);
-    await click("jouer.octave-piano-prec");
+    expectEq("Studio: piano head label (none, the octave is in the selection row)", u0.labels.piano, null);
   } catch (err) {
     fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
   } finally {
@@ -2475,7 +2475,7 @@ async function runSelection(browser, viewport) {
     if (JSON.stringify(seen[0].chords) === JSON.stringify(seen[1].chords)) fails.push("[function] the two styles show the same progression in the sequencer");
     notes.push(`styles: ${seen.map((s) => `#${s.index} "${s.label}" ${s.bpm} bpm, sequencer chords [${s.chords.join(" ")}] (read: .daw-helper__chord-name under data-testid daw-helper-chords)`).join(" ; ")}`);
 
-    // VMU-126: a style change that would clear edits now asks first - S1-24 (runConfirm).
+    // VMU-126: a style change that would clear edits now asks first - S1-25 (runConfirm).
   } catch (err) {
     fails.push(`[${clickFailureTag(err)}] ${String(err && err.message ? err.message : err).split("\n")[0]}`);
   } finally {
@@ -2517,7 +2517,7 @@ async function reportSelection(browser, viewport) {
   if (selection.fails.length) console.log(`${lead}   FAILED: ${selection.fails.join(" | ")}`);
 }
 
-// ─── S1-24 (VMU-126 / VMU-050): the confirmation, and the memory ────────────
+// ─── S1-25 (VMU-126 / VMU-050): the confirmation, and the memory ────────────
 // On Gabriel's page (no bench except for the scenario step): an edit (a Quick
 // Start from the drawer) makes a style change - by the row, by the drawer, and a
 // mode change by the header - open the box; "Garder" changes nothing, "Changer"
@@ -2657,15 +2657,104 @@ async function runConfirm(browser, viewport) {
   return { fails, notes };
 }
 
-/** S1-24 on one viewport: run it, keep the verdict, print it. */
+/** S1-25 on one viewport: run it, keep the verdict, print it. */
 async function reportConfirm(browser, viewport) {
   const r = await runConfirm(browser, viewport);
   confirmChecks[viewport.label] = r;
   if (AS_JSON) return;
-  const lead = `${viewport.label} S1-24 (confirm + memory)`;
+  const lead = `${viewport.label} S1-25 (confirm + memory)`;
   console.log(`${lead} ${r.fails.length ? "FAIL" : "PASS"}  an edit makes the row / the drawer menu / the header tabs open the box (never without an edit, never for a scenario); Garder changes nothing, Changer applies; language, notation, mode, root and style survive a reload; a damaged memory opens without error`);
   for (const n of r.notes) console.log(`${lead}   ${n}`);
   if (r.fails.length) console.log(`${lead}   FAILED: ${r.fails.join(" | ")}`);
+}
+
+// ─── S1-24 (VMU-186): the Studio's "Octave des accords" ─────────────────────
+//
+// Studio: no octave arrow and no label on the piano head (its 100px is S1-21's);
+// the pair sits in the selection row on the style's line (48px, on top), the
+// tooltip says the loop and the MIDI export, a real click on › moves the label
+// Do4 -> Do5, the EU / US switch renames it (C5). Dictionary: the pair stays on
+// the piano head, nothing in the row.
+
+/** In page: where the octave pair is (S1-24). */
+function chordOctaveMeasure() {
+  const r = (el) => el.getBoundingClientRect();
+  const arrows = (scope) => [...document.querySelectorAll(`${scope} [data-fn^="jouer.octave-piano-"]`)];
+  const field = document.querySelector('[data-s1="selection"] [data-testid="selection-chord-octave"]');
+  const style = document.querySelector('[data-s1="selection"] [data-fn="composer.style"]');
+  const label = field && field.querySelector(".proto-a__head-label");
+  const mid = (el) => r(el).top + r(el).height / 2;
+  return {
+    head: arrows('[data-s1="piano"] .proto-a__inst-head').length,
+    row: arrows('[data-s1="selection"]').length,
+    page: document.querySelectorAll('[data-fn^="jouer.octave-piano-"]').length,
+    headLabel: Boolean(document.querySelector('[data-s1="piano"] .proto-a__head-label')),
+    field: Boolean(field),
+    title: field ? field.getAttribute("title") : null,
+    label: label ? label.textContent.trim() : null,
+    sameLineAsStyle: Boolean(field && style) && Math.abs(mid(field) - mid(style)) <= 8,
+    targets: arrows('[data-s1="selection"]').map((b) => {
+      const hit = document.elementFromPoint(r(b).left + r(b).width / 2, r(b).top + r(b).height / 2);
+      return { fn: b.getAttribute("data-fn"), w: Math.round(r(b).width), h: Math.round(r(b).height), onTop: Boolean(hit && (hit === b || b.contains(hit))), inViewport: r(b).left >= 0 && r(b).top >= 0 && r(b).right <= innerWidth && r(b).bottom <= innerHeight };
+    }),
+  };
+}
+
+/** S1-24 on one viewport, on Gabriel's page (no bench): Studio, then Dictionary. */
+async function reportChordOctave(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const notes = [];
+  const sel = (id) => `[data-fn="${id}"]`;
+  const eq = (what, got, want) => {
+    if (got !== want) fails.push(`${what}: ${JSON.stringify(got)}, ${JSON.stringify(want)} expected`);
+  };
+  const press = async (id) => {
+    await page.locator(sel(id)).click({ timeout: 4000 });
+    await page.waitForTimeout(250);
+  };
+  try {
+    await page.goto(`${ORIGIN}/?prototype=a`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+    await page.evaluate(() => document.fonts.ready);
+    await page.locator(`${sel("nav.mode-studio")}[aria-pressed="true"]`).waitFor({ timeout: 10_000 });
+    await page.waitForTimeout(300);
+    const m0 = await page.evaluate(chordOctaveMeasure);
+    eq("Studio: octave arrows on the piano head / in the row / in the page", `${m0.head}/${m0.row}/${m0.page}`, "0/2/2");
+    eq("Studio: piano head label", m0.headLabel, false);
+    eq("Studio: the field is in the selection row, on the style's line", `${m0.field}/${m0.sameLineAsStyle}`, "true/true");
+    for (const t of m0.targets) {
+      if (!(t.w >= 47.5 && t.h >= 47.5)) fails.push(`Studio: ${t.fn} ${t.w}x${t.h}px, 48x48 expected`);
+      if (!t.inViewport || !t.onTop) fails.push(`Studio: ${t.fn} ${t.inViewport ? "not on top (elementFromPoint)" : "off screen"}`);
+    }
+    for (const word of ["boucle", "MIDI"]) if (!(m0.title || "").includes(word)) fails.push(`Studio: the tooltip ${JSON.stringify(m0.title)} does not say "${word}"`);
+    eq("Studio: base octave label at rest", m0.label, "Do4");
+    await press("jouer.octave-piano-suiv");
+    const m1 = await page.evaluate(chordOctaveMeasure);
+    eq("Studio, ›: label", m1.label, "Do5");
+    await press("nav.noms-notes-us");
+    eq("Studio, US notation: label", (await page.evaluate(chordOctaveMeasure)).label, "C5");
+    await press("nav.noms-notes-eu");
+    notes.push(`Studio: pair in the row (${m0.targets.map((t) => `${t.w}x${t.h}`).join(", ")}), none on the piano head; "${m0.label}" -> "${m1.label}" on ›; tooltip "${m0.title}"`);
+    await press("nav.mode-dictionnaire");
+    const d = await page.evaluate(chordOctaveMeasure);
+    eq("Dictionary: octave arrows on the piano head / in the row / field", `${d.head}/${d.row}/${d.field}`, "2/0/false");
+    notes.push(`Dictionary: ${d.head} arrows on the piano head, ${d.row} in the row, no field`);
+  } catch (err) {
+    fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
+  } finally {
+    await page.close();
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  chordOctaveChecks[viewport.label] = { fails, notes };
+  if (AS_JSON) return;
+  const lead = `${viewport.label} S1-24 (chord octave)`;
+  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  Studio: no arrow on the piano head, "Octave des accords" in the selection row; Dictionary: the pair on the piano head, nothing in the row`);
+  for (const n of notes) console.log(`${lead}   ${n}`);
+  if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
 
 const { chromium } = await import("playwright");
@@ -2685,6 +2774,7 @@ const noBenchChecks = {};
 const accessChecks = {};
 const headsChecks = {};
 const selectionChecks = {};
+const chordOctaveChecks = {};
 const confirmChecks = {};
 try {
   for (const viewport of ACCESS_ONLY ? [] : VIEWPORTS) {
@@ -2721,6 +2811,10 @@ try {
   }
   // S1-20 (A′-ACCÈS): Gabriel's page, at its own two heights.
   for (const viewport of ACCESS_VIEWPORTS) {
+    if (CHORD_OCTAVE_ONLY) {
+      await reportChordOctave(browser, viewport);
+      continue;
+    }
     if (CONFIRM_ONLY) {
       await reportConfirm(browser, viewport);
       continue;
@@ -2771,7 +2865,9 @@ try {
     }
     // S1-23 (VMU-185): the direct selectors, at the same two heights.
     await reportSelection(browser, viewport);
-    // S1-24 (VMU-126 / VMU-050): the confirmation and the memory.
+    // S1-24 (VMU-186): the Studio's "Octave des accords", at the same two heights.
+    await reportChordOctave(browser, viewport);
+    // S1-25 (VMU-126 / VMU-050): the confirmation and the memory.
     await reportConfirm(browser, viewport);
   }
 } finally {
@@ -2807,13 +2903,16 @@ const headsPassCount = Object.values(headsChecks).filter((c) => c.fails.length =
 // S1-23 decides too (brief VMU-185: "critère de sonde S1-23 « sélection directe » (décisif)").
 const selectionOk = Object.values(selectionChecks).every((c) => c.fails.length === 0);
 const selectionPassCount = Object.values(selectionChecks).filter((c) => c.fails.length === 0).length;
+// S1-24 decides too (brief VMU-186: the Studio's octave setting is where Gabriel chose to put it).
+const chordOctaveOk = Object.values(chordOctaveChecks).every((c) => c.fails.length === 0);
+const chordOctavePassCount = Object.values(chordOctaveChecks).filter((c) => c.fails.length === 0).length;
 const confirmOk = Object.values(confirmChecks).every((c) => c.fails.length === 0);
 const confirmPassCount = Object.values(confirmChecks).filter((c) => c.fails.length === 0).length;
-const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && confirmOk ? "A′" : "B";
+const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, confirmChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
@@ -2826,9 +2925,10 @@ if (AS_JSON) {
   console.log(`  S1-20 ${accessOk ? "PASS" : "FAIL"} ${accessPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  A′-ACCÈS: every function of src/prototype/aPrimeAccess.js on Gabriel's page, on top; openers open and Escape closes; tempo typed; no scroll in FR / EN / PT / ZH; the master volume reaches the engine`);
   console.log(`  S1-21 ${headsOk ? "PASS" : "FAIL"} ${headsPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1b heads: 100 +-1px x3, one line per row, 48px targets on top, labels fitting, keyboard >= ${S1_21.minMargin}px above the window's bottom, no scroll (FR / EN / PT / ZH x Dictionary / Studio); › on the guitar moves the guitar only, › on the piano shifts its notes by 12 and leaves the necks`);
   console.log(`  S1-23 ${selectionOk ? "PASS" : "FAIL"} ${selectionPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-185 direct selectors: a second row of the transport block holding the Studio's style / the Dictionary's family, root note and type (none for a note), on top, 48px, one height in every state (block <= ${S1_23.maxBlock}px), no scroll, no cut name, open lists in the window (drawer closed and open), and they drive the keyboard / necks / sequencer against theory.js (FR / EN / PT / ZH)`);
-  console.log(`  S1-24 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
+  console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);
+  console.log(`  S1-25 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-24 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-25 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

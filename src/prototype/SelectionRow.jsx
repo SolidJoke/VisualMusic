@@ -16,7 +16,12 @@ import {
  * VMU-185 - the direct selectors of A′: the second row of the transport block
  * (PrototypeA.jsx, next to the tempo, the metronome and the volume).
  *
- *   Studio      the style menu.
+ *   Studio      the style menu, then (VMU-186) "Octave des accords" - ‹ Do4 ›,
+ *               the Studio's base octave, whose tooltip says it also shifts the
+ *               loop's chords and the MIDI export. Its arrows are the piano
+ *               head's, moved here in the Studio (same parity-registry names,
+ *               jouer.octave-piano-prec / -suiv, same calls; PrototypeA builds
+ *               the setting and passes it as `chordOctave`).
  *   Dictionary  the family (a note / chords / scales), the root note, and the
  *               type of chord or of scale - none for a single note, which has
  *               no type.
@@ -44,6 +49,7 @@ import {
  *   isDictionary     the mode
  *   currentBrickIndex, setCurrentBrickIndex   the Studio's style (index in BRICKS)
  *   dictRoot, setDictRoot, dictType, setDictType   the Dictionary's selection
+ *   chordOctave      Studio only: {groupLabel, help, label, prev, next}, or null
  */
 export default function SelectionRow({
   T,
@@ -57,6 +63,7 @@ export default function SelectionRow({
   setDictRoot,
   dictType,
   setDictType,
+  chordOctave = null,
 }) {
   const family = dictFamily(dictType);
   const styles = useMemo(() => styleOptions(lang), [lang]);
@@ -64,6 +71,20 @@ export default function SelectionRow({
   const chords = useMemo(() => chordOptions(getGroupedChords(), txt), [txt]);
   const scales = useMemo(() => scaleOptions(getGroupedScales(), txt), [txt]);
   const families = useMemo(() => familyOptions(txt), [txt]);
+  // The stepper's arrows look and name themselves like the heads' (InstrumentHead.jsx).
+  const arrow = (a, glyph) => (
+    <button
+      type="button"
+      className="proto-a__head-btn proto-a__head-arrow"
+      aria-label={a.label}
+      title={a.label}
+      data-fn={a.fn}
+      disabled={Boolean(a.disabled)}
+      onClick={a.onClick}
+    >
+      {glyph}
+    </button>
+  );
 
   return (
     <div className="proto-a__selection" data-s1="selection" role="group" aria-label={T.selectionAria}>
@@ -77,6 +98,21 @@ export default function SelectionRow({
             onChange={(val) => setCurrentBrickIndex && setCurrentBrickIndex(Number(val))}
             options={styles}
           />
+        </div>
+      )}
+
+      {!isDictionary && chordOctave && (
+        <div
+          className="proto-a__field proto-a__field--octave"
+          role="group"
+          aria-label={chordOctave.help}
+          title={chordOctave.help}
+          data-testid="selection-chord-octave"
+        >
+          <span className="proto-a__muted" aria-hidden="true">{chordOctave.groupLabel}</span>
+          {arrow(chordOctave.prev, "‹")}
+          <span className="proto-a__head-label">{chordOctave.label}</span>
+          {arrow(chordOctave.next, "›")}
         </div>
       )}
 

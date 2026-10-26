@@ -78,9 +78,11 @@ import SelectionRow from "./SelectionRow";
  * setting. The piano's ‹ Octave ›: in the Dictionary the common octave, which
  * on this page sets the piano alone (AppDesktop passes pianoOwnsOctave: the
  * necks' default position no longer follows it, C-06 cut), its label the
- * piano's range; in the Studio the "Octave de base" of the Studio window —
- * which also moves the loop's chords and the MIDI export — its label the base
- * octave's C. The necks' ‹ Position ›: INST-B1's list (placementLabel.js, the
+ * piano's range. In the Studio (VMU-186, Gabriel's option B) the piano head has
+ * no setting: the "Octave de base" of the Studio window - which also moves the
+ * loop's chords and the MIDI export - is "Octave des accords" in the selection
+ * row (SelectionRow.jsx), its label the base octave's C, its tooltip saying
+ * those effects. The necks' ‹ Position ›: INST-B1's list (placementLabel.js, the
  * classic PositionSelector's words and cycle), shown when the fingering is
  * (showFingering); in the Studio the shape shown, read-only (the Studio does
  * not read the index). The captions ("aigus ↑", the neck's) are the columns'
@@ -324,15 +326,24 @@ export default function PrototypeA({
     if (setChordOctaveOffset) setChordOctaveOffset(v);
     if (setCurrentAbsoluteNotes) setCurrentAbsoluteNotes([]);
   };
-  const pianoLabel = isDictionary
-    ? formatPitchRange(realizationRange(engine.realizationsByInstrument?.piano), notation)
-    : midiToDisplayName(60 + 12 * octave, notation);
-  const pianoSetting = {
-    groupLabel: T.octaveGroup,
-    label: pianoLabel,
-    prev: { fn: "jouer.octave-piano-prec", label: T.octaveDown, disabled: octave <= OCTAVE_MIN, onClick: () => setOctave(octave - 1) },
-    next: { fn: "jouer.octave-piano-suiv", label: T.octaveUp, disabled: octave >= OCTAVE_MAX, onClick: () => setOctave(octave + 1) },
-  };
+  const octavePrev = { fn: "jouer.octave-piano-prec", label: T.octaveDown, disabled: octave <= OCTAVE_MIN, onClick: () => setOctave(octave - 1) };
+  const octaveNext = { fn: "jouer.octave-piano-suiv", label: T.octaveUp, disabled: octave >= OCTAVE_MAX, onClick: () => setOctave(octave + 1) };
+  // Dictionary: the piano head keeps its ‹ Octave › and its range. Studio
+  // (VMU-186, Gabriel's option B): the same pair, with the same calls and the
+  // same registry names, moves to the selection row as "Octave des accords" -
+  // its value also shifts the loop's chords and the MIDI export, which the
+  // piano head does not say - and the piano head keeps its name, with no setting.
+  const pianoSetting = isDictionary
+    ? {
+        groupLabel: T.octaveGroup,
+        label: formatPitchRange(realizationRange(engine.realizationsByInstrument?.piano), notation),
+        prev: octavePrev,
+        next: octaveNext,
+      }
+    : null;
+  const chordOctaveSetting = isDictionary
+    ? null
+    : { groupLabel: T.chordOctaveGroup, help: T.chordOctaveHelp, label: midiToDisplayName(60 + 12 * octave, notation), prev: octavePrev, next: octaveNext };
   const isScaleMode = isDictionary && typeof dictType === "string" && dictType.includes("scale");
   const neckSetting = (id) => {
     if (!engine.showFingering) return null;
@@ -537,6 +548,7 @@ export default function PrototypeA({
                   setDictRoot={setDictRoot}
                   dictType={dictType}
                   setDictType={setDictType}
+                  chordOctave={chordOctaveSetting}
                 />
               </section>
 
