@@ -364,7 +364,8 @@ export default function PrototypeA({
       notation,
       isScaleMode,
       scaleAnchor: engine.scaleAnchor ?? null,
-      placementIndex: index,
+      // The Studio does not read the position index, so it earns no reset there.
+      placementIndex: isDictionary ? index : null,
       fingering: isGuitar ? engine.guitarFingering : engine.bassFingering,
       // The classic tile shows it in the Dictionary only: in the Studio every instrument
       // holds the chord's theoretical notes, not what its neck plays.
