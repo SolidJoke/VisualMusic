@@ -14,6 +14,7 @@ import CustomSelect from "./components/Common/CustomSelect";
 import InstrumentView from "./components/Panels/InstrumentView";
 import CompositionPanel from "./components/Intelligence/CompositionPanel";
 import Modal from "./components/Common/Modal";
+import ConfirmDialog from "./components/Common/ConfirmDialog";
 import { useSequencer } from "./audio/useSequencer";
 import { useStudioMode } from "./hooks/useStudioMode";
 import { useDictionaryMode } from "./hooks/useDictionaryMode";
@@ -25,7 +26,9 @@ import AboutModal from "./components/Modals/AboutModal";
 import TheoryModal from "./components/Modals/TheoryModal";
 import HelpModal from "./components/Modals/HelpModal";
 import { log } from "./utils/debug";
+import { savePersisted } from "./utils/persistedState";
 import { useAppContext } from "./context/AppContext";
+import { translations } from "./i18n/translations";
 import { MusicEngineProvider } from "./context/MusicEngineContext";
 import { PlaybackProvider } from "./context/PlaybackContext";
 import {
@@ -107,13 +110,50 @@ function AppDesktop() {
     lastClickedContext, setLastClickedContext,
     singlePlayContext, setSinglePlayContext,
     suggestedBassTrack, setSuggestedBassTrack,
-    setCustomProgression,
+    customProgression, setCustomProgression,
     customRhythm, setCustomRhythm,
-    setCustomDrums,
+    customDrums, setCustomDrums,
     activeBrick,
     activeTracks,
     timeline
   } = useStudioMode();
+
+  // VMU-126: changing the style or the mode clears what the user built on top
+  // of the style (the effect below). When there is something to lose, the
+  // change is REQUESTED here and a confirmation opens first; the raw setters
+  // stay for the page's own programmatic changes (A' scenarios, URL states).
+  // The edits are the four overrides of useStudioMode; the clicked chord and
+  // the notes are a selection, not an edit, and clear without a question.
+  const hasEdits = Boolean(customProgression || customRhythm || customDrums || suggestedBassTrack);
+  const [pendingChange, setPendingChange] = useState(null); // { kind: "style" | "mode", value }
+
+  const requestBrickIndex = useCallback((next) => {
+    const index = Number(next);
+    if (pendingChange || index === Number(currentBrickIndex)) return;
+    if (!hasEdits) {
+      setCurrentBrickIndex(index);
+      return;
+    }
+    setPendingChange({ kind: "style", value: index });
+  }, [pendingChange, currentBrickIndex, hasEdits, setCurrentBrickIndex]);
+
+  const requestAppMode = useCallback((next) => {
+    if (pendingChange || next === appMode) return;
+    if (!hasEdits) {
+      setAppMode(next);
+      return;
+    }
+    setPendingChange({ kind: "mode", value: next });
+  }, [pendingChange, appMode, hasEdits, setAppMode]);
+
+  const keepEdits = useCallback(() => setPendingChange(null), []);
+  const applyPendingChange = useCallback(() => {
+    if (!pendingChange) return;
+    const { kind, value } = pendingChange;
+    setPendingChange(null);
+    if (kind === "style") setCurrentBrickIndex(value);
+    else setAppMode(value);
+  }, [pendingChange, setCurrentBrickIndex, setAppMode]);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showStudioModal, setShowStudioModal] = useState(false);
@@ -312,6 +352,16 @@ function AppDesktop() {
     setCustomDrums(null);
   }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression, setClickedChord, setCurrentAbsoluteNotes, setCustomRhythm, setCustomDrums]);
 
+  // VMU-050: what the next visit reopens on, written once, together, when one
+  // of the kept values changes (persistedState.js says which and why). Not the
+  // tempo, the volume, the metronome nor the edits: slice 2.
+  const brickId = activeBrick ? activeBrick.name.en : undefined;
+  useEffect(() => {
+    savePersisted({
+      appMode, lang, notation, playbackInstrument, brickId, chordOctaveOffset, dictRoot, dictType, dictOctave,
+    });
+  }, [appMode, lang, notation, playbackInstrument, brickId, chordOctaveOffset, dictRoot, dictType, dictOctave]);
+
   // Handlers implemented via usePlaybackHandlers
 
   // Track sidebar state and theme on body for CSS selectors
@@ -331,7 +381,7 @@ function AppDesktop() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  useKeyboardShortcuts({ appMode, togglePlayback, setAppMode });
+  useKeyboardShortcuts({ appMode, togglePlayback, setAppMode: requestAppMode });
 
   const playbackContextValue = useMemo(() => ({
     currentStep,
@@ -444,7 +494,7 @@ function AppDesktop() {
   const studioHarmonyPanel = appMode === "studio" ? (
     <StudioPanel
       currentBrickIndex={currentBrickIndex}
-      setCurrentBrickIndex={setCurrentBrickIndex}
+      setCurrentBrickIndex={requestBrickIndex}
       activeBrick={activeBrick}
       currentTheme={currentTheme}
       setCurrentTheme={setCurrentTheme}
@@ -539,6 +589,20 @@ function AppDesktop() {
     </Modal>
   );
 
+  // VMU-126: the question, built once and rendered by both pages. Texts come
+  // from the A' table (protoA) - the French stands in when a language lacks one.
+  const confirmText = (txt.protoA && txt.protoA.confirmKeep) ? txt.protoA : translations.fr.protoA;
+  const confirmDialog = pendingChange ? (
+    <ConfirmDialog
+      title={pendingChange.kind === "style" ? confirmText.confirmStyleTitle : confirmText.confirmModeTitle}
+      body={pendingChange.kind === "style" ? confirmText.confirmStyleBody : confirmText.confirmModeBody}
+      keepLabel={confirmText.confirmKeep}
+      confirmLabel={pendingChange.kind === "style" ? confirmText.confirmStyleAction : confirmText.confirmModeAction}
+      onKeep={keepEdits}
+      onConfirm={applyPendingChange}
+    />
+  ) : null;
+
   const helpModal = <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />;
   const aboutModal = <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />;
   const theoryModal = <TheoryModal isOpen={showTheory} onClose={() => setShowTheory(false)} txt={txt} />;
@@ -557,9 +621,10 @@ function AppDesktop() {
             {theoryModal}
             {mathRhythmsModal}
             {instrumentsAudioModal}
+            {confirmDialog}
           </>
         }
-        modalOpen={showMathModal || showAudioModal || showHelp || Boolean(showAbout) || Boolean(showTheory)}
+        modalOpen={showMathModal || showAudioModal || showHelp || Boolean(showAbout) || Boolean(showTheory) || Boolean(pendingChange)}
         onOpenMath={() => setShowMathModal(true)}
         onOpenAudio={() => setShowAudioModal(true)}
         masterVolume={masterVolume}
@@ -569,11 +634,15 @@ function AppDesktop() {
         // style through the same state and setter as the drawer's StudioPanel.
         lang={lang}
         currentBrickIndex={currentBrickIndex}
-        setCurrentBrickIndex={setCurrentBrickIndex}
+        setCurrentBrickIndex={requestBrickIndex}
         notation={notation}
         setNotation={setNotation}
         appMode={appMode}
         setAppMode={setAppMode}
+        // VMU-126: the header tabs ask first when there are edits to lose;
+        // setAppMode stays raw for the scenarios and L1a states (they set a
+        // whole state and must never open a question).
+        onRequestAppMode={requestAppMode}
         isPlaying={isPlaying}
         togglePlayback={togglePlayback}
         playDictionaryAudio={playDictionaryAudio}
@@ -619,6 +688,7 @@ function AppDesktop() {
       {aboutModal}
 
       {theoryModal}
+      {confirmDialog}
 
       <div className="app-main-content">
         <AppHeader {...headerProps} />
@@ -654,7 +724,7 @@ function AppDesktop() {
             return isMobile ? (
               <BottomNav
                 appMode={appMode}
-                setAppMode={setAppMode}
+                setAppMode={requestAppMode}
                 isPlaying={isPlaying}
                 togglePlayback={togglePlayback}
                 playDictionaryAudio={playDictionaryAudio}
@@ -678,7 +748,7 @@ function AppDesktop() {
                   isOpen={sidebarOpen}
                   toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                   appMode={appMode}
-                  setAppMode={setAppMode}
+                  setAppMode={requestAppMode}
                   isPlaying={isPlaying}
                   togglePlayback={togglePlayback}
                   playDictionaryAudio={playDictionaryAudio}

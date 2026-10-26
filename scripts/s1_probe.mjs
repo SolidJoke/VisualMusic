@@ -185,10 +185,12 @@ const ACCESS_VIEWPORTS = VIEWPORT_ARG
       { w: 3840, h: 2160, label: "3840x2160" },
     ];
 // --selection-only: S1-23 alone (VMU-185), without the 60 states, S1-20 and S1-21.
+// --confirm-only: S1-25 alone (VMU-126 / VMU-050).
+const CONFIRM_ONLY = flag("confirm-only");
 const SELECTION_ONLY = flag("selection-only");
 // --chord-octave-only: S1-24 alone (VMU-186).
 const CHORD_OCTAVE_ONLY = flag("chord-octave-only");
-const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY;
+const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY;
 
 // Thresholds, spec §2 table. `decides` = counts for the A′ / B decision.
 const CRITERIA = [
@@ -2473,19 +2475,7 @@ async function runSelection(browser, viewport) {
     if (JSON.stringify(seen[0].chords) === JSON.stringify(seen[1].chords)) fails.push("[function] the two styles show the same progression in the sequencer");
     notes.push(`styles: ${seen.map((s) => `#${s.index} "${s.label}" ${s.bpm} bpm, sequencer chords [${s.chords.join(" ")}] (read: .daw-helper__chord-name under data-testid daw-helper-chords)`).join(" ; ")}`);
 
-    // VMU-126 (observation, not a criterion): a style change clears the edits
-    // the Studio holds. Load a Quick Start in the drawer, then change the style
-    // through the ROW: the same clearing, two clicks from a closed drawer.
-    await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
-    await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
-    const before = await chordsShown();
-    await page.locator('[data-s1="drawer"] button.btn-premium[title*=" - "]').first().click({ timeout: T });
-    await page.waitForTimeout(300);
-    const quick = await chordsShown();
-    await choose("composer.style", 1);
-    const after = await chordsShown();
-    notes.push(`VMU-126 observed: style #2 chords [${before.join(" ")}] -> Quick Start in the drawer [${quick.join(" ")}] -> style #1 chosen in the ROW [${after.join(" ")}] (the Quick Start is gone, as with the drawer's own menu)`);
-    await page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
+    // VMU-126: a style change that would clear edits now asks first - S1-25 (runConfirm).
   } catch (err) {
     fails.push(`[${clickFailureTag(err)}] ${String(err && err.message ? err.message : err).split("\n")[0]}`);
   } finally {
@@ -2525,6 +2515,157 @@ async function reportSelection(browser, viewport) {
   }
   console.log(`${lead}   sub-criteria failing: ${Object.keys(tags).length ? Object.entries(tags).map(([k, n]) => `${k} x${n}`).join(", ") : "none"}`);
   if (selection.fails.length) console.log(`${lead}   FAILED: ${selection.fails.join(" | ")}`);
+}
+
+// ─── S1-25 (VMU-126 / VMU-050): the confirmation, and the memory ────────────
+// On Gabriel's page (no bench except for the scenario step): an edit (a Quick
+// Start from the drawer) makes a style change - by the row, by the drawer, and a
+// mode change by the header - open the box; "Garder" changes nothing, "Changer"
+// applies and clears; with no edit, never a box (and the box does appear WITH
+// one: the positive control). A scenario never asks. Then the memory: language,
+// notation, mode, root and style survive a reload in the same context and a
+// fresh context opens on the defaults; a damaged memory opens without error.
+async function runConfirm(browser, viewport) {
+  const ctx = async () => (await browser.newContext({ viewport: { width: viewport.w, height: viewport.h } }));
+  const fails = [];
+  const notes = [];
+  const errors = [];
+  const T = 4000;
+  const sel = (id) => `[data-fn="${id}"]`;
+  const KEY = "visualmusic.state.v1";
+  let page;
+  const watch = (p) => {
+    p.on("pageerror", (e) => errors.push(String(e)));
+    p.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+  };
+  const open = async (query = "") => {
+    await page.goto(`${ORIGIN}/?prototype=a${query}`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    await page.waitForTimeout(400);
+  };
+  const eq = (what, got, want) => {
+    if (JSON.stringify(got) !== JSON.stringify(want)) fails.push(`[function] ${what}: ${JSON.stringify(got)}, ${JSON.stringify(want)} expected`);
+  };
+  const shown = (fn) => page.evaluate((id) => document.querySelector(`[data-fn="${id}"] .current-value`).textContent.trim(), fn);
+  const chords = () => page.evaluate(() => [...document.querySelectorAll('[data-testid="daw-helper-chords"] .daw-helper__chord-name')].map((e) => e.textContent.trim()).join(" "));
+  const tempo = () => page.evaluate(() => document.querySelector('button[data-fn="jouer.tempo-saisie"]').textContent.trim());
+  const mode = () => page.evaluate(() => (document.querySelector('[data-fn="nav.mode-studio"]').getAttribute("aria-pressed") === "true" ? "studio" : "dictionary"));
+  const boxes = () => page.locator('[role="alertdialog"]').count();
+  const state = async () => `${await shown("composer.style").catch(() => "-")} | ${await chords()} | ${await tempo()} bpm | ${await mode()}`;
+  const pick = async (container, label) => {
+    await page.locator(`${container} .custom-select-header`).first().click({ timeout: T });
+    await page.locator('[data-testid="custom-select-dropdown"] .select-item').filter({ hasText: new RegExp(`^\\s*${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`) }).first().click({ timeout: T });
+    await page.waitForTimeout(300);
+  };
+  const styleName = (i) => page.evaluate((n) => document.querySelector(`${'[data-fn="composer.style"]'} select option[value="${n}"]`).textContent, i);
+  const edit = async () => {
+    await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
+    await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
+    await page.locator('[data-s1="drawer"] button.btn-premium[title*=" - "]').first().click({ timeout: T });
+    await page.waitForTimeout(300);
+  };
+  const closeDrawer = () => page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
+  const answer = async (name) => { await page.getByRole("alertdialog").getByRole("button", { name }).click({ timeout: T }); await page.waitForTimeout(300); };
+  try {
+    page = await (await ctx()).newPage(); watch(page);
+    await open();
+    const s0 = await state();
+    const second = await styleName(1);
+    await pick(sel("composer.style"), second);            // no edit: no box
+    eq("no edit: a style change opens no box", await boxes(), 0);
+    await pick(sel("composer.style"), await styleName(0));
+    await edit(); await closeDrawer();
+    const withEdit = await state();
+    if (withEdit === s0) fails.push("[function] the Quick Start changed nothing: no edit to lose");
+    await pick(sel("composer.style"), second);             // by the ROW, with an edit: the box
+    eq("edit + row: the box opens (positive control)", await boxes(), 1);
+    eq("edit + row: the focus is on Garder", await page.evaluate(() => document.activeElement && document.activeElement.textContent), "Garder mes modifications");
+    eq("edit + row, box open: nothing changed yet", await state(), withEdit);
+    await answer("Garder mes modifications");
+    eq("edit + row + Garder: style, chords, tempo, mode all as before", await state(), withEdit);
+    await pick(sel("composer.style"), second);
+    await answer("Changer de style");
+    const afterChange = await state();
+    if (afterChange === withEdit || (await boxes())) fails.push("[function] Changer de style did not apply the style");
+    notes.push(`row: [${withEdit}] -> box -> Garder [${withEdit}] -> box -> Changer de style [${afterChange}]`);
+    await edit();                                           // by the DRAWER, with an edit
+    const inDrawer = await state();
+    await pick('[data-s1="drawer"] .custom-select-container', await styleName(0));
+    eq("edit + drawer menu: the box opens", await boxes(), 1);
+    await answer("Garder mes modifications");
+    eq("edit + drawer + Garder: nothing changed", await state(), inDrawer);
+    await closeDrawer();
+    await page.locator(sel("nav.mode-dictionnaire")).click({ timeout: T }); // mode by the header
+    eq("edit + header tab: the mode box opens", [await boxes(), await page.getByRole("alertdialog").textContent()].map(String).join("|").includes("Changer de mode ?"), true);
+    await answer("Garder mes modifications");
+    eq("edit + header tab + Garder: still Studio, edit kept", await state(), inDrawer);
+    await page.locator(sel("nav.mode-dictionnaire")).click({ timeout: T });
+    await answer("Changer de mode");
+    eq("edit + header tab + Changer de mode: Dictionary", await mode(), "dictionary");
+    await page.locator(sel("nav.mode-studio")).click({ timeout: T });
+    eq("back in the Studio: no box, the edit is gone", [await boxes(), (await chords()) === inDrawer.split(" | ")[1]], [0, false]);
+    notes.push(`drawer menu + header tab: Garder kept [${inDrawer}], Changer de mode left the Studio and the edit with it`);
+
+    await page.goto(`${ORIGIN}/?prototype=a&bench=1`, { waitUntil: "domcontentloaded" }); // a scenario never asks
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    await edit(); await closeDrawer();
+    await page.locator('[data-scenario="cmaj"]').click({ timeout: T });
+    await page.waitForTimeout(300);
+    eq("scenario with an edit: no box, the Dictionary", [await boxes(), await mode()], [0, "dictionary"]);
+
+    // The memory. Same context: reload; a fresh context: the defaults.
+    await page.close();
+    const keep = await ctx(); page = await keep.newPage(); watch(page);
+    await open();
+    await pick(sel("composer.style"), await styleName(3));
+    await page.locator(sel("nav.mode-dictionnaire")).click({ timeout: T });
+    await pick(sel("dico.fondamentale"), "Sol");
+    await page.locator(sel("nav.noms-notes-us")).click({ timeout: T });
+    await page.locator(`${sel("nav.langue")} .custom-select-header`).click({ timeout: T });
+    await page.locator('[data-testid="custom-select-dropdown"] .select-item', { hasText: "EN" }).first().click({ timeout: T });
+    await page.waitForTimeout(300);
+    const before = { mode: await mode(), root: await shown("dico.fondamentale"), lang: await shown("nav.langue"), us: await page.locator(sel("nav.noms-notes-us")).getAttribute("aria-pressed") };
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    await page.waitForTimeout(400);
+    const after = { mode: await mode(), root: await shown("dico.fondamentale"), lang: await shown("nav.langue"), us: await page.locator(sel("nav.noms-notes-us")).getAttribute("aria-pressed") };
+    eq("reload, same context: mode, root, language, notation", after, before);
+    await page.locator(sel("nav.mode-studio")).click({ timeout: T });
+    eq("reload, same context: the style (by name, in English)", await shown("composer.style"), await styleName(3));
+    notes.push(`reload: before ${JSON.stringify(before)} -> after ${JSON.stringify(after)}; style "${await shown("composer.style")}"; stored: ${await page.evaluate((k) => localStorage.getItem(k), KEY)}`);
+    for (const [label, value] of [["broken JSON", "{broken"], ["version 99", '{"v":99,"appMode":"dictionary"}'], ["octave 17 beside a valid language", '{"v":1,"lang":"en","dictOctave":17}']]) {
+      await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, value]);
+      const seen = errors.length;
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+      eq(`${label}: no error on opening`, errors.slice(seen), []);
+      notes.push(`${label}: opens on ${await mode()}, language ${await shown("nav.langue")}`);
+    }
+    await page.evaluate((k) => localStorage.setItem(k, '{"v":1,"appMode":"studio","dictRoot":7}'), KEY);
+    await open("&scenario=cmaj");
+    eq("a scenario beats the memory (memory: Studio, Sol; scenario: Do majeur)", [await mode(), await shown("dico.fondamentale")], ["dictionary", "Do"]);
+    await keep.close();
+    page = await (await ctx()).newPage(); watch(page);
+    await open();
+    eq("a fresh context opens on the defaults", await state(), s0);
+  } catch (err) {
+    fails.push(`[${clickFailureTag(err)}] ${String(err && err.message ? err.message : err).split("\n").slice(0, 3).join(" / ")}`);
+  } finally {
+    if (page) await page.context().close();
+  }
+  if (errors.length) fails.push(`[function] page errors: ${errors.slice(0, 3).join(" | ")}`);
+  return { fails, notes };
+}
+
+/** S1-25 on one viewport: run it, keep the verdict, print it. */
+async function reportConfirm(browser, viewport) {
+  const r = await runConfirm(browser, viewport);
+  confirmChecks[viewport.label] = r;
+  if (AS_JSON) return;
+  const lead = `${viewport.label} S1-25 (confirm + memory)`;
+  console.log(`${lead} ${r.fails.length ? "FAIL" : "PASS"}  an edit makes the row / the drawer menu / the header tabs open the box (never without an edit, never for a scenario); Garder changes nothing, Changer applies; language, notation, mode, root and style survive a reload; a damaged memory opens without error`);
+  for (const n of r.notes) console.log(`${lead}   ${n}`);
+  if (r.fails.length) console.log(`${lead}   FAILED: ${r.fails.join(" | ")}`);
 }
 
 // ─── S1-24 (VMU-186): the Studio's "Octave des accords" ─────────────────────
@@ -2634,6 +2775,7 @@ const accessChecks = {};
 const headsChecks = {};
 const selectionChecks = {};
 const chordOctaveChecks = {};
+const confirmChecks = {};
 try {
   for (const viewport of ACCESS_ONLY ? [] : VIEWPORTS) {
     for (const scenario of STATES) {
@@ -2671,6 +2813,10 @@ try {
   for (const viewport of ACCESS_VIEWPORTS) {
     if (CHORD_OCTAVE_ONLY) {
       await reportChordOctave(browser, viewport);
+      continue;
+    }
+    if (CONFIRM_ONLY) {
+      await reportConfirm(browser, viewport);
       continue;
     }
     if (SELECTION_ONLY) {
@@ -2721,6 +2867,8 @@ try {
     await reportSelection(browser, viewport);
     // S1-24 (VMU-186): the Studio's "Octave des accords", at the same two heights.
     await reportChordOctave(browser, viewport);
+    // S1-25 (VMU-126 / VMU-050): the confirmation and the memory.
+    await reportConfirm(browser, viewport);
   }
 } finally {
   await browser.close();
@@ -2758,11 +2906,13 @@ const selectionPassCount = Object.values(selectionChecks).filter((c) => c.fails.
 // S1-24 decides too (brief VMU-186: the Studio's octave setting is where Gabriel chose to put it).
 const chordOctaveOk = Object.values(chordOctaveChecks).every((c) => c.fails.length === 0);
 const chordOctavePassCount = Object.values(chordOctaveChecks).filter((c) => c.fails.length === 0).length;
-const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk ? "A′" : "B";
+const confirmOk = Object.values(confirmChecks).every((c) => c.fails.length === 0);
+const confirmPassCount = Object.values(confirmChecks).filter((c) => c.fails.length === 0).length;
+const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
@@ -2776,8 +2926,9 @@ if (AS_JSON) {
   console.log(`  S1-21 ${headsOk ? "PASS" : "FAIL"} ${headsPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1b heads: 100 +-1px x3, one line per row, 48px targets on top, labels fitting, keyboard >= ${S1_21.minMargin}px above the window's bottom, no scroll (FR / EN / PT / ZH x Dictionary / Studio); › on the guitar moves the guitar only, › on the piano shifts its notes by 12 and leaves the necks`);
   console.log(`  S1-23 ${selectionOk ? "PASS" : "FAIL"} ${selectionPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-185 direct selectors: a second row of the transport block holding the Studio's style / the Dictionary's family, root note and type (none for a note), on top, 48px, one height in every state (block <= ${S1_23.maxBlock}px), no scroll, no cut name, open lists in the window (drawer closed and open), and they drive the keyboard / necks / sequencer against theory.js (FR / EN / PT / ZH)`);
   console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);
+  console.log(`  S1-25 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-24 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-25 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

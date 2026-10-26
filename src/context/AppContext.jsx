@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer } from 'react';
 import { translations } from '../i18n/translations';
+import { loadPersisted } from '../utils/persistedState';
 
 const AppContext = createContext(null);
 
@@ -40,6 +41,23 @@ const initialState = {
   useShellVoicings: false
 };
 
+// VMU-050: what the app reopens on. The four values the last visit left
+// (mode, language, notation, played instrument) replace the defaults above, read
+// once, in the lazy initializer so the very first render is already right (no
+// flash of the defaults). Pure: loadPersisted() only reads, and every field it
+// returns is validated; with nothing stored, or storage broken, it is the
+// defaults exactly as before.
+function initState() {
+  const { appMode, lang, notation, playbackInstrument } = loadPersisted();
+  return {
+    ...initialState,
+    ...(appMode !== undefined && { appMode }),
+    ...(lang !== undefined && { lang }),
+    ...(notation !== undefined && { notation }),
+    ...(playbackInstrument !== undefined && { playbackInstrument }),
+  };
+}
+
 function appReducer(state, action) {
   switch (action.type) {
     case 'SET_APP_MODE':
@@ -58,7 +76,7 @@ function appReducer(state, action) {
 }
 
 export const AppProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  const [state, dispatch] = useReducer(appReducer, undefined, initState);
 
   const txt = (translations && translations[state.lang]) || {};
 

@@ -2,15 +2,21 @@
 import { useState, useMemo } from "react";
 import { BRICKS } from "../core/bricks";
 import { buildStudioTimeline, studioSelection, STUDIO_LENGTH_MEASURES } from "../core/timeline";
+import { loadPersisted, brickIndexOf } from "../utils/persistedState";
 
 export function useStudioMode() {
-  const [currentBrickIndex, setCurrentBrickIndex] = useState(0);
+  // VMU-050: the style the last visit left, found by its stable name (never by
+  // an index, which moves when the list does); unknown or absent = the first.
+  const [currentBrickIndex, setCurrentBrickIndex] = useState(() => {
+    const index = brickIndexOf(loadPersisted().brickId);
+    return index >= 0 ? index : 0;
+  });
   const [displayMode, setDisplayMode] = useState("chord");
   const [clickedChord, setClickedChord] = useState(null);
   const [currentTheme, setCurrentTheme] = useState("A");
   const [currentAbsoluteNotes, setCurrentAbsoluteNotes] = useState([]);
   const [currentlyPlayingNotes, setCurrentlyPlayingNotes] = useState([]);
-  const [chordOctaveOffset, setChordOctaveOffset] = useState(0); // -3..+3 (offset relative to C4)
+  const [chordOctaveOffset, setChordOctaveOffset] = useState(() => loadPersisted().chordOctaveOffset ?? 0); // -3..+3 (offset relative to C4)
   const [contextualScaleAbsoluteValues, setContextualScaleAbsoluteValues] = useState([]);
   const [lastClickedContext, setLastClickedContext] = useState(null);
   const [singlePlayContext, setSinglePlayContext] = useState(null);

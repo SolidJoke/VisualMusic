@@ -292,3 +292,82 @@
     display: none;
   }
 }
+
+/* --- ConfirmDialog (VMU-126): "this will erase your edits, go on?" ---
+   Shares the modal overlay (blur, centring), one layer above it: it opens
+   over the "Studio & Harmonie" window and over A′'s drawer. Tokens only. The
+   safe choice (keep) is the accented one and takes the focus; the
+   destructive one is plain, in the error colour. Both >= 56px high, text >= 20px (the page is read on a 4K screen). */
+.confirm-dialog-overlay {
+  z-index: 10000;
+}
+
+.confirm-dialog {
+  background-color: var(--lg-panel-bg);
+  border: var(--lg-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lg-shadow);
+  width: min(760px, 92vw);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.confirm-dialog:focus {
+  outline: none;
+}
+
+.confirm-dialog__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.confirm-dialog__body {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.confirm-dialog__btn {
+  min-height: 56px;
+  padding: 0 24px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-dialog__btn--keep {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.confirm-dialog__btn--confirm {
+  color: var(--color-error);
+}
+
+.confirm-dialog__btn:hover {
+  background: var(--glass-bg-hover);
+}
+
+.confirm-dialog__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

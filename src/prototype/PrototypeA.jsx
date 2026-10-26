@@ -135,6 +135,9 @@ export default function PrototypeA({
   setNotation,
   appMode,
   setAppMode,
+  // VMU-126: the header tabs go through this when given (it asks before edits
+  // are lost); applyScenario keeps the raw setAppMode above.
+  onRequestAppMode,
   isPlaying,
   togglePlayback,
   playDictionaryAudio,
@@ -389,7 +392,7 @@ export default function PrototypeA({
                 aria-label={T.tabStudioAria}
                 aria-pressed={appMode === "studio"}
                 data-fn="nav.mode-studio"
-                onClick={() => setAppMode("studio")}
+                onClick={() => (onRequestAppMode || setAppMode)("studio")}
               >
                 {T.tabStudio}
               </button>
@@ -399,7 +402,7 @@ export default function PrototypeA({
                 aria-label={T.tabDictionaryAria}
                 aria-pressed={appMode === "dictionary"}
                 data-fn="nav.mode-dictionnaire"
-                onClick={() => setAppMode("dictionary")}
+                onClick={() => (onRequestAppMode || setAppMode)("dictionary")}
               >
                 {T.tabDictionary}
               </button>
