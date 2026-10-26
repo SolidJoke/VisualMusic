@@ -297,7 +297,7 @@
    Shares the modal overlay (blur, centring), one layer above it: it opens
    over the "Studio & Harmonie" window and over A′'s drawer. Tokens only. The
    safe choice (keep) is the accented one and takes the focus; the
-   destructive one is plain, in the error colour. Both >= 48px high. */
+   destructive one is plain, in the error colour. Both >= 56px high, text >= 20px (the page is read on a 4K screen). */
 .confirm-dialog-overlay {
   z-index: 10000;
 }
@@ -307,7 +307,7 @@
   border: var(--lg-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--lg-shadow);
-  width: min(520px, 92vw);
+  width: min(760px, 92vw);
   padding: 28px;
   display: flex;
   flex-direction: column;
@@ -322,14 +322,14 @@
 .confirm-dialog__title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .confirm-dialog__body {
   margin: 0;
-  font-size: 16px;
+  font-size: 20px;
   line-height: 1.5;
   color: var(--text-secondary);
 }
@@ -343,13 +343,13 @@
 }
 
 .confirm-dialog__btn {
-  min-height: 48px;
-  padding: 0 20px;
+  min-height: 56px;
+  padding: 0 24px;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--border-strong);
   background: var(--surface-2);
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   cursor: pointer;
 }
