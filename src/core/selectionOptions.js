@@ -123,3 +123,9 @@ export function dictTypeForFamily(family) {
   if (family === "scale") return "scale_major";
   return null;
 }
+
+/** The dictType a family click must set - null when that family is already active (VMU-189). */
+export function dictTypeOnFamilyClick(family, dictType) {
+  if (family === dictFamily(dictType)) return null;
+  return dictTypeForFamily(family);
+}
