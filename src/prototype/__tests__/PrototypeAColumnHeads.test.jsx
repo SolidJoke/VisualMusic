@@ -370,7 +370,10 @@ describe("L1b-1b (f): the Studio — no ▶ in the heads, the shape shown withou
     await settle();
     expect(headLabel("guitar")).toMatch(/\(auto\)$/);
     expect(headLabel("bass")).toMatch(/\(auto\)$/);
-    expect(document.querySelectorAll('[data-s1="guitar"] .proto-a__inst-head button').length).toBe(1);
+    // L1b-1c: the label is the button of the position panel once a chord is
+    // clicked (2 buttons: the name and that one); still no arrow to step.
+    expect(document.querySelectorAll('[data-s1="guitar"] .proto-a__inst-head button').length).toBe(2);
+    expect(document.querySelectorAll('[data-s1="guitar"] .proto-a__inst-head .proto-a__head-arrow').length).toBe(0);
   });
 
   it("the piano's ‹ Octave › is the Studio's base octave: it moves the loop's and the MIDI export's octave, the label names it", async () => {

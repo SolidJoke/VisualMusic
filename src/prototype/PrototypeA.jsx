@@ -15,6 +15,8 @@ import { translations } from "../i18n/translations";
 import { useBpmEditor } from "../hooks/useBpmEditor";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
 import InstrumentHead from "./InstrumentHead";
+import PositionPanel from "./PositionPanel";
+import { positionPanelView } from "../components/Instruments/positionPanel";
 import SelectionRow from "./SelectionRow";
 
 /**
@@ -85,7 +87,8 @@ import SelectionRow from "./SelectionRow";
  * those effects. The necks' ‹ Position ›: INST-B1's list (placementLabel.js, the
  * classic PositionSelector's words and cycle), shown when the fingering is
  * (showFingering); in the Studio the shape shown, read-only (the Studio does
- * not read the index). The captions ("aigus ↑", the neck's) are the columns'
+ * not read the index). L1b-1c: that label is a button (the panel below) once
+ * there is something to show. The captions ("aigus ↑", the neck's) are the columns'
  * tooltip and accessible name.
  *
  * VMU-185 — the direct selectors (SelectionRow.jsx): a second row of the
@@ -345,15 +348,58 @@ export default function PrototypeA({
     ? null
     : { groupLabel: T.chordOctaveGroup, help: T.chordOctaveHelp, label: midiToDisplayName(60 + 12 * octave, notation), prev: octavePrev, next: octaveNext };
   const isScaleMode = isDictionary && typeof dictType === "string" && dictType.includes("scale");
+  // L1b-1c: the position panel, opened from the neck's label - the classic
+  // PositionSelector's controls on the same state and setters (shared rules:
+  // components/Instruments/positionPanel.js), and, with the fingering shown,
+  // under the same conditions: the Dictionary, or the Studio once a chord is
+  // clicked. The instrument's range is the classic tile's (formatPitchRange).
+  const panelFor = (id, index) => {
+    if (!isDictionary && !clickedChord) return null;
+    const isGuitar = id === "guitar";
+    const selectedRootString = isGuitar ? engine.selectedRootStringGuitar : engine.selectedRootStringBass;
+    const setSelectedRootString = isGuitar ? engine.setSelectedRootStringGuitar : engine.setSelectedRootStringBass;
+    const view = positionPanelView({
+      instrumentType: id,
+      rootVal: engine.currentRootValue,
+      notation,
+      isScaleMode,
+      scaleAnchor: engine.scaleAnchor ?? null,
+      placementIndex: index,
+      fingering: isGuitar ? engine.guitarFingering : engine.bassFingering,
+      // The classic tile shows it in the Dictionary only: in the Studio every instrument
+      // holds the chord's theoretical notes, not what its neck plays.
+      range: isDictionary ? formatPitchRange(realizationRange(engine.realizationsByInstrument?.[id]), notation) : "",
+    });
+    if (!view.hasContent) return null;
+    const alertText = view.alert === "outOfRange" ? TX.warningOutOfRange : view.alert === "difficultStretch" ? TX.warningDifficultStretch : null;
+    return {
+      fn: `jouer.position-panneau-${id}`,
+      title: T.positionPanel,
+      alert: alertText ? { kind: view.alert, text: alertText } : null,
+      content: (
+        <PositionPanel
+          id={id}
+          view={view}
+          T={T}
+          txt={TX}
+          selectedRootString={selectedRootString ?? null}
+          placementIndex={index}
+          setSelectedRootString={(idx) => setSelectedRootString && setSelectedRootString(idx)}
+          setPlacementIndex={(i) => engine.setPlacementIndex && engine.setPlacementIndex(id, i)}
+          setScaleAnchor={(anchor) => engine.setScaleAnchor && engine.setScaleAnchor(anchor)}
+        />
+      ),
+    };
+  };
   const neckSetting = (id) => {
     if (!engine.showFingering) return null;
     const placements = engine.placementsByInstrument?.[id] ?? [];
+    const index = engine.placementByInstrument?.[id]?.index ?? null;
     if (!isDictionary) {
       // The Studio shows the clicked (or playing) chord's default shape and
       // does not read the index: its label, without arrows; empty before any chord.
-      return { groupLabel: T.positionGroup, label: placements.length ? placementLabel({ placements, placementIndex: null, isScaleMode: false, txt: TX }) : "" };
+      return { groupLabel: T.positionGroup, label: placements.length ? placementLabel({ placements, placementIndex: null, isScaleMode: false, txt: TX }) : "", panel: panelFor(id, index) };
     }
-    const index = engine.placementByInstrument?.[id]?.index ?? null;
     const go = (direction) => {
       const nextIndex = stepPlacement(placements, index, direction);
       if (nextIndex !== undefined && engine.setPlacementIndex) engine.setPlacementIndex(id, nextIndex);
@@ -363,6 +409,7 @@ export default function PrototypeA({
       label: placementLabel({ placements, placementIndex: index, isScaleMode, txt: TX }),
       prev: { fn: `jouer.position-${id}-prec`, label: T.positionPrev, disabled: placements.length === 0, onClick: () => go(-1) },
       next: { fn: `jouer.position-${id}-suiv`, label: T.positionNext, disabled: placements.length === 0, onClick: () => go(1) },
+      panel: panelFor(id, index),
     };
   };
   const chosenInstrument = engine.playbackInstrument || "piano";

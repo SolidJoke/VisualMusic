@@ -620,3 +620,146 @@
   align-items: center;
   gap: 16px;
 }
+
+/* L1b-1c — the position panel. The label of a neck's position is a button
+   (.proto-a__head-labelbtn, still 48px high: the head keeps its 100px); it
+   opens a panel OUT of the flow, under the head and over the top of the neck,
+   the width of the column. Tokens only; text at the instruments' label size
+   (--fs-label, 18px at 3840), targets --hit-min. */
+.proto-a__head-setting {
+  position: relative;
+}
+
+.proto-a .proto-a__head-labelbtn {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: var(--hit-min);
+  padding: 0 4px;
+  font: inherit;
+  font-size: var(--fs-label);
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.proto-a .proto-a__head-labelbtn[aria-expanded="true"] {
+  background: var(--surface-3);
+  border-color: var(--select);
+}
+
+.proto-a .proto-a__head-labelbtn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.proto-a__head-setting.is-readonly .proto-a__head-labelbtn {
+  justify-content: flex-start;
+}
+
+.proto-a__head-setting.is-readonly .proto-a__head-labelbtn .proto-a__head-label {
+  padding-left: 8px;
+}
+
+.proto-a__head-warn,
+.proto-a__head-caret {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.proto-a__head-caret {
+  font-size: 0.75em;
+  color: var(--text-secondary);
+}
+
+.proto-a__position-panel {
+  position: absolute;
+  top: 100%;
+  left: calc(-1 * var(--proto-head-pad, 16px));
+  width: calc(100% + var(--proto-head-pad, 16px));
+  z-index: 60;
+  box-sizing: border-box;
+  padding: 12px;
+  white-space: normal;
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.proto-a__pp {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--fs-label);
+  color: var(--text-primary);
+}
+
+.proto-a__pp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.proto-a__pp-title {
+  color: var(--text-secondary);
+}
+
+.proto-a .proto-a__pp-btn {
+  width: 100%;
+  min-height: var(--hit-min);
+  padding: 0 12px;
+  font: inherit;
+  font-size: var(--fs-label);
+  color: var(--text-primary);
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.proto-a .proto-a__pp-btn.is-active {
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
+}
+
+.proto-a .proto-a__pp-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.proto-a__pp-alert {
+  font-weight: bold;
+}
+
+.proto-a__pp-alert.is-outOfRange {
+  color: var(--color-error);
+}
+
+.proto-a__pp-alert.is-difficultStretch {
+  color: var(--color-warning);
+}
+
+.proto-a__pp-barre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.proto-a__pp-swatch {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 10px;
+  box-sizing: content-box;
+  background: var(--select);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}

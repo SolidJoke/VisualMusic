@@ -129,6 +129,15 @@
  * React computes, not CSS): wiring the root note's onChange to setDictType, or
  * giving the chord type menu the scale list, turn [function] red.
  *
+ * L1b-1c adds S1-26, decisive, on Gabriel's page at 3840x2045 and 3840x2160: the
+ * label of a neck's position is a button that opens a panel over the neck (Mi /
+ * La / Ré with Do's fret, a root string changes the shape drawn, reset, Escape)
+ * without changing the heads' 100px or moving the keyboard; the warning sign
+ * shows in the Studio with the panel closed.
+ *   npm run s1:probe -- --position-panel-only   # S1-26 alone
+ * Positive control: hide the button, S1-26 (and S1-20 / S1-21) turn red
+ *   S1_PROBE_INJECT_CSS='[data-fn^="jouer.position-panneau-"]{display:none!important}' npm run s1:probe -- --position-panel-only
+ *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
@@ -190,7 +199,9 @@ const CONFIRM_ONLY = flag("confirm-only");
 const SELECTION_ONLY = flag("selection-only");
 // --chord-octave-only: S1-24 alone (VMU-186).
 const CHORD_OCTAVE_ONLY = flag("chord-octave-only");
-const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY;
+// --position-panel-only: S1-26 alone (L1b-1c).
+const POSITION_PANEL_ONLY = flag("position-panel-only");
+const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY || POSITION_PANEL_ONLY;
 
 // Thresholds, spec §2 table. `decides` = counts for the A′ / B decision.
 const CRITERIA = [
@@ -2757,6 +2768,122 @@ async function reportChordOctave(browser, viewport) {
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
 
+// ─── S1-26 (L1b-1c): the necks' position panel ──────────────────────────────
+//
+// Dictionary, Do majeur: the label of a neck's position is a button; opened, its
+// panel lists Mi / La / Ré with Do's fret (oracle, semitones up from the open
+// string: 8 / 3 / 10), the heads stay 100px and the keyboard does not move, the
+// controls are on top, >= 48px, text >= 18px; a root string changes the shape
+// the neck draws (guitar La: 0-3 -> 3-5; bass Mi: 3-5 -> 8-10) and not the other
+// neck's; "Réinitialiser Position" puts a chosen position back; Escape closes it
+// and returns the focus. Studio, chord octave +2 (bench state): the warning sign
+// is on the guitar's label with the panel closed and the label still fits.
+
+const S1_26 = { head: 100, target: 48, font: 18, frets: [8, 3, 10] };
+
+/** In page: what S1-26 compares before / after opening a panel. */
+function positionPanelMeasure() {
+  const r = (el) => el.getBoundingClientRect();
+  const kb = document.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
+  const out = { keyboardBottom: kb ? r(kb).bottom : null, scroll: document.documentElement.scrollHeight - innerHeight };
+  for (const id of ["guitar", "bass"]) {
+    const col = document.querySelector(`[data-s1="${id}"]`);
+    const head = col.querySelector(".proto-a__inst-head");
+    const btn = col.querySelector('[data-fn^="jouer.position-panneau-"]');
+    const panel = col.querySelector(".proto-a__position-panel");
+    out[id] = {
+      head: r(head).height,
+      positions: col.getAttribute("data-s1-positions"),
+      expanded: btn ? btn.getAttribute("aria-expanded") : null,
+      focused: Boolean(btn) && document.activeElement === btn,
+      fits: btn ? btn.scrollWidth <= btn.clientWidth + 0.5 : null,
+      mark: Boolean(btn && btn.querySelector('[role="img"]')),
+      below: panel ? r(panel).top >= r(head).bottom - 0.5 && r(panel).bottom <= innerHeight : null,
+      reset: Boolean(col.querySelector(`[data-fn="jouer.position-reinit-${id}"]`)),
+      root: [...col.querySelectorAll('[data-fn^="jouer.position-fondamentale-corde-"]')].map((b) => {
+        const q = r(b);
+        const hit = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+        return { text: b.textContent.trim(), h: q.height, font: parseFloat(getComputedStyle(b).fontSize), onTop: Boolean(hit && (hit === b || b.contains(hit))) };
+      }),
+    };
+  }
+  return out;
+}
+
+/** S1-26 on one viewport, on Gabriel's page (no bench for the Dictionary). */
+async function reportPositionPanel(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const notes = [];
+  const sel = (id) => `[data-fn="${id}"]`;
+  const eq = (what, got, want) => {
+    if (got !== want) fails.push(`${what}: ${JSON.stringify(got)}, ${JSON.stringify(want)} expected`);
+  };
+  const press = async (id) => {
+    await page.locator(sel(id)).click({ timeout: 4000 });
+    await page.waitForTimeout(250);
+  };
+  const open = async (query) => {
+    await page.goto(`${ORIGIN}/?prototype=a${query}`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(300);
+  };
+  const shape = (m, id) => fretSpan(m[id].positions);
+  try {
+    await open("&scenario=cmaj");
+    for (const [id, idx, from, to, name] of [["guitar", 4, "0-3", "3-5", "La"], ["bass", 3, "3-5", "8-10", "Mi"]]) {
+      const other = id === "guitar" ? "bass" : "guitar";
+      const m0 = await page.evaluate(positionPanelMeasure);
+      eq(`${id}: shape at rest`, shape(m0, id), from);
+      await press(`jouer.position-panneau-${id}`);
+      const m1 = await page.evaluate(positionPanelMeasure);
+      eq(`${id}: aria-expanded once opened`, m1[id].expanded, "true");
+      for (const n of ["guitar", "bass"]) if (Math.abs(m1[n].head - S1_26.head) > 1) fails.push(`${id} open: ${n} head ${m1[n].head}px, ${S1_26.head} expected`);
+      if (Math.abs(m1.keyboardBottom - m0.keyboardBottom) > 0.5 || m1.scroll > 0) fails.push(`${id} open: the keyboard moved (${m0.keyboardBottom} -> ${m1.keyboardBottom}) or the page scrolls (${m1.scroll}px)`);
+      eq(`${id} open: the panel is under the head, in the window`, m1[id].below, true);
+      eq(`${id}: the three strings, Do's fret on each (oracle ${S1_26.frets})`, m1[id].root.map((b) => Number((b.text.match(/(\d+)\)$/) || [])[1])).join(" "), S1_26.frets.join(" "));
+      for (const b of m1[id].root) {
+        if (!(b.h >= S1_26.target - 0.5 && b.font >= S1_26.font && b.onTop)) fails.push(`${id}: "${b.text}" ${b.h}px high, ${b.font}px text, ${b.onTop ? "on top" : "covered"}`);
+      }
+      await press(`jouer.position-${id}-suiv`);
+      eq(`${id}: "Réinitialiser Position" appears once a position is chosen`, (await page.evaluate(positionPanelMeasure))[id].reset, true);
+      await press(`jouer.position-reinit-${id}`);
+      eq(`${id}: reset puts the shape back`, shape(await page.evaluate(positionPanelMeasure), id), from);
+      await press(`jouer.position-fondamentale-corde-${id}-${idx}`);
+      const m2 = await page.evaluate(positionPanelMeasure);
+      eq(`${id}, ${name}: the neck draws another shape`, shape(m2, id), to);
+      eq(`${id}, ${name}: the ${other} is unchanged`, shape(m2, other), shape(m0, other));
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(250);
+      const m3 = await page.evaluate(positionPanelMeasure);
+      eq(`${id}: Escape closes it (aria-expanded / strings left) and gives the focus back`, `${m3[id].expanded}/${m3[id].root.length}/${m3[id].focused}`, "false/0/true");
+      notes.push(`${id}: ${m1[id].root.map((b) => b.text).join(", ")}; ${name} ${from} -> ${to}; heads ${m0.guitar.head}/${m0.bass.head} -> ${m1.guitar.head}/${m1.bass.head}px, keyboard bottom ${round1(m0.keyboardBottom)} -> ${round1(m1.keyboardBottom)}`);
+    }
+    await open("&bench=1");
+    await page.locator('[data-state="studio-oct2"]').click({ timeout: 4000 });
+    await page.waitForTimeout(400);
+    const s = await page.evaluate(positionPanelMeasure);
+    eq("Studio, chord octave +2: the warning sign on the guitar's label, panel closed", `${s.guitar.mark}/${s.guitar.expanded}`, "true/false");
+    eq("Studio, with the sign: head 100px and the label fits its button", `${Math.round(s.guitar.head)}/${s.guitar.fits}`, `${S1_26.head}/true`);
+    notes.push(`Studio, octave +2: sign ${s.guitar.mark}, head ${s.guitar.head}px, label fits ${s.guitar.fits}`);
+  } catch (err) {
+    fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
+  } finally {
+    await page.close();
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  positionPanelChecks[viewport.label] = { fails, notes };
+  if (AS_JSON) return;
+  const lead = `${viewport.label} S1-26 (position panel)`;
+  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  the label opens a panel over the neck (heads 100px, keyboard still), strings with Do's fret, a root string changes the shape, reset, Escape; the warning sign in the Studio`);
+  for (const n of notes) console.log(`${lead}   ${n}`);
+  if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
+}
+
 const { chromium } = await import("playwright");
 const dev = await startDevServer();
 if (!AS_JSON) {
@@ -2776,6 +2903,7 @@ const headsChecks = {};
 const selectionChecks = {};
 const chordOctaveChecks = {};
 const confirmChecks = {};
+const positionPanelChecks = {};
 try {
   for (const viewport of ACCESS_ONLY ? [] : VIEWPORTS) {
     for (const scenario of STATES) {
@@ -2813,6 +2941,10 @@ try {
   for (const viewport of ACCESS_VIEWPORTS) {
     if (CHORD_OCTAVE_ONLY) {
       await reportChordOctave(browser, viewport);
+      continue;
+    }
+    if (POSITION_PANEL_ONLY) {
+      await reportPositionPanel(browser, viewport);
       continue;
     }
     if (CONFIRM_ONLY) {
@@ -2869,6 +3001,8 @@ try {
     await reportChordOctave(browser, viewport);
     // S1-25 (VMU-126 / VMU-050): the confirmation and the memory.
     await reportConfirm(browser, viewport);
+    // S1-26 (L1b-1c): the necks' position panel.
+    await reportPositionPanel(browser, viewport);
   }
 } finally {
   await browser.close();
@@ -2908,11 +3042,14 @@ const chordOctaveOk = Object.values(chordOctaveChecks).every((c) => c.fails.leng
 const chordOctavePassCount = Object.values(chordOctaveChecks).filter((c) => c.fails.length === 0).length;
 const confirmOk = Object.values(confirmChecks).every((c) => c.fails.length === 0);
 const confirmPassCount = Object.values(confirmChecks).filter((c) => c.fails.length === 0).length;
-const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk ? "A′" : "B";
+// S1-26 decides too (brief L1b-1c: the position panel is how A′ gives back what the classic page's PositionSelector did).
+const positionPanelOk = Object.values(positionPanelChecks).every((c) => c.fails.length === 0);
+const positionPanelPassCount = Object.values(positionPanelChecks).filter((c) => c.fails.length === 0).length;
+const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk && positionPanelOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, positionPanelChecks, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
@@ -2927,8 +3064,9 @@ if (AS_JSON) {
   console.log(`  S1-23 ${selectionOk ? "PASS" : "FAIL"} ${selectionPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-185 direct selectors: a second row of the transport block holding the Studio's style / the Dictionary's family, root note and type (none for a note), on top, 48px, one height in every state (block <= ${S1_23.maxBlock}px), no scroll, no cut name, open lists in the window (drawer closed and open), and they drive the keyboard / necks / sequencer against theory.js (FR / EN / PT / ZH)`);
   console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);
   console.log(`  S1-25 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
+  console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; the warning sign shows in the Studio with the panel closed`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-25 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-26 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

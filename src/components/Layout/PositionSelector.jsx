@@ -1,8 +1,9 @@
 import React from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { NOTES } from '../../core/theory';
 // L1b-1b: the label and the cycle are shared with A′'s column heads (one copy).
 import { placementLabel, stepPlacement } from '../Instruments/placementLabel';
+// L1b-1c: which strings, which resets and which alerts are shared with A′'s position panel.
+import { positionPanelView } from '../Instruments/positionPanel';
 
 /**
  * PositionSelector Component
@@ -30,20 +31,8 @@ const PositionSelector = ({
 }) => {
   const { txt, notation } = useAppContext();
 
-  const getNoteLabel = (midiVal) => {
-    const note = NOTES[midiVal % 12];
-    return notation === 'eu' ? note.eu : note.us;
-  };
-
-  const strings = instrumentType === "guitar" ? [
-    { idx: 5, label: getNoteLabel(4), openVal: 4 },
-    { idx: 4, label: getNoteLabel(9), openVal: 9 },
-    { idx: 3, label: getNoteLabel(2), openVal: 2 },
-  ] : [
-    { idx: 3, label: getNoteLabel(4), openVal: 4 },
-    { idx: 2, label: getNoteLabel(9), openVal: 9 },
-    { idx: 1, label: getNoteLabel(2), openVal: 2 },
-  ];
+  const view = positionPanelView({ instrumentType, rootVal, notation, isScaleMode, scaleAnchor, placementIndex, fingering });
+  const strings = view.rootStrings ?? [];
 
   // The arrows step nut -> body and back to the default (placementLabel.js
   // stepPlacement); nothing happens on an empty list.
@@ -58,15 +47,14 @@ const PositionSelector = ({
 
   return (
     <div style={{ marginBottom: "15px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
-      {!isScaleMode && (
+      {view.rootStrings && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "var(--surface-2)", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-subtle)", alignItems: "center" }}>
           <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: "bold", textAlign: "center" }}>
              {instrumentType === "guitar" ? txt.guitarLabel : txt.bassLabel} : {txt.rootStringLabel || "Root on string"}
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
           {strings.map(str => {
-            const rootInThisString = (rootVal - str.openVal + 12) % 12;
-            const fretText = rootInThisString === 0 ? txt.fretOpen : `${txt.fretPrefix}${rootInThisString}`;
+            const fretText = str.isOpen ? txt.fretOpen : `${txt.fretPrefix}${str.fret}`;
             const isActive = selectedRootString === str.idx && placementIndex === null;
             return (
               <button
@@ -87,7 +75,7 @@ const PositionSelector = ({
         </div>
       )}
 
-      {isScaleMode && scaleAnchor && (
+      {view.resets.focus && (
           <button 
             className="btn-premium active"
             onClick={() => setScaleAnchor(null)}
@@ -97,7 +85,7 @@ const PositionSelector = ({
           </button>
       )}
 
-      {placementIndex !== null && (
+      {view.resets.position && (
           <button
             className="btn-premium active"
             onClick={() => setPlacementIndex(null)}
@@ -135,13 +123,13 @@ const PositionSelector = ({
         </div>
       </div>
 
-      {instrumentType === "guitar" && fingering?.outOfRange && (
+      {view.alerts.outOfRange && (
         <div style={{ color: "var(--color-error)", fontSize: "13px", fontWeight: "bold" }}>{txt.warningOutOfRange}</div>
       )}
-      {instrumentType === "guitar" && fingering?.difficultStretch && !fingering?.outOfRange && (
+      {view.alerts.difficultStretch && (
         <div style={{ color: "var(--color-warning)", fontSize: "13px", fontWeight: "bold" }}>{txt.warningDifficultStretch}</div>
       )}
-      {instrumentType === "guitar" && (
+      {view.barre && (
         <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
           <div style={{ width: "20px", height: "10px", backgroundColor: "var(--select)", border: "2px solid var(--border-strong)", borderRadius: "4px" }}></div>
           <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{txt.barreLegend}</span>
