@@ -299,6 +299,23 @@ describe("L1b-1c (b): the Studio — the panel exists once a chord is clicked, t
     await press(fn("jouer.octave-piano-prec"));
     expect(toggle("guitar").querySelector('[role="img"]'), "no sign at the octave 0").toBeNull();
   });
+
+  it("a position chosen in the Dictionary is not offered for reset in the Studio, where nothing reads it", async () => {
+    await renderApp("?prototype=a&bench=1");
+    // The bench's "Do majeur" gives the Dictionary a chord.
+    await press(document.querySelector('[data-scenario="cmaj"]'));
+    await press(toggle("guitar"));
+    await press(fn("jouer.position-guitar-suiv"));
+    await press(fn("jouer.position-guitar-suiv"));
+    // Positive control: in the Dictionary, a chosen position can be reset.
+    expect(fn("jouer.position-reinit-guitar")).not.toBeNull();
+    // The Studio, with a chord clicked. The index survives the switch, but the
+    // Studio does not read it: the reset it earned in the Dictionary must go.
+    await press(document.querySelector('[data-state="studio-oct2"]'));
+    expect(toggle("guitar")).not.toBeNull();
+    if (toggle("guitar").getAttribute("aria-expanded") !== "true") await press(toggle("guitar"));
+    expect(fn("jouer.position-reinit-guitar")).toBeNull();
+  });
 });
 
 describe("L1b-1c (c): the registry and the words", () => {
