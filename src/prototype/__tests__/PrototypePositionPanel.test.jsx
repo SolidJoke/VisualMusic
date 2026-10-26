@@ -277,6 +277,10 @@ describe("L1b-1c (b): the Studio — the panel exists once a chord is clicked, t
       seen.add(document.querySelector('[data-s1="guitar"]').getAttribute("data-s1-positions"));
     }
     expect(seen.size).toBeGreaterThan(1);
+    // No range in the Studio: there every instrument holds the chord's theoretical
+    // notes (Do6 - Sol6 on a guitar that plays Do3...), and the classic tile that
+    // shows a range is the Dictionary's.
+    expect(fn("jouer.instrument-plage-guitar")).toBeNull();
     // The arrows stay out of the Studio (L1b-1b decision 3).
     expect(fn("jouer.position-guitar-suiv")).toBeNull();
   });

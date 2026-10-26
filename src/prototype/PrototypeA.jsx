@@ -366,7 +366,9 @@ export default function PrototypeA({
       scaleAnchor: engine.scaleAnchor ?? null,
       placementIndex: index,
       fingering: isGuitar ? engine.guitarFingering : engine.bassFingering,
-      range: formatPitchRange(realizationRange(engine.realizationsByInstrument?.[id]), notation),
+      // The classic tile shows it in the Dictionary only: in the Studio every instrument
+      // holds the chord's theoretical notes, not what its neck plays.
+      range: isDictionary ? formatPitchRange(realizationRange(engine.realizationsByInstrument?.[id]), notation) : "",
     });
     if (!view.hasContent) return null;
     const alertText = view.alert === "outOfRange" ? TX.warningOutOfRange : view.alert === "difficultStretch" ? TX.warningDifficultStretch : null;
