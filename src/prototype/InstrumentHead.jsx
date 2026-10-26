@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { PlayGlyph } from "../components/Instruments/InstrumentBar";
 
 /**
@@ -14,6 +14,12 @@ import { PlayGlyph } from "../components/Instruments/InstrumentBar";
  *          shape); empty when there is nothing to set (a neck without the
  *          fingering shown, or the Studio before any chord): the row keeps its
  *          height either way, so the three heads stay the same.
+ *
+ * L1b-1c: when `setting.panel` is given (the necks, once there is something to
+ * show), the label is a button that opens a small panel over the top of the
+ * neck, without adding height - the panel is out of the flow, anchored under the
+ * row. Escape and a press outside close it, the focus returns to the button; a
+ * warning sign next to the label shows an active alert with the panel closed.
  *
  * Presentational: what each control does, and every word it shows, comes from
  * PrototypeA (translations.js protoA, VMU-182). Each control carries its name in
@@ -31,9 +37,37 @@ import { PlayGlyph } from "../components/Instruments/InstrumentBar";
  *   label: string|null,
  *   prev?: {fn: string, label: string, disabled?: boolean, onClick: () => void},
  *   next?: {fn: string, label: string, disabled?: boolean, onClick: () => void},
+ *   panel?: {fn: string, title: string, alert: {kind: string, text: string}|null, content: React.ReactNode}|null,
  * }|null} [props.setting] row 2, or an empty row
  */
 export default function InstrumentHead({ id, name, chooseTitle, selected, onSelect, play = null, setting = null }) {
+  const panel = (setting && setting.panel) || null;
+  const hasPanel = Boolean(panel);
+  const [open, setOpen] = useState(false);
+  const rowRef = useRef(null);
+  const buttonRef = useRef(null);
+  const panelId = useId();
+  const panelOpen = open && hasPanel;
+  // A panel that has nothing to show any more (the Studio before a chord) closes:
+  // reset while rendering (React's way to adjust state to a prop), not in an effect.
+  if (!hasPanel && open) setOpen(false);
+  useEffect(() => {
+    if (!panelOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      if (buttonRef.current) buttonRef.current.focus();
+    };
+    const onPointerDown = (e) => {
+      if (rowRef.current && !rowRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [panelOpen]);
   const arrow = (a, glyph) =>
     a ? (
       <button
@@ -77,12 +111,39 @@ export default function InstrumentHead({ id, name, chooseTitle, selected, onSele
         )}
       </div>
       <div
+        ref={rowRef}
         className={`proto-a__head-row proto-a__head-setting ${readOnly ? "is-readonly" : ""}`}
         role={setting ? "group" : undefined}
         aria-label={setting ? setting.groupLabel : undefined}
       >
         {setting && arrow(setting.prev, "‹")}
-        {setting && <span className="proto-a__head-label">{setting.label || ""}</span>}
+        {setting && !panel && <span className="proto-a__head-label">{setting.label || ""}</span>}
+        {setting && panel && (
+          <button
+            ref={buttonRef}
+            type="button"
+            className="proto-a__head-labelbtn"
+            title={panel.title}
+            data-fn={panel.fn}
+            aria-haspopup="dialog"
+            aria-expanded={panelOpen}
+            aria-controls={panelOpen ? panelId : undefined}
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span className="proto-a__head-label">{setting.label || ""}</span>
+            {panel.alert && (
+              <span className="proto-a__head-warn" role="img" aria-label={panel.alert.text} title={panel.alert.text}>
+                ⚠️
+              </span>
+            )}
+            <span className="proto-a__head-caret" aria-hidden="true">▾</span>
+          </button>
+        )}
+        {panelOpen && (
+          <div id={panelId} className="proto-a__position-panel" role="dialog" aria-label={panel.title}>
+            {panel.content}
+          </div>
+        )}
         {setting && arrow(setting.next, "›")}
       </div>
     </div>

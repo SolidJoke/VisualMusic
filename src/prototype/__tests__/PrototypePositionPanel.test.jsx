@@ -281,17 +281,19 @@ describe("L1b-1c (b): the Studio — the panel exists once a chord is clicked, t
     expect(fn("jouer.position-guitar-suiv")).toBeNull();
   });
 
-  it("the chord octave at +3 puts the guitar out of range: the warning sign is on the label with the panel closed, with the alert's text", async () => {
+  it("the Studio's chord octave +2 puts the guitar out of range: the warning sign is on the label with the panel closed, with the alert's text; at the octave 0 there is none", async () => {
     await renderApp("?prototype=a&bench=1");
     await press(document.querySelector('[data-state="studio-oct2"]'));
-    expect(toggle("guitar").querySelector('[role="img"]')).toBeNull();
-    await press(fn("jouer.octave-piano-suiv"));
     const mark = toggle("guitar").querySelector('[role="img"]');
-    expect(mark, "the warning sign at octave +3").not.toBeNull();
+    expect(mark, "the warning sign at octave +2").not.toBeNull();
     expect(mark.getAttribute("aria-label")).toBe(translations.fr.warningOutOfRange);
     expect(toggle("guitar").getAttribute("aria-expanded")).toBe("false");
     await press(toggle("guitar"));
     expect(fn("jouer.position-alertes-guitar").textContent).toContain(translations.fr.warningOutOfRange);
+    await press(toggle("guitar"));
+    await press(fn("jouer.octave-piano-prec"));
+    await press(fn("jouer.octave-piano-prec"));
+    expect(toggle("guitar").querySelector('[role="img"]'), "no sign at the octave 0").toBeNull();
   });
 });
 

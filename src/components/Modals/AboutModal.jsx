@@ -26,6 +26,10 @@ const AboutModal = ({ isOpen, onClose }) => {
         <p className="elegant-text">
           {txt.createdBy}
         </p>
+        {/* L1b-1c: the classic page's footer line, now here for both pages. */}
+        <p className="elegant-text">
+          {txt.aboutCopyright}
+        </p>
         {/* CC BY 3.0 requires visible attribution wherever the samples are
             redistributed. The samples ship in public/samples/piano/. */}
         <p className="elegant-text">

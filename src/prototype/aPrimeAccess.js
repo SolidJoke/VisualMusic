@@ -18,7 +18,11 @@
  *           language (the list) | drawer | tempo-field
  *   needs   "drawer": only there once the Assistant drawer is open;
  *           "dictionary": only in the Dictionary mode (L1b-1b: the heads' ▶,
- *           and the position arrows, read-only in the Studio);
+ *           and the position arrows, read-only in the Studio; L1b-1c: the
+ *           necks' position-panel button - in the Studio it appears too, once
+ *           a chord is clicked);
+ *           "panel": only inside a neck's open position panel (L1b-1c), each
+ *           one only in the state where its content exists (S1-26 walks them);
  *           VMU-185, the direct selectors (second row of the transport block),
  *           each only in the state where the control exists:
  *           "studio": only in the Studio (the style menu);
@@ -86,6 +90,25 @@ export const A_PRIME_ACCESS = [
   { fn: "jouer.position-guitar-suiv", where: "instruments", needs: "dictionary" },
   { fn: "jouer.position-bass-prec", where: "instruments", needs: "dictionary" },
   { fn: "jouer.position-bass-suiv", where: "instruments", needs: "dictionary" },
+  // L1b-1c — the position panel: the label of a neck's position is the button
+  // that opens it. Inside: "Fondamentale sur" (one button per string; chords),
+  // the two resets (a position chosen; a scale's focus), the alerts (guitar),
+  // and the instrument's range.
+  { fn: "jouer.position-panneau-guitar", where: "instruments", needs: "dictionary" },
+  { fn: "jouer.position-panneau-bass", where: "instruments", needs: "dictionary" },
+  { fn: "jouer.position-fondamentale-corde-guitar-5", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-fondamentale-corde-guitar-4", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-fondamentale-corde-guitar-3", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-fondamentale-corde-bass-3", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-fondamentale-corde-bass-2", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-fondamentale-corde-bass-1", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-reinit-guitar", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-reinit-bass", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-reinit-focus-guitar", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-reinit-focus-bass", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-alertes-guitar", where: "instruments", needs: "panel" },
+  { fn: "jouer.instrument-plage-guitar", where: "instruments", needs: "panel" },
+  { fn: "jouer.instrument-plage-bass", where: "instruments", needs: "panel" },
   // The Assistant drawer, once open
   { fn: "nav.fermer-fenetres", where: "drawer", needs: "drawer" },
 ];
