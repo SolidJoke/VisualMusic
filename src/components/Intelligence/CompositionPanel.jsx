@@ -319,6 +319,7 @@ export default function CompositionPanel({
               n={subdivisions}
               highlightIndex={activeStep}
               showComplement={showComplement && !showPolyrhythm}
+              sublabel={`${(showPolyrhythm && polyrhythmResult ? polyrhythmResult.pattern : pattern).filter((x) => x === 1).length} ${txt.hitsUnit}`}
               extraPolygons={showPolyrhythm && polyrhythmResult ? polyrhythmResult.polygons.map((poly, idx) => {
                 // Rhythmic voices, not musical roles - spec F1-fondations-visuelles.md
                 // §6: never --role-* (same rule as PolyrhythmAlgebraPanel.jsx's polyColors).

@@ -10,7 +10,9 @@
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
   width: 100%;
-  max-width: 320px;
+  /* VMU-195-A: 320px -> 480px so that the labels, set in the SVG's own units,
+     come out at 18px or more once scaled (viewBox 220 -> up to 480px). */
+  max-width: 480px;
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -28,7 +30,7 @@
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  max-height: 250px;
+  max-height: 440px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -78,7 +80,8 @@
 
 .center-formula {
   font-family: 'Courier New', Courier, monospace;
-  font-size: 1.25rem;
+  /* SVG user units (viewBox 220): scaled by the container's width / 220. */
+  font-size: 16px;
   font-weight: bold;
   fill: var(--led-cyan);
   text-shadow: 0 0 10px var(--lg-accent-glow);
@@ -86,9 +89,8 @@
 
 .center-sublabel {
   font-family: 'Courier New', Courier, monospace;
-  font-size: 0.75rem;
+  font-size: 11px;
   fill: var(--text-muted);
-  text-transform: uppercase;
 }
 
 /* Node Styling */
@@ -131,7 +133,7 @@
 /* Node labels (Numbers around circle) */
 .euclidean-node-label {
   font-family: 'Courier New', Courier, monospace;
-  font-size: 0.65rem;
+  font-size: 12px;
   fill: var(--text-muted);
   user-select: none;
   transition: all 0.2s ease;

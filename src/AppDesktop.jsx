@@ -541,7 +541,7 @@ function AppDesktop() {
   // over the very same state — not a copy of it. Opened from the classic
   // sidebar's buttons or from A′'s transport and header.
   const mathRhythmsModal = (
-    <Modal isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`} columns wide>
+    <Modal isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={txt.mathRhythms || "📐 Math & Rythmes"} columns wide>
       {appMode !== "dictionary" ? (
         <CompositionPanel
           activeTracks={activeTracks}

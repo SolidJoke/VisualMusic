@@ -86,6 +86,11 @@
   --fs-heading: calc(26px * var(--ui-scale));
   --fs-display: calc(36px * var(--ui-scale));
   --hit-min: 44px;
+  /* VMU-195-A: floors for the windows read on a 4K screen by a beginner -
+     the scaled size when it is larger, never below 18px / 20px / 48px. */
+  --fs-read: max(18px, var(--fs-emph));
+  --fs-read-title: max(20px, var(--fs-emph));
+  --hit-comfort: max(48px, var(--hit-min));
   /* Rayons et transitions : inchangés */
   --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
   --transition-fast: 150ms ease; --transition-normal: 220ms ease; --transition-slow: 350ms ease;

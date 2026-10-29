@@ -13,6 +13,7 @@ import './EuclideanCircle.css';
  * @param {number} [props.highlightIndex=-1] Current playback index for active beat highlighting
  * @param {string} [props.label=""] Optional text label for the center of the circle
  * @param {boolean} [props.showComplement=false] Whether to draw the complementary polygon
+ * @param {string} [props.sublabel] Text under E(k,n) in the centre (translated by the caller); defaults to "<k> Pulses"
  * @param {Array<{indices: number[], color: string, label: string, op: string}>} [props.extraPolygons=[]]
  *   Optional list of additional polygons to overlay (for polyrhythm algebra mode).
  *   Each entry: { indices: number[], color: string, label: string, op: '+' | '-' }
@@ -23,6 +24,7 @@ export function EuclideanCircle({
   highlightIndex = -1,
   label = "",
   showComplement = false,
+  sublabel,
   extraPolygons = [],
 }) {
   const size = 220;
@@ -179,7 +181,7 @@ export function EuclideanCircle({
               textAnchor="middle" 
               className="center-sublabel"
             >
-              {activeCount} Pulses
+              {sublabel ?? `${activeCount} Pulses`}
             </text>
           </g>
 
