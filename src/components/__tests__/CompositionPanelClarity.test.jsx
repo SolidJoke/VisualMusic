@@ -55,13 +55,13 @@ describe("one title (VMU-195-A)", () => {
   });
 
   it("Modal accepts a `wide` flag that adds a class to this window only", () => {
-    render(
+    const wideRender = render(
       <Modal isOpen onClose={() => {}} title="t" columns wide>
         <p>x</p>
       </Modal>
     );
     expect(document.querySelector(".modal-container.modal-container--wide")).not.toBeNull();
-    document.body.innerHTML = "";
+    wideRender.unmount();
     render(
       <Modal isOpen onClose={() => {}} title="t" columns>
         <p>x</p>

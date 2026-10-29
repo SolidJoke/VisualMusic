@@ -11,6 +11,10 @@ import CompositionPanel from "../Intelligence/CompositionPanel";
  * Gemini Flash doit JUSTE lancer ces tests, capturer les logs de crash et les rapporter.
  */
 
+// VMU-195-A: the four modes live in the folded "Go further" section; every
+// fuzz scenario unfolds it first, then drives the modes exactly as before.
+const unfoldAdvanced = () => fireEvent.click(screen.getByTestId("comp-advanced-toggle"));
+
 describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
   const defaultProps = {
     activeTracks: {
@@ -28,7 +32,8 @@ describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
   it("should not crash when toggling Isorhythm Mode and changing color sequence during playback", () => {
     expect(() => {
       render(<CompositionPanel {...defaultProps} />);
-      const isorhythmSwitch = screen.getByLabelText("ISORHYTHM MODE");
+      unfoldAdvanced();
+      const isorhythmSwitch = screen.getByTestId("comp-mode-iso");
       fireEvent.click(isorhythmSwitch);
       
       const pitchInput = screen.getByPlaceholderText("C3, E3, G3, B3");
@@ -39,8 +44,8 @@ describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
   it("should not crash when toggling Phasing Mode and modifying offset during playback", () => {
     expect(() => {
       const { container } = render(<CompositionPanel {...defaultProps} />);
-      const phasingLabel = screen.getByText("PHASING MODE");
-      const phasingSwitch = phasingLabel.parentElement.querySelector("input[type='checkbox']");
+      unfoldAdvanced();
+      const phasingSwitch = screen.getByTestId("comp-mode-phasing");
       fireEvent.click(phasingSwitch);
 
       // Le slider d'offset est le 4ème slider dans le panneau en général
@@ -54,7 +59,8 @@ describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
   it("should not crash when toggling Meshuggah Mode and changing metric boundary during playback", () => {
     expect(() => {
       const { container } = render(<CompositionPanel {...defaultProps} />);
-      const meshuggahSwitch = screen.getByLabelText("Mode M");
+      unfoldAdvanced();
+      const meshuggahSwitch = screen.getByTestId("comp-mode-mesh");
       fireEvent.click(meshuggahSwitch);
 
       const sliders = container.querySelectorAll("input[type='range']");
@@ -67,11 +73,12 @@ describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
   it("should not crash when toggling Polyrhythm Algebra, changing K and offset, and adding polygons during playback", () => {
     expect(() => {
       const { container } = render(<CompositionPanel {...defaultProps} />);
-      const polySwitch = screen.getByLabelText("POLYRHYTHM ALGEBRA");
+      unfoldAdvanced();
+      const polySwitch = screen.getByTestId("comp-mode-poly");
       fireEvent.click(polySwitch);
 
       // Ajouter un nouveau polygone
-      const addBtn = screen.getByText("+ ADD POLYGON");
+      const addBtn = screen.getByTestId("comp-poly-add");
       fireEvent.click(addBtn);
 
       // Changer les valeurs des sliders (K et Offset)
@@ -89,12 +96,12 @@ describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
   it("should not crash on rapid mode switching during active playback", () => {
     expect(() => {
       render(<CompositionPanel {...defaultProps} />);
+      unfoldAdvanced();
       
-      const isorhythmSwitch = screen.getByLabelText("ISORHYTHM MODE");
-      const phasingLabel = screen.getByText("PHASING MODE");
-      const phasingSwitch = phasingLabel.parentElement.querySelector("input[type='checkbox']");
-      const meshuggahSwitch = screen.getByLabelText("Mode M");
-      const polySwitch = screen.getByLabelText("POLYRHYTHM ALGEBRA");
+      const isorhythmSwitch = screen.getByTestId("comp-mode-iso");
+      const phasingSwitch = screen.getByTestId("comp-mode-phasing");
+      const meshuggahSwitch = screen.getByTestId("comp-mode-mesh");
+      const polySwitch = screen.getByTestId("comp-mode-poly");
 
       // Fuzzing: active/désactive rapidement les modes qui s'excluent mutuellement
       fireEvent.click(isorhythmSwitch);
@@ -108,7 +115,8 @@ describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
   it("should not crash when changing preset while in a specific mode", () => {
     expect(() => {
       render(<CompositionPanel {...defaultProps} />);
-      const polySwitch = screen.getByLabelText("POLYRHYTHM ALGEBRA");
+      unfoldAdvanced();
+      const polySwitch = screen.getByTestId("comp-mode-poly");
       fireEvent.click(polySwitch);
 
       const select = screen.getAllByRole("combobox")[0]; // Rhythmic preset

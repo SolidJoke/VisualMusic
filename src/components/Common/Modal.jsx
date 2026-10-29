@@ -6,8 +6,9 @@ import './Modal.css';
  * Modal Component
  * Displays a floating window with an overlay.
  * Uses React Portal to append to document.body avoiding z-index stacking issues.
+ * `wide` (VMU-195-A) widens one window whose text is set large (see Modal.css).
  */
-const Modal = ({ isOpen, onClose, title, children, columns }) => {
+const Modal = ({ isOpen, onClose, title, children, columns, wide }) => {
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose();
@@ -28,7 +29,7 @@ const Modal = ({ isOpen, onClose, title, children, columns }) => {
   const modalContent = (
     <div className="modal-overlay" onClick={onClose} data-testid="modal-overlay">
       <div 
-        className="modal-container theme-modern"
+        className={`modal-container theme-modern${wide ? ' modal-container--wide' : ''}`}
         onClick={(e) => e.stopPropagation()} /* Prevent click through to overlay */
       >
         {/* Mobile Header (Fullscreen Modal) */}

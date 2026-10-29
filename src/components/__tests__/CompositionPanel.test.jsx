@@ -20,19 +20,19 @@ describe("CompositionPanel Component", () => {
   it("renders correctly with default presets and sliders", () => {
     const { container } = render(<CompositionPanel {...defaultProps} />);
 
-    // Check main title is present
-    expect(screen.getByText("MATH COMPOSITION ASSISTANT")).toBeTruthy();
+    // Check main title is present (VMU-195-A: stable hook, not the wording)
+    expect(screen.getByTestId("comp-title")).toBeTruthy();
 
     // Check select preset dropdown exists
     const select = screen.getAllByRole("combobox")[0]; // first select is preset selector
     expect(select).toBeTruthy();
 
     // Check subdivisions slider
-    const subLabel = screen.getByText("SUBDIVISIONS (n)");
+    const subLabel = screen.getByTestId("comp-slider-n");
     expect(subLabel).toBeTruthy();
 
     // Check pulses slider
-    const pulsesLabel = screen.getByText("PULSES / BEATS (k)");
+    const pulsesLabel = screen.getByTestId("comp-slider-k");
     expect(pulsesLabel).toBeTruthy();
 
     // Check export button
@@ -106,7 +106,7 @@ describe("CompositionPanel Component", () => {
     expect(setSuggestedBassTrack.mock.calls[0][0].activeSteps).toEqual([0, 3, 6, 9, 12]);
   });
 
-  it("clears all overrides when clicking RESET ALL OVERRIDES", () => {
+  it("clears all overrides when clicking the reset button", () => {
     const setSuggestedBassTrack = vi.fn();
     const setCustomRhythm = vi.fn();
     const setCustomDrums = vi.fn();
@@ -120,7 +120,7 @@ describe("CompositionPanel Component", () => {
       />
     );
 
-    const resetBtn = screen.getByText("RESET ALL OVERRIDES");
+    const resetBtn = screen.getByTestId("comp-reset");
     fireEvent.click(resetBtn);
 
     expect(setSuggestedBassTrack).toHaveBeenCalledWith(null);
@@ -131,26 +131,29 @@ describe("CompositionPanel Component", () => {
   it("handles Isorhythm Mode toggle and mutual exclusion", () => {
     render(<CompositionPanel {...defaultProps} />);
 
+    // The composer tools are folded by default (VMU-195-A): unfold them first
+    fireEvent.click(screen.getByTestId("comp-advanced-toggle"));
+
     // By default, Isorhythm section should not be present
-    expect(screen.queryByText("ISORHYTHM ENGINE (TALEA & COLOR)")).toBeNull();
+    expect(screen.queryByTestId("comp-iso-section")).toBeNull();
 
     // Toggle Isorhythm switch
-    const isorhythmSwitch = screen.getByLabelText("ISORHYTHM MODE");
+    const isorhythmSwitch = screen.getByTestId("comp-mode-iso");
     fireEvent.click(isorhythmSwitch);
 
     // Isorhythm section should now be visible
-    expect(screen.getByText("ISORHYTHM ENGINE (TALEA & COLOR)")).toBeTruthy();
-    expect(screen.getByText("PITCH COLOR SEQUENCE:")).toBeTruthy();
+    expect(screen.getByTestId("comp-iso-section")).toBeTruthy();
+    expect(screen.getByTestId("comp-iso-pitches")).toBeTruthy();
 
     // Toggle Forced Realignment switch (Mode M)
-    const realignmentSwitch = screen.getByLabelText("Mode M");
+    const realignmentSwitch = screen.getByTestId("comp-mode-mesh");
     fireEvent.click(realignmentSwitch);
 
     // Forced Realignment section should now be visible
-    expect(screen.getByText("FORCED REALIGNMENT (CALCULATRICE M)")).toBeTruthy();
+    expect(screen.getByTestId("comp-realign-section")).toBeTruthy();
 
     // Isorhythm section should be closed due to mutual exclusion
-    expect(screen.queryByText("ISORHYTHM ENGINE (TALEA & COLOR)")).toBeNull();
+    expect(screen.queryByTestId("comp-iso-section")).toBeNull();
   });
 });
 

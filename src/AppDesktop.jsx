@@ -541,7 +541,7 @@ function AppDesktop() {
   // over the very same state — not a copy of it. Opened from the classic
   // sidebar's buttons or from A′'s transport and header.
   const mathRhythmsModal = (
-    <Modal isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`} columns>
+    <Modal isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={`📐 ${txt.mathRhythms || "Math & Rythmes"}`} columns wide>
       {appMode !== "dictionary" ? (
         <CompositionPanel
           activeTracks={activeTracks}
@@ -550,6 +550,9 @@ function AppDesktop() {
           setCustomDrums={setCustomDrums}
           currentStep={currentStep}
           txt={txt.comp}
+          hideTitle
+          isPlaying={isPlaying}
+          togglePlayback={togglePlayback}
         />
       ) : (
         <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem", padding: "20px", textAlign: "center" }}>
