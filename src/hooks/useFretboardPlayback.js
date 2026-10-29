@@ -108,7 +108,7 @@ export function useFretboardPlayback({
           if (currentFingering?.fingeringMap && (inst === "guitar" || inst === "bass")) {
             const tuning = getInstrumentTuning(inst, activeBrick);
             const reversedTuning = [...tuning].reverse();
-            absolutePitches = fingeringMapToAbsolutePitches(currentFingering.fingeringMap, reversedTuning);
+            absolutePitches = fingeringMapToAbsolutePitches(currentFingering.fingeringMap, reversedTuning, inst);
           }
 
           if (absolutePitches.length === 0) {

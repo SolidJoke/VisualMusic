@@ -56,8 +56,11 @@ export function fingeringMapToAbsolutePitches(fingeringMap, reversedTuning, inst
     }
 
     Object.entries(fretMap).forEach(([fretStr, finger]) => {
-      if (finger !== 'X') {
-        const fret = parseInt(fretStr, 10);
+      // A muted string reaches this function in two encodings: fingeringLogic
+      // writes `{ X: true }`, and a numeric key can carry the value 'X'.
+      // Neither names a fret, so neither is a pitch.
+      const fret = parseInt(fretStr, 10);
+      if (fretStr !== 'X' && finger !== 'X' && Number.isFinite(fret) && fret >= 0) {
         pitches.push({
           absoluteValue: openNote + fret,
           stringIndex: strIdx,

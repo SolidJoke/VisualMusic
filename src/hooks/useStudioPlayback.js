@@ -43,9 +43,9 @@ export function useStudioPlayback({
     let absolutePitches = [];
     
     if (playbackInstrument === "guitar" || playbackInstrument === "bass") {
-      const localFingering = (playbackInstrument === "guitar") 
-        ? getGuitarFingering(rootVal, chordType, selectedRootStringGuitar)
-        : getBassFingering(rootVal, chordType, selectedRootStringBass);
+      const localFingering = (playbackInstrument === "guitar")
+        ? getGuitarFingering(rootVal, chordType, selectedRootStringGuitar, chordOctaveOffset || 0)
+        : getBassFingering(rootVal, chordType, selectedRootStringBass, chordOctaveOffset || 0);
 
       const fingeringMap = localFingering?.fingeringMap;
       
