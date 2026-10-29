@@ -8,7 +8,7 @@ import './Modal.css';
  * Uses React Portal to append to document.body avoiding z-index stacking issues.
  * `wide` (VMU-195-A) widens one window whose text is set large (see Modal.css).
  */
-const Modal = ({ isOpen, onClose, title, children, columns, wide }) => {
+const Modal = ({ isOpen, onClose, title, children, columns, wide = false }) => {
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose();

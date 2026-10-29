@@ -3053,7 +3053,7 @@ async function reportMathWindow(browser, viewport) {
       if (t) thumbSizes.push(Math.min(t.w, t.h));
     }
     const thumbMin = thumbSizes.length ? Math.min(...thumbSizes) : null;
-    if (thumbMin === null || !(thumbMin >= S1_27.thumb)) fails.push(`[thumb] slider thumb ${thumbMin === null || Number.isNaN(thumbMin) ? "not styled (no -webkit-/-moz- thumb rule sets its size)" : `${thumbMin}px`}, >= ${S1_27.thumb}px expected`);
+    if (thumbMin === null || !(thumbMin >= S1_27.thumb)) fails.push(`[thumb] slider thumb ${thumbMin === null ? "not found on the pixels (no --select coloured thumb)" : `${thumbMin}px`}, >= ${S1_27.thumb}px expected`);
     const cellMin = m.cells.length ? Math.min(...m.cells) : null;
     if (cellMin === null || cellMin < S1_27.cell) fails.push(`[cell] grid cell ${cellMin === null ? "none" : `${round1(cellMin)}px`}, >= ${S1_27.cell}px expected`);
     if (m.toggle !== "false" || m.advancedBody || m.modeSwitches !== 0) fails.push(`[folded] "Pour aller plus loin" toggle aria-expanded=${m.toggle}, body ${m.advancedBody ? "shown" : "absent"}, ${m.modeSwitches} mode switch(es) showing; closed, 0 switches expected`);
