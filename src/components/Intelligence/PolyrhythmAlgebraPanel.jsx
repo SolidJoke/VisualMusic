@@ -14,21 +14,21 @@ export default function PolyrhythmAlgebraPanel({
 
   return (
     <div className="panel-section polyrhythm-section">
-      <label className="section-label">{txt.polyEngine || "POLYRHYTHM ALGEBRA (ANDREW MILNE)"}</label>
+      <span className="section-label">{txt.polyEngine || "Layer rhythms (Andrew Milne)"}</span>
 
       {/* Balance indicator */}
       {balanceInfo && (
         <div className={`balance-indicator ${balanceInfo.isBalanced ? 'balanced' : 'unbalanced'}`}>
-          <span className="lcd-label">{txt.barycenter || "BARYCENTER:"}</span>
+          <span className="lcd-label">{txt.barycenter || "Centre of balance:"}</span>
           <span className="lcd-value balance-status">
-            {balanceInfo.isBalanced ? (txt.perfectBal || "✦ PERFECTLY BALANCED") : `${txt.offset || "⊕ OFFSET"} ${(balanceInfo.offset * 100).toFixed(1)}%`}
+            {balanceInfo.isBalanced ? (txt.perfectBal || "✦ Perfectly balanced") : `${txt.offset || "⊕ Off by"} ${(balanceInfo.offset * 100).toFixed(1)}%`}
           </span>
         </div>
       )}
 
       {/* Polygon operations editor */}
       <div className="poly-ops-editor">
-        <span className="input-label">{txt.polyOps || "POLYGON OPERATIONS:"}</span>
+        <span className="input-label">{txt.polyOps || "Layered rhythms:"}</span>
         {polyOps.map((op, idx) => {
           // Rhythmic voices, not musical roles - spec F1-fondations-visuelles.md
           // §6: never --role-* (those are reserved for harmonic-role pastilles).
@@ -81,15 +81,15 @@ export default function PolyrhythmAlgebraPanel({
                 }}
                 className="retro-select mini poly-op-select"
               >
-                <option value="+">{txt.add || "+ ADD"}</option>
-                <option value="-">{txt.sub || "- SUB"}</option>
+                <option value="+">{txt.add || "+ Add"}</option>
+                <option value="-">{txt.sub || "− Remove"}</option>
               </select>
 
               {polyOps.length > 1 && (
                 <button
                   onClick={() => setPolyOps(polyOps.filter((_, i) => i !== idx))}
                   className="retro-btn danger-btn poly-remove-btn"
-                  title="Remove this polygon"
+                  aria-label={txt.removePoly || "Remove this rhythm"}
                 >×</button>
               )}
             </div>
@@ -100,8 +100,9 @@ export default function PolyrhythmAlgebraPanel({
           <button
             onClick={() => setPolyOps([...polyOps, { k: 3, offset: 0, op: '+' }])}
             className="retro-btn poly-add-btn"
+            data-testid="comp-poly-add"
           >
-            {txt.addPoly || "+ ADD POLYGON"}
+            {txt.addPoly || "+ Add a rhythm"}
           </button>
         )}
       </div>
@@ -109,7 +110,7 @@ export default function PolyrhythmAlgebraPanel({
       {/* Result binary grid */}
       {polyrhythmResult && (
         <div className="polyrhythm-result">
-          <span className="input-label">{txt.algResult || "ALGEBRAIC RESULT:"}</span>
+          <span className="input-label">{txt.algResult || "Result:"}</span>
           <div className="binary-grid">
             {polyrhythmResult.pattern.map((val, idx) => {
               const isActiveStep = activeStep >= 0 && (idx === activeStep % subdivisions);

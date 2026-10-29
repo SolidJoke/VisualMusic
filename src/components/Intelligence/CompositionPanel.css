@@ -4,7 +4,14 @@
    batch - every gradient, glow/halo box-shadow and text-shadow below was
    stripped (not just recolored), flattening the "premium hardware" bezel
    look to the same flat-black design as the rest of the app. Each removal
-   is called out in the F1b report. */
+   is called out in the F1b report.
+
+   VMU-195-A: the window is read on a 4K screen by a beginner. Every text is
+   at least 18px (--fs-read), every control at least 32px (the buttons and
+   selects 48px), the slider thumbs 28px, the grid cells 32px; no forced
+   capitals on sentences. The sizes come from the typographic tokens
+   (tokens.css --fs-read, --fs-read-title, --hit-comfort), never from rem (which
+   ignores --ui-scale and gave ~11px texts). */
 .composition-panel {
   background: var(--surface-1);
   border: 3px solid var(--border-default);
@@ -13,10 +20,37 @@
   position: relative;
   box-shadow: var(--lg-shadow);
   font-family: 'Inter', system-ui, sans-serif;
+  font-size: var(--fs-read);
   color: var(--text-primary);
   overflow: hidden;
   user-select: none;
   flex-shrink: 0;
+}
+
+/* The window that holds this panel is set wider than the other popups, for
+   this window only (Modal `wide`): at 1440px, three columns of large text do
+   not fit. 96% of the screen up to 2200px (was 90% up to 1440px). Its title
+   and close button follow the same floors as the panel. Gated on 768px so the
+   phone's fullscreen modal is left alone. */
+@media (min-width: 768px) {
+  .modal-container.modal-container--wide {
+    width: 96%;
+    max-width: 2200px;
+  }
+  .modal-container--wide .modal-title {
+    font-size: max(18px, var(--fs-emph));
+  }
+  .modal-container--wide .modal-close-btn {
+    font-size: max(20px, var(--fs-emph));
+    min-width: var(--hit-comfort);
+    min-height: var(--hit-comfort);
+  }
+  .modal-container--wide .modal-body--columns #composition-panel .panel-body {
+    grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+  }
+  .modal-container--wide .advanced-section {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Eurorack Panel Screws for Realism - flattened to a plain dot: the fake-
@@ -46,7 +80,7 @@
 .eurorack-screw.bottom-left { bottom: 6px; left: 6px; }
 .eurorack-screw.bottom-right { bottom: 6px; right: 6px; }
 
-/* Panel Header styling */
+/* Panel Header styling (only when the panel has no window around it) */
 .panel-header {
   display: flex;
   align-items: center;
@@ -56,8 +90,7 @@
   margin-bottom: 16px;
 }
 .panel-header h3 {
-  font-size: 0.85rem;
-  letter-spacing: 2px;
+  font-size: var(--fs-read-title);
   font-weight: 700;
   color: var(--text-secondary);
   margin: 0;
@@ -87,31 +120,94 @@
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
-  padding: 12px;
+  padding: 16px;
   margin-bottom: 14px;
   box-shadow: none;
 }
 
-.section-label {
+/* Scoped: App.css's global .section-label (uppercase, tracked, 11px, same
+   weight) would otherwise win by coming later. */
+.composition-panel .section-label {
   display: block;
-  font-size: 0.68rem;
+  font-size: var(--fs-read-title);
   font-weight: 700;
-  letter-spacing: 1.5px;
-  color: var(--text-muted);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text-secondary);
   margin-bottom: 10px;
-  text-transform: uppercase;
+}
+
+/* A title with its "?" (SectionTitle.jsx): the title, the button, then
+   whatever the title carries on the right (a value). */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.composition-panel .section-head .section-label,
+.section-head .slider-title {
+  margin-bottom: 0;
+}
+.section-head > .lcd-value {
+  margin-left: auto;
+}
+.slider-title {
+  font-size: var(--fs-read);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.math-note {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+/* Click, not hover (VMU-151): one or two sentences under the title. */
+.help-btn {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: var(--fs-read);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.help-btn:hover,
+.help-btn[aria-expanded="true"] {
+  background: var(--surface-3);
+  border-color: var(--select);
+}
+.help-btn:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+.help-text {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border-left: 3px solid var(--select);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: var(--fs-read);
+  line-height: 1.45;
+  user-select: text;
 }
 
 /* Vintage Select Inputs */
 .retro-select {
   width: 100%;
+  min-height: var(--hit-comfort);
   background: var(--surface-2);
   border: 1px solid var(--border-default);
   border-radius: 4px;
   padding: 8px 12px;
   color: var(--text-primary);
   font-family: 'Courier New', Courier, monospace;
-  font-size: 0.85rem;
+  font-size: var(--fs-read);
   outline: none;
   cursor: pointer;
   box-shadow: none;
@@ -124,19 +220,10 @@
 
 /* Potentiometers / Range Sliders */
 .slider-group {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .slider-group:last-child {
   margin-bottom: 0;
-}
-.slider-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  font-weight: 600;
 }
 
 /* LCD Value Screen */
@@ -144,51 +231,89 @@
   background-color: var(--bg);
   border: 1px solid var(--border-default);
   border-radius: 3px;
-  padding: 2px 6px;
+  padding: 2px 10px;
   font-family: 'Courier New', Courier, monospace;
-  font-size: 0.8rem;
+  font-size: var(--fs-read);
   color: var(--lcd-amber);
   font-weight: bold;
   text-shadow: none;
   box-shadow: none;
-  min-width: 24px;
+  min-width: 40px;
   text-align: center;
 }
 
-/* Custom retro range slider design */
-.retro-slider {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 6px;
-  background: var(--surface-1);
-  border-radius: 3px;
-  outline: none;
-  border: 1px solid var(--border-subtle);
-  box-shadow: none;
-}
-.retro-slider::-webkit-slider-thumb {
+/* Range slider: a 32px-high control, a 10px track and a 28px thumb. Chromium
+   and Gecko each read their own pseudo-elements, so both are styled here and
+   nothing else. The selector is prefixed with .composition-panel because
+   App.css's global input[type="range"]::-webkit-slider-thumb (0,1,2) out-weighs
+   a lone class (0,1,1): without the prefix its 14px thumb wins in Chromium. */
+.composition-panel .retro-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  border: 0;
+  box-shadow: none;
+}
+.composition-panel .retro-slider::-webkit-slider-runnable-track {
+  box-sizing: border-box;
+  height: 10px;
   background: var(--surface-3);
   border: 1px solid var(--border-strong);
+  border-radius: 5px;
+}
+.composition-panel .retro-slider::-moz-range-track {
+  box-sizing: border-box;
+  height: 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+}
+.composition-panel .retro-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 3px solid var(--select);
   cursor: pointer;
   box-shadow: none;
 }
-.retro-slider::-webkit-slider-thumb:active {
-  background: var(--select);
-  border-color: var(--select);
+.composition-panel .retro-slider::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 3px solid var(--select);
+  cursor: pointer;
   box-shadow: none;
+}
+.composition-panel .retro-slider:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+.composition-panel .retro-slider:active::-webkit-slider-thumb {
+  background: var(--select);
+}
+.composition-panel .retro-slider:active::-moz-range-thumb {
+  background: var(--select);
 }
 
 /* SVG Visualization Container */
 .viz-section {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 16px;
+  align-items: stretch;
+  gap: 8px;
 }
 .circle-container {
   width: 100%;
@@ -200,49 +325,31 @@
   border: 1px solid var(--border-subtle);
 }
 
-/* Switch & Metadata group */
+/* Switch & Metadata group: one switch per line, the label clickable. */
 .switch-group {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   width: 100%;
-  padding: 0 6px;
 }
 
-/* VMU-138: only the Math & Rythmes modal's opt-in column grid (Modal.css
-   .modal-body--columns) narrows this row below what it always had before
-   (a full-width single column, at every screen size including phone) —
-   checked in-browser at 1920x1080: confined to one ~440px grid column,
-   .switch-group's 5 items have no wrap guard and get flex-shrunk edge to
-   edge with zero gap (e.g. "MODE PHASING" against "MODE ISORYTHMIE").
-   Gated on `.modal-body--columns` AND `min-width: 768px` — the class
-   alone is not enough, since it is present on the DOM node at phone width
-   too (Modal.css's own phone media query resets `display`, not this
-   file); without the width gate here as well, phone read 1393 instead of
-   the unchanged 1273 layout:probe expects (VMU-138 report) because this
-   row wrapped there too, taller, even though phone's own column width
-   never changed. */
-@media (min-width: 768px) {
-  .modal-body--columns .switch-group {
-    flex-wrap: wrap;
-    row-gap: 10px;
-  }
-}
-
-/* Retro Toggle Switch */
+/* Retro Toggle Switch: 56 x 32 */
 .retro-switch-container {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
+  min-height: var(--hit-comfort);
 }
 .retro-switch {
   position: relative;
   display: inline-block;
-  width: 38px;
-  height: 20px;
+  flex: none;
+  width: 56px;
+  height: 32px;
 }
 .retro-switch input {
+  position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
@@ -257,14 +364,14 @@
   background-color: var(--surface-2);
   border: 1px solid var(--border-default);
   transition: .2s;
-  border-radius: 20px;
+  border-radius: 32px;
   box-shadow: none;
 }
 .switch-slider:before {
   position: absolute;
   content: "";
-  height: 12px;
-  width: 12px;
+  height: 24px;
+  width: 24px;
   left: 3px;
   bottom: 3px;
   background: var(--surface-3);
@@ -278,35 +385,39 @@
   border-color: var(--led-cyan);
 }
 .retro-switch input:checked + .switch-slider:before {
-  transform: translateX(18px);
+  transform: translateX(24px);
   background: var(--select);
   border-color: var(--select);
   box-shadow: none;
 }
+.retro-switch input:focus-visible + .switch-slider {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
 .switch-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  letter-spacing: 0.5px;
+  font-size: var(--fs-read);
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
 }
 
 /* Metadata Symmetry Badge */
 .metadata-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 6px 12px;
 }
 .badge-title {
-  font-size: 0.58rem;
+  font-size: var(--fs-read);
   color: var(--text-muted);
   font-weight: 700;
 }
 .badge-value {
-  font-size: 0.62rem;
+  font-size: var(--fs-read);
   font-family: 'Courier New', Courier, monospace;
   color: var(--text-secondary);
   font-weight: 700;
@@ -316,11 +427,11 @@
   text-shadow: none;
 }
 
-/* Binary grid and glowing LEDs */
+/* Binary grid and glowing LEDs: 32px cells */
 .binary-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-start;
   padding: 4px 0;
 }
@@ -329,12 +440,12 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 22px;
+  min-width: 32px;
 }
 .grid-led {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
   background: var(--surface-2);
   border: 1px solid var(--border-default);
   box-shadow: none;
@@ -356,16 +467,17 @@
   border-color: var(--select) !important;
 }
 .grid-index {
-  font-size: 0.55rem;
+  font-size: var(--fs-read);
   color: var(--text-muted);
   font-family: monospace;
 }
 
-/* Deploy and Export panel styling */
+/* Send-to panel */
 .export-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 8px;
 }
@@ -373,28 +485,33 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.7rem;
+  font-size: var(--fs-read);
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 .retro-select.mini {
   width: auto;
   padding: 6px 10px;
-  font-size: 0.75rem;
+  font-size: var(--fs-read);
+}
+.live-note {
+  margin: 4px 0 12px;
+  font-size: var(--fs-read);
+  color: var(--text-secondary);
 }
 
 /* Luminscent tactile buttons - "keycap" 3-layer bevel shadow and gradient
    fill removed (decorative, F1b brief point 2); the surface tier change on
    hover is the only remaining feedback besides the existing translateY. */
 .retro-btn {
+  min-height: var(--hit-comfort);
   background: var(--surface-2);
   border: 1px solid var(--border-default);
   border-radius: 5px;
-  padding: 8px 16px;
+  padding: 8px 20px;
   color: var(--text-primary);
-  font-size: 0.78rem;
+  font-size: var(--fs-read);
   font-weight: 700;
-  letter-spacing: 1px;
   cursor: pointer;
   box-shadow: none;
   transition: all 0.1s ease;
@@ -403,6 +520,10 @@
 .retro-btn:hover {
   background: var(--surface-3);
   color: var(--text-on-select);
+}
+.retro-btn:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
 }
 .retro-btn:active {
   transform: translateY(3px);
@@ -425,6 +546,11 @@
   text-shadow: none;
   box-shadow: none;
 }
+.listen-btn {
+  width: 100%;
+  color: var(--select);
+  border-color: var(--select);
+}
 
 .clear-container {
   display: flex;
@@ -438,8 +564,6 @@
   border: 1px dashed var(--border-default);
   color: var(--text-muted);
   box-shadow: none;
-  font-size: 0.65rem;
-  padding: 4px 10px;
 }
 .clear-btn:hover {
   border-color: var(--color-error);
@@ -449,6 +573,30 @@
 .clear-btn:active {
   transform: scale(0.98);
   box-shadow: none;
+}
+
+/* "Go further": the composers' tools, folded by default */
+.advanced-title {
+  margin: 0;
+}
+.advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.advanced-on {
+  color: var(--lcd-amber);
+  font-weight: 600;
+}
+.advanced-body {
+  margin-top: 8px;
+}
+.advanced-body .switch-group {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 32px;
+  margin-bottom: 14px;
 }
 
 /* Isorythmie Module Premium Styles */
@@ -462,22 +610,23 @@
   margin-bottom: 12px;
 }
 .retro-input-container .input-label {
-  font-size: 0.68rem;
+  font-size: var(--fs-read);
   font-weight: 700;
   color: var(--text-secondary);
-  letter-spacing: 1px;
 }
 .retro-input-text {
+  min-height: var(--hit-comfort);
   background: var(--surface-1);
   border: 1px solid var(--border-default);
   border-radius: 4px;
   padding: 8px 12px;
   color: var(--text-primary);
   font-family: 'Courier New', Courier, monospace;
-  font-size: 0.85rem;
+  font-size: var(--fs-read);
   outline: none;
   box-shadow: none;
   transition: all 0.2s ease;
+  user-select: text;
 }
 .retro-input-text:focus {
   border-color: var(--led-cyan);
@@ -493,6 +642,7 @@
 }
 .isorhythm-lcd-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 .lcd-panel {
@@ -502,10 +652,10 @@
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 4px 10px;
 }
 .lcd-label {
-  font-size: 0.58rem;
+  font-size: var(--fs-read);
   font-weight: 700;
   color: var(--text-muted);
 }
@@ -515,7 +665,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-height: 120px;
+  max-height: 320px;
   overflow-y: auto;
   padding: 4px;
   background: var(--surface-1);
@@ -527,8 +677,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 38px;
-  height: 38px;
+  min-width: 64px;
+  height: 64px;
   border-radius: 4px;
   border: 1px solid var(--border-subtle);
   font-family: monospace;
@@ -551,11 +701,11 @@
   z-index: 2;
 }
 .step-idx {
-  font-size: 0.55rem;
+  font-size: var(--fs-read);
   color: var(--text-muted);
 }
 .step-note {
-  font-size: 0.72rem;
+  font-size: var(--fs-read);
   font-weight: 700;
 }
 
@@ -580,13 +730,13 @@
 .balance-indicator {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 8px 12px;
   border-radius: 6px;
   margin-bottom: 12px;
-  font-size: 0.78rem;
+  font-size: var(--fs-read);
   font-family: 'Courier New', monospace;
-  letter-spacing: 0.05em;
   border: 1px solid var(--border-subtle);
   background: var(--surface-1);
   transition: all 0.3s ease;
@@ -632,41 +782,38 @@
 
 .poly-op-label {
   font-family: 'Courier New', monospace;
-  font-size: 0.8rem;
+  font-size: var(--fs-read);
   font-weight: bold;
-  min-width: 28px;
+  min-width: 40px;
   text-align: center;
 }
 
 .poly-op-field {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex: 1;
-  min-width: 120px;
+  min-width: 200px;
 }
 
 .poly-op-field > span:first-child {
-  font-size: 0.75rem;
+  font-size: var(--fs-read);
   color: var(--text-muted);
-  min-width: 14px;
+  min-width: 18px;
 }
 
 .poly-slider {
   flex: 1;
-  height: 3px;
 }
 
 .poly-op-select {
-  padding: 2px 4px;
-  font-size: 0.7rem;
-  min-width: 70px;
+  padding: 2px 8px;
+  min-width: 110px;
 }
 
 .poly-remove-btn {
-  padding: 2px 7px;
-  font-size: 0.75rem;
-  min-width: 24px;
+  padding: 2px 12px;
+  min-width: var(--hit-comfort);
   background: var(--surface-2);
   border-color: var(--color-error);
   color: var(--color-error);
@@ -677,8 +824,6 @@
 }
 
 .poly-add-btn {
-  font-size: 0.72rem;
-  padding: 5px 10px;
   align-self: flex-start;
   background: var(--surface-2);
   border-color: var(--select);
@@ -699,5 +844,5 @@
   display: block;
   margin-bottom: 8px;
   color: var(--select);
-  font-size: 0.72rem;
+  font-size: var(--fs-read);
 }

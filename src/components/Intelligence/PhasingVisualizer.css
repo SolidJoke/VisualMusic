@@ -16,7 +16,7 @@
 }
 
 .phasing-voice .voice-label {
-  font-size: 0.75rem;
+  font-size: max(18px, var(--fs-emph));
   font-family: monospace;
   color: var(--color-text-muted);
   letter-spacing: 0.05em;

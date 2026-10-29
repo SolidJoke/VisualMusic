@@ -232,6 +232,28 @@ describe("A′-ACCÈS (b): the classic windows open from A′, with the classic 
     expect(document.querySelector(".modal-container")).toBeNull();
   });
 
+  it("'Math & Rythmes' (VMU-195-A) carries one title, a Listen button wired to the main playback, and the tools folded", async () => {
+    await renderApp();
+    fireEvent.click(fn("nav.mode-studio"));
+    fireEvent.click(fn("composer.math-ouvrir"));
+    const modal = document.querySelector(".modal-container");
+    expect(modal.classList.contains("modal-container--wide")).toBe(true);
+    // The window's own title is the only one: no inner header, no second h3.
+    expect(modal.querySelectorAll(".modal-title")).toHaveLength(1);
+    expect(modal.querySelector("#composition-panel .panel__header")).toBeNull();
+    expect(modal.querySelector("#composition-panel h3")).toBeNull();
+    expect(modal.querySelector('[data-testid="comp-advanced-toggle"]').getAttribute("aria-expanded")).toBe("false");
+    // "Listen" is offered, and it starts/stops the main loop (its label follows isPlaying).
+    const listen = modal.querySelector('[data-testid="comp-listen"]');
+    expect(listen).not.toBeNull();
+    expect(listen.textContent).toBe(FR.comp.listen);
+    // Starting the loop is asynchronous (the audio engine wakes first).
+    fireEvent.click(listen);
+    await waitFor(() => expect(modal.querySelector('[data-testid="comp-listen"]').textContent).toBe(FR.comp.stopListen), { timeout: 5000 });
+    fireEvent.click(modal.querySelector('[data-testid="comp-listen"]'));
+    await waitFor(() => expect(modal.querySelector('[data-testid="comp-listen"]').textContent).toBe(FR.comp.listen), { timeout: 5000 });
+  });
+
   it("the Guide opens and Escape closes it", async () => {
     await renderApp();
     fireEvent.click(fn("aide.guide"));
