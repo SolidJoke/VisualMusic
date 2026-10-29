@@ -566,6 +566,7 @@ export default function PrototypeA({
                     value={Number(masterVolume)}
                     aria-label={T.volume}
                     data-fn="son.volume-general"
+                    style={{ "--value": `${((Number(masterVolume) + 40) / 40) * 100}%` }}
                     onChange={(e) => setMasterVolume && setMasterVolume(Number(e.target.value))}
                   />
                   <output className="proto-a__volume-value">

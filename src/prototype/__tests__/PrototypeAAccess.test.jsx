@@ -321,6 +321,18 @@ describe("A′-ACCÈS (d): the transport's volume and the Audio window's are the
   });
 });
 
+// VMU-194: the slider's fill is painted from --value, the percentage filled
+// (-40 dB -> 0 %, 0 dB -> 100 %), read here from the inline style.
+describe("A′-ACCÈS (d bis): the volume slider knows how full it is (VMU-194)", () => {
+  it("carries --value: 100% at 0 dB and 50% at -20 dB", async () => {
+    await renderApp();
+    fireEvent.change(fn("son.volume-general"), { target: { value: "0" } });
+    expect(fn("son.volume-general").style.getPropertyValue("--value")).toBe("100%");
+    fireEvent.change(fn("son.volume-general"), { target: { value: "-20" } });
+    expect(fn("son.volume-general").style.getPropertyValue("--value")).toBe("50%");
+  });
+});
+
 describe("A′-ACCÈS (f): Escape closes the Assistant drawer, like the classic windows", () => {
   it("closes the open drawer", async () => {
     await renderApp("?prototype=a&drawer=open");
