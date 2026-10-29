@@ -326,6 +326,29 @@ input[type="range"]::-webkit-slider-runnable-track {
   border: 1px solid var(--border-default);
 }
 
+/* VMU-194 (Gabriel, 2026-10-29): Gecko parity. The rules above remove the
+   native look in every engine, but only -webkit-* was replaced: in a
+   Firefox-based browser a range input had no track and no thumb at all. Same
+   sizes, colours and borders as the webkit pair, no margin-top (Gecko centres
+   the thumb on the track itself). */
+input[type="range"]::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background: var(--surface-1);
+  border-radius: 2px;
+  border: 1px solid var(--border-default);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 28px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  cursor: pointer;
+  box-shadow: var(--lg-shadow);
+}
+
 /* --- PIANO ROLL DIM OVERLAY --- */
 .step__dim-overlay {
   position: absolute;

@@ -269,6 +269,62 @@
   cursor: pointer;
 }
 
+/* VMU-194 (Gabriel, 2026-10-29): the master volume, visible in Chromium and
+   Gecko. A 8px track in --surface-3, edged in --border-strong; the part left of
+   the thumb filled with the Assistant's gradient; a 24px round thumb in the
+   Assistant's light text / border. Chromium paints the fill through --value
+   (set inline by PrototypeA.jsx, 0% at -40 dB, 100% at 0 dB); Gecko has
+   ::-moz-range-progress for exactly that. The gradient runs black -> mauve
+   (--assistant-to -> --assistant-from), i.e. the mauve end sits next to the
+   thumb: on a short fill (low volume) the fill still ends on a visible colour
+   instead of fading into the track under the thumb. */
+.proto-a .proto-a__volume-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(
+    to right,
+    var(--assistant-to) 0,
+    var(--assistant-from) var(--value, 0%),
+    var(--surface-3) var(--value, 0%)
+  );
+}
+
+.proto-a .proto-a__volume-slider::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-3);
+}
+
+.proto-a .proto-a__volume-slider::-moz-range-progress {
+  height: 8px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--assistant-to), var(--assistant-from));
+}
+
+.proto-a .proto-a__volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -8px; /* centre 24px on the 8px track */
+  border-radius: 50%;
+  background: var(--assistant-text);
+  border: 2px solid var(--assistant-border);
+  cursor: pointer;
+}
+
+.proto-a .proto-a__volume-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--assistant-text);
+  border: 2px solid var(--assistant-border);
+  cursor: pointer;
+}
+
 .proto-a__volume-value {
   min-width: 6ch;
   color: var(--text-primary);
@@ -451,6 +507,59 @@
 .proto-a .proto-a__assistant:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+/* VMU-193 (Gabriel, 2026-10-29): the Assistant's gradient, at the owner's
+   request, on the small step buttons only — the tempo's − / + and every ‹ / ›
+   head arrow (column heads, the Studio's "Octave des accords"). The ▶ play
+   button and the other .proto-a__btn keep their flat look. A disabled arrow
+   stays muted with no gradient, so the end of a range remains legible; the
+   existing :focus-visible ring is untouched. */
+.proto-a .proto-a__tempo .proto-a__btn--square,
+.proto-a .proto-a__head-btn.proto-a__head-arrow {
+  background: linear-gradient(90deg, var(--assistant-from), var(--assistant-to));
+  color: var(--assistant-text);
+  border-color: var(--assistant-border);
+}
+
+.proto-a .proto-a__tempo .proto-a__btn--square:hover:not(:disabled),
+.proto-a .proto-a__head-btn.proto-a__head-arrow:hover:not(:disabled) {
+  background: linear-gradient(90deg, var(--assistant-from-hover), var(--assistant-to));
+}
+
+.proto-a .proto-a__tempo .proto-a__btn--square:disabled,
+.proto-a .proto-a__head-btn.proto-a__head-arrow:disabled {
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+
+/* VMU-197 (Gabriel, 2026-10-29): while the transport plays, the ▶ / ■ button
+   wears the Assistant's gradient and slides it slowly (one turn per 3 s).
+   Only background-position moves — no size change, no blinking. The gradient
+   runs `to -> from -> to` over 200% of the button, so its two ends are the
+   same colour: shifting the image by exactly its own width (200% in
+   background-position units) puts an identical copy under the button, first
+   frame = last frame, and the loop has no seam. At rest the .proto-a__btn
+   --primary look is untouched; with prefers-reduced-motion the gradient stays
+   but the movement stops. */
+.proto-a .proto-a__btn--primary.is-playing {
+  background: linear-gradient(90deg, var(--assistant-to), var(--assistant-from), var(--assistant-to));
+  background-size: 200% 100%;
+  color: var(--assistant-text);
+  border-color: var(--assistant-border);
+  animation: proto-a-playing 3s linear infinite;
+}
+
+@keyframes proto-a-playing {
+  from { background-position: 0% 0; }
+  to { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proto-a .proto-a__btn--primary.is-playing {
+    animation: none;
+  }
 }
 
 .proto-a__sequencer,
