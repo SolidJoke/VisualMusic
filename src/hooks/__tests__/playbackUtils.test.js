@@ -39,6 +39,40 @@ describe('fingeringMapToAbsolutePitches', () => {
     expect(result).toHaveLength(1);
   });
 
+  it('ignore une corde muette encodée { X: true }, comme le fait fingeringLogic', () => {
+    // open_C from getGuitarFingering(0, 'chord_major', null, 0): the low E is
+    // muted, and shapeToFingeringObj encodes that as `{ X: true }`. Read as
+    // `{ [fret]: finger }`, the key "X" became parseInt("X") — NaN — and a NaN
+    // pitch reached NOTES[NaN].us downstream.
+    const fingeringMap = {
+      5: { X: true },
+      4: { 3: 3 },
+      3: { 2: 2 },
+      2: { 0: 'O' },
+      1: { 1: 1 },
+      0: { 0: 'O' },
+    };
+    const reversedTuning = ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'];
+    const result = fingeringMapToAbsolutePitches(fingeringMap, reversedTuning);
+
+    expect(result).toHaveLength(5);
+    expect(result.map((p) => p.absoluteValue)).toEqual([48, 52, 55, 60, 64]);
+    expect(result.some((p) => p.stringIndex === 5)).toBe(false);
+    for (const pitch of result) {
+      expect(Number.isFinite(pitch.absoluteValue)).toBe(true);
+      expect(Number.isFinite(pitch.fret)).toBe(true);
+    }
+  });
+
+  it("ignore aussi l'encodage { X: 'X' } d'une corde muette", () => {
+    const fingeringMap = { 5: { X: 'X' }, 4: { 3: 3 } };
+    const reversedTuning = ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'];
+    const result = fingeringMapToAbsolutePitches(fingeringMap, reversedTuning);
+
+    expect(result.map((p) => p.absoluteValue)).toEqual([48]);
+    expect(result.some((p) => p.stringIndex === 5)).toBe(false);
+  });
+
   it("attache l'instrument si fourni", () => {
     const fingeringMap = { 0: { 2: 1 } };
     const result = fingeringMapToAbsolutePitches(fingeringMap, ['E2'], 'guitar');
