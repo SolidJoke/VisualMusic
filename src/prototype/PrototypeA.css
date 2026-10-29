@@ -534,6 +534,34 @@
   border-color: var(--border-subtle);
 }
 
+/* VMU-197 (Gabriel, 2026-10-29): while the transport plays, the ▶ / ■ button
+   wears the Assistant's gradient and slides it slowly (one turn per 3 s).
+   Only background-position moves — no size change, no blinking. The gradient
+   runs `to -> from -> to` over 200% of the button, so its two ends are the
+   same colour: shifting the image by exactly its own width (200% in
+   background-position units) puts an identical copy under the button, first
+   frame = last frame, and the loop has no seam. At rest the .proto-a__btn
+   --primary look is untouched; with prefers-reduced-motion the gradient stays
+   but the movement stops. */
+.proto-a .proto-a__btn--primary.is-playing {
+  background: linear-gradient(90deg, var(--assistant-to), var(--assistant-from), var(--assistant-to));
+  background-size: 200% 100%;
+  color: var(--assistant-text);
+  border-color: var(--assistant-border);
+  animation: proto-a-playing 3s linear infinite;
+}
+
+@keyframes proto-a-playing {
+  from { background-position: 0% 0; }
+  to { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proto-a .proto-a__btn--primary.is-playing {
+    animation: none;
+  }
+}
+
 .proto-a__sequencer,
 .proto-a__legend {
   min-width: 0;

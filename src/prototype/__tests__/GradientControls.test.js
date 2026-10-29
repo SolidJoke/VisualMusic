@@ -202,6 +202,58 @@ describe("VMU-194: Gecko parity for every range input (App.css)", () => {
   });
 });
 
+/** Body of the block introduced by `header` (a regex source), braces balanced
+ *  so `@keyframes` / `@media` bodies are read whole, not one rule at a time. */
+function blockBody(css, header) {
+  const re = new RegExp(`${header}\\s*\\{`, "g");
+  const m = re.exec(css);
+  if (!m) return null;
+  let depth = 1;
+  for (let i = re.lastIndex; i < css.length; i++) {
+    if (css[i] === "{") depth++;
+    else if (css[i] === "}" && --depth === 0) return css.slice(re.lastIndex, i);
+  }
+  return null;
+}
+
+describe("VMU-197: the ▶ / ■ play button slides the Assistant's gradient while playing", () => {
+  const playingRule = rulesWith(protoCss, ".proto-a__btn--primary.is-playing")[0];
+  const keyframes = blockBody(protoCss, "@keyframes\\s+proto-a-playing");
+  const reduced = rulesWith(
+    blockBody(protoCss, "@media\\s*\\(prefers-reduced-motion:\\s*reduce\\)") || "",
+    ".proto-a__btn--primary.is-playing"
+  );
+
+  it("wears the Assistant gradient and animates it with proto-a-playing", () => {
+    expect(playingRule, "the .is-playing rule").toBeDefined();
+    expect(playingRule.body, "a linear-gradient").toMatch(GRADIENT);
+    expect(playingRule.body).toMatch(/var\(--assistant-from\b/);
+    expect(playingRule.body).toMatch(/var\(--assistant-to\b/);
+    expect(playingRule.body, "the animation names the keyframes").toMatch(/animation:\s*proto-a-playing\b/);
+    expect(playingRule.body).toMatch(/background-size:\s*200%\s+100%/);
+  });
+
+  it("has a @keyframes proto-a-playing that only changes background-position", () => {
+    expect(keyframes, "@keyframes proto-a-playing").not.toBeNull();
+    const props = [...keyframes.matchAll(/([-\w]+)\s*:/g)].map((m) => m[1]);
+    expect(props.length, "the keyframes' declarations").toBeGreaterThan(0);
+    expect(new Set(props), "nothing but background-position moves").toEqual(new Set(["background-position"]));
+  });
+
+  it("keeps the gradient but stops the animation under prefers-reduced-motion", () => {
+    expect(reduced.length, "a reduced-motion rule for .is-playing").toBeGreaterThan(0);
+    for (const r of reduced) expect(r.body, r.selector).toMatch(/animation:\s*none\b/);
+  });
+
+  it("uses tokens only in these rules", () => {
+    expect(playingRule, "the .is-playing rule").toBeDefined();
+    expect(playingRule.body).not.toMatch(LITERAL_COLOUR);
+    expect(keyframes).not.toBeNull();
+    expect(keyframes).not.toMatch(LITERAL_COLOUR);
+    for (const r of reduced) expect(r.body, r.selector).not.toMatch(LITERAL_COLOUR);
+  });
+});
+
 describe("VMU-193/194: the added rules use tokens only", () => {
   it("has no literal colour in the rules added to PrototypeA.css", () => {
     const added = [

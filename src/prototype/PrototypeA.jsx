@@ -504,7 +504,7 @@ export default function PrototypeA({
           <div className="proto-a__grid">
             <main className="proto-a__center" data-s1="center">
               <section className="proto-a__panel proto-a__transport" data-s1="transport">
-                <button type="button" className="proto-a__btn proto-a__btn--primary" data-fn="jouer.lecture" onClick={handlePlay}>
+                <button type="button" className={`proto-a__btn proto-a__btn--primary ${isPlaying ? "is-playing" : ""}`} data-fn="jouer.lecture" onClick={handlePlay}>
                   {isPlaying ? T.stop : appMode === "dictionary" ? T.listen : T.playProgression}
                 </button>
                 {/* Tempo: - n + (steps of 1), and a click on n types it (VMU-181,

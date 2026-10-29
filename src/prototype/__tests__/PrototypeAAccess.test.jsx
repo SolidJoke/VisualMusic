@@ -373,6 +373,17 @@ describe("A′-ACCÈS: the audio visualizer", () => {
   });
 });
 
+describe("A′-ACCÈS (g): the transport's play button marks playback (VMU-197)", () => {
+  it("has no is-playing class at rest, and carries it while playback runs", async () => {
+    await renderApp();
+    expect(fn("jouer.lecture").classList.contains("is-playing")).toBe(false);
+    fireEvent.click(fn("jouer.lecture"));
+    await waitFor(() => expect(fn("jouer.lecture").classList.contains("is-playing")).toBe(true));
+    fireEvent.click(fn("jouer.lecture"));
+    await waitFor(() => expect(fn("jouer.lecture").classList.contains("is-playing")).toBe(false));
+  });
+});
+
 describe("A′ header: the internal subtitle is gone (VMU-188)", () => {
   it("renders no bench subtitle in the header, and no language still carries the key", async () => {
     await renderApp("?prototype=a");
