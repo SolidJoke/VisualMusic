@@ -1,5 +1,23 @@
 import { describe, it, expect } from "vitest";
-import { planArpeggio } from "../arpeggio";
+import { planArpeggio, arpeggioStepSeconds, ARPEGGIO_NOTE_VALUE } from "../arpeggio";
+
+describe("arpeggioStepSeconds — a step is the loop's fastest note", () => {
+  it("is a sixteenth at 120 bpm: 0.125 s", () => {
+    expect(arpeggioStepSeconds(120)).toBe(0.125);
+  });
+
+  it("is 60 / bpm / 4 at any tempo (90 bpm)", () => {
+    expect(arpeggioStepSeconds(90)).toBeCloseTo(60 / 90 / 4, 12);
+  });
+
+  it.each([0, -1, NaN, undefined])("falls back to 120 bpm for %p", (bpm) => {
+    expect(arpeggioStepSeconds(bpm)).toBe(0.125);
+  });
+
+  it("names the note value the steps are played with: a sixteenth", () => {
+    expect(ARPEGGIO_NOTE_VALUE).toBe("16n");
+  });
+});
 
 describe("planArpeggio — a chord's notes as a rising sequence", () => {
   it("sorts bare pitches ascending, whatever the input order", () => {

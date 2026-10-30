@@ -64,7 +64,7 @@ describe('VMU-199 — a bass chord click in the Studio is a rising arpeggio', ()
     draws.scheduled.length = 0;
   });
 
-  it('plays the drawn grip note by note, an eighth apart at 120 bpm', async () => {
+  it('plays the drawn grip note by note, a sixteenth apart at 120 bpm', async () => {
     const { result, setCurrentAbsoluteNotes } = mount('bass', 120);
 
     await act(async () => {
@@ -72,9 +72,9 @@ describe('VMU-199 — a bass chord click in the Studio is a rising arpeggio', ()
     });
 
     expect(AudioEngine.playDictionaryNote.mock.calls).toEqual([
-      ['bass', 'C2', '8n', 1],
-      ['bass', 'G2', '8n', 1.25],
-      ['bass', 'C3', '8n', 1.5],
+      ['bass', 'C2', '16n', 1],
+      ['bass', 'G2', '16n', 1.125],
+      ['bass', 'C3', '16n', 1.25],
     ]);
     // The chord context is still the whole chord.
     expect(setCurrentAbsoluteNotes).toHaveBeenCalledWith([36, 43, 48]);
@@ -115,7 +115,7 @@ describe('VMU-199 — a bass chord click in the Studio is a rising arpeggio', ()
       await result.current.handleChordClick(C_CHORD, 0);
     });
 
-    expect(AudioEngine.playDictionaryNote.mock.calls.map((c) => c[3])).toEqual([1, 1.25, 1.5]);
+    expect(AudioEngine.playDictionaryNote.mock.calls.map((c) => c[3])).toEqual([1, 1.125, 1.25]);
   });
 
   it('a piano click is unchanged: one call with the whole chord', async () => {

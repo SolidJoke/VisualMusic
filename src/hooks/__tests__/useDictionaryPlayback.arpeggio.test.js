@@ -81,7 +81,7 @@ describe('VMU-199 — a bass chord in the Dictionary is a rising arpeggio', () =
     draws.scheduled.length = 0;
   });
 
-  it('calls the engine once per drawn note, low to high, an eighth apart', async () => {
+  it('calls the engine once per drawn note, low to high, a sixteenth apart', async () => {
     const { result } = mount('bass', { bass: C_BASS, piano: [], guitar: [] });
 
     await act(async () => {
@@ -89,9 +89,9 @@ describe('VMU-199 — a bass chord in the Dictionary is a rising arpeggio', () =
     });
 
     expect(AudioEngine.playDictionaryNote.mock.calls).toEqual([
-      ['bass', 'C2', '8n', 1],
-      ['bass', 'G2', '8n', 1.25],
-      ['bass', 'C3', '8n', 1.5],
+      ['bass', 'C2', '16n', 1],
+      ['bass', 'G2', '16n', 1.125],
+      ['bass', 'C3', '16n', 1.25],
     ]);
     expect(DictionaryVoices.rememberDictionaryVoice).toHaveBeenCalledTimes(3);
   });

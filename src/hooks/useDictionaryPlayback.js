@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import * as Tone from 'tone';
 import { CHORDS, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute, midiToNoteName, computeAbsoluteNote } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
-import { planArpeggio } from "../audio/arpeggio";
+import { planArpeggio, arpeggioStepSeconds, ARPEGGIO_NOTE_VALUE } from "../audio/arpeggio";
 import { rememberDictionaryVoice, stopDictionaryVoices } from "../audio/dictionaryVoices";
 import { logPlaybackSequence, logNotePlay } from "../core/debugScale";
 import { getInstrumentTuning, buildAscDescSequence } from "./playbackUtils";
@@ -169,10 +169,12 @@ export function useDictionaryPlayback({
         // notes one after the other, lowest to highest, each lit while it
         // sounds — the mechanism the scales below already use. Playing them
         // all at once would light three notes and sound one.
-        const stepTime = (60 / currentBpm) / 2;
+        const stepTime = arpeggioStepSeconds(currentBpm);
         for (const { note, time, clearAt } of planArpeggio(absolutePitches, Tone.now(), stepTime)) {
           const pitch = typeof note === "object" ? note.absoluteValue : note;
-          rememberDictionaryVoice(playDictionaryNote("bass", midiToNoteName(pitch), "8n", time));
+          rememberDictionaryVoice(
+            playDictionaryNote("bass", midiToNoteName(pitch), ARPEGGIO_NOTE_VALUE, time)
+          );
           Tone.getDraw().schedule(() => {
             if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([note]);
           }, time);

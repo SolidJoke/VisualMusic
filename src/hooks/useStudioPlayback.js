@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import * as Tone from 'tone';
 import { resolveNnsToChordType, getClosestInversionN, resolveChordSemitones, midiToNoteName } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
-import { planArpeggio } from "../audio/arpeggio";
+import { planArpeggio, arpeggioStepSeconds, ARPEGGIO_NOTE_VALUE } from "../audio/arpeggio";
 import { rememberDictionaryVoice, stopDictionaryVoices } from "../audio/dictionaryVoices";
 import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches } from "./playbackUtils";
@@ -103,14 +103,16 @@ export function useStudioPlayback({
       // scale mechanism). A second click takes back the notes the first one
       // had scheduled, or the mono synth would still sound them underneath.
       stopDictionaryVoices();
-      const stepTime = (60 / currentBpm) / 2;
+      const stepTime = arpeggioStepSeconds(currentBpm);
       for (const { note, time, clearAt } of planArpeggio(
         flashedNotes ?? absolutePitches,
         Tone.now(),
         stepTime,
       )) {
         const pitch = typeof note === "object" ? note.absoluteValue : note;
-        rememberDictionaryVoice(playDictionaryNote("bass", midiToNoteName(pitch), "8n", time));
+        rememberDictionaryVoice(
+          playDictionaryNote("bass", midiToNoteName(pitch), ARPEGGIO_NOTE_VALUE, time)
+        );
         Tone.getDraw().schedule(() => {
           if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([note]);
         }, time);

@@ -17,6 +17,32 @@
  */
 
 /**
+ * The note value each arpeggio step is played with.
+ *
+ * A sixteenth, because the arpeggio follows the tempo at the fastest note the
+ * app plays: the Studio loop's grid, `transport.scheduleRepeat(repeat, "16n")`
+ * in useSequencer.js. The owner's decision of 2026-10-30.
+ */
+export const ARPEGGIO_NOTE_VALUE = "16n";
+
+/** The tempo an arpeggio falls back to when the caller has none. */
+const DEFAULT_BPM = 120;
+
+/**
+ * Seconds between two arpeggio steps at `bpm`: one sixteenth at that tempo, the
+ * Studio loop's grid (useSequencer.js schedules on "16n"), so the arpeggio sits
+ * on the same grid as the loop. 0.125 s at 120 bpm. The owner's decision of
+ * 2026-10-30. A missing, zero, negative or non-finite `bpm` falls back to 120.
+ *
+ * @param {number} [bpm] the current tempo, in beats per minute.
+ * @returns {number} seconds between two consecutive notes.
+ */
+export function arpeggioStepSeconds(bpm) {
+  const tempo = Number.isFinite(bpm) && bpm > 0 ? bpm : DEFAULT_BPM;
+  return 60 / tempo / 4;
+}
+
+/**
  * @typedef {Object} ArpeggioStep
  * @property {number | {absoluteValue: number}} note the input note, unchanged:
  *   a tagged realization object keeps its tag so the right neck lights it.
