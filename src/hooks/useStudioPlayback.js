@@ -41,6 +41,10 @@ export function useStudioPlayback({
     const chordType = resolveNnsToChordType(c.nns);
     
     let absolutePitches = [];
+    // VMU-180: what the neck flashes, tagged with its instrument and place so the
+    // piano (which flashes every untagged pitch as its own) stays still. Stays
+    // null when the notes do not come from a grip: they are then bare pitches.
+    let flashedNotes = null;
     
     if (playbackInstrument === "guitar" || playbackInstrument === "bass") {
       const localFingering = (playbackInstrument === "guitar")
@@ -52,8 +56,9 @@ export function useStudioPlayback({
       if (fingeringMap) {
         const tuning = getInstrumentTuning(playbackInstrument, activeBrick);
         const reversedTuning = [...tuning].reverse();
-        absolutePitches = fingeringMapToAbsolutePitches(fingeringMap, reversedTuning)
-          .map(p => p.absoluteValue);
+        const grip = fingeringMapToAbsolutePitches(fingeringMap, reversedTuning, playbackInstrument);
+        absolutePitches = grip.map(p => p.absoluteValue);
+        if (grip.length > 0) flashedNotes = grip;
       }
     }
 
@@ -86,7 +91,7 @@ export function useStudioPlayback({
     const scheduleTime = Tone.now() + 0.5;
     playDictionaryNote(playbackInstrument, notesToPlay, "2n");
     setCurrentAbsoluteNotes(absolutePitches);
-    setCurrentlyPlayingNotes(absolutePitches);
+    setCurrentlyPlayingNotes(flashedNotes ?? absolutePitches);
     Tone.getDraw().schedule(() => {
       if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
     }, scheduleTime);

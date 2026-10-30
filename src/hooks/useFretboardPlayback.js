@@ -165,7 +165,14 @@ export function useFretboardPlayback({
     setContextualScaleAbsoluteValues([]);
     setLastClickedContext(null);
     setSinglePlayContext(context ?? null);
-    setCurrentlyPlayingNotes([absNote]);
+    // VMU-180: a note clicked on a neck is published as that neck's — instrument
+    // and place — so the piano, which flashes every untagged pitch as its own,
+    // stays still; the piano's own key (no place on a neck) stays a bare pitch.
+    const onNeck = (inst === "guitar" || inst === "bass")
+      && Number.isFinite(context?.stringIndex) && Number.isFinite(context?.fret);
+    setCurrentlyPlayingNotes([
+      onNeck ? { absoluteValue: absNote, stringIndex: context.stringIndex, fret: context.fret, instrument: inst } : absNote,
+    ]);
     Tone.getDraw().schedule(() => {
       if (scheduler.isCurrentSession(currentToken)) {
         setCurrentlyPlayingNotes([]);

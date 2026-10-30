@@ -80,6 +80,14 @@ function resolvePlayingState({ currentlyPlayingNotes, singlePlayContext }, strin
           break;
         }
       }
+      // VMU-180: a pitch tagged with this neck's instrument but with no place
+      // (a single note played by the guitar: its realization has none) lights
+      // every place of that pitch on this neck, as the bare pitch did, without
+      // being a bare pitch the piano would flash as its own.
+      if (n.absoluteValue === absoluteValue && n.instrument === instrument && n.stringIndex === undefined && n.fret === undefined) {
+        isPlaying = true;
+        break;
+      }
     } else if (n === absoluteValue && !hasInstrumentCoordinates) {
       isPlaying = true;
       break;
