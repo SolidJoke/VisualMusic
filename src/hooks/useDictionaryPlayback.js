@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import * as Tone from 'tone';
 import { CHORDS, getAbsoluteNoteValue, resolveChordSemitones, getChordNotesAbsolute, getChordAbsolute, midiToNoteName, computeAbsoluteNote } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
+import { planArpeggio, arpeggioStepSeconds, ARPEGGIO_NOTE_VALUE } from "../audio/arpeggio";
 import { rememberDictionaryVoice, stopDictionaryVoices } from "../audio/dictionaryVoices";
 import { logPlaybackSequence, logNotePlay } from "../core/debugScale";
 import { getInstrumentTuning, buildAscDescSequence } from "./playbackUtils";
@@ -162,11 +163,32 @@ export function useDictionaryPlayback({
     setCurrentlyPlayingNotes([]);
 
     if (dictType?.includes("chord")) {
-      rememberDictionaryVoice(playDictionaryNote(instrument, notesToPlay, "2n"));
-      setCurrentlyPlayingNotes(absolutePitches);
-      Tone.getDraw().schedule(() => {
-        if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
-      }, Tone.now() + 0.5);
+      if (instrument === "bass") {
+        // VMU-199 — the bass is monophonic (one MonoSynth; playDictionaryNote
+        // plays the lowest note of an array). It therefore plays the drawn
+        // notes one after the other, lowest to highest, each lit while it
+        // sounds — the mechanism the scales below already use. Playing them
+        // all at once would light three notes and sound one.
+        const stepTime = arpeggioStepSeconds(currentBpm);
+        for (const { note, time, clearAt } of planArpeggio(absolutePitches, Tone.now(), stepTime)) {
+          const pitch = typeof note === "object" ? note.absoluteValue : note;
+          rememberDictionaryVoice(
+            playDictionaryNote("bass", midiToNoteName(pitch), ARPEGGIO_NOTE_VALUE, time)
+          );
+          Tone.getDraw().schedule(() => {
+            if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([note]);
+          }, time);
+          Tone.getDraw().schedule(() => {
+            if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
+          }, clearAt);
+        }
+      } else {
+        rememberDictionaryVoice(playDictionaryNote(instrument, notesToPlay, "2n"));
+        setCurrentlyPlayingNotes(absolutePitches);
+        Tone.getDraw().schedule(() => {
+          if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
+        }, Tone.now() + 0.5);
+      }
     } else if (dictType?.includes("scale")) {
       const noteDuration = 60 / currentBpm;
       const stepTime = noteDuration / 2;

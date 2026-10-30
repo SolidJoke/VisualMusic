@@ -102,7 +102,8 @@ export function usePlaybackHandlers({
     setCurrentlyPlayingNotes,
     setClickedChord,
     scheduler,
-    useShellVoicings
+    useShellVoicings,
+    currentBpm
   });
 
   const { playSingleNote, autoPlayNote } = useFretboardPlayback({

@@ -223,6 +223,23 @@ describe("L1b-1b (b): ▶ plays its own instrument, the name only chooses it", (
     return { instrument, notes };
   };
 
+  /**
+   * The trailing run of "bass" calls: VMU-199 makes the monophonic bass play a
+   * chord as a rising arpeggio, one single-note call per note. Returns the whole
+   * run, its note names in order, and the times it was scheduled at.
+   */
+  const bassArpeggio = () => {
+    const calls = AudioEngine.playDictionaryNote.mock.calls;
+    let start = calls.length;
+    while (start > 0 && calls[start - 1][0] === "bass") start--;
+    const run = calls.slice(start);
+    return {
+      calls: run,
+      notes: run.map((c) => c[1]),
+      times: run.map((c) => c[3]),
+    };
+  };
+
   it("the guitar's ▶ sounds the guitar's own grip (playInstrument('guitar')) and makes it the chosen instrument", async () => {
     await renderApp("?prototype=a&scenario=cmaj");
     expect(fn("jouer.instrument-tuile-piano").getAttribute("aria-pressed")).toBe("true");
@@ -236,7 +253,13 @@ describe("L1b-1b (b): ▶ plays its own instrument, the name only chooses it", (
   it("each ▶ sounds its own instrument, whichever was chosen before", async () => {
     await renderApp("?prototype=a&scenario=cmaj");
     await press(fn("jouer.instrument-play-bass"));
-    expect(lastPlay()).toEqual({ instrument: "bass", notes: ["C2", "G2", "C3"] });
+    // The bass plays its chord as a rising arpeggio: one bass call per note.
+    const arpeggio = bassArpeggio();
+    expect(arpeggio.calls).toHaveLength(3);
+    expect(arpeggio.calls.every((c) => c[0] === "bass")).toBe(true);
+    expect(arpeggio.notes).toEqual(["C2", "G2", "C3"]);
+    expect(arpeggio.times[0]).toBeLessThan(arpeggio.times[1]);
+    expect(arpeggio.times[1]).toBeLessThan(arpeggio.times[2]);
     await press(fn("jouer.instrument-play-piano"));
     expect(lastPlay()).toEqual({ instrument: "piano", notes: ["C4", "E4", "G4"] });
   });

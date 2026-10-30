@@ -128,11 +128,19 @@ describe('VMU-180 — the Studio chord click plays the drawn shape at the chord 
       await result.current.handleChordClick(G_CHORD, 0);
     });
 
-    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledWith(
-      instrument,
-      expected.map(midiToNoteName),
-      '2n',
-    );
+    // VMU-199 — the bass plays its grip as an arpeggio, so the same pitches
+    // arrive in several calls. Only the collection changes: every call is
+    // gathered, in order, and the expected pitches are untouched.
+    if (instrument === 'bass') {
+      const played = AudioEngine.playDictionaryNote.mock.calls.flatMap(([, notes]) => notes);
+      expect(played).toEqual(expected.map(midiToNoteName));
+    } else {
+      expect(AudioEngine.playDictionaryNote).toHaveBeenCalledWith(
+        instrument,
+        expected.map(midiToNoteName),
+        '2n',
+      );
+    }
     expect(setCurrentAbsoluteNotes).toHaveBeenCalledWith(expected);
   });
 
@@ -147,10 +155,17 @@ describe('VMU-180 — the Studio chord click plays the drawn shape at the chord 
       await result.current.handleChordClick(G_CHORD, 0);
     });
 
-    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledWith(
-      instrument,
-      expected.map(midiToNoteName),
-      '2n',
-    );
+    // VMU-199 — same collection-only change as above: the bass's arpeggio
+    // delivers the grip in one call per note; the pitches are what is pinned.
+    if (instrument === 'bass') {
+      const played = AudioEngine.playDictionaryNote.mock.calls.flatMap(([, notes]) => notes);
+      expect(played).toEqual(expected.map(midiToNoteName));
+    } else {
+      expect(AudioEngine.playDictionaryNote).toHaveBeenCalledWith(
+        instrument,
+        expected.map(midiToNoteName),
+        '2n',
+      );
+    }
   });
 });

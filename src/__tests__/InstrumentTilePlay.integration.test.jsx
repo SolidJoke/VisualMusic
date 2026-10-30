@@ -89,6 +89,34 @@ describe("tiles of the instrument bar — ▶ plays that instrument, the big ▶
     return { instrument, notes };
   };
 
+  /**
+   * The trailing run of "bass" calls: VMU-199 makes the monophonic bass play a
+   * chord as a rising arpeggio, one single-note call per note. Returns the whole
+   * run, its note names in order, and the times it was scheduled at.
+   */
+  const bassArpeggio = () => {
+    const calls = AudioEngine.playDictionaryNote.mock.calls;
+    let start = calls.length;
+    while (start > 0 && calls[start - 1][0] === "bass") start--;
+    const run = calls.slice(start);
+    return {
+      calls: run,
+      notes: run.map((c) => c[1]),
+      times: run.map((c) => c[3]),
+    };
+  };
+
+  /** A bass arpeggio's calls, all bass, each one note, low to high, spread in time. */
+  const expectBassArpeggio = (notes) => {
+    const arpeggio = bassArpeggio();
+    expect(arpeggio.calls).toHaveLength(notes.length);
+    expect(arpeggio.calls.every((c) => c[0] === "bass")).toBe(true);
+    expect(arpeggio.notes).toEqual(notes);
+    for (let i = 1; i < arpeggio.times.length; i++) {
+      expect(arpeggio.times[i]).toBeGreaterThan(arpeggio.times[i - 1]);
+    }
+  };
+
   async function openDictionaryOnCMajorChord() {
     render(
       <AppProvider>
@@ -121,7 +149,7 @@ describe("tiles of the instrument bar — ▶ plays that instrument, the big ▶
     await openDictionaryOnCMajorChord();
 
     await press(screen.getByRole("button", { name: "Jouer — Basse" }));
-    expect(lastPlay()).toEqual({ instrument: "bass", notes: ["C2", "G2", "C3"] });
+    expectBassArpeggio(["C2", "G2", "C3"]);
 
     await press(screen.getByRole("button", { name: "Jouer — Piano" }));
     expect(lastPlay()).toEqual({ instrument: "piano", notes: ["C4", "E4", "G4"] });
@@ -129,7 +157,8 @@ describe("tiles of the instrument bar — ▶ plays that instrument, the big ▶
     await press(screen.getByRole("button", { name: "Jouer — Guitare" }));
     expect(lastPlay()).toEqual({ instrument: "guitar", notes: ["C3", "E3", "G3", "C4", "E4"] });
 
-    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledTimes(3);
+    // The bass arpeggio is three calls; the piano and the guitar add one each.
+    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledTimes(5);
   });
 
   it("the big ▶ then plays the instrument touched last", async () => {
@@ -140,8 +169,9 @@ describe("tiles of the instrument bar — ▶ plays that instrument, the big ▶
 
     await press(bigPlay());
 
-    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledTimes(1);
-    expect(lastPlay()).toEqual({ instrument: "bass", notes: ["C2", "G2", "C3"] });
+    // The whole arpeggio, not only its last note: three single-note bass calls.
+    expect(AudioEngine.playDictionaryNote).toHaveBeenCalledTimes(3);
+    expectBassArpeggio(["C2", "G2", "C3"]);
   });
 
   it("a tile's select button only selects: nothing sounds until a ▶ is pressed", async () => {
