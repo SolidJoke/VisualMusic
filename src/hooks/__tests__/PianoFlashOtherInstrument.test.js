@@ -18,9 +18,13 @@ import * as AudioEngine from '../../audio/AudioEngine';
 // both. What stays bare, deliberately: a note of the piano itself, and a note
 // published with no place on a neck.
 
+// The playback hooks schedule their animation through Tone's draw clock. The
+// callbacks are queued, not run: a test that needs a scheduled step (the bass
+// arpeggio, VMU-199) decides which one to look at, as InstrumentOwnNotes does.
+const drawQueue = [];
 vi.mock('tone', () => ({
   now: vi.fn(() => 1.0),
-  getDraw: vi.fn(() => ({ schedule: vi.fn() })),
+  getDraw: vi.fn(() => ({ schedule: (cb) => drawQueue.push(cb) })),
   Transport: { scheduleOnce: vi.fn(), start: vi.fn() },
 }));
 
@@ -34,12 +38,22 @@ const scheduler = () => ({
   isCurrentSession: vi.fn(() => true),
 });
 
+beforeEach(() => {
+  drawQueue.length = 0;
+});
+
 /** The last non-empty array handed to a setCurrentlyPlayingNotes spy. */
 const published = (setter) =>
   setter.mock.calls
     .map((c) => c[0])
     .filter((a) => Array.isArray(a) && a.length > 0)
     .at(-1);
+
+/** Every non-empty array handed to a setCurrentlyPlayingNotes spy, in order. */
+const publishedAll = (setter) =>
+  setter.mock.calls
+    .map((c) => c[0])
+    .filter((a) => Array.isArray(a) && a.length > 0);
 
 // ─── a note clicked on a neck (useFretboardPlayback) ───────────────────────
 
@@ -197,25 +211,56 @@ function renderStudio(instrument) {
 describe('VMU-180 point 5 — a Studio chord click publishes the neck\'s notes with their instrument', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  for (const [instrument, count] of [['guitar', 6], ['bass', 3]]) {
-    it(`${instrument}: every flashed note carries instrument "${instrument}" and its place; the stored notes stay bare`, async () => {
-      const { result, setCurrentAbsoluteNotes, setCurrentlyPlayingNotes } = renderStudio(instrument);
-      await act(async () => {
-        await result.current.handleChordClick(G_CHORD, 0);
-      });
-      const flashed = published(setCurrentlyPlayingNotes);
-      expect(flashed).toHaveLength(count);
-      expect(
-        flashed.every(
-          (n) => n.instrument === instrument && Number.isFinite(n.stringIndex) && Number.isFinite(n.fret),
-        ),
-      ).toBe(true);
-      // The Studio's own state (the piano's chord, the next inversion) keeps pitches.
-      const stored = setCurrentAbsoluteNotes.mock.calls.at(-1)[0];
-      expect(stored.every((n) => typeof n === 'number')).toBe(true);
-      expect(flashed.map((n) => n.absoluteValue)).toEqual(stored);
+  it('guitar: every flashed note carries instrument "guitar" and its place; the stored notes stay bare', async () => {
+    const { result, setCurrentAbsoluteNotes, setCurrentlyPlayingNotes } = renderStudio('guitar');
+    await act(async () => {
+      await result.current.handleChordClick(G_CHORD, 0);
     });
-  }
+    const flashed = published(setCurrentlyPlayingNotes);
+    expect(flashed).toHaveLength(6);
+    expect(
+      flashed.every(
+        (n) => n.instrument === 'guitar' && Number.isFinite(n.stringIndex) && Number.isFinite(n.fret),
+      ),
+    ).toBe(true);
+    // The Studio's own state (the piano's chord, the next inversion) keeps pitches.
+    const stored = setCurrentAbsoluteNotes.mock.calls.at(-1)[0];
+    expect(stored.every((n) => typeof n === 'number')).toBe(true);
+    expect(flashed.map((n) => n.absoluteValue)).toEqual(stored);
+  });
+
+  it('bass: every flashed note carries instrument "bass" and its place; the stored notes stay bare', async () => {
+    const { result, setCurrentAbsoluteNotes, setCurrentlyPlayingNotes } = renderStudio('bass');
+    await act(async () => {
+      await result.current.handleChordClick(G_CHORD, 0);
+    });
+    // VMU-199: the monophonic bass plays its grip as a rising arpeggio, one
+    // note at a time, each light scheduled through the draw clock. Run every
+    // queued step so all the publications can be read, in order.
+    act(() => {
+      while (drawQueue.length) drawQueue.shift()();
+    });
+    const flashed = publishedAll(setCurrentlyPlayingNotes);
+    // One publication per arpeggio step, each of exactly one note: the piano
+    // flashes nothing because every one carries the bass's instrument tag.
+    expect(flashed).toHaveLength(3);
+    expect(flashed.map((notes) => notes.length)).toEqual([1, 1, 1]);
+    const notes = flashed.map(([note]) => note);
+    expect(
+      notes.every(
+        (n) => n.instrument === 'bass' && Number.isFinite(n.stringIndex) && Number.isFinite(n.fret),
+      ),
+    ).toBe(true);
+    // Lowest first: the published pitches rise.
+    const pitches = notes.map((n) => n.absoluteValue);
+    for (let i = 1; i < pitches.length; i++) {
+      expect(pitches[i]).toBeGreaterThan(pitches[i - 1]);
+    }
+    // The Studio's own state (the piano's chord, the next inversion) keeps pitches.
+    const stored = setCurrentAbsoluteNotes.mock.calls.at(-1)[0];
+    expect(stored.every((n) => typeof n === 'number')).toBe(true);
+    expect(pitches).toEqual(stored);
+  });
 
   it('guard — with the piano sounding, the notes stay bare pitches', async () => {
     const { result, setCurrentlyPlayingNotes } = renderStudio('piano');

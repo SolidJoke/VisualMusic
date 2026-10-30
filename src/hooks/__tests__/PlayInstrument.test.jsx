@@ -194,6 +194,24 @@ const sentPitches = () =>
     .flatMap((c) => (Array.isArray(c[1]) ? c[1] : [c[1]]))
     .map((name) => getAbsoluteNoteValue(name));
 
+/**
+ * The trailing run of "bass" calls — the arpeggio the bass just played.
+ * VMU-199: the bass is monophonic, so a chord reaches the synth as one call per
+ * note, lowest first, each with a single note name. Returns those calls, their
+ * note names in order, and their scheduled times so a test can check the rise.
+ */
+const bassArpeggio = () => {
+  const calls = synthCalls();
+  let start = calls.length;
+  while (start > 0 && calls[start - 1][0] === "bass") start--;
+  const run = calls.slice(start);
+  return {
+    calls: run,
+    notes: run.map((c) => c[1]),
+    times: run.map((c) => c[3]),
+  };
+};
+
 describe("INST-A2 — playInstrument(id) plays the realization of that instrument, now", () => {
   describe.each(SELECTIONS)("$label", (selection) => {
     it.each(INSTRUMENTS)(
@@ -270,8 +288,13 @@ describe("INST-A2 — playInstrument(id) plays the realization of that instrumen
       await hook.result.current.playback.playInstrument("bass");
     });
 
-    expect(synthCalls()).toHaveLength(1);
-    expect(synthCalls()[0][0]).toBe("bass");
+    // VMU-199: the bass plays its chord as a rising arpeggio, one note per call.
+    const arpeggio = bassArpeggio();
+    expect(arpeggio.calls).toHaveLength(3);
+    expect(arpeggio.calls.every((c) => c[0] === "bass")).toBe(true);
+    expect(arpeggio.notes).toEqual(["C2", "G2", "C3"]);
+    expect(arpeggio.times[0]).toBeLessThan(arpeggio.times[1]);
+    expect(arpeggio.times[1]).toBeLessThan(arpeggio.times[2]);
     expect(sentPitches()).toEqual([36, 43, 48]);
     expect(hook.result.current.playbackInstrument).toBe("bass");
   });
@@ -313,8 +336,13 @@ describe("INST-A2 — the big play button plays the last instrument touched", ()
       await hook.result.current.playback.playDictionaryAudio();
     });
 
-    expect(synthCalls()).toHaveLength(1);
-    expect(synthCalls()[0][0]).toBe("bass");
+    // The big play, after the clear, is one whole arpeggio of the bass.
+    const arpeggio = bassArpeggio();
+    expect(arpeggio.calls).toHaveLength(3);
+    expect(arpeggio.calls.every((c) => c[0] === "bass")).toBe(true);
+    expect(arpeggio.notes).toEqual(["C2", "G2", "C3"]);
+    expect(arpeggio.times[0]).toBeLessThan(arpeggio.times[1]);
+    expect(arpeggio.times[1]).toBeLessThan(arpeggio.times[2]);
     expect(sentPitches()).toEqual([36, 43, 48]);
   });
 

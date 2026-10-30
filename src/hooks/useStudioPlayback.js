@@ -3,6 +3,8 @@ import { useCallback } from "react";
 import * as Tone from 'tone';
 import { resolveNnsToChordType, getClosestInversionN, resolveChordSemitones, midiToNoteName } from "../core/theory";
 import { playDictionaryNote } from "../audio/AudioEngine";
+import { planArpeggio } from "../audio/arpeggio";
+import { rememberDictionaryVoice, stopDictionaryVoices } from "../audio/dictionaryVoices";
 import { getGuitarFingering, getBassFingering } from "../core/fingeringLogic";
 import { getInstrumentTuning, fingeringMapToAbsolutePitches } from "./playbackUtils";
 import { applyShellVoicing } from "../core/voicingEngine";
@@ -20,6 +22,8 @@ import { applyShellVoicing } from "../core/voicingEngine";
  * @param {Function} options.setClickedChord
  * @param {any} options.scheduler
  * @param {boolean} [options.useShellVoicings]
+ * @param {number} [options.currentBpm] the tempo the arpeggio's steps follow;
+ *   120 when the caller has no tempo yet.
  */
 export function useStudioPlayback({
   playbackInstrument,
@@ -33,6 +37,7 @@ export function useStudioPlayback({
   setClickedChord,
   scheduler,
   useShellVoicings = false,
+  currentBpm = 120,
 }) {
   const handleChordClick = useCallback(async (c, chordIndexInProgression) => {
     await scheduler.ensureAudioReady();
@@ -91,12 +96,36 @@ export function useStudioPlayback({
 
     const currentToken = scheduler.startPlaybackSession();
     const scheduleTime = Tone.now() + 0.5;
-    playDictionaryNote(playbackInstrument, notesToPlay, "2n");
+
+    if (playbackInstrument === "bass") {
+      // VMU-199 — the bass is monophonic: the drawn grip is played one note at
+      // a time, lowest to highest, each lit while it sounds (the Dictionary's
+      // scale mechanism). A second click takes back the notes the first one
+      // had scheduled, or the mono synth would still sound them underneath.
+      stopDictionaryVoices();
+      const stepTime = (60 / currentBpm) / 2;
+      for (const { note, time, clearAt } of planArpeggio(
+        flashedNotes ?? absolutePitches,
+        Tone.now(),
+        stepTime,
+      )) {
+        const pitch = typeof note === "object" ? note.absoluteValue : note;
+        rememberDictionaryVoice(playDictionaryNote("bass", midiToNoteName(pitch), "8n", time));
+        Tone.getDraw().schedule(() => {
+          if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([note]);
+        }, time);
+        Tone.getDraw().schedule(() => {
+          if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
+        }, clearAt);
+      }
+    } else {
+      playDictionaryNote(playbackInstrument, notesToPlay, "2n");
+      setCurrentlyPlayingNotes(flashedNotes ?? absolutePitches);
+      Tone.getDraw().schedule(() => {
+        if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
+      }, scheduleTime);
+    }
     setCurrentAbsoluteNotes(absolutePitches);
-    setCurrentlyPlayingNotes(flashedNotes ?? absolutePitches);
-    Tone.getDraw().schedule(() => {
-      if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
-    }, scheduleTime);
   }, [
     playbackInstrument,
     selectedRootStringGuitar,
@@ -108,6 +137,7 @@ export function useStudioPlayback({
     setCurrentlyPlayingNotes,
     setClickedChord,
     scheduler,
+    currentBpm,
   ]);
 
   return { handleChordClick };

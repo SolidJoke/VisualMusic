@@ -315,6 +315,13 @@ describe("INST-A1 — the piano's 'now playing' animation follows the piano only
     const controls = { current: null };
     const container = mount({ root: 0, type: "chord_major", chosen: "piano", controlsRef: controls });
     await play(controls, id);
+    if (id === "bass") {
+      // VMU-199: the bass plays its chord as a rising arpeggio and lights each
+      // note through the draw clock. Run the first queued step, as the scale
+      // test below does, to see the neck lit.
+      expect(drawQueue.length).toBeGreaterThan(0);
+      act(() => drawQueue[0]());
+    }
     expect(neckPlaying(container, id), `the ${id} neck shows what it plays`).toBeGreaterThan(0);
     expect(pianoPlaying(container)).toEqual([]);
   });
