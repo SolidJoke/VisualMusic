@@ -190,7 +190,12 @@ async function chooseInstrument(page, id) {
 }
 async function studioChord(page, label) {
   await openDrawer(page);
-  await page.locator('[data-s1="drawer"]').getByRole("button", { name: label, exact: true }).click();
+  if (label) await page.locator('[data-s1="drawer"]').getByRole("button", { name: label, exact: true }).click();
+  else {
+    // The progression's first chord, whatever the style calls it: a chord button sits between two spans (its degree and its quality).
+    const handle = await page.evaluateHandle(() => [...document.querySelectorAll('[data-s1="drawer"] button.btn-premium')].find((b) => b.previousElementSibling?.tagName === "SPAN" && b.nextElementSibling?.tagName === "SPAN"));
+    await handle.asElement().click();
+  }
   await closeDrawer(page);
 }
 async function setChordOctave(page, target) {
@@ -258,38 +263,50 @@ async function point2(browser, errors) {
   }
 }
 
+async function pickStyle(page, pattern) {
+  const container = page.locator('[data-fn="composer.style"]').first();
+  await container.locator(".custom-select-header").click();
+  const list = page.locator('[data-testid="custom-select-dropdown"]');
+  await list.locator(".select-item", { hasText: pattern }).first().click({ force: true, timeout: 8000 });
+  await list.waitFor({ state: "detached", timeout: 5_000 });
+}
+
 async function point3(browser, errors) {
   out("\n== POINT 3 · Studio, during the loop: the bass line against the bass neck ==");
-  const page = await studioSetup(browser, errors, { instrument: "bass", octave: 0 });
-  await tap(page);
-  await studioChord(page, "Do");
-  await settle(page, 900);
-  await tap(page);
-  await resetRecorders(page);
-  const drawnUnion = new Set();
-  const playingSamples = [];
-  await page.locator('[data-fn="jouer.lecture"]').click();
-  const t0 = Date.now();
-  while (Date.now() - t0 < 9000) {
-    const shown = await page.evaluate(readShown);
-    drawnNeck(shown, "bass").forEach((m) => drawnUnion.add(m));
-    playingSamples.push(shown.bassCells.filter((c) => c.playing).length);
-    await page.waitForTimeout(80);
+  for (const style of [null, /^Jazz Standard/]) {
+    const page = await studioSetup(browser, errors, { instrument: "bass", octave: 0 });
+    if (style) await pickStyle(page, style);
+    await tap(page);
+    await studioChord(page, style ? null : "Do");
+    await settle(page, 900);
+    await tap(page);
+    await resetRecorders(page);
+    const drawnUnion = new Set();
+    const playingSamples = [];
+    await page.locator('[data-fn="jouer.lecture"]').click();
+    const t0 = Date.now();
+    while (Date.now() - t0 < 9000) {
+      const shown = await page.evaluate(readShown);
+      drawnNeck(shown, "bass").forEach((m) => drawnUnion.add(m));
+      playingSamples.push(shown.bassCells.filter((c) => c.playing).length);
+      await page.waitForTimeout(80);
+    }
+    const rec = await readRecorders(page);
+    await page.locator('[data-fn="jouer.lecture"]').click();
+    const bassCalls = rec.log.filter((e) => /bass/.test(e.synth));
+    const bassProg = uniqSorted(programmed(rec.log, (s) => /bass/.test(s)));
+    const flashedBass = uniqSorted(rec.flash.bass.map((k) => { const [s, f] = k.split(":").map(Number); return cellToMidi("bass", { s, f }); }));
+    const drawn = [...drawnUnion].sort((a, b) => a - b);
+    const notInDrawn = bassProg.filter((m) => !drawn.includes(m));
+    const notFlashed = bassProg.filter((m) => !flashedBass.includes(m));
+    const edges = playingSamples.filter((n, i) => n > 0 && (i === 0 || playingSamples[i - 1] === 0)).length;
+    out(`  style ${style ? String(style) : "default"}: bass line programmed (distinct, 9 s) [${names(bassProg)}] from ${bassCalls.length} bassSynth call(s)`);
+    out(`  bass neck drawn (union of the static shape over the run) [${names(drawn)}]`);
+    out(`  bass neck flashed (is-playing) [${names(flashedBass)}]; ${edges} flash(es) seen at 80 ms sampling for ${bassCalls.length} note(s) sent`);
+    out(`  programmed but NOT in the drawn shape [${names(notInDrawn)}]; programmed but never flashed [${names(notFlashed)}] -> ${notInDrawn.length === 0 ? "SAME" : notFlashed.length ? "DIFFERENT-NOT-FLASHED" : "DIFFERENT-FLASHED"}`);
+    out(`  (piano flashed during the loop: [${names(uniqSorted(rec.flash.piano))}]; guitar neck flashed: ${JSON.stringify(rec.flash.guitar)})`);
+    await page.close();
   }
-  const rec = await readRecorders(page);
-  await page.locator('[data-fn="jouer.lecture"]').click();
-  const bassProg = uniqSorted(programmed(rec.log, (s) => /bass/.test(s)));
-  const flashedBass = uniqSorted(rec.flash.bass.map((k) => { const [s, f] = k.split(":").map(Number); return cellToMidi("bass", { s, f }); }));
-  const drawn = [...drawnUnion].sort((a, b) => a - b);
-  const notInDrawn = bassProg.filter((m) => !drawn.includes(m));
-  const notFlashed = bassProg.filter((m) => !flashedBass.includes(m));
-  out(`  bass line programmed (distinct, 9 s) [${names(bassProg)}] from ${rec.log.filter((e) => /bass/.test(e.synth)).length} bassSynth call(s)`);
-  out(`  bass neck drawn (union of the static shape over the run) [${names(drawn)}]`);
-  out(`  bass neck flashed (is-playing) [${names(flashedBass)}]; samples with a flash: ${playingSamples.filter((n) => n > 0).length}/${playingSamples.length}`);
-  out(`  programmed but NOT in the drawn shape [${names(notInDrawn)}]; programmed but never flashed [${names(notFlashed)}] -> ${notInDrawn.length === 0 ? "SAME" : notFlashed.length ? "DIFFERENT-NOT-FLASHED" : "DIFFERENT-FLASHED"}`);
-  const pianoFlash = uniqSorted(rec.flash.piano);
-  out(`  (piano flashed during the loop: [${names(pianoFlash)}])`);
-  await page.close();
 }
 
 async function point4(browser, errors) {
