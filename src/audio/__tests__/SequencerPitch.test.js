@@ -105,6 +105,14 @@ describe("séquenceur Studio — hauteur jouée et hauteur affichée", () => {
     const shown = setCurrentlyPlayingNotes.mock.calls
       .map((c) => c[0])
       .find((a) => Array.isArray(a) && a.length > 0);
-    expect(shown).toEqual([...chordCall[1], bassName].map((n) => getAbsoluteNoteValue(n)));
+    // VMU-200: the loop publishes each note tagged with the instrument that
+    // played it — the chord's notes are the piano's, the bass line's note is
+    // the bass's and asks to be placed near the drawn shape.
+    expect(shown).toEqual([
+      { absoluteValue: getAbsoluteNoteValue("C4"), instrument: "piano" },
+      { absoluteValue: getAbsoluteNoteValue("E4"), instrument: "piano" },
+      { absoluteValue: getAbsoluteNoteValue("G4"), instrument: "piano" },
+      { absoluteValue: getAbsoluteNoteValue("C2"), instrument: "bass", nearShape: true },
+    ]);
   });
 });

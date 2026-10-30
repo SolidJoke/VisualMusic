@@ -43,6 +43,18 @@ export function toneDuration(steps) {
 }
 
 /**
+ * A note the step sounded, as the loop publishes it: the pitch and the
+ * instrument whose neck/keyboard may show it. `nearShape` asks a neck to place
+ * it near the chord shape it draws (VMU-200); a note without it lights every
+ * place of its pitch, as before.
+ *
+ * @typedef {Object} PlayedNote
+ * @property {number} absoluteValue MIDI note, C4 = 60
+ * @property {"piano"|"bass"} instrument the synth that played it
+ * @property {boolean} [nearShape] place this pitch near the drawn shape
+ */
+
+/**
  * Plays one step's events at `time`. Drums: the kick synth is pitched and
  * always plays C1; snare and hat are noise, unpitched. The chord goes through
  * `playDictionaryNote`, which takes no velocity — the piano sounds at Tone's
@@ -52,10 +64,13 @@ export function toneDuration(steps) {
  * @param {StepSynths} synths
  * @param {import("./dispatch").StepEvent[]} events
  * @param {number} time Tone time of the step
- * @returns {number[]} the MIDI notes sounded, chord notes then melodic notes
- *   (drums excluded) — what the loop lights on screen and the harness reports
+ * @returns {PlayedNote[]} the MIDI notes sounded, chord notes then melodic
+ *   notes (drums excluded), each tagged with the instrument that played it —
+ *   what the loop lights on screen. `scheduledPitches` in the audio harness
+ *   maps them back to numbers.
  */
 export function playStepEvents(synths, events, time) {
+  /** @type {PlayedNote[]} */
   const notes = [];
   events.forEach((event) => {
     const duration = toneDuration(event.durationSteps);
@@ -66,10 +81,10 @@ export function playStepEvents(synths, events, time) {
     } else if (event.voice === "chords") {
       const notesToPlay = event.midi.map((p) => midiToNoteName(p));
       synths.playDictionaryNote("piano", notesToPlay, duration, time);
-      notes.push(...event.midi);
+      notes.push(...event.midi.map((p) => /** @type {PlayedNote} */ ({ absoluteValue: p, instrument: "piano" })));
     } else {
       synths.bassSynth.triggerAttackRelease(midiToNoteName(event.midi[0]), duration, time, event.velocity);
-      notes.push(event.midi[0]);
+      notes.push({ absoluteValue: event.midi[0], instrument: "bass", nearShape: true });
     }
   });
   return notes;

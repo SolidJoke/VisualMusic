@@ -14,6 +14,7 @@
  *
  *   npm run display:probe                 # all points, port 5211
  *   npm run display:probe -- --only=1,5   # some of them
+ *   npm run display:probe -- --only=3 --shots=probe.local  # VMU-200 ring PNGs + style
  *   DISPLAY_PROBE_PORT=5211 node scripts/display_vs_sound_probe.mjs
  *
  * Points (numbering of the VMU-180 sheet):
@@ -31,6 +32,7 @@
  * (reused if one answers); never writes to dist/ or preview.local/. Chromium
  * only; it cannot hear anything.
  */
+import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { translations } from "../src/i18n/translations.js";
@@ -44,6 +46,11 @@ const args = process.argv.slice(2);
 const ONLY = (args.find((a) => a.startsWith("--only=")) || "").slice(7).split(",").filter(Boolean).map(Number);
 const INST = (args.find((a) => a.startsWith("--inst=")) || "").slice(7).split(",").filter(Boolean);
 const wantInst = (i) => INST.length === 0 || INST.includes(i);
+// VMU-200 follow-up: --shots=<dir> saves two element screenshots of the bass
+// column during point 3 in the Jazz Standard style (the ring, and the lit
+// marker) and prints the ring's computed style. Absent, nothing changes.
+const SHOTS = (args.find((a) => a.startsWith("--shots=")) || "").slice(8) || null;
+const SHOTS_DIR = SHOTS ? path.resolve(ROOT, SHOTS) : null;
 const want = (n) => ONLY.length === 0 || ONLY.includes(n);
 
 async function isServerUp() {
@@ -73,17 +80,29 @@ async function startDevServer() {
 function installFlashRecorder() {
   const w = (window.__vm = window.__vm || { log: [] });
   if (w.flash) return;
-  w.flash = { piano: new Set(), guitar: new Set(), bass: new Set() };
+  // VMU-200: an outside-shape loop note is a ring (is-playing-outside), not a
+  // filled is-playing cell; record it separately so point 3 can say, per bass
+  // note, which cell was outlined.
+  w.flash = {
+    piano: new Set(), guitar: new Set(), bass: new Set(),
+    guitarOutside: new Set(), bassOutside: new Set(),
+  };
   const scan = () => {
     const piano = document.querySelector('[data-s1="piano"]');
     if (piano) piano.querySelectorAll(".piano-key.is-playing[data-abs]").forEach((k) => w.flash.piano.add(Number(k.getAttribute("data-abs"))));
     for (const id of ["guitar", "bass"]) {
       const neck = document.querySelector(`[data-s1="${id}"]`);
       if (!neck) continue;
+      // The existing count: filled playing cells only (VMU-180's measurement).
       neck.querySelectorAll(".note-marker.is-playing").forEach((m) => {
         const c = m.closest("[data-string-index]");
         const r = m.closest("[data-fret]");
         if (c && r) w.flash[id].add(`${c.getAttribute("data-string-index")}:${r.getAttribute("data-fret")}`);
+      });
+      neck.querySelectorAll(".note-marker.is-playing-outside").forEach((m) => {
+        const c = m.closest("[data-string-index]");
+        const r = m.closest("[data-fret]");
+        if (c && r) w.flash[`${id}Outside`].add(`${c.getAttribute("data-string-index")}:${r.getAttribute("data-fret")}`);
       });
     }
   };
@@ -112,6 +131,24 @@ function readShown() {
     });
   }
   return out;
+}
+
+/** Runs in the page: the outlined bass marker's computed style and box, or null when absent. */
+function readOutline() {
+  const m = document.querySelector('[data-s1="bass"] .note-marker.is-playing-outside');
+  if (!m) return null;
+  const cs = getComputedStyle(m);
+  const r = m.getBoundingClientRect();
+  return {
+    backgroundColor: cs.backgroundColor,
+    borderTopWidth: cs.borderTopWidth,
+    borderTopStyle: cs.borderTopStyle,
+    borderTopColor: cs.borderTopColor,
+    boxShadow: cs.boxShadow,
+    opacity: cs.opacity,
+    width: Math.round(r.width * 100) / 100,
+    height: Math.round(r.height * 100) / 100,
+  };
 }
 
 // ─── helpers on the node side ──────────────────────────────────────────────
@@ -283,12 +320,37 @@ async function point3(browser, errors) {
     await resetRecorders(page);
     const drawnUnion = new Set();
     const playingSamples = [];
+    // Element screenshots are requested only for the Jazz Standard run.
+    const shots = SHOTS_DIR && style ? { ring: false, lit: false } : null;
     await page.locator('[data-fn="jouer.lecture"]').click();
     const t0 = Date.now();
     while (Date.now() - t0 < 9000) {
       const shown = await page.evaluate(readShown);
       drawnNeck(shown, "bass").forEach((m) => drawnUnion.add(m));
       playingSamples.push(shown.bassCells.filter((c) => c.playing).length);
+      if (shots) {
+        // First moment a loop note outside the drawn shape is outlined: its
+        // computed style, then the bass column (not the full page) as a PNG.
+        if (!shots.ring) {
+          const outline = await page.evaluate(readOutline);
+          if (outline) {
+            await page.locator('[data-s1="bass"]').screenshot({ path: path.join(SHOTS_DIR, "vmu200-ring-jazz.png") });
+            shots.ring = true;
+            out(`  outlined bass marker: background-color=${outline.backgroundColor} border-top-width=${outline.borderTopWidth} border-top-style=${outline.borderTopStyle} border-top-color=${outline.borderTopColor} box-shadow=${outline.boxShadow} opacity=${outline.opacity} box=${outline.width}x${outline.height} -> ${SHOTS}/vmu200-ring-jazz.png`);
+          }
+        }
+        // Same column at a moment a filled (.is-playing) marker is present.
+        // The check is repeated AFTER the capture: an is-playing marker seen
+        // both before and after was lit throughout the frame, so the PNG is
+        // not one of the capture's own latency landing after the note ended.
+        if (!shots.lit) {
+          const lit = '[data-s1="bass"] .note-marker.is-playing';
+          if (await page.locator(lit).count()) {
+            await page.locator('[data-s1="bass"]').screenshot({ path: path.join(SHOTS_DIR, "vmu200-lit-jazz.png") });
+            if (await page.locator(lit).count()) shots.lit = true;
+          }
+        }
+      }
       await page.waitForTimeout(80);
     }
     const rec = await readRecorders(page);
@@ -296,6 +358,16 @@ async function point3(browser, errors) {
     const bassCalls = rec.log.filter((e) => /bass/.test(e.synth));
     const bassProg = uniqSorted(programmed(rec.log, (s) => /bass/.test(s)));
     const flashedBass = uniqSorted(rec.flash.bass.map((k) => { const [s, f] = k.split(":").map(Number); return cellToMidi("bass", { s, f }); }));
+    // VMU-200: for each bass note heard, the cell(s) the neck outlined instead
+    // of filling — the nearest place when the note is outside the drawn shape.
+    const outlinedByPitch = new Map();
+    for (const k of rec.flash.bassOutside) {
+      const [s, f] = k.split(":").map(Number);
+      const m = cellToMidi("bass", { s, f });
+      if (!outlinedByPitch.has(m)) outlinedByPitch.set(m, []);
+      outlinedByPitch.get(m).push(`${s}:${f}`);
+    }
+    const outlinedPerNote = bassProg.map((m) => `${midiToName(m)}@${(outlinedByPitch.get(m) || []).join("/") || "none"}`);
     const drawn = [...drawnUnion].sort((a, b) => a - b);
     const notInDrawn = bassProg.filter((m) => !drawn.includes(m));
     const notFlashed = bassProg.filter((m) => !flashedBass.includes(m));
@@ -303,6 +375,7 @@ async function point3(browser, errors) {
     out(`  style ${style ? String(style) : "default"}: bass line programmed (distinct, 9 s) [${names(bassProg)}] from ${bassCalls.length} bassSynth call(s)`);
     out(`  bass neck drawn (union of the static shape over the run) [${names(drawn)}]`);
     out(`  bass neck flashed (is-playing) [${names(flashedBass)}]; ${edges} flash(es) seen at 80 ms sampling for ${bassCalls.length} note(s) sent`);
+    out(`  bass notes heard, cell outlined (is-playing-outside) [${outlinedPerNote.join(" ")}]`);
     out(`  programmed but NOT in the drawn shape [${names(notInDrawn)}]; programmed but never flashed [${names(notFlashed)}] -> ${notInDrawn.length === 0 ? "SAME" : notFlashed.length ? "DIFFERENT-NOT-FLASHED" : "DIFFERENT-FLASHED"}`);
     out(`  (piano flashed during the loop: [${names(uniqSorted(rec.flash.piano))}]; guitar neck flashed: ${JSON.stringify(rec.flash.guitar)})`);
     await page.close();
@@ -498,6 +571,7 @@ async function point6(browser, errors) {
 // ─── run ───────────────────────────────────────────────────────────────────
 
 const { chromium } = await import("playwright");
+if (SHOTS_DIR) fs.mkdirSync(SHOTS_DIR, { recursive: true });
 const dev = await startDevServer();
 out(`VisualMusic display-vs-sound probe (VMU-180)`);
 out(`  dev server : ${ORIGIN}${dev.reused ? " (reused)" : " (started here)"}`);

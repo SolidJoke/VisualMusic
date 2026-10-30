@@ -8,6 +8,7 @@ import { FINGER_LABELS } from "./fingeringLogic";
 import { logPlayingMismatch } from "./debugScale";
 import { TUNINGS } from "./tunings";
 import { getRoleForDegreeLabel, getChordIntervalLabel } from "./harmonyEngine";
+import { placeNearShape } from "./loopNotePlace";
 
 /**
  * Calculates the width of each fret in a logarithmic progression (Rule of 18).
@@ -66,14 +67,31 @@ function resolveActiveState({ activeNotes, dictType, fingering }, noteValue, abs
   return { isActive: !!activeNote, activeNote };
 }
 
-function resolvePlayingState({ currentlyPlayingNotes, singlePlayContext }, stringIndex, fret, absoluteValue, instrument) {
+function resolvePlayingState({ currentlyPlayingNotes, singlePlayContext, shapeCells, tuning, numFrets }, stringIndex, fret, absoluteValue, instrument) {
   let isPlaying = false;
+  let isPlayingOutside = false;
   const hasInstrumentCoordinates = currentlyPlayingNotes.some(
     n => typeof n === 'object' && n !== null && n.instrument === instrument
   );
-  
+
   for (const n of currentlyPlayingNotes) {
     if (typeof n === 'object' && n !== null) {
+      // VMU-200: the Studio loop's melodic notes are tagged with the bass and
+      // ask to be placed near the chord shape the neck draws. The oracle
+      // (core/loopNotePlace.js) names the ONE cell: a cell of the shape is
+      // the ordinary playing look, any other cell a ring (isPlayingOutside).
+      // An unresolvable note (no shape, or no playable cell) falls through to
+      // the tagged-no-place rule below — today's "every place" behaviour.
+      if (n.nearShape && n.instrument === instrument) {
+        const place = placeNearShape({ pitch: n.absoluteValue, shapeCells, tuning, numFrets });
+        if (place) {
+          if (place.stringIndex === stringIndex && place.fret === fret) {
+            if (place.inShape) isPlaying = true;
+            else isPlayingOutside = true;
+          }
+          continue;
+        }
+      }
       if (n.absoluteValue === absoluteValue && n.stringIndex === stringIndex && n.fret === fret) {
         if (!n.instrument || n.instrument === instrument) {
           isPlaying = true;
@@ -97,7 +115,7 @@ function resolvePlayingState({ currentlyPlayingNotes, singlePlayContext }, strin
   if (isPlaying && singlePlayContext?.instrument === instrument) {
     isPlaying = singlePlayContext.stringIndex === stringIndex && singlePlayContext.fret === fret;
   }
-  return isPlaying;
+  return { isPlaying, isPlayingOutside };
 }
 
 function resolveVoicingMask({ fingering, currentlyPlayingNotes, showFingering, appMode }, stringIndex, fret, absoluteValue, instrument, isActiveIn, isPlayingIn) {
@@ -304,12 +322,12 @@ export function computeFretMetadata(params) {
   const { isActive: initialIsActive, activeNote } = resolveActiveState(params, noteValue, absoluteValue, isDictionaryMode);
 
   // 2. Playing state
-  let isPlaying = resolvePlayingState(params, stringIndex, fret, absoluteValue, instrument);
+  const { isPlaying: initialIsPlaying, isPlayingOutside } = resolvePlayingState(params, stringIndex, fret, absoluteValue, instrument);
 
   // 3. Voicing Masking
-  const voicingRes = resolveVoicingMask(params, stringIndex, fret, absoluteValue, instrument, initialIsActive, isPlaying);
+  const voicingRes = resolveVoicingMask(params, stringIndex, fret, absoluteValue, instrument, initialIsActive, initialIsPlaying);
   let isActive = voicingRes.isActive;
-  isPlaying = voicingRes.isPlaying;
+  let isPlaying = voicingRes.isPlaying;
   const actualFingering = voicingRes.actualFingering;
 
   // 3.5 Scale Anchor Masking
@@ -326,6 +344,7 @@ export function computeFretMetadata(params) {
     noteName: noteInfo[params.notation],
     isActive,
     isPlaying,
+    isPlayingOutside,
     isSubtle: roleRes.isSubtle,
     roleClass: roleRes.roleClass,
     label: roleRes.label,
@@ -341,7 +360,7 @@ export function computeFretMetadata(params) {
  * Déduit l'accordage actif en fonction de l'instrument et du brick actif.
  * @param {string} instrument - "guitar" | "bass"
  * @param {object|null} activeBrick - brick actif du contexte musical
- * @returns {number[]} tableau de valeurs de corde (accordage)
+ * @returns {string[]} tableau de noms de corde (accordage), graves d'abord
  */
 export function getStringTuning(instrument, activeBrick) {
   if (instrument === "bass") {

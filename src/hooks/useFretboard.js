@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useMusicEngineContext } from "../context/MusicEngineContext";
 import { useAppContext } from "../context/AppContext";
 import { calcActivePath } from "../core/fretboardLogic";
+import { shapeCellsFromFingering } from "../core/loopNotePlace";
 import {
   getFretWidths,
   getFretboardGridTemplate,
@@ -85,6 +86,15 @@ export function useFretboard(instrument) {
     [stringTuning]
   );
 
+  // VMU-200 — the cells this neck draws for the current shape, in the neck's
+  // own string indexing (the same `strings` order Fretboard renders and
+  // fingeringLogic builds). It is what placeNearShape measures against; empty
+  // for a scale box or no fingering.
+  const shapeCells = useMemo(
+    () => shapeCellsFromFingering(fingering, strings),
+    [fingering, strings]
+  );
+
   // ── Largeurs des cases (dépend de l'instrument car numFrets varie) ──
   const fretWidths = useMemo(() => getFretWidths(numFrets), [numFrets]);
 
@@ -126,6 +136,7 @@ export function useFretboard(instrument) {
     // Données de note / contexte
     activeNotes,
     fingering,
+    shapeCells,
     isOutOfRange,
     dictType,
     notation,

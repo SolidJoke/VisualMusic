@@ -33,6 +33,7 @@ function Fretboard({
     numFrets,
     activeNotes,
     fingering,
+    shapeCells,
     isOutOfRange,
     dictType,
     notation,
@@ -268,7 +269,8 @@ function Fretboard({
         currentlyPlayingNotes, contextualScaleAbsoluteValues,
         activePath, dictType, fingering, instrument,
         rootValue, targetValues, showFingering, showFingerNumbers,
-        singlePlayContext, notation, scaleAnchor, appMode
+        singlePlayContext, notation, scaleAnchor, appMode,
+        shapeCells, tuning: strings, numFrets
       });
 
     return (
@@ -356,7 +358,7 @@ function Fretboard({
                 )}
                 {columns.map(({ raw, stringIndex }, col) => {
                   const meta = metaFor(stringIndex, fret, getAbsoluteNoteValue(raw));
-                  const showMarker = meta.isActive || meta.isPlaying;
+                  const showMarker = meta.isActive || meta.isPlaying || meta.isPlayingOutside;
                   return (
                     <div
                       key={`cell-${stringIndex}-${fret}`}
@@ -374,7 +376,7 @@ function Fretboard({
                       />
                       {showMarker && (
                         <div
-                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""} ${fret === 0 ? "open-marker" : ""}`}
+                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isPlayingOutside ? "is-playing-outside" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""} ${fret === 0 ? "open-marker" : ""}`}
                           title={`${meta.noteInfo.us} / ${meta.noteInfo.eu}`}
                           style={{ opacity: inZone ? 1 : 0.25 }}
                         >
@@ -454,7 +456,8 @@ function Fretboard({
                     currentlyPlayingNotes, contextualScaleAbsoluteValues,
                     activePath, dictType, fingering, instrument,
                     rootValue, targetValues, showFingering, showFingerNumbers,
-                    singlePlayContext, notation, scaleAnchor, appMode
+                    singlePlayContext, notation, scaleAnchor, appMode,
+                    shapeCells, tuning: strings, numFrets
                   });
                   return (
                     <div
@@ -470,8 +473,8 @@ function Fretboard({
                            <span className="open-string-name">{meta.noteName}</span>
 
                            {/* Note Marker for Open Strings */}
-                           {((meta.isActive && fret === 0) || meta.isPlaying) && (
-                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isTargetNote ? "is-target-note" : ""} open-marker`}>
+                           {((meta.isActive && fret === 0) || meta.isPlaying || meta.isPlayingOutside) && (
+                             <span className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isPlayingOutside ? "is-playing-outside" : ""} ${meta.isTargetNote ? "is-target-note" : ""} open-marker`}>
                                {meta.label}
                              </span>
                            )}
@@ -487,7 +490,8 @@ function Fretboard({
                     currentlyPlayingNotes, contextualScaleAbsoluteValues,
                     activePath, dictType, fingering, instrument,
                     rootValue, targetValues, showFingering, showFingerNumbers,
-                    singlePlayContext, notation, scaleAnchor, appMode
+                    singlePlayContext, notation, scaleAnchor, appMode,
+                    shapeCells, tuning: strings, numFrets
                   });
 
                   const inZone = fretboardZone === "all" ||
@@ -505,9 +509,9 @@ function Fretboard({
                       style={{ cursor: "pointer" }}
                     >
                       <div className="string-line"></div>
-                      {(meta.isActive || meta.isPlaying) && (
+                      {(meta.isActive || meta.isPlaying || meta.isPlayingOutside) && (
                         <div
-                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""}`}
+                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isPlayingOutside ? "is-playing-outside" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""}`}
                           title={`${meta.noteInfo.us} / ${meta.noteInfo.eu}`}
                           style={{
                             opacity: inZone ? 1 : 0.25,

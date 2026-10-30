@@ -147,36 +147,43 @@ function allCases() {
 }
 
 // Frozen from main at d277303 (before T1). [SHA-256 of the journal, entries].
+// VMU-200: the journals are the same, entry for entry, except the arguments of
+// `setCurrentlyPlayingNotes` — the loop now publishes tagged notes
+// ({ absoluteValue, instrument }, melodic ones also `nearShape: true`) instead
+// of bare MIDI numbers, so the fingerprints below changed while every synth
+// call, every pitch and every entry count stayed the same (checked: counts
+// unchanged for all 23 cases). Nothing audible moved.
 const GOLDEN = {
-  "0:A Modern Pop (4 Chords)": ["6be9416391e81a5c1d7211524766da21b42356a8e6dfc112c7d1f5f3afc643ae", 120],
-  "0:B Modern Pop (4 Chords)": ["6be9416391e81a5c1d7211524766da21b42356a8e6dfc112c7d1f5f3afc643ae", 120],
-  "3:A Funk/Disco Loop": ["759d1dd7a9824b5df4110f2f9e3cb0bb86eaebc81f76b29d0f2093d7277a1658", 176],
-  "3:B Funk/Disco Loop": ["759d1dd7a9824b5df4110f2f9e3cb0bb86eaebc81f76b29d0f2093d7277a1658", 176],
-  "5:A Euphoric Techno": ["51eede655841a0f3492df7506b96e8d42a2fb61f263de17caf5ce886a9d95081", 244],
-  "5:B Euphoric Techno": ["917719def04a8e3fc28f06c91eccf26265d20c82aeaeb3551294b4fa11916de5", 156],
-  "7:A Epic Metal": ["65289ada9f2c9c636fe3a425f04d1d16a85342a6a8b6818cb570a8d270f0f1a0", 204],
-  "7:B Epic Metal": ["9579a356a9b0aa36e866258658c4264eb3a847b765ea0b601da45e1727290235", 180],
-  "8:A Joyful Reggae": ["d404a02a04a249459b465cbd59a231f3e4d40bf7fae476d27165c685b2bc9260", 140],
-  "8:B Joyful Reggae": ["55dadc58709e6bb08e78c260c5b1bc5204e11fc4214faf0ba393293ce7591f7a", 124],
-  "10:A Oldschool Boom Bap": ["bc62d04c94340c2ab91f0e34535487a88a7a9ccabc2e2a501d0f048c6c9462db", 132],
-  "10:B Oldschool Boom Bap": ["5a4fd7b72b4f44b6f99efa934046c12e9dda8b99e9fb52662f023a4a50281780", 132],
-  "16:A Groove Metal": ["99a7cae75da64157bd11e5899d4e2a142da7021c70fa45712a49cd550e6c2292", 160],
-  "16:B Groove Metal": ["a075afa67429a5329a021476f1c46338aa9fcf493a171b73c469e33a039136b2", 156],
-  "18:A Modern Pop (Ballad)": ["f5083d83597c47dda500f1f28053fb0859c9304867857e596fb6b24ba3ae2669", 108],
-  "18:B Modern Pop (Ballad)": ["5711eb71c977bd4b06e285ec402fd4b71a02980d668f1ed35042c7d053f865be", 124],
-  "21:A Bossa Nova": ["9d18a106fd3e2407dd3c9deb6a09c8235ca9324e2e809eef2161db9aff440417", 124],
-  "21:B Bossa Nova": ["d3f1b77420844ebf1becabafb0da5ac3644a129b50599c4b0dc5d1ffff596cf2", 160],
-  "rhythm-absolute-0-6-10": ["bb12801756896b15d826c358fad5b2c809eac12fd6eb4888a268aa01c6d54418", 116],
-  "octave-plus-1": ["15b4125e3bbb58456f091d60f45bebc85b62e11f8b76d9220902852d9bedcb97", 120],
+  "0:A Modern Pop (4 Chords)": ["d785c550ed37d0a3641984eed4164ee59990472c74160d0a460e568086e81283", 120],
+  "0:B Modern Pop (4 Chords)": ["d785c550ed37d0a3641984eed4164ee59990472c74160d0a460e568086e81283", 120],
+  "3:A Funk/Disco Loop": ["6f51195d8c0782be371f9967ae5e8ca7f5ffb898312d7ade867c2d07377c1375", 176],
+  "3:B Funk/Disco Loop": ["6f51195d8c0782be371f9967ae5e8ca7f5ffb898312d7ade867c2d07377c1375", 176],
+  "5:A Euphoric Techno": ["ca9fb34cbbcba022b8fe1d2018052d38bdee324fa72978bd8e2f36945a55a7e1", 244],
+  "5:B Euphoric Techno": ["0e3215f22b975a17e6a889a3a30523c0a56a21d1af31670b46734b119b7dfbb5", 156],
+  "7:A Epic Metal": ["b465ddef72c1a2711e7a07318f84320ab0e176dbd0ff1059a8d2864b75d9ee21", 204],
+  "7:B Epic Metal": ["7a11ac8f24c1d403b611677dc1f22671122224908aa822b12740c6586a4463e5", 180],
+  "8:A Joyful Reggae": ["618b465eccd2baac670135372170a1a4f61fdbba6b0453bc6973baa0e651d2be", 140],
+  "8:B Joyful Reggae": ["095931853267f944abdac0fc4604995a86e232d4a016d0c7178a8208221f181a", 124],
+  "10:A Oldschool Boom Bap": ["74bb4bb2416335ce2253926059c5ba453c5e2babc88c9faa1eae0364199a6d28", 132],
+  "10:B Oldschool Boom Bap": ["6f11e5f5568cc561475b0d3b8d2151dff5e18499fd12fb7e702b69086b5779ed", 132],
+  "16:A Groove Metal": ["4860c7765908593675f8c7cbd56f311a9c4291fa7295e666dc228dc859126723", 160],
+  "16:B Groove Metal": ["9e5491e36908b1aa50db4523ea7d56751b21cd6ed395a6f0d5e2b9cf335352fe", 156],
+  "18:A Modern Pop (Ballad)": ["317399cd3ba436f97b7e316e80b79acc559dff56df3a909d12612f88279d53a8", 108],
+  "18:B Modern Pop (Ballad)": ["3be2b7d419eb3d9c8a743382c8757491730b246877732677019f023a3969442b", 124],
+  "21:A Bossa Nova": ["74df84d7e6869fd12dfc12ad55beb8f9a78497a726c6b351312a7bdbd52b2870", 124],
+  "21:B Bossa Nova": ["cdc1e55b081dab895b5c2e987d1d88de2137f01dd070fd87d1579d5703dc9180", 160],
+  "rhythm-absolute-0-6-10": ["1d10decb400c4ff57b27bdda4a157e80ff8f02909aa3e9a97170dcb939c6c8e8", 116],
+  "octave-plus-1": ["8e7573f458a3c80cd6d8f271fc5f46e72f7df2178f9d173d625bb8f7bd65bfc7", 120],
   // VMU-169: the chord published to React carries its name, and the name is now
   // complete ("Dm" "G" "C" became "Dm7" "G7" "Cmaj7"; EU "Rém7" "Sol7" "Domaj7").
   // Nothing audible moved: the journals of the previous fingerprint and of this
   // one are identical once those two fields (chordNameUS, chordNameEU) are
   // taken out — same 120 entries, every synth call and every pitch the same.
-  // Was 90e9c06209d8b18813554c1d68863a809baec5a25592c054cf3c81f90088f47c.
-  "progression-jazz_251_maj": ["ad94959ef0c5d4766951a941264cdaa821718f30c432747c03f95ff266ed68ca", 120],
-  "non-bass-melodic-track": ["29565a9d2fcd466dba30cac5f5d4d3b20f50ec0b0a7d94208f67d7327b42294d", 168],
-  "empty-progression": ["0cc352aca834358bb3adec2a025ac950aebde4425e3c4ad1aefb2ac3388031e7", 84],
+  // Was 90e9c06209d8b18813554c1d68863a809baec5a25592c054cf3c81f90088f47c
+  // (VMU-200 re-fingerprinted for the tagged published notes, same reason).
+  "progression-jazz_251_maj": ["a4c45a8f0ce9c9dab275368898236d4c456704263ca690d2c536e5044d32397f", 120],
+  "non-bass-melodic-track": ["ef562e9a73977e697c328c84a4171441fe1cecc8a610989056351affe2170725", 168],
+  "empty-progression": ["03f2e372a5b27165f2403233feba016549f22f629b6022a65a5b08d6f74ae039", 84],
 };
 
 describe("Playback golden — T1 changes no synth call", () => {
