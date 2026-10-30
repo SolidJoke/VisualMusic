@@ -44,28 +44,42 @@ describe('useMusicEngine', () => {
     expect(['played', 'open', 'muted']).toContain(lowE.status);
   });
 
-  it('handles octave offset correctly', () => {
+  // VMU-201 (decision 2026-10-30) — "Octave des accords" no longer moves the
+  // Studio necks, so the old expectation (guitarFingering.octave + 1 after
+  // raising chordOctaveOffset) is the behaviour this ticket removes. The
+  // Dictionary still chooses its neck shape at dictOctave, unchanged.
+  it('the Studio neck ignores chordOctaveOffset, the Dictionary still follows dictOctave', () => {
     const { result, rerender } = renderHook(
       (params) => useMusicEngine(params),
       { initialProps: defaultParams }
     );
 
-    const initialOctave = result.current.guitarFingering.octave;
-    
+    const studioOctave = result.current.guitarFingering.octave;
     rerender({ ...defaultParams, chordOctaveOffset: 1 });
-    
-    expect(result.current.guitarFingering.octave).toBe(initialOctave + 1);
+    expect(result.current.guitarFingering.octave).toBe(studioOctave);
+
+    rerender({ ...defaultParams, appMode: 'dictionary', dictOctave: 0 });
+    const dictOctave0 = result.current.guitarFingering.octave;
+    rerender({ ...defaultParams, appMode: 'dictionary', dictOctave: 1 });
+    expect(result.current.guitarFingering.octave).toBe(dictOctave0 + 1);
   });
 
-  it('reports isOutOfRange when notes are beyond instrument capability', () => {
-    // Note E8 (MIDI 100) is way beyond guitar (max ~88)
-    const outOfRangeParams = {
+  // VMU-201 — this test used to expect `true`: the Studio shape followed
+  // chordOctaveOffset (4) and fingeringLogic.js's analyzeVoicing adds
+  // `octave * 12` to its frets, so C major looked four octaves too high. The
+  // Studio neck is now always the octave-0 shape — the owner's decision that
+  // "Octave des accords" moves the piano only — and the open C grip is well
+  // inside the guitar's 40..86, so there is no warning whatever the setting.
+  // (The `true` case of the warning is still covered in
+  // core/__tests__/fingeringLogic.test.js.)
+  it('does not report isOutOfRange for the octave-0 Studio shape, whatever chordOctaveOffset says', () => {
+    const params = {
       ...defaultParams,
       currentAbsoluteNotes: [100, 104, 107],
       chordOctaveOffset: 4
     };
-    const { result } = renderHook(() => useMusicEngine(outOfRangeParams));
-    expect(result.current.guitarFingering.isOutOfRange).toBe(true);
+    const { result } = renderHook(() => useMusicEngine(params));
+    expect(result.current.guitarFingering.isOutOfRange).toBe(false);
   });
 
   // INST-B1 — this test used to expect `true`: the warning added the octave
