@@ -15,6 +15,12 @@ import * as AudioEngine from '../../audio/AudioEngine';
 // here: its open shape mutes the low E, and fingeringLogic encodes a muted
 // string as `{ X: true }`, which fingeringMapToAbsolutePitches' V1 branch reads
 // as a fret — NaN. That is pre-existing and outside this ticket.)
+//
+// VMU-201 (decision 2026-10-30) — "Octave des accords" moves the piano, the
+// loop and the MIDI export only; the guitar and the bass keep their own
+// position. Both sides of the VMU-180 invariant now use octave 0 in the Studio,
+// so the equality holds at every offset, and the shape no longer changes when
+// the setting does.
 
 vi.mock('tone', () => ({
   now: vi.fn(() => 1.0),
@@ -106,11 +112,17 @@ describe('VMU-180 — the Studio chord click plays the drawn shape at the chord 
   });
 
   it.each([
-    ['guitar', getGuitarFingering],
-    ['bass', getBassFingering],
-  ])('%s: chordOctaveOffset 2 plays the shape drawn at octave 2', async (instrument, getFingering) => {
-    const expected = shapePitches(getFingering, instrument, 2);
-    const { result, setCurrentAbsoluteNotes } = renderStudio(instrument, 2);
+    ['guitar', 2, getGuitarFingering],
+    ['guitar', -2, getGuitarFingering],
+    ['bass', 2, getBassFingering],
+    ['bass', -2, getBassFingering],
+  ])('%s: chordOctaveOffset %i plays the octave-0 shape (VMU-201: the neck ignores the setting)', async (instrument, offset, getFingering) => {
+    // VMU-201 — this used to expect the shape drawn at the offset itself
+    // (`offset 2` -> an octave-2 shape). By the owner's decision the Studio
+    // neck no longer moves with "Octave des accords", so the played grip is
+    // the octave-0 one whatever the setting says.
+    const expected = shapePitches(getFingering, instrument, 0);
+    const { result, setCurrentAbsoluteNotes } = renderStudio(instrument, offset);
 
     await act(async () => {
       await result.current.handleChordClick(G_CHORD, 0);

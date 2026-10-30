@@ -285,19 +285,23 @@ describe("L1b-1c (b): the Studio — the panel exists once a chord is clicked, t
     expect(fn("jouer.position-guitar-suiv")).toBeNull();
   });
 
-  it("the Studio's chord octave +2 puts the guitar out of range: the warning sign is on the label with the panel closed, with the alert's text; at the octave 0 there is none", async () => {
+  // VMU-201 (decision 2026-10-30) — this test used to expect the opposite: a
+  // warning sign at the Studio's chord octave +2 ("the guitar is out of
+  // range"), and none at the octave 0. That warning was the false one this
+  // ticket removes: the shape followed chordOctaveOffset and fingeringLogic's
+  // range test adds octave*12, while what the guitar actually plays (G2…G4 on
+  // this grip) is inside 40..86. "Octave des accords" no longer moves the neck.
+  it("the Studio's chord octave +2 no longer warns: the neck keeps its octave-0 shape, so there is no sign at +2 or at 0", async () => {
     await renderApp("?prototype=a&bench=1");
     await press(document.querySelector('[data-state="studio-oct2"]'));
-    const mark = toggle("guitar").querySelector('[role="img"]');
-    expect(mark, "the warning sign at octave +2").not.toBeNull();
-    expect(mark.getAttribute("aria-label")).toBe(translations.fr.warningOutOfRange);
+    expect(toggle("guitar").querySelector('[role="img"]'), "no warning sign at octave +2").toBeNull();
     expect(toggle("guitar").getAttribute("aria-expanded")).toBe("false");
     await press(toggle("guitar"));
-    expect(fn("jouer.position-alertes-guitar").textContent).toContain(translations.fr.warningOutOfRange);
+    expect(fn("jouer.position-alertes-guitar"), "no alert in the panel at octave +2").toBeNull();
     await press(toggle("guitar"));
     await press(fn("jouer.octave-piano-prec"));
     await press(fn("jouer.octave-piano-prec"));
-    expect(toggle("guitar").querySelector('[role="img"]'), "no sign at the octave 0").toBeNull();
+    expect(toggle("guitar").querySelector('[role="img"]'), "no sign at the octave 0 either").toBeNull();
   });
 
   it("a position chosen in the Dictionary is not offered for reset in the Studio, where nothing reads it", async () => {

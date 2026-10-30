@@ -47,9 +47,11 @@ export function useStudioPlayback({
     let flashedNotes = null;
     
     if (playbackInstrument === "guitar" || playbackInstrument === "bass") {
+      // VMU-201 — the neck keeps its octave-0 shape whatever "Octave des
+      // accords" says; the piano path below still follows the setting.
       const localFingering = (playbackInstrument === "guitar")
-        ? getGuitarFingering(rootVal, chordType, selectedRootStringGuitar, chordOctaveOffset || 0)
-        : getBassFingering(rootVal, chordType, selectedRootStringBass, chordOctaveOffset || 0);
+        ? getGuitarFingering(rootVal, chordType, selectedRootStringGuitar, 0)
+        : getBassFingering(rootVal, chordType, selectedRootStringBass, 0);
 
       const fingeringMap = localFingering?.fingeringMap;
       

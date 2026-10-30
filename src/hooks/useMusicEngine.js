@@ -32,7 +32,7 @@ import { getChordTargetNotes, getModeTargetNote } from "../core/targetNotes";
  * read the chosen index (unchanged).
  * @returns {import("../core/placements").Selection|null}
  */
-function placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString }) {
+function placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, rootString }) {
   /** @returns {import("../core/placements").Selection} */
   const noteSelection = () => ({ family: "note", type: "single_note", notePitch: dictActiveNotes?.[0]?.absoluteValue ?? null });
   if (appMode === "dictionary" && dictType) {
@@ -41,11 +41,13 @@ function placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictAc
     return { family: "chord", type: dictType, root: Number(dictRoot), octave: dictOctave, rootString };
   }
   if (!effectiveChord) return null;
+  // VMU-201 — the Studio necks keep their own position: "Octave des accords"
+  // moves the piano, the loop and the MIDI export, never the guitar or bass.
   return {
     family: "chord",
     type: resolveNnsToChordType(effectiveChord.nns),
     root: effectiveChord.rootNote.value,
-    octave: chordOctaveOffset || 0,
+    octave: 0,
     rootString,
   };
 }
@@ -87,10 +89,11 @@ function toV2(fingering, instrument) {
  *   (listPlacements marks it, and it is computed again here only if no entry
  *   matched); for a scale the box the octave picks (C-06, core/placements.js);
  *   for a single note none (every place of the note is lit).
- * - Studio: the clicked chord's default shape, unchanged — the chosen index is
- *   not read there, as before.
+ * - Studio: the clicked chord's default shape at octave 0 (VMU-201 — "Octave
+ *   des accords" no longer moves the neck) — the chosen index is not read
+ *   there, as before.
  */
-function fingeringFor({ instrument, placements, index, rootString, appMode, dictType, dictRoot, dictOctave, effectiveChord, chordOctaveOffset }) {
+function fingeringFor({ instrument, placements, index, rootString, appMode, dictType, dictRoot, dictOctave, effectiveChord }) {
   const getDefault = instrument === "bass" ? getBassFingering : getGuitarFingering;
   if (appMode === "dictionary" && dictType) {
     const placement = resolvePlacement(placements, index);
@@ -105,7 +108,9 @@ function fingeringFor({ instrument, placements, index, rootString, appMode, dict
     return toV2(getDefault(Number(dictRoot), dictType, rootString, dictOctave), instrument);
   }
   if (!effectiveChord) return null;
-  const offset = appMode === "dictionary" ? dictOctave : (chordOctaveOffset || 0);
+  // VMU-201 — in the Studio the shape is the octave-0 one whatever "Octave des
+  // accords" says; the Dictionary branch above keeps its own octave.
+  const offset = appMode === "dictionary" ? dictOctave : 0;
   return toV2(getDefault(effectiveChord.rootNote.value, resolveNnsToChordType(effectiveChord.nns), rootString, offset), instrument);
 }
 
@@ -128,7 +133,11 @@ function fingeringFor({ instrument, placements, index, rootString, appMode, dict
  *   clickedChord ({ rootNote: { value }, nns }) plus `absolutePitches`, the
  *   actual MIDI notes it is playing this measure. Null at rest.
  * @param {any[]} options.currentAbsoluteNotes
- * @param {number} options.chordOctaveOffset
+ * @param {number} options.chordOctaveOffset VMU-201 — still accepted at this
+ *   boundary (call sites keep passing it), no longer read: in the Studio the
+ *   necks keep their octave-0 shape — "Octave des accords" moves the piano,
+ *   the loop and the MIDI export — and in the Dictionary the necks' octave is
+ *   dictOctave/neckOctave, as before.
  * @param {string} options.displayMode
  * @param {any} options.selectedRootStringGuitar
  * @param {any} options.selectedRootStringBass
@@ -167,7 +176,6 @@ export function useMusicEngine({
   isPlaying = false,
   currentPlayingChord = null,
   currentAbsoluteNotes,
-  chordOctaveOffset,
   displayMode,
   selectedRootStringGuitar,
   selectedRootStringBass,
@@ -356,14 +364,14 @@ export function useMusicEngine({
   const bassIndex = placementByInstrument?.bass?.index ?? null;
 
   const guitarPlacements = useMemo(() => listPlacements(
-    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString: selectedRootStringGuitar }),
+    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, rootString: selectedRootStringGuitar }),
     { id: "guitar", tuning: guitarTuning, notation }
-  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, selectedRootStringGuitar, guitarTuning, notation]);
+  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, selectedRootStringGuitar, guitarTuning, notation]);
 
   const bassPlacements = useMemo(() => listPlacements(
-    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, rootString: selectedRootStringBass }),
+    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, rootString: selectedRootStringBass }),
     { id: "bass", tuning: bassTuning, notation }
-  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, chordOctaveOffset, selectedRootStringBass, bassTuning, notation]);
+  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, selectedRootStringBass, bassTuning, notation]);
 
   const placementsByInstrument = useMemo(() => ({
     guitar: guitarPlacements,
@@ -375,13 +383,13 @@ export function useMusicEngine({
   // default shape in the Studio.
   const rawGuitarFingering = useMemo(() => fingeringFor({
     instrument: "guitar", placements: guitarPlacements, index: guitarIndex, rootString: selectedRootStringGuitar,
-    appMode, dictType, dictRoot, dictOctave: neckOctave, effectiveChord, chordOctaveOffset,
-  }), [guitarPlacements, guitarIndex, selectedRootStringGuitar, appMode, dictType, dictRoot, neckOctave, effectiveChord, chordOctaveOffset]);
+    appMode, dictType, dictRoot, dictOctave: neckOctave, effectiveChord,
+  }), [guitarPlacements, guitarIndex, selectedRootStringGuitar, appMode, dictType, dictRoot, neckOctave, effectiveChord]);
 
   const rawBassFingering = useMemo(() => fingeringFor({
     instrument: "bass", placements: bassPlacements, index: bassIndex, rootString: selectedRootStringBass,
-    appMode, dictType, dictRoot, dictOctave: neckOctave, effectiveChord, chordOctaveOffset,
-  }), [bassPlacements, bassIndex, selectedRootStringBass, appMode, dictType, dictRoot, neckOctave, effectiveChord, chordOctaveOffset]);
+    appMode, dictType, dictRoot, dictOctave: neckOctave, effectiveChord,
+  }), [bassPlacements, bassIndex, selectedRootStringBass, appMode, dictType, dictRoot, neckOctave, effectiveChord]);
 
   // A `suggestedInversionIndex` memo used to sit here, computing a voice-leading
   // suggestion from a `prevAbsoluteNotes` option. It was stillborn: AppDesktop
