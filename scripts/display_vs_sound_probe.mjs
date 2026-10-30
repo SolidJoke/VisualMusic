@@ -21,6 +21,7 @@
  *   2  Studio, guitar sounding, "Octave des accords" != 0: shape drawn = shape played
  *   3  Studio, during the loop: the bass line against the bass neck's shape
  *   4  Dictionary, chord at +1 / +2 / +3 octave: shapes, ▶, range alert, labels, order
+ *     (41 = the same on the classic page, ?layout=classic, where the octave moves the necks)
  *   5  the piano's flash on notes of another instrument (4 gestures)
  *   6  scale positions: bass, C major, octave 0, automatic position
  *
@@ -32,6 +33,7 @@
  */
 import path from "node:path";
 import process from "node:process";
+import { translations } from "../src/i18n/translations.js";
 import { repoRootFrom } from "./lib/repoRoot.mjs";
 import { installSynthTap, positionsToMidi, midiToName, nameToMidi, OPEN } from "./lib/displayVsSound.mjs";
 
@@ -131,6 +133,12 @@ const out = (s) => {
   lines.push(s);
   console.log(s);
 };
+
+
+/** True when the page carries the "out of range" warning, as text or as a mark's label (French page). */
+async function hasRangeWarning(page) {
+  return page.evaluate((t) => document.body.textContent.includes(t) || [...document.querySelectorAll("[aria-label],[title]")].some((e) => (e.getAttribute("aria-label") || e.getAttribute("title") || "").includes(t)), translations.fr.warningOutOfRange);
+}
 
 async function settle(page, ms = 900) {
   await page.waitForTimeout(ms);
@@ -242,7 +250,8 @@ async function point2(browser, errors) {
         const drawn =
           instrument === "piano" ? uniqSorted(shown.pianoLit) : drawnNeck(shown, instrument);
         const attrDrawn = instrument === "piano" ? uniqSorted(shown.pianoAttr.split(/\s+/).filter(Boolean).map(Number)) : uniqSorted(positionsToMidi(instrument, shown[`${instrument}Attr`]));
-        out(`  ${instrument} octave ${octave >= 0 ? "+" : ""}${octave} chord ${chord}: drawn [${names(drawn)}] (attr [${names(attrDrawn)}]) | programmed [${names(prog)}] -> ${same(drawn, prog) ? "SAME" : "DIFFERENT"}`);
+        const warn = instrument === "piano" ? "n/a" : await hasRangeWarning(page);
+        out(`  ${instrument} octave ${octave >= 0 ? "+" : ""}${octave} chord ${chord}: drawn [${names(drawn)}] (attr [${names(attrDrawn)}]) | programmed [${names(prog)}] -> ${same(drawn, prog) ? "SAME" : "DIFFERENT"} | out-of-range warning shown: ${warn}`);
         await page.close();
       }
     }
@@ -327,6 +336,61 @@ async function point4(browser, errors) {
   }
 }
 
+/** Runs in the classic page: the lit cells of a horizontal neck as string row / cell index. */
+function readClassicNecks() {
+  const out = {};
+  for (const id of ["guitar", "bass"]) {
+    const neck = document.querySelector(`.fretboard-container.instrument-${id}`);
+    const cells = [];
+    if (neck) {
+      neck.querySelectorAll(".string-row").forEach((row, s) => {
+        [...row.children].filter((c) => c.classList.contains("fret")).forEach((cell, c) => {
+          if (cell.querySelector(".note-marker")) cells.push({ s, f: c, playing: Boolean(cell.querySelector(".note-marker.is-playing")) });
+        });
+      });
+    }
+    out[`${id}Cells`] = cells;
+    out[`${id}Range`] = neck && neck.querySelector(".fret-range-label") ? neck.querySelector(".fret-range-label").textContent.trim() : "";
+  }
+  return out;
+}
+
+async function point4b(browser, errors) {
+  out("\n== POINT 4b · the CLASSIC page (?layout=classic), Dictionary, chord Do at octave 0 / +1 / +2 / +3 ==");
+  for (const octave of [0, 1, 2, 3]) {
+    const page = await browser.newPage({ viewport: { width: 3840, height: 2160 } });
+    page.on("pageerror", (e) => errors.push(String(e)));
+    await page.goto(`${ORIGIN}/?layout=classic`, { waitUntil: "domcontentloaded" });
+    await page.locator(".sidebar-cta-btn").first().waitFor({ state: "visible", timeout: 30_000 });
+    await page.locator('[data-testid="btn-mode-dictionary"]').click();
+    await page.locator(".instrument-bar").waitFor({ state: "visible", timeout: 10_000 });
+    await page.locator(".sidebar-cta-btn", { hasText: "Studio & Harmonie" }).first().click();
+    const panel = page.locator('[data-testid="dictionary-panel"]');
+    await panel.waitFor({ state: "visible", timeout: 10_000 });
+    await panel.locator(".btn-segment-group").first().locator(".btn-segment").nth(1).click();
+    if (octave) await panel.locator(".btn-segment", { hasText: new RegExp(`^\\+${octave}$`) }).first().click();
+    await page.keyboard.press("Escape");
+    await page.locator(".modal-container").waitFor({ state: "detached", timeout: 10_000 });
+    for (let i = 0; i < 40; i++) {
+      const t = await tap(page).catch(() => []);
+      if (t.some((x) => x.startsWith("guitarCurrent:_Sampler")) && t.some((x) => x.startsWith("pianoCurrent:_Sampler"))) break;
+      await page.waitForTimeout(500);
+    }
+    for (const [i, inst] of ["guitar", "bass"].entries()) {
+      await tap(page);
+      await page.evaluate(() => { window.__vm.log.length = 0; });
+      const shown = await page.evaluate(readClassicNecks);
+      await page.locator(".instrument-bar__play").nth(i + 1).click();
+      await settle(page, 800);
+      const log = await page.evaluate(() => window.__vm.log);
+      const drawn = uniqSorted(shown[`${inst}Cells`].map((c) => cellToMidi(inst, c)));
+      const prog = uniqSorted(programmed(log, (s) => new RegExp(inst).test(s)));
+      out(`  classic octave +${octave} ${inst}: drawn [${names(drawn)}] (cells ${JSON.stringify(shown[`${inst}Cells`].map((c) => `${c.s}:${c.f}`))}, window "${shown[`${inst}Range`]}") | ▶ programmed [${names(prog)}] -> ${same(drawn, prog) ? "SAME" : "DIFFERENT"} | out-of-range warning shown: ${await hasRangeWarning(page)}`);
+    }
+    await page.close();
+  }
+}
+
 async function neckClick(page, inst, s, f) {
   await page.locator(`[data-s1="${inst}"] .fbv-fret-row[data-fret="${f}"] .fbv-cell[data-string-index="${s}"]`).first().click();
 }
@@ -349,6 +413,17 @@ async function point5(browser, errors) {
     await settle(page, 900);
     await flashReport(page, `(a) single note Do, ▶ ${inst}`, inst);
     await page.close();
+  }
+  // (e) chord and (f) scale, ▶ on the guitar and the bass
+  for (const [tag, scenario, settleMs] of [["(e) chord Do", "cmaj", 900], ["(f) scale Do major", "cmajscale", 5000]]) {
+    for (const inst of ["guitar", "bass"]) {
+      const page = await openPage(browser, `&bench=1&scenario=${scenario}`, errors);
+      await resetRecorders(page);
+      await page.locator(`[data-fn="jouer.instrument-play-${inst}"]`).click();
+      await settle(page, settleMs);
+      await flashReport(page, `${tag}, ▶ ${inst}`, inst);
+      await page.close();
+    }
   }
   // (b) a non-root note of a neck clicked (chord Do, E)
   for (const inst of ["guitar", "bass"]) {
@@ -414,7 +489,7 @@ const browser = await chromium.launch();
 const errors = [];
 let failed = false;
 try {
-  for (const [n, fn] of [[1, point1], [2, point2], [3, point3], [4, point4], [5, point5], [6, point6]]) {
+  for (const [n, fn] of [[1, point1], [2, point2], [3, point3], [4, point4], [41, point4b], [5, point5], [6, point6]]) {
     if (!want(n)) continue;
     try {
       await fn(browser, errors);

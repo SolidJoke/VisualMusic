@@ -246,7 +246,13 @@ export function useDictionaryPlayback({
         ? (typeof first === "object" ? first.absoluteValue : first)
         : computeAbsoluteNote(Number(dictRoot), dictOctave || 0);
       rememberDictionaryVoice(playDictionaryNote(instrument, midiToNoteName(absNote), "2n"));
-      setCurrentlyPlayingNotes([absNote]);
+      // VMU-180: on a neck, publish the note as that neck's. A bare pitch is the
+      // piano's own to the keyboard, which flashed it. The realization of a single
+      // note carries no string or fret, so the tag has no place: the neck lights
+      // every place of the pitch (core/fretboardUtils.js resolvePlayingState).
+      setCurrentlyPlayingNotes([
+        instrument === "guitar" || instrument === "bass" ? { absoluteValue: absNote, instrument } : absNote,
+      ]);
       Tone.getDraw().schedule(() => {
         if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
       }, Tone.now() + 0.5);
