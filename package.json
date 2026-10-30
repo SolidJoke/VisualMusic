@@ -21,7 +21,8 @@
     "style:probe": "node scripts/style_probe.mjs",
     "s1:probe": "node scripts/s1_probe.mjs",
     "instruments:probe": "node scripts/instruments_probe.mjs",
-    "tempo:probe": "node scripts/tempo_probe.mjs"
+    "tempo:probe": "node scripts/tempo_probe.mjs",
+    "display:probe": "node scripts/display_vs_sound_probe.mjs"
   },
   "dependencies": {
     "@tonaljs/tonal": "^4.10.0",
