@@ -211,6 +211,33 @@
     z-index: 10 !important;
 }
 
+/* VMU-200 — a Studio loop note OUTSIDE the drawn shape: a ring, no fill, on
+   the one cell placeNearShape chose. The instrument's colour is its sequencer
+   track colour (--seq-bass, tokens.css); the default accent covers any other
+   neck. The role-* selectors are repeated here because those rules set their
+   own !important fill: with the same specificity but later in this file they
+   would repaint the ring as a filled pastille (e.g. showFingering off, where
+   an outside chord tone is also an active cell). No fill is part of the
+   decision, not a detail of the cascade. */
+.note-marker.is-playing-outside,
+.note-marker.is-playing-outside.role-root,
+.note-marker.is-playing-outside.role-third,
+.note-marker.is-playing-outside.role-fifth,
+.note-marker.is-playing-outside.role-extension,
+.note-marker.is-playing-outside.role-target,
+.note-marker.is-playing-outside.role-scale {
+    background: transparent !important;
+    color: var(--text-primary) !important;
+    border: 3px solid var(--instrument-ring, var(--select));
+    box-sizing: border-box;
+    box-shadow: none;
+    z-index: 10 !important;
+}
+
+.instrument-bass .note-marker.is-playing-outside {
+    --instrument-ring: var(--seq-bass);
+}
+
 .note-marker.role-root {
     background-color: var(--role-root) !important;
     color: var(--on-role) !important;

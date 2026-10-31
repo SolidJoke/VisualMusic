@@ -973,7 +973,9 @@ export const SCENARIOS = {
       // order, same arguments as before, so the seeded render is unchanged.
       const repeat = (time) => {
         const events = dispatch.stepEvents(doc, stepCounter, playOptions);
-        scheduledPitches.push(...playStep.playStepEvents(engine, events, time));
+        // VMU-200: playStepEvents returns tagged notes (what the screen
+        // lights); the harness reports pitches, exactly as it did before.
+        scheduledPitches.push(...playStep.playStepEvents(engine, events, time).map((n) => n.absoluteValue));
         stepCounter = (stepCounter + 1) % timeline.loopSteps(doc);
       };
 
