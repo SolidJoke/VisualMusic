@@ -331,7 +331,8 @@ a { color: var(--text-primary); }
 <body>
 <div class="intro">
   <h1>VisualMusic au téléphone</h1>
-  <p>Propositions d’ergonomie et de design pour tout le projet au téléphone (Brave, environ 390 px). Deux systèmes de navigation sont dessinés ; je recommande le second (la scène et le tiroir). Clavier et manches sont toujours dans le sens de la longueur de l’écran. Les écrans reprennent les trois variantes B retenues : position de gamme en onglets, rythme « en phrase », note qui joue « au projecteur ». Les écrans sont des maquettes : la navigation, les feuilles et la boucle sont cliquables.</p>
+  <p>Propositions d’ergonomie et de design pour tout le projet au téléphone (Brave, environ 390 px). Deux systèmes de navigation ont été dessinés ; le second (la scène et le tiroir) est retenu. Clavier et manches sont toujours dans le sens de la longueur de l’écran. Les écrans reprennent les trois variantes B retenues : position de gamme en onglets, rythme « en phrase », note qui joue « au projecteur ». Les écrans sont des maquettes : la navigation, les feuilles et la boucle sont cliquables.</p>
+  <div class="note"><b>Décisions du 31 octobre 2026.</b> Navigation 2 retenue. Au téléphone, un seul instrument à la fois, au choix. Passage automatique en paysage. Mes compléments sont dans « Tes choix, mon avis », plus bas : la règle du nombre d’instruments selon la place disponible, un seul choix pour « ce qu’on voit » et « ce qu’on entend », et trois conditions pour le paysage.</div>
 </div>
 
 <section class="variant" id="constat" style="margin-top:24px">
@@ -370,8 +371,64 @@ a { color: var(--text-primary); }
   </ol>
 </section>
 
+<section class="variant" id="nav2">
+  <header><h2>Navigation 2 · La scène et le tiroir</h2><span class="kept">Retenue</span><span class="tag">l’instrument sur toute la hauteur ; tout le reste dans un tiroir qui monte du bas</span></header>
+  <ul class="three">
+    <li><b>Ce que voit le débutant</b>En haut, deux mots : Dictionnaire · Studio. Au milieu, l’instrument dans le sens de la longueur, sur toute la hauteur. En bas, un tiroir replié : ce qui est montré, les trois instruments, ▶.</li>
+    <li><b>Ce que fait un geste</b>Toucher la ligne du choix, ou tirer la poignée, monte le tiroir à mi-hauteur (choisir, progression, tempo) ; encore une fois, en pleine hauteur (rythme, batterie, sons, réglages, aide). L’instrument reste visible au-dessus et réagit.</li>
+    <li><b>Pourquoi elle</b>Plus de barre d’onglets permanente : l’instrument gagne environ 280 px de haut. Une seule règle à apprendre (« ce qui n’est pas l’instrument est dans le tiroir »), proche des applis de cartes que tout le monde connaît.</li>
+  </ul>
+  <div class="screens" id="screens2"></div>
+  <div class="specs">
+    <div><h3>Comparer les deux navigations</h3><table>
+      <tr><th></th><th>1 · Onglets</th><th>2 · Scène et tiroir</th></tr>
+      <tr><td>Hauteur pour l’instrument (Dictionnaire)</td><td>≈ 230 à 330 px</td><td>≈ 600 px</td></tr>
+      <tr><td>Changer d’accord</td><td>1 toucher (pastille en haut) + choix</td><td>1 toucher (ligne du tiroir) + choix</td></tr>
+      <tr><td>▶</td><td>barre de lecture, au-dessus des onglets</td><td>dans le tiroir replié, 64 × 56, sous le pouce</td></tr>
+      <tr><td>Outils (rythme, batterie, sons)</td><td>onglets Rythme et Plus, segment Batterie</td><td>tiroir en pleine hauteur, une ligne par outil</td></tr>
+      <tr><td>Découverte</td><td>meilleure : tout est nommé en bas</td><td>le tiroir s’ouvre une fois au premier lancement ; « Choisir ⌃ » et « Outils ⌃ » restent des boutons</td></tr>
+      <tr><td>Risque</td><td>empilement de barres</td><td>geste de tirer peu connu des débutants : chaque niveau a aussi un bouton</td></tr>
+    </table></div>
+    <div><h3>Tailles (px CSS)</h3><table>
+      <tr><th>Élément</th><th>Taille</th></tr>
+      <tr><td>Barre du haut</td><td>56 ; Dictionnaire · Studio 2 × 132 × 44 ; aide 44 × 44</td></tr>
+      <tr><td>Tiroir replié</td><td>140 (+ marge du bas) : poignée, ligne du choix 44, instruments 3 × 72 × 56, ▶ 64 × 56, Outils 44 × 56</td></tr>
+      <tr><td>Tiroir mi-hauteur / plein</td><td>≈ 55 % / 92 % de la hauteur ; lignes d’outil 60</td></tr>
+      <tr><td>Piano vertical</td><td>touches blanches 48 d’épaisseur, 300 de long ; noires 30 × 180 ; nom 15</td></tr>
+      <tr><td>Basse verticale</td><td>4 cordes × 80, pastilles 48 (la basse en a la place)</td></tr>
+      <tr><td>Paysage (844 × 390)</td><td>instrument ≈ 560 de large ; colonne de droite 248 : choix 44, position ‹ › 44, instruments 3 × 80 × 44, ▶ 56, plein écran et outils 44</td></tr>
+      <tr><td>Guitare en paysage</td><td>12 cases ≈ 43 × 6 cordes de 50 ; pastilles 36 (la case 43 × 50 est la cible)</td></tr>
+      <tr><td>Piano en paysage</td><td>11 touches blanches de 50 × 290 (Do3 à Fa4) ; noires 30 × 180</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<section class="variant" id="avis">
+  <header><h2>Tes choix, mon avis</h2><span class="tag">d’accord sur les trois, avec ces compléments</span></header>
+  <ol class="rules">
+    <li><b>Navigation 2 : oui, avec deux garde-fous</b>Au premier lancement, le tiroir monte une fois à mi-hauteur puis redescend : on voit qu’il existe. Ensuite il garde, pour chaque mode, la dernière hauteur choisie. Chaque hauteur a aussi un bouton (« Choisir ⌃ », « Outils ⌃ ») : tirer la poignée n’est jamais obligatoire.</li>
+    <li><b>Un instrument : décider par la place, pas par « 4K »</b>Plutôt qu’une règle « en dessous de 4K », je propose : autant d’instruments que la fenêtre en loge sans réduire les cibles sous 44 px ni le texte sous 15 px. Concrètement : un seul sous 1280 px de large ; les trois au-delà, si la hauteur suit (tableau ci-dessous). Un portable 1920 × 1080 garderait les trois colonnes d’A′.</li>
+    <li><b>Ce qu’on voit = ce qu’on entend : un seul choix</b>Avec un instrument à la fois, « Piano · Guitare · Basse » doit aussi choisir l’instrument qui sonne. Aujourd’hui ce sont deux réglages (<code>playbackInstrument</code> à part), et dans la boucle du Studio les accords sonnent toujours au piano (<code>dispatch.js</code> l. 193), même guitare affichée. Proposition : l’instrument affiché joue les accords ; la basse garde sa ligne ; basse affichée, une ligne dit « Accords : piano ».</li>
+    <li><b>Paysage automatique : oui, à trois conditions</b>Suivre l’orientation sans jamais l’exiger (beaucoup verrouillent la rotation : rien ne doit exister qu’en paysage). En paysage, le tiroir devient une colonne à droite, sinon il mange la moitié des ≈ 340 px de haut. Un bouton « Plein écran » sur Android (Brave le permet après un toucher) ; sur iPhone le moteur WebKit ne le permet pas pour une page, la barre d’adresse reste.</li>
+    <li><b>Une indication, une seule fois</b>En portrait, sous le manche, une ligne discrète au premier usage : « Tournez le téléphone pour voir tout le manche. » Elle disparaît dès le premier passage en paysage.</li>
+  </ol>
+  <div class="specs">
+    <div><h3>Combien d’instruments selon la place (proposition)</h3><table>
+      <tr><th>Fenêtre (px CSS)</th><th>Exemples</th><th>Instruments</th></tr>
+      <tr><td>moins de 768 de large</td><td>téléphone en portrait</td><td>1, au choix ; tiroir en bas</td></tr>
+      <tr><td>768 à 1279 de large, ou moins de 900 de haut</td><td>téléphone en paysage, tablette, petit portable</td><td>1, au choix, plus grand ; tiroir en colonne à droite</td></tr>
+      <tr><td>1280 de large ou plus, et 900 de haut ou plus</td><td>portable 1920 × 1080 (100 %), tablette 12 pouces en paysage, 4K à 150 %</td><td>3 côte à côte (A′)</td></tr>
+    </table></div>
+    <div><h3>À vérifier dans le code</h3><ul>
+      <li>La boucle du Studio envoie les accords à la voix « piano » (<code>src/audio/dispatch.js</code>, l. 193) quel que soit <code>playbackInstrument</code> ; seuls les clics sur un accord suivent l’instrument choisi (<code>useStudioPlayback.js</code>).</li>
+      <li>Les trois colonnes d’A′ mesurent environ 1995 px de haut (touches de 61 px) : sur une fenêtre de 900 à 1300 px de haut, il faut recalculer la longueur des instruments depuis la hauteur de la fenêtre, comme à 4K / 150 % (≈ 1283 px utiles).</li>
+      <li>Plein écran : <code>element.requestFullscreen()</code> après un geste, à cacher quand <code>document.fullscreenEnabled</code> est faux (iPhone).</li>
+    </ul></div>
+  </div>
+</section>
+
 <section class="variant" id="ecrans">
-  <header><h2>Navigation 1 · Les onglets</h2><span class="tag">barre d’onglets en bas (Dictionnaire · Studio · Rythme · Plus) ; 390 px de large, barre d’adresse de Brave en haut (52 px)</span></header>
+  <header><h2>Navigation 1 · Les onglets</h2><span class="tag">non retenue ; ses feuilles (Choisir, Rythme, Batterie, Plus) passent telles quelles dans le tiroir de la navigation 2 · barre d’onglets en bas (Dictionnaire · Studio · Rythme · Plus) ; 390 px de large, barre d’adresse de Brave en haut (52 px)</span></header>
   <p class="note">Limite constatée en dessinant : barre du haut, choix, onglets d’instrument, positions, ruban, barre de lecture et barre d’onglets laissent environ 230 px au manche sur l’écran 1. D’où la navigation 2, plus bas, qui rend toute la hauteur à l’instrument.</p>
   <div class="screens" id="screens"></div>
   <div class="specs">
@@ -401,46 +458,16 @@ a { color: var(--text-primary); }
   </div>
 </section>
 
-<section class="variant" id="nav2">
-  <header><h2>Navigation 2 · La scène et le tiroir</h2><span class="kept">Recommandée</span><span class="tag">l’instrument sur toute la hauteur ; tout le reste dans un tiroir qui monte du bas</span></header>
-  <ul class="three">
-    <li><b>Ce que voit le débutant</b>En haut, deux mots : Dictionnaire · Studio. Au milieu, l’instrument dans le sens de la longueur, sur toute la hauteur. En bas, un tiroir replié : ce qui est montré, les trois instruments, ▶.</li>
-    <li><b>Ce que fait un geste</b>Toucher la ligne du choix, ou tirer la poignée, monte le tiroir à mi-hauteur (choisir, progression, tempo) ; encore une fois, en pleine hauteur (rythme, batterie, sons, réglages, aide). L’instrument reste visible au-dessus et réagit.</li>
-    <li><b>Pourquoi la préférer</b>Plus de barre d’onglets permanente : l’instrument gagne environ 280 px de haut. Une seule règle à apprendre (« ce qui n’est pas l’instrument est dans le tiroir »), proche des applis de cartes que tout le monde connaît.</li>
-  </ul>
-  <div class="screens" id="screens2"></div>
-  <div class="specs">
-    <div><h3>Comparer les deux navigations</h3><table>
-      <tr><th></th><th>1 · Onglets</th><th>2 · Scène et tiroir</th></tr>
-      <tr><td>Hauteur pour l’instrument (Dictionnaire)</td><td>≈ 230 à 330 px</td><td>≈ 600 px</td></tr>
-      <tr><td>Changer d’accord</td><td>1 toucher (pastille en haut) + choix</td><td>1 toucher (ligne du tiroir) + choix</td></tr>
-      <tr><td>▶</td><td>barre de lecture, au-dessus des onglets</td><td>dans le tiroir replié, 64 × 56, sous le pouce</td></tr>
-      <tr><td>Outils (rythme, batterie, sons)</td><td>onglets Rythme et Plus, segment Batterie</td><td>tiroir en pleine hauteur, une ligne par outil</td></tr>
-      <tr><td>Découverte</td><td>meilleure : tout est nommé en bas</td><td>la poignée et « Outils ⌃ » doivent se voir ; un premier lancement peut ouvrir le tiroir une fois</td></tr>
-      <tr><td>Risque</td><td>empilement de barres</td><td>geste de tirer peu connu des débutants : chaque niveau a aussi un bouton</td></tr>
-    </table></div>
-    <div><h3>Tailles (px CSS)</h3><table>
-      <tr><th>Élément</th><th>Taille</th></tr>
-      <tr><td>Barre du haut</td><td>56 ; Dictionnaire · Studio 2 × 132 × 44 ; aide 44 × 44</td></tr>
-      <tr><td>Tiroir replié</td><td>140 (+ marge du bas) : poignée, ligne du choix 44, instruments 3 × 72 × 56, ▶ 64 × 56, Outils 44 × 56</td></tr>
-      <tr><td>Tiroir mi-hauteur / plein</td><td>≈ 55 % / 92 % de la hauteur ; lignes d’outil 60</td></tr>
-      <tr><td>Piano vertical</td><td>touches blanches 48 d’épaisseur, 300 de long ; noires 30 × 180 ; nom 15</td></tr>
-      <tr><td>Basse verticale</td><td>4 cordes × 80, pastilles 48 (la basse en a la place)</td></tr>
-      <tr><td>Les trois côte à côte</td><td>aperçu sans texte : piano 92, guitare 160, basse 88 ; points 18 ; une colonne entière = une cible</td></tr>
-    </table></div>
-  </div>
-</section>
-
 <section class="variant" id="ordre">
   <header><h2>Par quoi commencer</h2><span class="tag">gains les plus visibles d’abord</span></header>
   <div class="table-wrap"><table class="specs roadmap" style="display:table;max-width:1500px">
     <tr><th>Ordre</th><th>Changement</th><th>Pourquoi</th></tr>
-    <tr><td>1</td><td>Squelette téléphone, navigation 2 : barre du haut (Dictionnaire · Studio), instrument vertical sur toute la hauteur, tiroir à trois hauteurs avec ▶ et les instruments.</td><td>L’instrument et ▶ au premier écran ; le choix d’accord ou de gamme sans passer par Menu.</td></tr>
+    <tr><td>1</td><td>Squelette téléphone, navigation 2 : barre du haut (Dictionnaire · Studio), instrument vertical sur toute la hauteur, tiroir à trois hauteurs avec ▶ et les instruments ; l’instrument affiché est celui qui sonne.</td><td>L’instrument et ▶ au premier écran ; le choix d’accord ou de gamme sans passer par Menu.</td></tr>
     <tr><td>2</td><td>Manche vertical au téléphone (53 / 40 px) avec les onglets de position (exploration 1, variante B).</td><td>Les mêmes repères qu’en 4K ; fin du bandeau « Frettes 1-5 » qui cache des notes.</td></tr>
     <tr><td>3</td><td>Feuilles basses pour le choix (notes, types avec leur phrase) et pour Instruments & Audio.</td><td>Règle de langage tenue ; on entend le choix pendant qu’on le fait.</td></tr>
     <tr><td>4</td><td>Studio : progression en 4 cartes, onglet Batterie en 4 temps × 4 cases.</td><td>Plus de séquenceur coupé à droite.</td></tr>
     <tr><td>5</td><td>Rythme en feuille (exploration 2, variante B) et « projecteur » pendant la boucle (exploration 3, variante B).</td><td>Les décisions 4K, au téléphone sans écran à part.</td></tr>
-    <tr><td>6</td><td>Paysage : clavier et manches horizontaux, dans le sens de la longueur.</td><td>Voir toutes les positions d’un coup.</td></tr>
+    <tr><td>6</td><td>Paysage automatique : instrument horizontal, tiroir en colonne à droite, plein écran sur Android.</td><td>Voir toutes les positions d’un coup.</td></tr>
     <tr><td>7</td><td>Finitions : icônes SVG, sélecteur de langue unique, plus de flou, bandeau « activer le son ».</td><td>Sobriété OLED, rendu identique sur tous les téléphones.</td></tr>
   </table></div>
 </section>
@@ -924,21 +951,54 @@ const VM = (() => {
     mount2.append(fig('C · Le tiroir à mi-hauteur', 'Tirer la poignée, ou toucher la ligne du choix, monte le tiroir : progression, tempo, puis les outils, chacun avec sa phrase. L’instrument reste visible en haut. Un outil ouvre le tiroir en pleine hauteur (le Rythme de la variante B, la Batterie 4 × 4).', frame));
   })();
 
-  /* N2-4 · Les trois côte à côte : l'aperçu de la 4K */
+  /* N2 · paysage : instrument dans la longueur, tiroir en colonne à droite */
+  function hNeckBuild({ W, F = 12, sp = 50, pm = 36, notes = [], pos = null, strings = ['Mi', 'Si', 'Sol', 'Ré', 'La', 'Mi'] }) {
+    const nutX = 34, fretW = (W - nutX) / F, H = sp * strings.length, n = strings.length;
+    const el = h('div', { class: 'hneck', style: { width: W + 'px', height: (H + 30) + 'px', margin: '8px 0 0 36px' } });
+    el.append(h('div', { class: 'board', style: { left: nutX + 'px', top: '0px', width: (W - nutX) + 'px', height: H + 'px' } }), h('div', { class: 'nut', style: { left: (nutX - 6) + 'px', top: 0, height: H + 'px' } }));
+    for (let f = 1; f <= F; f++) {
+      el.append(h('div', { class: 'fw', style: { left: (nutX + f * fretW - 3) + 'px', top: 0, height: H + 'px' } }));
+      el.append(h('div', { class: 'fn' + (pos && f >= pos[0] && f <= pos[1] ? ' in-pos' : ''), text: String(f), style: { left: (nutX + (f - 0.5) * fretW) + 'px', top: (H + 4) + 'px' } }));
+      if ([3, 5, 7, 9].includes(f)) el.append(h('div', { class: 'inl', style: { left: (nutX + (f - 0.5) * fretW) + 'px', top: (H / 2) + 'px' } }));
+      if (f === 12) [H / 2 - sp, H / 2 + sp].forEach((y) => el.append(h('div', { class: 'inl', style: { left: (nutX + (f - 0.5) * fretW) + 'px', top: y + 'px' } })));
+    }
+    el.append(h('div', { class: 'fn', text: '0', style: { left: (nutX / 2) + 'px', top: (H + 4) + 'px' } }));
+    strings.forEach((nm, i) => { const y = sp * (i + 0.5); el.append(h('div', { class: 'hs', style: { left: '0px', width: W + 'px', top: (y - 1) + 'px', height: (1.5 + i * 0.5) + 'px' } }), h('div', { class: 'sn', text: nm, style: { left: '0px', top: y + 'px' } })); });
+    if (pos) el.append(h('div', { class: 'posband', style: { left: (nutX + (pos[0] - 1) * fretW + 6) + 'px', width: ((pos[1] - pos[0] + 1) * fretW - 12) + 'px', top: (H + 24) + 'px' } }));
+    const marks = notes.map(({ s, f, label, role }) => { const y = sp * (n - 1 - s + 0.5), x = f === 0 ? nutX / 2 : nutX + (f - 0.5) * fretW;
+      const m = h('div', { class: `pm r-${role}`, text: label, style: { left: x + 'px', top: y + 'px', '--pm': pm + 'px' } }); el.append(m); return m; });
+    return { el, marks };
+  }
+  function pianoH({ W, bottom = 48, roles = {}, keyW = 50, keyH = 290 }) {
+    const whites = []; for (let m = bottom; whites.length * keyW + keyW <= W; m++) if (!NOTE_NAMES[m % 12].includes('♯')) whites.push(m);
+    const el = h('div', { style: { position: 'relative', width: (whites.length * keyW) + 'px', height: keyH + 'px', margin: '12px 0 0 16px' } });
+    whites.forEach((m, i) => {
+      const r = roles[m];
+      el.append(h('div', { style: { position: 'absolute', top: 0, left: (i * keyW) + 'px', width: (keyW - 2) + 'px', height: keyH + 'px', borderRadius: '0 0 6px 6px', background: r ? `var(--role-${r})` : 'var(--key-white)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '10px', fontSize: '15px', fontWeight: 600, color: r ? 'var(--on-role)' : 'var(--key-name-on-white)' } },
+        r || m % 12 === 0 ? `${NOTE_NAMES[m % 12]}${m % 12 === 0 ? Math.floor(m / 12) - 1 : ''}` : ''));
+      const up = m + 1;
+      if (NOTE_NAMES[up % 12].includes('♯') && i < whites.length - 1) el.append(h('div', { style: { position: 'absolute', top: 0, left: ((i + 1) * keyW - 16) + 'px', width: '30px', height: Math.round(keyH * 0.62) + 'px', borderRadius: '0 0 4px 4px', background: roles[up] ? `var(--role-${roles[up]})` : 'var(--key-black)', zIndex: 2, border: '1px solid var(--bg)' } }));
+    });
+    return el;
+  }
+  function landFrame({ title, inst, scene, position }) {
+    const side = h('div', { style: { flex: '0 0 248px', display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 16px 10px 12px', borderLeft: '1px solid var(--border-subtle)', background: 'var(--surface-1)' } },
+      h('button', { class: 'chip', type: 'button', style: { width: '100%', justifyContent: 'space-between', borderRadius: 'var(--radius-md)', fontSize: 'var(--fs-label)' } }, title, h('span', { class: 'caret', text: '⌃' })),
+      position ? h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, h('button', { class: 'hbtn grad', type: 'button', text: '‹', 'aria-label': 'Position précédente' }), h('span', { text: position, style: { flex: 1, textAlign: 'center', fontSize: 'var(--fs-label)' } }), h('button', { class: 'hbtn grad', type: 'button', text: '›', 'aria-label': 'Position suivante' })) : null,
+      h('div', { class: 'studio-seg', style: { margin: 0 } }, ['Piano', 'Guitare', 'Basse'].map((t) => h('button', { type: 'button', class: t === inst ? 'on' : '', text: t, style: { fontSize: 'var(--fs-label)', padding: 0 } }))),
+      h('button', { class: 'btn grad', type: 'button', text: '▶ Écouter', style: { height: '56px', fontSize: 'var(--fs-emph)', fontWeight: 600 } }),
+      h('div', { style: { display: 'flex', gap: '6px', marginTop: 'auto' } }, h('button', { class: 'btn', type: 'button', text: 'Plein écran', style: { flex: 1, whiteSpace: 'nowrap', fontSize: 'var(--fs-label)', padding: '0 8px' } }), h('button', { class: 'btn', type: 'button', text: 'Outils ⌃', style: { flex: 1, whiteSpace: 'nowrap', fontSize: 'var(--fs-label)', padding: '0 8px' } })));
+    return h('div', { class: 'land tx-a', style: { '--fs-label': '15px', '--fs-body': '17.5px', '--fs-emph': '20px', '--fs-title': '25px', '--hit-min': '44px' } },
+      h('div', { style: { flex: '0 0 44px', display: 'flex', alignItems: 'center', padding: '0 14px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '14px' } }, h('span', { text: 'visualmusic.app', style: { flex: 1, height: '30px', borderRadius: '15px', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', padding: '0 14px' } })),
+      h('div', { style: { flex: 1, display: 'flex', minHeight: 0 } }, h('div', { style: { flex: 1, minWidth: 0, overflow: 'hidden' } }, scene), side));
+  }
   (() => {
-    const wrap = h('div', { class: 'ov', style: { display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'flex-start' } });
-    const pv = pianoV({ top: 72, bottom: 48, roles: { 60: 'root', 64: 'third', 67: 'fifth' }, keyPx: 30, len: 92 });
-    pv.el.querySelectorAll('div').forEach((d) => { d.textContent = ''; });
-    const g = VM.buildNeck({ rail: 0, gutter: 16, stringPx: 24, pm: 18, headRow: 0, openRow: 34, maxFret: 12, pitch: () => 40 });
-    g.setNotes([{ s: 1, f: 3, role: 'root' }, { s: 2, f: 2, role: 'third' }, { s: 3, f: 0, role: 'fifth' }, { s: 4, f: 1, role: 'root' }, { s: 5, f: 0, role: 'third' }]);
-    const b = VM.buildNeck({ strings: ['Mi', 'La', 'Ré', 'Sol'], bass: true, rail: 0, gutter: 0, stringPx: 22, pm: 18, headRow: 0, openRow: 34, maxFret: 12, pitch: () => 40 });
-    b.setNotes([{ s: 1, f: 3, role: 'root' }, { s: 2, f: 2, role: 'third' }, { s: 2, f: 5, role: 'fifth' }]);
-    const col = (label, el) => h('button', { type: 'button', 'aria-label': `Ouvrir ${label}`, style: { background: 'none', border: 0, padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' } }, h('span', { text: label, style: { fontSize: 'var(--fs-label)', color: 'var(--text-secondary)' } }), el);
-    wrap.append(col('Piano', pv.el), col('Guitare', g.el), col('Basse', b.el));
-    const frame = phone2({ mode: 'Dictionnaire', scene: [wrap], peek: peekRow('Accord · Do · majeur', { inst: '' }) });
-    frame.querySelector('.studio-seg + *');
-    const segs = frame.querySelectorAll('.sheet2 .studio-seg button'); segs.forEach((s) => s.classList.remove('on'));
-    mount2.append(fig('D · Les trois côte à côte (idée)', 'Le même accord sur les trois instruments, comme en 4K, en petit et sans texte : on voit que Do-Mi-Sol se répète partout. Toucher une colonne l’ouvre en grand. Un quatrième bouton « Les trois » rejoindrait Piano · Guitare · Basse.', frame));
+    const gn = hNeckBuild({ W: 540, pos: [2, 5], notes: P2.map(([s, f], i) => ({ s, f, label: NAMES[i], role: i === 0 || i === 7 ? 'root' : 'scale' })) });
+    mount2.append(fig('D · Paysage, guitare', 'Le téléphone tourné : le manche passe à l’horizontale, toujours dans le sens de la longueur, cases 0 à 12 d’un coup. Le tiroir devient une colonne à droite, sous le pouce droit : choix, position ‹ ›, instrument, ▶, plein écran (Android), outils.',
+      landFrame({ title: 'Gamme · Do · majeure', inst: 'Guitare', position: 'Position 2 · 2-5', scene: gn.el })));
+    const pn = pianoH({ W: 560, bottom: 48, roles: { 48: 'root', 52: 'third', 55: 'fifth' } });
+    mount2.append(fig('E · Paysage, piano', 'Même règle pour le clavier : horizontal, 11 touches blanches de 50 px (Do3 à Fa4), aigus à droite. ‹ › de la colonne déplacent d’une octave. Rien n’existe qu’en paysage : tout se retrouve en portrait.',
+      landFrame({ title: 'Accord · Do · majeur', inst: 'Piano', position: 'Do3 – Fa4', scene: pn })));
   })();
 
 })();
