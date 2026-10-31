@@ -28,26 +28,33 @@
   <h1>VisualMusic A′ : trois explorations</h1>
   <p>Maquettes statiques autonomes, sans réseau. Chaque exploration propose deux variantes, chacune en 4K (2560 px CSS, soit 3840 × 2045 à 150 %) et au téléphone (390 px). Les maquettes sont cliquables et sonores (bouton « Muet » en haut) ; « 100 % » montre la 4K à sa taille réelle, « Réduit » simule <code>prefers-reduced-motion</code>.</p>
   <p>Seules les couleurs de <code>src/styles/tokens.css</code> sont utilisées ; aucune nouvelle couleur.</p>
+  <p><b>Décision du 31 octobre 2026 : la variante B est retenue pour les trois explorations.</b> Ajustement : pendant la boucle, la note de gamme reste à 60 % au lieu de 40 %.</p>
 </div>
 <div class="cards">
+  <a class="card" href="e4-telephone.html" style="grid-column:1 / -1; border-color:var(--assistant-border)">
+    <span class="num">NOUVEAU · TÉLÉPHONE, TOUT LE PROJET</span>
+    <h2>VisualMusic au téléphone : constat, dix principes, deux navigations</h2>
+    <p>Mesures de l’app actuelle à 390 px ; principes d’ergonomie dans l’ordre d’importance ; navigation 1 en onglets (7 écrans, paysage compris) et navigation 2 « la scène et le tiroir », recommandée (4 écrans) ; clavier et manches toujours dans le sens de la longueur ; ordre des chantiers. Les trois variantes B y sont intégrées.</p>
+    <span class="go">Ouvrir →</span>
+  </a>
   <a class="card" href="e1-position-gamme.html">
     <span class="num">EXPLORATION 1</span>
     <h2>Choisir la position d’une gamme sur le manche</h2>
-    <ul><li><b>A · Couloirs :</b> une capsule de 44 px de large par position, quatre couloirs.</li><li><b>B · Onglets et fils :</b> un onglet de 44 × 44 à la première case, un fil fin jusqu’à la dernière (rail de 98 px au lieu de 176).</li></ul>
+    <ul><li><b>A · Couloirs :</b> une capsule de 44 px de large par position, quatre couloirs.</li><li><b>B · Onglets et fils (retenue) :</b> un onglet de 44 × 44 à la première case, un fil fin jusqu’à la dernière (rail de 98 px au lieu de 176).</li></ul>
     <p>Le ruban des 8 notes se loge dans la ligne X/O du manche, vide pour une gamme : aucune hauteur ajoutée.</p>
     <span class="go">Ouvrir →</span>
   </a>
   <a class="card" href="e2-math-rythmes-dock.html">
     <span class="num">EXPLORATION 2</span>
     <h2>Math & Rythmes dans un dock</h2>
-    <ul><li><b>A · La roue :</b> l’aiguille tourne, trois paires − / +, presque pas de texte.</li><li><b>B · La phrase :</b> la roue tourne sous un repère fixe ; « 5 coups sur 16 cases, départ décalé de 0, joués par la grosse caisse ».</li></ul>
+    <ul><li><b>A · La roue :</b> l’aiguille tourne, trois paires − / +, presque pas de texte.</li><li><b>B · La phrase (retenue) :</b> la roue tourne sous un repère fixe ; « 5 coups sur 16 cases, départ décalé de 0, joués par la grosse caisse ».</li></ul>
     <p>Inventaire complet : chaque fonction de la fenêtre actuelle a sa place dans les deux variantes.</p>
     <span class="go">Ouvrir →</span>
   </a>
   <a class="card" href="e3-note-qui-joue.html">
     <span class="num">EXPLORATION 3</span>
     <h2>La note qui joue et la note dessinée</h2>
-    <ul><li><b>A · La marche :</b> 48 → 56 px, anneau fin réellement visible, pas d’animation.</li><li><b>B · Le projecteur :</b> pendant la boucle, le dessin passe à 40 % et ce qui sonne reste à 100 %.</li></ul>
+    <ul><li><b>A · La marche :</b> 48 → 56 px, anneau fin réellement visible, pas d’animation.</li><li><b>B · Le projecteur (retenue) :</b> pendant la boucle, le dessin passe à 40 % et ce qui sonne reste à 100 %.</li></ul>
     <p>Banc côte à côte avec l’état actuel et la piste déjà proposée (impulsion de 240 ms).</p>
     <span class="go">Ouvrir →</span>
   </a>

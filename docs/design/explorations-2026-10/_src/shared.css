@@ -74,6 +74,7 @@ a { color: var(--text-primary); }
 .variant { padding-top:40px; border-top:1px solid var(--border-subtle); margin-top:40px; }
 .variant > header { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 16px; margin-bottom:16px; }
 .variant > header h2 { font-family:var(--font-display); font-size:22px; margin:0; }
+.variant > header .kept { font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-on-select); border:1px solid var(--assistant-border); background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); border-radius:var(--radius-md); padding:2px 10px; }
 .variant > header .tag { color:var(--text-muted); font-size:14px; }
 .three { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin:0 0 20px; padding:0; list-style:none; max-width:1500px; }
 .three li { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:12px 14px; min-width:0; }
@@ -177,6 +178,8 @@ a { color: var(--text-primary); }
    allumée pendant la boucle (OLED), pas plus. */
 .tx-b .pm { transition:opacity 120ms ease-out, transform 90ms ease-out; }
 .tx-b.is-running .pm { opacity:.4; }
+/* retenue (2026-10-31) : la note de gamme, un simple contour gris, reste à 60 % (à 40 % elle disparaît sur le bois) */
+.tx-b.is-running .pm.r-scale { opacity:.6; }
 .tx-b.is-running .pm.playing, .tx-b .pm.playing { opacity:1; transform:scale(1.1); z-index:10; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--select); font-weight:800; }
 .tx-b .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 8px var(--select); }
 /* la tenue : la fin d'une note relâche en 150 ms (classe posée par le script) */

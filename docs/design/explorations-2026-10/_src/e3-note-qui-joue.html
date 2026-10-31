@@ -76,7 +76,7 @@
 </section>
 
 <section class="variant" id="vb">
-  <header><h2>Variante B · Le projecteur</h2><span class="tag">pendant la boucle, le dessin passe en veille ; ce qui sonne reste en pleine lumière</span></header>
+  <header><h2>Variante B · Le projecteur</h2><span class="kept">Retenue</span><span class="tag">pendant la boucle, le dessin passe en veille ; ce qui sonne reste en pleine lumière</span></header>
   <ul class="three">
     <li><b>Ce que voit le débutant</b>Boucle arrêtée : rien ne change. Dès que la boucle tourne, toutes les pastilles baissent à 40 % ; celles qui sonnent reviennent à 100 % avec l’anneau fin et un petit cran (scale 1.1). La forme reste lisible, la note jouée saute aux yeux.</li>
     <li><b>Ce que fait un clic</b>Un clic sur une case joue la note avec le même éclairage. ■ remet tout le dessin à 100 %.</li>
@@ -89,7 +89,7 @@
   <div class="specs">
     <div><h3>Tailles et temps (px CSS)</h3><table>
       <tr><th>Élément</th><th>4K (2560)</th><th>Téléphone</th></tr>
-      <tr><td>Pastille en veille (boucle en cours)</td><td>48, opacité 40 %</td><td>40, 40 %</td></tr>
+      <tr><td>Pastille en veille (boucle en cours)</td><td>48, opacité 40 % (note de gamme 60 %)</td><td>40, 40 % (60 %)</td></tr>
       <tr><td>Pastille qui joue</td><td>52,8 (scale 1.1), 100 %, étiquette en 800</td><td>44</td></tr>
       <tr><td>Anneau</td><td>liseré noir 2 + blanc 2</td><td>idem</td></tr>
       <tr><td>Encombrement maximal</td><td>52,8 + 8 = 60,8 &lt; 66</td><td>52 &lt; 53</td></tr>
@@ -98,7 +98,7 @@
     <div><h3>À vérifier dans le code</h3><ul>
       <li>Il faut savoir sur le manche que la boucle tourne (un état « lecture en cours » au niveau du conteneur), pas seulement quelles notes jouent.</li>
       <li>Une opacité de 40 % baisse aussi le contraste de l’étiquette (noir sur couleur atténuée). Mesurer les étiquettes en veille (<code>VerticalNeckContrast.test.js</code>) : elles ne sont plus le contenu principal pendant la boucle, mais elles doivent rester lisibles.</li>
-      <li>La note de gamme (contour gris 2 px) à 40 % devient très discrète sur le bois <code>--surface-3</code> : à voir à l’écran, sinon garder les notes de gamme à 60 %.</li>
+      <li>La note de gamme (contour gris 2 px) disparaissait presque à 40 % sur le bois <code>--surface-3</code> : elle reste à 60 % (réglage ajouté avec le choix de B).</li>
       <li>La règle « ce qu’on voit est ce qu’on entend » reste tenue : rien n’est caché, la forme est atténuée.</li>
     </ul></div>
   </div>

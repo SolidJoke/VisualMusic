@@ -5,7 +5,7 @@ const VM = (() => {
     for (const [k, v] of Object.entries(attrs || {})) {
       if (v == null || v === false) continue;
       if (k === 'class') el.className = v;
-      else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else if (k === 'style' && typeof v === 'object') { for (const [sk, sv] of Object.entries(v)) { if (sk.startsWith('--')) el.style.setProperty(sk, sv); else el.style[sk] = sv; } }
       else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
       else if (k === 'text') el.textContent = v;
       else if (k === 'html') el.innerHTML = v;
@@ -183,7 +183,7 @@ const VM = (() => {
 
   /* ---- barre du haut commune ---- */
   const topbar = (current) => {
-    const pages = [['index.html', 'Sommaire'], ['e1-position-gamme.html', '1 · Position de gamme'], ['e2-math-rythmes-dock.html', '2 · Math & Rythmes'], ['e3-note-qui-joue.html', '3 · Note qui joue']];
+    const pages = [['index.html', 'Sommaire'], ['e1-position-gamme.html', '1 · Position de gamme'], ['e2-math-rythmes-dock.html', '2 · Math & Rythmes'], ['e3-note-qui-joue.html', '3 · Note qui joue'], ['e4-telephone.html', '4 · Téléphone']];
     const zoomBtns = [['Ajusté', false], ['100 %', true]].map(([t, nat]) => h('button', { type: 'button', 'aria-pressed': String(nat === document.body.classList.contains('native')), text: t,
       onclick: (e) => { document.body.classList.toggle('native', nat); [...e.target.parentNode.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.target))); relayout(); } }));
     const soundBtns = [['Son', true], ['Muet', false]].map(([t, on]) => h('button', { type: 'button', 'aria-pressed': String(on === state.sound), text: t,

@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>VisualMusic au téléphone</title>
+<style>
+/*@CSS*/
+/* ---- exploration 4 : le téléphone ---- */
+.screens { display:flex; flex-wrap:wrap; gap:28px 24px; align-items:flex-start; }
+.screen { flex:0 1 auto; max-width:100%; overflow-x:auto; }
+.screen figcaption { max-width:390px; font-size:14px; color:var(--text-secondary); margin-top:10px; }
+.screen figcaption b { color:var(--text-primary); display:block; font-size:15px; margin-bottom:2px; }
+.screen { margin:0; }
+.before img { display:block; width:390px; max-width:100%; height:auto; border:1px solid var(--border-strong); border-radius:28px; }
+.issues { margin:0; padding-left:20px; font-size:14px; color:var(--text-secondary); max-width:46ch; }
+.issues li + li { margin-top:6px; }
+.issues b { color:var(--text-primary); }
+.rules { counter-reset:r; list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px; max-width:1500px; }
+.rules li { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:14px 16px 14px 52px; position:relative; font-size:14px; color:var(--text-secondary); min-width:0; }
+.rules li::before { counter-increment:r; content:counter(r); position:absolute; left:14px; top:12px; width:26px; height:26px; border-radius:50%; border:2px solid var(--assistant-border); color:var(--text-primary); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+.rules li b { display:block; color:var(--text-primary); font-size:15px; margin-bottom:4px; }
+.roadmap td:first-child { white-space:nowrap; font-weight:700; }
+
+/* chrome du téléphone proposé */
+.fph .topbar2 { flex:0 0 48px; display:flex; align-items:center; gap:4px; padding:0 4px 0 16px; border-bottom:1px solid var(--border-subtle); }
+.fph .topbar2 .app-title { font-size:18px; flex:1; }
+.ibtn { width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; background:none; border:0; border-radius:var(--radius-md); color:var(--text-secondary); cursor:pointer; padding:0; }
+.ibtn svg, .tabbar svg { stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.selbar { position:sticky; top:0; z-index:6; background:var(--bg); display:flex; gap:6px; padding:10px 0 8px; margin:0 -16px; padding-left:16px; padding-right:16px; overflow-x:auto; }
+.chip { flex:0 0 auto; height:44px; padding:0 14px; display:inline-flex; align-items:center; gap:8px; border:1px solid var(--border-strong); border-radius:22px; background:var(--bg); font-size:var(--fs-body); cursor:pointer; white-space:nowrap; }
+.chip .caret { font-size:.7em; color:var(--text-secondary); }
+.chip.on { border-color:var(--select); background:var(--surface-3); }
+.chip.info { width:44px; padding:0; justify-content:center; color:var(--text-secondary); }
+.transport { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 16px; border-top:1px solid var(--border-subtle); background:var(--bg); }
+.transport .playbig { flex:1; height:52px; font-size:var(--fs-emph); font-weight:600; border-radius:var(--radius-lg); }
+.transport .tempo { display:flex; align-items:center; gap:4px; }
+.transport .tempo b { min-width:3ch; text-align:center; font-family:var(--font-display); font-size:var(--fs-title); }
+.transport .tempo small { font-size:var(--fs-label); color:var(--text-muted); }
+.sq52 { width:52px; height:52px; border-radius:var(--radius-lg); font-size:var(--fs-emph); padding:0; }
+.tabbar { flex:0 0 auto; display:grid; grid-template-columns:repeat(4, 1fr); border-top:1px solid var(--border-subtle); background:var(--bg); padding-bottom:8px; }
+.tabbar button { height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:none; border:0; color:var(--text-muted); font-size:var(--fs-label); cursor:pointer; position:relative; }
+.tabbar button.on { color:var(--text-on-select); }
+.tabbar button.on::before { content:""; position:absolute; top:0; left:28%; right:28%; height:3px; border-radius:0 0 3px 3px; background:var(--assistant-border); }
+.fph .scroll { position:relative; }
+.dim { position:absolute; inset:0; background:var(--bg); opacity:.72; z-index:15; }
+.sheet2 { position:absolute; left:0; right:0; bottom:0; z-index:20; background:var(--surface-1); border-top:1px solid var(--border-strong); border-radius:20px 20px 0 0; display:flex; flex-direction:column; }
+.sheet2 .grab { width:44px; height:5px; border-radius:3px; background:var(--border-strong); margin:8px auto 2px; }
+.sheet2 .sh-head { display:flex; align-items:center; padding:0 8px 0 16px; height:48px; }
+.sheet2 .sh-head b { flex:1; font-family:var(--font-display); font-size:var(--fs-emph); }
+.sheet2 .sh-body { overflow-y:auto; padding:0 16px 16px; }
+.sh-lab { font-size:var(--fs-label); color:var(--text-muted); margin:10px 0 6px; }
+.notegrid { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+.notegrid button { height:56px; border-radius:var(--radius-md); border:1px solid var(--border-strong); background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:var(--fs-body); line-height:1.1; cursor:pointer; }
+.notegrid button small { font-size:var(--fs-label); color:var(--text-muted); }
+.notegrid button.on { border:2px solid var(--select); background:var(--surface-3); }
+.notegrid button.root { box-shadow:inset 0 -3px 0 var(--role-root); }
+.typelist { display:flex; flex-direction:column; gap:6px; }
+.typelist button { min-height:60px; text-align:left; padding:8px 12px; border-radius:var(--radius-md); border:1px solid var(--border-default); background:var(--bg); display:flex; flex-direction:column; gap:2px; cursor:pointer; }
+.typelist button b { font-size:var(--fs-body); }
+.typelist button small { font-size:var(--fs-label); color:var(--text-secondary); }
+.typelist button.on { border:2px solid var(--select); background:var(--surface-3); }
+.prog { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin:0 0 10px; }
+.prog button { height:64px; border-radius:var(--radius-md); border:1px solid var(--border-strong); background:var(--bg); font-family:var(--font-display); font-size:var(--fs-emph); font-weight:600; position:relative; overflow:hidden; cursor:pointer; }
+.prog button.on { border:2px solid var(--assistant-border); background:linear-gradient(180deg, var(--assistant-from), var(--assistant-to)); color:var(--assistant-text); }
+.prog button i { position:absolute; left:0; bottom:0; height:4px; background:var(--select); width:var(--p, 0%); }
+.studio-seg { display:flex; margin:0 0 10px; }
+.studio-seg button { flex:1; height:44px; background:var(--bg); border:1px solid var(--border-strong); color:var(--text-secondary); font-size:var(--fs-body); }
+.studio-seg button + button { margin-left:-1px; }
+.studio-seg button:first-child { border-radius:var(--radius-md) 0 0 var(--radius-md); }
+.studio-seg button:last-child { border-radius:0 var(--radius-md) var(--radius-md) 0; }
+.studio-seg button.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); position:relative; z-index:1; }
+.tracks { display:flex; gap:6px; overflow-x:auto; margin:0 -16px 10px; padding:0 16px 2px; }
+.tracks button { flex:0 0 auto; height:44px; padding:0 14px; border-radius:var(--radius-md); border:1px solid var(--border-strong); background:var(--bg); font-size:var(--fs-label); box-shadow:inset 0 -4px 0 var(--tc); cursor:pointer; }
+.tracks button.on { border-color:var(--select); background:var(--surface-3); }
+.overview { display:flex; flex-direction:column; gap:3px; margin:0 0 12px; }
+.overview div { display:grid; grid-template-columns:repeat(16, 1fr); gap:2px; }
+.overview i { height:7px; border-radius:2px; background:var(--surface-3); }
+.overview i.on { background:var(--tc); }
+.beats { display:flex; flex-direction:column; gap:8px; }
+.beat { display:grid; grid-template-columns:62px repeat(4, 1fr); gap:6px; align-items:center; }
+.beat > span { font-size:var(--fs-label); color:var(--text-secondary); }
+.beat > button { height:56px; border-radius:var(--radius-md); border:1px solid var(--border-strong); background:var(--surface-2); cursor:pointer; padding:0; }
+.beat > button:first-of-type { border-color:var(--text-secondary); }
+.beat > button.on { background:var(--tc); border-color:var(--tc); }
+.beat > button.now { box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--select); }
+.list { display:flex; flex-direction:column; border:1px solid var(--border-default); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:14px; }
+.list > div { min-height:56px; display:flex; align-items:center; gap:10px; padding:6px 12px; border-top:1px solid var(--border-subtle); font-size:var(--fs-body); }
+.list > div:first-child { border-top:0; }
+.list > div > span:first-child { flex:1; }
+.list .seg button { height:44px; padding:0 12px; font-size:var(--fs-label); }
+.list .muted { color:var(--text-muted); font-size:var(--fs-label); }
+.vol { width:150px; accent-color:var(--assistant-border); height:44px; }
+.wheel2 svg { display:block; margin:0 auto; overflow:visible; }
+.phrase { display:flex; flex-wrap:wrap; align-items:center; gap:8px 6px; font-size:var(--fs-emph); margin:10px 0; }
+.phrase .pl { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.phrase b { font-family:var(--font-display); font-size:var(--fs-title); min-width:2ch; text-align:center; }
+.sbtn2 { width:44px; height:44px; border-radius:var(--radius-md); border:1px solid var(--assistant-border); background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); color:var(--assistant-text); font-size:var(--fs-emph); padding:0; }
+.unlock { margin:8px 0 10px; border:1px solid var(--assistant-border); border-radius:var(--radius-md); padding:10px 12px; font-size:var(--fs-label); color:var(--text-secondary); display:flex; gap:10px; align-items:center; }
+.unlock b { color:var(--text-primary); }
+/* paysage */
+.land { width:844px; height:390px; background:var(--bg); border:1px solid var(--border-strong); border-radius:28px; overflow:hidden; display:flex; flex-direction:column; font-family:var(--font-body); }
+.land .lbar { flex:0 0 52px; display:flex; align-items:center; gap:8px; padding:0 16px 0 44px; border-bottom:1px solid var(--border-subtle); }
+.land .lbar .t { flex:1; font-size:var(--fs-body); }
+.ov .fno, .ov .sname, .ov .cut { display:none; }
+.hneck { position:relative; margin:10px 44px 0; }
+.hneck .board { position:absolute; background:var(--surface-3); }
+.hneck .fw { position:absolute; width:3px; background:var(--fret-wire); }
+.hneck .nut { position:absolute; width:6px; background:var(--text-secondary); }
+.hneck .hs { position:absolute; height:2px; background:var(--string); }
+.hneck .fn { position:absolute; font-family:var(--font-mono); font-size:var(--fs-label); color:var(--text-muted); transform:translateX(-50%); }
+.hneck .fn.in-pos { color:var(--text-on-select); font-weight:700; }
+.hneck .sn { position:absolute; font-size:var(--fs-label); color:var(--text-secondary); transform:translate(-100%, -50%); padding-right:8px; font-weight:600; }
+.hneck .inl { position:absolute; width:10px; height:10px; border-radius:50%; background:var(--border-strong); transform:translate(-50%, -50%); }
+.hneck .posband { position:absolute; height:6px; border-radius:3px; background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); box-shadow:0 0 0 1px var(--assistant-border); }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>VisualMusic au téléphone</h1>
+  <p>Propositions d’ergonomie et de design pour tout le projet au téléphone (Brave, environ 390 px). Deux systèmes de navigation sont dessinés ; je recommande le second (la scène et le tiroir). Clavier et manches sont toujours dans le sens de la longueur de l’écran. Les écrans reprennent les trois variantes B retenues : position de gamme en onglets, rythme « en phrase », note qui joue « au projecteur ». Les écrans sont des maquettes : la navigation, les feuilles et la boucle sont cliquables.</p>
+</div>
+
+<section class="variant" id="constat" style="margin-top:24px">
+  <header><h2>Ce qu’on voit aujourd’hui</h2><span class="tag">l’app réelle à 390 × 760, mesurée dans Chromium (main, 2026-10-31)</span></header>
+  <div class="screens">
+    <figure class="screen before"><img src="@@IMG:avant-studio@@" alt="Capture de l’app actuelle au téléphone, Studio : titre, cadre vide, séquenceur coupé à droite, barre du bas." width="390" height="760"><figcaption><b>Studio, premier écran</b>Aucun instrument : le piano commence à 1985 px, la guitare à 2287 px, la basse à 2754 px (page de 3270 px, plus de 4 écrans).</figcaption></figure>
+    <figure class="screen before"><img src="@@IMG:avant-dictionnaire@@" alt="Capture de l’app actuelle au téléphone, Dictionnaire : piano aux noms superposés, réglages de position, manche horizontal recouvert par le navigateur de cases." width="390" height="760"><figcaption><b>Dictionnaire, en faisant défiler</b>Noms de touches empilés sur le piano ; le bandeau « Frettes 1-5 » se pose sur le manche et cache des pastilles.</figcaption></figure>
+    <div style="flex:1 1 320px; min-width:0">
+      <ol class="issues">
+        <li><b>L’essentiel est loin.</b> Titre de 130 px, cadre vide de 120 px (le visualiseur), puis le séquenceur : on n’entend et ne voit rien de l’instrument sans faire défiler.</li>
+        <li><b>On ne peut pas choisir l’accord sur l’écran.</b> Note et type sont dans « Studio & Harmonie », une fenêtre derrière Menu.</li>
+        <li><b>Cibles trop petites.</b> 28 contrôles visibles sur 52 font moins de 44 px ; ‹ › des cases font 24 px, les pastilles 24 à 28 px.</li>
+        <li><b>Texte trop petit.</b> 71 éléments de texte sous 14 px.</li>
+        <li><b>Débordements cachés.</b> Le séquenceur (16 pas) est coupé après le 8ᵉ, sans signe qu’il continue ; piano et manche défilent de côté dans leur cadre.</li>
+        <li><b>Recouvrements.</b> Le navigateur « Frettes 1-5 » est posé sur le manche (<code>.fretboard-navigator</code>, absolu).</li>
+        <li><b>OLED et lisibilité.</b> Un sélecteur de langue natif blanc (grande surface claire) en double de l’autre ; emojis en guise d’icônes (rendu différent selon le téléphone) ; « Dict » abrégé.</li>
+        <li><b>Coût sans effet.</b> La barre du bas floute (<code>backdrop-filter: blur(12px)</code>) un fond déjà noir et opaque.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section class="variant" id="principes">
+  <header><h2>Dix principes pour le téléphone</h2><span class="tag">dans l’ordre d’importance</span></header>
+  <ol class="rules">
+    <li><b>L’instrument d’abord</b>Au premier écran, un instrument entier et le bouton pour l’entendre. Un seul instrument à la fois (Piano · Guitare · Basse en onglets), il prend toute la largeur.</li>
+    <li><b>Le pouce en bas</b>▶, le tempo et les onglets principaux dans le tiers bas de l’écran. En haut, on lit ; en bas, on agit.</li>
+    <li><b>Le choix est toujours visible</b>Une barre de pastilles en haut dit ce qui est montré (« Gamme · Do · majeure ») ; un toucher ouvre le choix dans une feuille basse, l’instrument reste visible au-dessus et réagit.</li>
+    <li><b>Des feuilles, pas des fenêtres</b>Studio & Harmonie, Math & Rythmes, Instruments & Audio deviennent des feuilles qui montent du bas, à mi-hauteur par défaut : on voit et on entend le changement sans fermer.</li>
+    <li><b>Dans le sens de la longueur</b>Clavier, manche de guitare et manche de basse suivent toujours le grand côté de l’écran : verticaux en portrait (comme en 4K), horizontaux en paysage. Mêmes couleurs de rôle, mêmes repères mauves, même ruban : ce qu’on apprend sur un écran vaut sur l’autre.</li>
+    <li><b>44 px partout, 8 px entre deux cibles</b>Une pastille peut faire 40 px si la case qui la porte (53 × 56) est la cible. Rien sous 44 px ne se touche.</li>
+    <li><b>15 px au minimum</b>Texte à <code>--fs-label</code> (15 px) au moins ; un seul nom par touche de piano ; mots entiers, pas d’abréviation ; chaque terme de théorie a sa phrase courte à côté (pas seulement dans un « ? »).</li>
+    <li><b>Rien ne déborde en cachette</b>Pas de défilement horizontal dans un cadre. Ce qui ne tient pas se replie autrement : la mesure de 16 pas devient 4 temps × 4 cases.</li>
+    <li><b>Noir, sobre, net</b>Pas de grande surface blanche ni grise claire, pas de flou ni d’ombre ; les bords portent la structure ; icônes au trait (SVG) au lieu des emojis.</li>
+    <li><b>Le son se mérite</b>Le navigateur n’autorise le son qu’après un geste : un bandeau dit « Touchez ▶ pour activer le son » au premier lancement ; les sons de l’instrument se chargent avec un état visible sur données mobiles.</li>
+  </ol>
+</section>
+
+<section class="variant" id="ecrans">
+  <header><h2>Navigation 1 · Les onglets</h2><span class="tag">barre d’onglets en bas (Dictionnaire · Studio · Rythme · Plus) ; 390 px de large, barre d’adresse de Brave en haut (52 px)</span></header>
+  <p class="note">Limite constatée en dessinant : barre du haut, choix, onglets d’instrument, positions, ruban, barre de lecture et barre d’onglets laissent environ 230 px au manche sur l’écran 1. D’où la navigation 2, plus bas, qui rend toute la hauteur à l’instrument.</p>
+  <div class="screens" id="screens"></div>
+  <div class="specs">
+    <div><h3>Tailles (px CSS, téléphone)</h3><table>
+      <tr><th>Élément</th><th>Taille</th><th>Texte</th></tr>
+      <tr><td>Barre du haut</td><td>48 de haut ; boutons 44 × 44</td><td>titre 18</td></tr>
+      <tr><td>Pastilles de choix (« Do ▾ »)</td><td>44 de haut, rayon 22, écart 6</td><td>17,5</td></tr>
+      <tr><td>Onglets d’instrument</td><td>3 × 119 × 44</td><td>17,5</td></tr>
+      <tr><td>Manche vertical</td><td>53 par corde, cases 56 à 66 de haut, pastilles 40</td><td>15</td></tr>
+      <tr><td>Barre de lecture</td><td>▶ 52 de haut (pleine largeur ou 52 × 52) ; − / + 44</td><td>20 ; tempo 25</td></tr>
+      <tr><td>Barre d’onglets</td><td>4 × 97 × 56, plus 8 de marge du bas (+ <code>safe-area-inset-bottom</code>)</td><td>15</td></tr>
+      <tr><td>Feuille basse</td><td>poignée 44 × 5 ; en-tête 48 ; mi-hauteur ou pleine</td><td>titre 20</td></tr>
+      <tr><td>Grille des notes</td><td>4 × 83 × 56</td><td>17,5 ; second nom 15</td></tr>
+      <tr><td>Types (gamme, accord)</td><td>pleine largeur × 60 au moins</td><td>17,5 + phrase 15</td></tr>
+      <tr><td>Progression</td><td>4 × 83 × 64</td><td>20</td></tr>
+      <tr><td>Batterie 4 × 4</td><td>cases ≈ 68 × 56 ; aperçu 16 × 7</td><td>15</td></tr>
+      <tr><td>Paysage</td><td>844 × 390 ; 6 cordes × 46 ; 13 cases ≈ 57</td><td>15</td></tr>
+    </table></div>
+    <div><h3>À vérifier dans le code</h3><ul>
+      <li><code>AppMobile.jsx</code> ne fait que réexporter <code>AppDesktop</code> : ces écrans demandent une vraie mise en page téléphone, qui peut reprendre les composants d’A′ (<code>Fretboard</code> vertical, <code>InstrumentHead</code>, <code>SelectionRow</code>) avec d’autres variables de taille (<code>--fbv-string</code> 53, <code>--fbv-marker</code> 40).</li>
+      <li>Le manche vertical existe dans <code>Fretboard.jsx</code> (<code>orientation="vertical"</code>) ; sa longueur vient de <code>--fbv-h</code>. Au téléphone, il faut une longueur propre (cases de 56 à 66 px) et pas celle du clavier.</li>
+      <li>Hauteur : utiliser <code>100dvh</code> (la barre d’adresse de Brave se replie), et <code>env(safe-area-inset-bottom)</code> sous la barre d’onglets (déjà fait dans <code>BottomNav.css</code>).</li>
+      <li>Piano vertical au téléphone : touches blanches de 48 px d’épaisseur (cible ≥ 44), environ 2 octaves visibles dans la scène, le reste en faisant défiler ; <code>PianoKeyboard</code> vertical existe (<code>--piano-v-key</code>, <code>--piano-v-width</code>).</li>
+      <li>Le sélecteur de langue natif (<code>select</code>) apparaît en double et en blanc dans le menu : un seul contrôle, segmenté FR / EN.</li>
+      <li>Le paysage suppose de détecter l’orientation (<code>useLandscapeMode</code> existe) et de garder le manche horizontal actuel, recousu aux couleurs et repères d’A′.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section class="variant" id="nav2">
+  <header><h2>Navigation 2 · La scène et le tiroir</h2><span class="kept">Recommandée</span><span class="tag">l’instrument sur toute la hauteur ; tout le reste dans un tiroir qui monte du bas</span></header>
+  <ul class="three">
+    <li><b>Ce que voit le débutant</b>En haut, deux mots : Dictionnaire · Studio. Au milieu, l’instrument dans le sens de la longueur, sur toute la hauteur. En bas, un tiroir replié : ce qui est montré, les trois instruments, ▶.</li>
+    <li><b>Ce que fait un geste</b>Toucher la ligne du choix, ou tirer la poignée, monte le tiroir à mi-hauteur (choisir, progression, tempo) ; encore une fois, en pleine hauteur (rythme, batterie, sons, réglages, aide). L’instrument reste visible au-dessus et réagit.</li>
+    <li><b>Pourquoi la préférer</b>Plus de barre d’onglets permanente : l’instrument gagne environ 280 px de haut. Une seule règle à apprendre (« ce qui n’est pas l’instrument est dans le tiroir »), proche des applis de cartes que tout le monde connaît.</li>
+  </ul>
+  <div class="screens" id="screens2"></div>
+  <div class="specs">
+    <div><h3>Comparer les deux navigations</h3><table>
+      <tr><th></th><th>1 · Onglets</th><th>2 · Scène et tiroir</th></tr>
+      <tr><td>Hauteur pour l’instrument (Dictionnaire)</td><td>≈ 230 à 330 px</td><td>≈ 600 px</td></tr>
+      <tr><td>Changer d’accord</td><td>1 toucher (pastille en haut) + choix</td><td>1 toucher (ligne du tiroir) + choix</td></tr>
+      <tr><td>▶</td><td>barre de lecture, au-dessus des onglets</td><td>dans le tiroir replié, 64 × 56, sous le pouce</td></tr>
+      <tr><td>Outils (rythme, batterie, sons)</td><td>onglets Rythme et Plus, segment Batterie</td><td>tiroir en pleine hauteur, une ligne par outil</td></tr>
+      <tr><td>Découverte</td><td>meilleure : tout est nommé en bas</td><td>la poignée et « Outils ⌃ » doivent se voir ; un premier lancement peut ouvrir le tiroir une fois</td></tr>
+      <tr><td>Risque</td><td>empilement de barres</td><td>geste de tirer peu connu des débutants : chaque niveau a aussi un bouton</td></tr>
+    </table></div>
+    <div><h3>Tailles (px CSS)</h3><table>
+      <tr><th>Élément</th><th>Taille</th></tr>
+      <tr><td>Barre du haut</td><td>56 ; Dictionnaire · Studio 2 × 132 × 44 ; aide 44 × 44</td></tr>
+      <tr><td>Tiroir replié</td><td>140 (+ marge du bas) : poignée, ligne du choix 44, instruments 3 × 72 × 56, ▶ 64 × 56, Outils 44 × 56</td></tr>
+      <tr><td>Tiroir mi-hauteur / plein</td><td>≈ 55 % / 92 % de la hauteur ; lignes d’outil 60</td></tr>
+      <tr><td>Piano vertical</td><td>touches blanches 48 d’épaisseur, 300 de long ; noires 30 × 180 ; nom 15</td></tr>
+      <tr><td>Basse verticale</td><td>4 cordes × 80, pastilles 48 (la basse en a la place)</td></tr>
+      <tr><td>Les trois côte à côte</td><td>aperçu sans texte : piano 92, guitare 160, basse 88 ; points 18 ; une colonne entière = une cible</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<section class="variant" id="ordre">
+  <header><h2>Par quoi commencer</h2><span class="tag">gains les plus visibles d’abord</span></header>
+  <div class="table-wrap"><table class="specs roadmap" style="display:table;max-width:1500px">
+    <tr><th>Ordre</th><th>Changement</th><th>Pourquoi</th></tr>
+    <tr><td>1</td><td>Squelette téléphone, navigation 2 : barre du haut (Dictionnaire · Studio), instrument vertical sur toute la hauteur, tiroir à trois hauteurs avec ▶ et les instruments.</td><td>L’instrument et ▶ au premier écran ; le choix d’accord ou de gamme sans passer par Menu.</td></tr>
+    <tr><td>2</td><td>Manche vertical au téléphone (53 / 40 px) avec les onglets de position (exploration 1, variante B).</td><td>Les mêmes repères qu’en 4K ; fin du bandeau « Frettes 1-5 » qui cache des notes.</td></tr>
+    <tr><td>3</td><td>Feuilles basses pour le choix (notes, types avec leur phrase) et pour Instruments & Audio.</td><td>Règle de langage tenue ; on entend le choix pendant qu’on le fait.</td></tr>
+    <tr><td>4</td><td>Studio : progression en 4 cartes, onglet Batterie en 4 temps × 4 cases.</td><td>Plus de séquenceur coupé à droite.</td></tr>
+    <tr><td>5</td><td>Rythme en feuille (exploration 2, variante B) et « projecteur » pendant la boucle (exploration 3, variante B).</td><td>Les décisions 4K, au téléphone sans écran à part.</td></tr>
+    <tr><td>6</td><td>Paysage : clavier et manches horizontaux, dans le sens de la longueur.</td><td>Voir toutes les positions d’un coup.</td></tr>
+    <tr><td>7</td><td>Finitions : icônes SVG, sélecteur de langue unique, plus de flou, bandeau « activer le son ».</td><td>Sobriété OLED, rendu identique sur tous les téléphones.</td></tr>
+  </table></div>
+</section>
+
+<script>
+/*@JS*/
+</script>
+<script>
+(() => {
+  const { h } = VM;
+  document.body.prepend(VM.topbar('e4-telephone.html'));
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = (w, hh, inner) => { const e = document.createElementNS(NS, 'svg'); e.setAttribute('width', w); e.setAttribute('height', hh); e.setAttribute('viewBox', `0 0 ${w} ${hh}`); e.setAttribute('aria-hidden', 'true'); e.innerHTML = inner; return e; };
+  const ICON = {
+    dico: () => svg(24, 24, '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M9 8h6"/>'),
+    studio: () => svg(24, 24, '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v9M12 4v9M16 4v9"/>'),
+    rythme: () => svg(24, 24, '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="4" r="1.6"/><circle cx="19" cy="15" r="1.6"/><circle cx="6" cy="17" r="1.6"/>'),
+    plus: () => svg(24, 24, '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'),
+    aide: () => svg(24, 24, '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/><path d="M12 17h.01"/>'),
+    rot: () => svg(24, 24, '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 12a9 9 0 0 0 4 7"/><path d="M3 16v3h3"/>'),
+  };
+  const TABS = [['dico', 'Dictionnaire'], ['studio', 'Studio'], ['rythme', 'Rythme'], ['plus', 'Plus']];
+
+  /* cadre commun */
+  function phone({ tab, body, transport, sheet, dimmed, onTab, running }) {
+    const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Navigation' }, TABS.map(([id, label]) => h('button', { type: 'button', class: id === tab ? 'on' : '', 'aria-current': id === tab ? 'page' : null, onclick: () => onTab && onTab(id) }, ICON[id](), label)));
+    const scroll = h('div', { class: 'scroll' }, body);
+    const frame = h('div', { class: 'fph tx-b' + (running ? ' is-running' : '') },
+      h('div', { class: 'urlbar' }, h('span', { text: 'visualmusic.app' })),
+      h('div', { class: 'topbar2' }, h('span', { class: 'app-title', text: 'VisualMusic' }), h('button', { class: 'ibtn', type: 'button', 'aria-label': 'Aide' }, ICON.aide())),
+      scroll, transport || null, tabbar);
+    if (sheet) { frame.append(h('div', { class: 'dim', style: dimmed ? {} : { display: 'none' } }), sheet); }
+    return { frame, scroll };
+  }
+  const sheetEl = (title, body, height) => h('div', { class: 'sheet2', style: { height: height + 'px' }, role: 'dialog', 'aria-label': title },
+    h('div', { class: 'grab' }), h('div', { class: 'sh-head' }, h('b', { text: title }), h('button', { class: 'ibtn', type: 'button', 'aria-label': 'Fermer', text: '✕' })), h('div', { class: 'sh-body' }, body));
+  const chips = (list) => h('div', { class: 'selbar' }, list.map((c) => c === 'i' ? h('button', { class: 'chip info', type: 'button', 'aria-label': 'Explication', text: 'ⓘ' }) : h('button', { class: 'chip', type: 'button' }, c, h('span', { class: 'caret', text: '▾' }))));
+  const itabs = (on) => h('div', { class: 'itabs' }, ['Piano', 'Guitare', 'Basse'].map((t) => h('button', { type: 'button', class: t === on ? 'on' : '', text: t })));
+  const neckPh = (maxFret) => VM.buildNeck({ rail: 14, gutter: 26, stringPx: 53, pm: 40, headRow: 24, openRow: 56, maxFret, pitch: (n) => 66 - (n - 1) * 0.9 });
+  const fig = (title, text, el) => h('figure', { class: 'screen' }, el, h('figcaption', {}, h('b', { text: title }), text));
+  const mount = document.getElementById('screens');
+
+  /* données : Do majeur depuis Do3, position 2 (exploration 1) */
+  const NAMES = ['Do', 'Ré', 'Mi', 'Fa', 'Sol', 'La', 'Si', 'Do'];
+  const MIDI = [48, 50, 52, 53, 55, 57, 59, 60];
+  const POS = [[0, 3, false], [2, 5, false], [3, 7, true], [4, 8, true], [5, 9, true], [7, 10, false], [8, 12, true]];
+  const P2 = [[1, 3], [1, 5], [2, 2], [2, 3], [2, 5], [3, 2], [3, 4], [3, 5]];
+
+  /* 1 · Dictionnaire, gamme, guitare */
+  (() => {
+    const neck = neckPh(7);
+    neck.setNotes(P2.map(([s, f], i) => ({ s, f, label: NAMES[i], role: i === 0 || i === 7 ? 'root' : 'scale' })));
+    neck.highlightFrets(2, 5);
+    const top = neck.rows[2].top, bot = neck.rows[5].top + neck.rows[5].h;
+    neck.el.append(h('div', { class: 'mark-ph', style: { position: 'absolute', left: '2px', width: '8px', borderRadius: '4px', top: (top + 4) + 'px', height: (bot - top - 8) + 'px', background: 'linear-gradient(180deg, var(--assistant-from), var(--assistant-to))', boxShadow: '0 0 0 1px var(--assistant-border)' } }));
+    const pills = h('div', { style: { display: 'flex', justifyContent: 'space-between', margin: '0 0 6px' } }, POS.map(([a, b, w], i) => h('button', { type: 'button', 'aria-label': `Position ${i + 1}, cases ${a} à ${b}${w ? ', grand écart' : ''}`,
+      style: { width: '44px', height: '44px', borderRadius: '50%', border: `2px ${w ? 'dashed' : 'solid'} ${i === 1 ? 'var(--assistant-border)' : 'var(--border-strong)'}`, background: i === 1 ? 'linear-gradient(180deg, var(--assistant-from), var(--assistant-to))' : 'var(--bg)', color: i === 1 ? 'var(--assistant-text)' : 'var(--text-secondary)', fontSize: 'var(--fs-emph)', padding: 0 } }, String(i + 1))));
+    const cap = h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 10px' } },
+      h('button', { class: 'hbtn grad', type: 'button', 'aria-label': 'Position précédente', text: '‹' }), h('span', { style: { flex: 1, textAlign: 'center' }, text: 'Position 2 · cases 2 à 5' }), h('button', { class: 'hbtn grad', type: 'button', 'aria-label': 'Position suivante', text: '›' }));
+    const rib = NAMES.map((n, i) => h('button', { type: 'button', text: i === 0 ? 'Do3' : i === 7 ? 'Do4' : n, style: { width: '40px', height: '44px', padding: 0, borderRadius: '6px', border: '1px solid var(--border-default)', background: 'var(--bg)', fontSize: 'var(--fs-label)', color: 'var(--text-secondary)', boxShadow: `inset 0 -3px 0 ${i === 0 || i === 7 ? 'var(--role-root)' : 'var(--role-scale-edge)'}` } }));
+    const play = h('button', { class: 'btn grad playbig', type: 'button', text: '▶ Écouter la gamme' });
+    const { frame } = phone({ tab: 'dico', body: [chips(['Gamme', 'Do', 'majeure', 'i']), itabs('Guitare'),
+      h('div', { class: 'unlock' }, h('span', {}, h('b', { text: 'Touchez ▶ pour activer le son.' }), ' Le navigateur l’exige une fois.')),
+      pills, cap, h('div', { style: { display: 'flex', gap: '4px', margin: '0 0 12px' } }, rib), neck.el],
+      transport: h('div', { class: 'transport' }, play) });
+    frame.classList.remove('tx-b'); frame.classList.add('tx-a');
+    let t = null, i = -1;
+    const light = (k) => { if (i >= 0) { rib[i].style.outline = ''; neck.play(P2[i][0], P2[i][1], false); } i = k; if (k >= 0) { rib[k].style.outline = '2px solid var(--select)'; neck.play(P2[k][0], P2[k][1], true); } };
+    play.onclick = () => { if (t) { clearTimeout(t); t = null; light(-1); play.textContent = '▶ Écouter la gamme'; play.classList.remove('playing'); return; }
+      play.textContent = '■ Arrêter'; play.classList.add('playing'); let k = 0; const step = () => { if (k >= 8) { light(-1); t = null; play.textContent = '▶ Écouter la gamme'; play.classList.remove('playing'); return; } light(k); VM.tone(MIDI[k] + 12, 0.45, 0.12); k++; t = setTimeout(step, 430); }; step(); };
+    mount.append(fig('1 · Dictionnaire', 'Ce qui est montré se lit en haut (Gamme · Do · majeure) ; l’instrument occupe l’écran ; ▶ est sous le pouce. Positions de la variante B, ruban des 8 notes, un repère mauve le long du manche.', frame));
+  })();
+
+  /* 2 · Choisir, feuille basse */
+  (() => {
+    const neck = neckPh(5);
+    neck.setNotes(P2.slice(0, 6).map(([s, f], i) => ({ s, f, label: NAMES[i], role: i === 0 ? 'root' : 'scale' })));
+    const notes = [['Do', ''], ['Do♯', 'Ré♭'], ['Ré', ''], ['Ré♯', 'Mi♭'], ['Mi', ''], ['Fa', ''], ['Fa♯', 'Sol♭'], ['Sol', ''], ['Sol♯', 'La♭'], ['La', ''], ['La♯', 'Si♭'], ['Si', '']];
+    const body = [h('div', { class: 'sh-lab', text: 'Note de départ · un toucher la fait entendre' }),
+      h('div', { class: 'notegrid' }, notes.map(([a, b], i) => h('button', { type: 'button', class: i === 0 ? 'on root' : '', onclick: () => VM.tone(60 + i, 0.5, 0.12) }, a, b ? h('small', { text: b }) : null))),
+      h('div', { class: 'sh-lab', text: 'Type de gamme' }),
+      h('div', { class: 'typelist' },
+        h('button', { type: 'button', class: 'on' }, h('b', { text: 'majeure' }), h('small', { text: 'Le son « joyeux » : Do Ré Mi Fa Sol La Si.' })),
+        h('button', { type: 'button' }, h('b', { text: 'mineure naturelle' }), h('small', { text: 'Le son « triste » : la 3ᵉ, la 6ᵉ et la 7ᵉ note descendent.' })),
+        h('button', { type: 'button' }, h('b', { text: 'pentatonique mineure' }), h('small', { text: '5 notes seulement ; le blues et le rock en partent.' })))];
+    const { frame } = phone({ tab: 'dico', body: [chips(['Gamme', 'Do', 'majeure', 'i']), itabs('Guitare'), neck.el], transport: h('div', { class: 'transport' }, h('button', { class: 'btn grad playbig', type: 'button', text: '▶ Écouter la gamme' })),
+      sheet: sheetEl('Choisir', body, 560), dimmed: false });
+    mount.append(fig('2 · Choisir, sans quitter l’instrument', 'Un toucher sur « Do ▾ » monte une feuille à mi-hauteur. Les notes sont une grille de 12 (le second nom sous le premier) ; chaque type a sa phrase en clair. Le manche, au-dessus, change tout de suite.', frame));
+  })();
+
+  /* 3 · Studio en lecture, le projecteur */
+  (() => {
+    const neck = neckPh(5);
+    const CH = [[1, 3, 'Do', 'root', 48], [2, 2, 'Mi', 'third', 52], [3, 0, 'Sol', 'fifth', 55], [4, 1, 'Do', 'root', 60], [5, 0, 'Mi', 'third', 64]];
+    neck.setNotes([...CH.map(([s, f, label, role]) => ({ s, f, label, role })), { s: 3, f: 2, label: 'La', role: 'scale' }]);
+    const cards = ['Do', 'La m', 'Ré m', 'Sol'].map((c, i) => h('button', { type: 'button', class: i === 0 ? 'on' : '', title: c === 'La m' ? 'La mineur' : c === 'Ré m' ? 'Ré mineur' : c + ' majeur' }, c, h('i')));
+    const stop = h('button', { class: 'btn grad sq52 playing', type: 'button', 'aria-label': 'Arrêter', text: '■' });
+    const transport = h('div', { class: 'transport' }, stop,
+      h('div', { class: 'tempo' }, h('button', { class: 'sbtn2', type: 'button', 'aria-label': 'Plus lent', text: '−' }), h('b', { text: '90' }), h('button', { class: 'sbtn2', type: 'button', 'aria-label': 'Plus vite', text: '+' }), h('small', { text: 'battements / min' })));
+    const { frame } = phone({ tab: 'studio', running: true, body: [chips(['Style : Pop', 'Do majeur']), h('div', { class: 'studio-seg' }, h('button', { type: 'button', class: 'on', text: 'Instruments' }), h('button', { type: 'button', text: 'Batterie' })),
+      h('div', { class: 'prog', 'aria-label': 'Progression' }, cards), itabs('Guitare'), neck.el], transport });
+    // boucle visuelle : accord en arpège, puis tenu (silencieux pour la démo, sauf après un geste)
+    let k = 0, bar = 0;
+    setInterval(() => {
+      const step = k % 16; k++;
+      if (step === 0) { bar = (bar + 1) % 4; cards.forEach((c, j) => c.classList.toggle('on', j === bar)); }
+      cards[bar].querySelector('i').style.setProperty('--p', `${(step + 1) / 16 * 100}%`);
+      CH.forEach(([s, f], j) => neck.play(s, f, (step >= j && step < j + 3) || (step >= 8 && step < 12)));
+      neck.play(3, 2, step === 13 || step === 14);
+    }, 170);
+    mount.append(fig('3 · Studio, boucle en cours', 'La progression en 4 cartes : l’accord en cours est mauve, son trait blanc avance avec la mesure. Pendant la boucle le dessin baisse et ce qui sonne reste allumé (exploration 3, variante B). ■ et le tempo sous le pouce.', frame));
+  })();
+
+  /* 4 · Rythme, la phrase, en feuille au-dessus du Studio */
+  (() => {
+    const neck = neckPh(3);
+    neck.setNotes([{ s: 1, f: 3, label: 'Do', role: 'root' }, { s: 2, f: 2, label: 'Mi', role: 'third' }, { s: 3, f: 0, label: 'Sol', role: 'fifth' }, { s: 4, f: 1, label: 'Do', role: 'root' }, { s: 5, f: 0, label: 'Mi', role: 'third' }]);
+    const n = 16, kk = 5, D = 220, R = 92, C = D / 2;
+    const p = Array.from({ length: n }, (_, i) => ((i * kk) % n) < kk ? 1 : 0);
+    const pt = (i) => [C + R * Math.sin(2 * Math.PI * i / n), C - R * Math.cos(2 * Math.PI * i / n)];
+    const hits = p.map((v, i) => v ? i : -1).filter((i) => i >= 0);
+    const wheel = svg(D, D, `<g id="w" style="transform-origin:${C}px ${C}px; transition: transform 170ms linear"><circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="var(--border-subtle)" stroke-width="2"/>
+      <polygon points="${hits.map((i) => pt(i).join(',')).join(' ')}" fill="var(--seq-kick)" fill-opacity=".08" stroke="var(--seq-kick)" stroke-width="2"/>
+      ${p.map((v, i) => { const [x, y] = pt(i); return v ? `<circle cx="${x}" cy="${y}" r="9" fill="var(--seq-kick)"/>` : `<circle cx="${x}" cy="${y}" r="5" fill="none" stroke="var(--border-strong)" stroke-width="2"/>`; }).join('')}</g>
+      <path d="M ${C - 8} 0 L ${C + 8} 0 L ${C} 13 Z" fill="var(--text-primary)"/>
+      <text x="${C}" y="${C + 8}" text-anchor="middle" fill="var(--text-primary)" font-size="40" font-weight="600" font-family="var(--font-display)">5</text>
+      <text x="${C}" y="${C + 32}" text-anchor="middle" fill="var(--text-secondary)" font-size="15">coups sur 16</text>`);
+    let a = 0; setInterval(() => { a++; const g = wheel.querySelector('#w'); if (g && !document.body.classList.contains('reduce-motion')) g.style.transform = `rotate(${-a * 360 / n}deg)`; }, 170);
+    const sb = (t, l) => h('button', { class: 'sbtn2', type: 'button', 'aria-label': l, text: t });
+    const body = [h('div', { class: 'wheel2' }, wheel),
+      h('div', { class: 'phrase' },
+        h('span', { class: 'pl' }, sb('−', 'Un coup de moins'), h('b', { text: '5' }), sb('+', 'Un coup de plus'), 'coups'),
+        h('span', { class: 'pl' }, 'sur', sb('−', 'Une case de moins'), h('b', { text: '16' }), sb('+', 'Une case de plus'), 'cases,'),
+        h('span', { class: 'pl' }, 'départ décalé de', sb('−', 'Départ plus tôt'), h('b', { text: '0' }), sb('+', 'Départ plus tard'), ','),
+        h('span', { class: 'pl' }, 'joués par', h('button', { class: 'chip', type: 'button' }, 'grosse caisse', h('span', { class: 'caret', text: '▾' })))),
+      h('div', { class: 'sh-lab', text: 'Essayer :' }), h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px' } }, ['Tresillo', 'Cinquillo', 'Venda', 'Bembé', 'Bossa nova', 'Samba'].map((t) => h('button', { class: 'chip' + (t === 'Bossa nova' ? ' on' : ''), type: 'button', text: t }))),
+      h('div', { class: 'sh-lab', text: 'Pour aller plus loin ▸' })];
+    const { frame } = phone({ tab: 'rythme', running: true, body: [chips(['Style : Pop', 'Do majeur']), itabs('Guitare'), neck.el],
+      transport: h('div', { class: 'transport' }, h('button', { class: 'btn grad sq52 playing', type: 'button', text: '■' }), h('span', { style: { color: 'var(--text-secondary)', fontSize: 'var(--fs-label)' }, text: 'en direct sur la grosse caisse' })),
+      sheet: sheetEl('Rythme', body, 560) });
+    mount.append(fig('4 · Rythme (exploration 2, variante B)', 'L’onglet Rythme monte la feuille à mi-hauteur au-dessus du Studio : la roue tourne sous le repère, la phrase se règle au pouce, les accords restent visibles en haut. La feuille glisse vers le haut pour les recettes.', frame));
+  })();
+
+  /* 5 · Batterie, 4 temps × 4 cases */
+  (() => {
+    const TR = [['Grosse caisse', '--seq-kick', [0, 6, 10]], ['Caisse claire', '--seq-snare', [4, 12]], ['Charley', '--seq-hat', [0, 2, 4, 6, 8, 10, 12, 14]], ['Basse', '--seq-bass', [0, 3, 8, 11]], ['Accords', '--seq-chords', [0, 8]]];
+    const sel = 0;
+    const over = h('div', { class: 'overview', 'aria-label': 'Aperçu des 5 pistes' }, TR.map(([, tok, on]) => h('div', { style: { '--tc': `var(${tok})` } }, Array.from({ length: 16 }, (_, j) => h('i', { class: on.includes(j) ? 'on' : '' })))));
+    const cells = [];
+    const beats = h('div', { class: 'beats', style: { '--tc': `var(${TR[sel][1]})` } }, [0, 1, 2, 3].map((b) => h('div', { class: 'beat' }, h('span', { text: `temps ${b + 1}` }), [0, 1, 2, 3].map((q) => { const j = b * 4 + q; const c = h('button', { type: 'button', class: TR[sel][2].includes(j) ? 'on' : '', 'aria-label': `temps ${b + 1}, case ${q + 1}`, onclick: () => c.classList.toggle('on') }); cells.push(c); return c; }))));
+    const { frame } = phone({ tab: 'studio', running: true, body: [chips(['Style : Pop', 'Do majeur']), h('div', { class: 'studio-seg' }, h('button', { type: 'button', text: 'Instruments' }), h('button', { type: 'button', class: 'on', text: 'Batterie' })),
+      h('div', { class: 'tracks' }, TR.map(([name, tok], i) => h('button', { type: 'button', class: i === sel ? 'on' : '', style: { '--tc': `var(${tok})` }, text: name }))), over, beats,
+      h('p', { style: { fontSize: 'var(--fs-label)', color: 'var(--text-secondary)', margin: '12px 0 0' }, text: 'Une mesure = 4 temps ; chaque temps se coupe en 4. La première case de chaque temps a un bord plus clair.' })],
+      transport: h('div', { class: 'transport' }, h('button', { class: 'btn grad sq52 playing', type: 'button', text: '■' }), h('div', { class: 'tempo' }, h('button', { class: 'sbtn2', type: 'button', text: '−', 'aria-label': 'Plus lent' }), h('b', { text: '90' }), h('button', { class: 'sbtn2', type: 'button', text: '+', 'aria-label': 'Plus vite' }))) });
+    let k = 0; setInterval(() => { cells.forEach((c, j) => c.classList.toggle('now', j === k % 16)); k++; }, 170);
+    mount.append(fig('5 · Batterie, sans rien couper', 'Les 16 pas d’une mesure deviennent 4 rangées de 4 : chaque rangée est un temps, les cases font 68 × 56. Une piste à la fois, les 5 en aperçu au-dessus ; un toucher sur l’aperçu change de piste.', frame));
+  })();
+
+  /* 6 · Plus : réglages groupés */
+  (() => {
+    const seg = (opts, on) => h('span', { class: 'seg' }, opts.map((o) => h('button', { type: 'button', 'aria-pressed': String(o === on), text: o })));
+    const body = [h('div', { class: 'sh-lab', text: 'Affichage' }),
+      h('div', { class: 'list' }, h('div', {}, h('span', { text: 'Noms des notes' }), seg(['Do Ré Mi', 'C D E'], 'Do Ré Mi')), h('div', {}, h('span', { text: 'Sur les pastilles' }), seg(['Notes', 'Doigts'], 'Notes')), h('div', {}, h('span', {}, 'Notes de gamme', h('br'), h('span', { class: 'muted', text: 'contour gris autour de l’accord' })), seg(['Oui', 'Non'], 'Oui'))),
+      h('div', { class: 'sh-lab', text: 'Son' }),
+      h('div', { class: 'list' }, h('div', {}, h('span', { text: 'Volume général' }), h('input', { class: 'vol', type: 'range', value: '70', 'aria-label': 'Volume général' })), h('div', {}, h('span', { text: 'Instrument qui joue' }), h('span', { class: 'muted', text: 'Guitare ›' })), h('div', {}, h('span', { text: 'Métronome' }), seg(['Oui', 'Non'], 'Non'))),
+      h('div', { class: 'sh-lab', text: 'Langue' }), h('div', { class: 'list' }, h('div', {}, h('span', { text: 'Langue de l’app' }), seg(['FR', 'EN'], 'FR'))),
+      h('div', { class: 'sh-lab', text: 'Aide' }), h('div', { class: 'list' }, h('div', {}, h('span', { text: 'Guide d’utilisation' }), h('span', { class: 'muted', text: '›' })), h('div', {}, h('span', { text: 'Petite théorie' }), h('span', { class: 'muted', text: '›' })), h('div', {}, h('span', { text: 'À propos' }), h('span', { class: 'muted', text: '›' })))];
+    const { frame } = phone({ tab: 'plus', body });
+    mount.append(fig('6 · Plus', 'Tout ce qui n’est pas jouer, regroupé et rangé par thème : lignes de 56 px, choix en boutons segmentés (plus de liste native blanche), un seul sélecteur de langue.', frame));
+  })();
+
+  /* 7 · Paysage : le manche entier */
+  (() => {
+    const strings = ['Mi', 'Si', 'Sol', 'Ré', 'La', 'Mi']; // aigu en haut, comme une tablature
+    const W = 844 - 88, F = 12, nutX = 40, fretW = (W - nutX) / F, sp = 46, H = sp * 6;
+    const el = h('div', { class: 'hneck', style: { width: W + 'px', height: (H + 28) + 'px' } });
+    el.append(h('div', { class: 'board', style: { left: nutX + 'px', top: '0px', width: (W - nutX) + 'px', height: H + 'px' } }), h('div', { class: 'nut', style: { left: (nutX - 6) + 'px', top: 0, height: H + 'px' } }));
+    for (let f = 1; f <= F; f++) {
+      el.append(h('div', { class: 'fw', style: { left: (nutX + f * fretW - 3) + 'px', top: 0, height: H + 'px' } }));
+      el.append(h('div', { class: 'fn' + (f >= 2 && f <= 5 ? ' in-pos' : ''), text: String(f), style: { left: (nutX + (f - 0.5) * fretW) + 'px', top: (H + 6) + 'px' } }));
+      if ([3, 5, 7, 9].includes(f)) el.append(h('div', { class: 'inl', style: { left: (nutX + (f - 0.5) * fretW) + 'px', top: (H / 2) + 'px' } }));
+      if (f === 12) [sp * 2, sp * 4].forEach((y) => el.append(h('div', { class: 'inl', style: { left: (nutX + (f - 0.5) * fretW) + 'px', top: y + 'px' } })));
+    }
+    el.append(h('div', { class: 'fn', text: '0', style: { left: (nutX / 2) + 'px', top: (H + 6) + 'px' } }));
+    strings.forEach((n, i) => { const y = sp * (i + 0.5); el.append(h('div', { class: 'hs', style: { left: '0px', width: W + 'px', top: (y - 1) + 'px', height: (1.5 + i * 0.5) + 'px' } }), h('div', { class: 'sn', text: n, style: { left: '0px', top: y + 'px' } })); });
+    el.append(h('div', { class: 'posband', style: { left: (nutX + 1 * fretW + 6) + 'px', width: (4 * fretW - 12) + 'px', top: (H + 26) + 'px' } }));
+    // notes de la position 2 (corde 0 = Mi grave = rangée du bas)
+    P2.forEach(([s, f], i) => { const y = sp * (5 - s + 0.5), x = nutX + (f - 0.5) * fretW;
+      el.append(h('div', { class: `pm r-${i === 0 || i === 7 ? 'root' : 'scale'}`, text: NAMES[i], style: { left: x + 'px', top: y + 'px', '--pm': '38px' } })); });
+    const land = h('div', { class: 'land fph-like', style: { '--ui-scale': 1.25, '--fs-label': '15px', '--fs-body': '17.5px', '--fs-emph': '20px' } },
+      h('div', { class: 'lbar' }, h('span', { class: 't', text: 'Do majeur · gamme · guitare' }), h('button', { class: 'hbtn grad', type: 'button', text: '‹', 'aria-label': 'Position précédente' }), h('span', { text: 'Position 2 · cases 2 à 5', style: { fontSize: '15px' } }), h('button', { class: 'hbtn grad', type: 'button', text: '›', 'aria-label': 'Position suivante' }), h('button', { class: 'btn grad', type: 'button', text: '▶', style: { width: '52px', height: '44px', padding: 0 } })),
+      el);
+    mount.append(fig('7 · Paysage : le manche entier', 'Tourner le téléphone : la longueur de l’écran devient la largeur, le manche suit et montre les cases 0 à 12 d’un coup, aigu en haut comme une tablature. Le repère mauve sous le manche dit où est la main. Valable pour les deux navigations.', land));
+  })();
+  /* ================= Navigation 2 : la scène et le tiroir ================= */
+  const mount2 = document.getElementById('screens2');
+  const NOTE_NAMES = ['Do', 'Do♯', 'Ré', 'Ré♯', 'Mi', 'Fa', 'Fa♯', 'Sol', 'Sol♯', 'La', 'La♯', 'Si'];
+  /* piano vertical du téléphone : aigus en haut, touches blanches de 48 px */
+  function pianoV({ top = 79, bottom = 48, roles = {}, keyPx = 48, len = 300 }) {
+    const whites = []; for (let m = top; m >= bottom; m--) if (!NOTE_NAMES[m % 12].includes('♯')) whites.push(m);
+    const el = h('div', { style: { position: 'relative', width: len + 'px', height: (whites.length * keyPx) + 'px', margin: '0 auto' } });
+    const keys = new Map();
+    whites.forEach((m, i) => {
+      const r = roles[m];
+      const k = h('div', { style: { position: 'absolute', left: 0, top: (i * keyPx) + 'px', width: len + 'px', height: (keyPx - 2) + 'px', borderRadius: '0 6px 6px 0', background: r ? `var(--role-${r})` : 'var(--key-white)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '12px', fontSize: '15px', fontWeight: 600, color: r ? 'var(--on-role)' : 'var(--key-name-on-white)' } },
+        r || m % 12 === 0 ? `${NOTE_NAMES[m % 12]}${m % 12 === 0 ? Math.floor(m / 12) - 1 : ''}` : '');
+      el.append(k); keys.set(m, k);
+      const below = m - 1;
+      if (NOTE_NAMES[below % 12].includes('♯') && below >= bottom) {
+        const rb = roles[below];
+        el.append(h('div', { style: { position: 'absolute', left: 0, top: ((i + 1) * keyPx - Math.round(keyPx * 0.31)) + 'px', width: Math.round(len * 0.6) + 'px', height: Math.round(keyPx * 0.62) + 'px', borderRadius: '0 4px 4px 0', background: rb ? `var(--role-${rb})` : 'var(--key-black)', zIndex: 2, border: '1px solid var(--bg)' } }));
+      }
+    });
+    return { el, keys };
+  }
+  function phone2({ mode, scene, peek, half, full, running }) {
+    const top = h('div', { style: { flex: '0 0 56px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 8px 0 16px', borderBottom: '1px solid var(--border-subtle)' } },
+      h('div', { class: 'studio-seg', style: { margin: 0, flex: 1 } }, ['Dictionnaire', 'Studio'].map((t) => h('button', { type: 'button', class: t === mode ? 'on' : '', text: t }))),
+      h('button', { class: 'ibtn', type: 'button', 'aria-label': 'Aide' }, ICON.aide()));
+    const sceneEl = h('div', { class: 'scroll', style: { paddingTop: '12px', paddingBottom: (half || full ? 20 : 170) + 'px' } }, scene);
+    const drawer = h('div', { class: 'sheet2', style: { height: (full ? 760 : half ? 470 : 150) + 'px', background: 'var(--surface-1)' } }, h('div', { class: 'grab' }), h('div', { class: 'sh-body', style: { paddingTop: '6px' } }, peek, half || null, full || null));
+    const frame = h('div', { class: 'fph tx-b' + (running ? ' is-running' : '') }, h('div', { class: 'urlbar' }, h('span', { text: 'visualmusic.app' })), top, sceneEl, drawer);
+    return frame;
+  }
+  const peekRow = (choice, playLabel, playing) => [
+    h('button', { class: 'chip', type: 'button', style: { width: '100%', justifyContent: 'space-between', borderRadius: 'var(--radius-md)' } }, choice, h('span', { class: 'caret', text: '⌃' })),
+    h('div', { style: { display: 'flex', gap: '6px', marginTop: '8px', alignItems: 'center' } },
+      h('div', { class: 'studio-seg', style: { margin: 0, flex: 1 } }, ['Piano', 'Guitare', 'Basse'].map((t) => h('button', { type: 'button', class: t === playLabel.inst ? 'on' : '', text: t, style: { height: '56px', fontSize: 'var(--fs-label)' } }))),
+      h('button', { class: 'btn grad' + (playing ? ' playing' : ''), type: 'button', 'aria-label': playing ? 'Arrêter' : 'Écouter', text: playing ? '■' : '▶', style: { width: '64px', height: '56px', padding: 0, fontSize: 'var(--fs-title)' } }))];
+
+  /* N2-1 · Dictionnaire, piano vertical */
+  (() => {
+    const pv = pianoV({ top: 74, bottom: 50, roles: { 60: 'root', 64: 'third', 67: 'fifth' } });
+    const play = (ms) => ms.forEach((m) => VM.tone(m, 0.9, 0.08));
+    const frame = phone2({ mode: 'Dictionnaire', scene: [h('div', { style: { fontSize: 'var(--fs-label)', color: 'var(--text-muted)', textAlign: 'right', marginBottom: '6px' }, text: 'aigus ↑' }), pv.el], peek: peekRow('Accord · Do · majeur', { inst: 'Piano' }) });
+    frame.querySelector('.btn.grad').onclick = () => play([60, 64, 67]);
+    mount2.append(fig('A · Dictionnaire, piano dans la longueur', 'Le clavier est vertical comme en 4K, aigus en haut, touches de 48 px : Do, Mi, Sol aux couleurs de leur rôle. Le tiroir replié dit ce qui est montré et porte les instruments et ▶ sous le pouce.', frame));
+  })();
+
+  /* N2-2 · Studio, basse verticale, boucle */
+  (() => {
+    const neck = VM.buildNeck({ strings: ['Mi', 'La', 'Ré', 'Sol'], bass: true, numFrets: 20, rail: 0, gutter: 26, stringPx: 80, pm: 48, headRow: 24, openRow: 56, maxFret: 7, pitch: (n) => 70 - (n - 1) * 1 });
+    neck.setNotes([{ s: 1, f: 3, label: 'Do', role: 'root' }, { s: 2, f: 2, label: 'Mi', role: 'third' }, { s: 2, f: 5, label: 'Sol', role: 'fifth' }, { s: 3, f: 5, label: 'Do', outside: true }]);
+    neck.marker(3, 5).style.visibility = 'hidden';
+    const prog = h('div', { class: 'prog', style: { margin: '8px 0 0' } }, ['Do', 'La m', 'Ré m', 'Sol'].map((c, i) => h('button', { type: 'button', class: i === 0 ? 'on' : '', style: { height: '44px' } }, c, h('i'))));
+    const frame = phone2({ mode: 'Studio', running: true, scene: [neck.el], peek: [...peekRow('Pop · Do majeur · 90 / min', { inst: 'Basse' }, true), prog] });
+    frame.querySelector('.sheet2').style.height = '200px';
+    const seq = [[1, 3], [2, 2], [2, 5], [3, 5]];
+    let k = 0;
+    setInterval(() => { const st = k % 8; k++; seq.forEach(([s, f], j) => { const on = st === j; if (s === 3) neck.marker(3, 5).style.visibility = on ? 'visible' : 'hidden'; neck.play(s, f, on); }); }, 200);
+    mount2.append(fig('B · Studio, la basse en grand', 'La basse a 4 cordes : en pleine largeur, ses pastilles reviennent à 48 px. Pendant la boucle, le dessin baisse et l’arpège s’allume note après note ; le Do joué hors de la forme prend l’anneau vert. Le tiroir replié montre la progression.', frame));
+  })();
+
+  /* N2-3 · Tiroir à mi-hauteur, Studio */
+  (() => {
+    const neck = neckPh(3);
+    neck.setNotes([{ s: 1, f: 3, label: 'Do', role: 'root' }, { s: 2, f: 2, label: 'Mi', role: 'third' }, { s: 3, f: 0, label: 'Sol', role: 'fifth' }, { s: 4, f: 1, label: 'Do', role: 'root' }, { s: 5, f: 0, label: 'Mi', role: 'third' }]);
+    const row = (t, sub) => h('button', { type: 'button', style: { width: '100%', minHeight: '60px', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', padding: '8px 12px', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', background: 'var(--bg)', marginTop: '6px' } },
+      h('span', { style: { flex: 1, display: 'flex', flexDirection: 'column' } }, h('b', { text: t, style: { fontSize: 'var(--fs-body)' } }), h('small', { text: sub, style: { fontSize: 'var(--fs-label)', color: 'var(--text-secondary)' } })), h('span', { text: '›', style: { color: 'var(--text-muted)' } }));
+    const half = [
+      h('div', { class: 'sh-lab', text: 'Progression · un toucher joue l’accord' }), h('div', { class: 'prog' }, ['Do', 'La m', 'Ré m', 'Sol'].map((c, i) => h('button', { type: 'button', class: i === 0 ? 'on' : '' }, c, h('i')))),
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } }, h('span', { text: 'Tempo', style: { flex: 1, fontSize: 'var(--fs-body)' } }), h('button', { class: 'sbtn2', type: 'button', text: '−', 'aria-label': 'Plus lent' }), h('b', { text: '90', style: { fontFamily: 'var(--font-display)', fontSize: 'var(--fs-title)', minWidth: '3ch', textAlign: 'center' } }), h('button', { class: 'sbtn2', type: 'button', text: '+', 'aria-label': 'Plus vite' })),
+      h('div', { class: 'sh-lab', text: 'Outils' }),
+      row('Rythme', 'la roue et la phrase : coups, cases, départ'), row('Batterie', 'la mesure en 4 temps × 4 cases'), row('Sons et instruments', 'volumes, instrument qui joue, métronome'), row('Réglages et aide', 'noms des notes, langue, guide')];
+    const frame = phone2({ mode: 'Studio', scene: [neck.el], peek: peekRow('Pop · Do majeur', { inst: 'Guitare' }, false), half });
+    mount2.append(fig('C · Le tiroir à mi-hauteur', 'Tirer la poignée, ou toucher la ligne du choix, monte le tiroir : progression, tempo, puis les outils, chacun avec sa phrase. L’instrument reste visible en haut. Un outil ouvre le tiroir en pleine hauteur (le Rythme de la variante B, la Batterie 4 × 4).', frame));
+  })();
+
+  /* N2-4 · Les trois côte à côte : l'aperçu de la 4K */
+  (() => {
+    const wrap = h('div', { class: 'ov', style: { display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'flex-start' } });
+    const pv = pianoV({ top: 72, bottom: 48, roles: { 60: 'root', 64: 'third', 67: 'fifth' }, keyPx: 30, len: 92 });
+    pv.el.querySelectorAll('div').forEach((d) => { d.textContent = ''; });
+    const g = VM.buildNeck({ rail: 0, gutter: 16, stringPx: 24, pm: 18, headRow: 0, openRow: 34, maxFret: 12, pitch: () => 40 });
+    g.setNotes([{ s: 1, f: 3, role: 'root' }, { s: 2, f: 2, role: 'third' }, { s: 3, f: 0, role: 'fifth' }, { s: 4, f: 1, role: 'root' }, { s: 5, f: 0, role: 'third' }]);
+    const b = VM.buildNeck({ strings: ['Mi', 'La', 'Ré', 'Sol'], bass: true, rail: 0, gutter: 0, stringPx: 22, pm: 18, headRow: 0, openRow: 34, maxFret: 12, pitch: () => 40 });
+    b.setNotes([{ s: 1, f: 3, role: 'root' }, { s: 2, f: 2, role: 'third' }, { s: 2, f: 5, role: 'fifth' }]);
+    const col = (label, el) => h('button', { type: 'button', 'aria-label': `Ouvrir ${label}`, style: { background: 'none', border: 0, padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' } }, h('span', { text: label, style: { fontSize: 'var(--fs-label)', color: 'var(--text-secondary)' } }), el);
+    wrap.append(col('Piano', pv.el), col('Guitare', g.el), col('Basse', b.el));
+    const frame = phone2({ mode: 'Dictionnaire', scene: [wrap], peek: peekRow('Accord · Do · majeur', { inst: '' }) });
+    frame.querySelector('.studio-seg + *');
+    const segs = frame.querySelectorAll('.sheet2 .studio-seg button'); segs.forEach((s) => s.classList.remove('on'));
+    mount2.append(fig('D · Les trois côte à côte (idée)', 'Le même accord sur les trois instruments, comme en 4K, en petit et sans texte : on voit que Do-Mi-Sol se répète partout. Toucher une colonne l’ouvre en grand. Un quatrième bouton « Les trois » rejoindrait Piano · Guitare · Basse.', frame));
+  })();
+
+})();
+</script>
+</body>
+</html>

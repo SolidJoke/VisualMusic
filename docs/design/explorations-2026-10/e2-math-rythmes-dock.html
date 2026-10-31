@@ -82,6 +82,7 @@ a { color: var(--text-primary); }
 .variant { padding-top:40px; border-top:1px solid var(--border-subtle); margin-top:40px; }
 .variant > header { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 16px; margin-bottom:16px; }
 .variant > header h2 { font-family:var(--font-display); font-size:22px; margin:0; }
+.variant > header .kept { font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-on-select); border:1px solid var(--assistant-border); background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); border-radius:var(--radius-md); padding:2px 10px; }
 .variant > header .tag { color:var(--text-muted); font-size:14px; }
 .three { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin:0 0 20px; padding:0; list-style:none; max-width:1500px; }
 .three li { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:12px 14px; min-width:0; }
@@ -185,6 +186,8 @@ a { color: var(--text-primary); }
    allumée pendant la boucle (OLED), pas plus. */
 .tx-b .pm { transition:opacity 120ms ease-out, transform 90ms ease-out; }
 .tx-b.is-running .pm { opacity:.4; }
+/* retenue (2026-10-31) : la note de gamme, un simple contour gris, reste à 60 % (à 40 % elle disparaît sur le bois) */
+.tx-b.is-running .pm.r-scale { opacity:.6; }
 .tx-b.is-running .pm.playing, .tx-b .pm.playing { opacity:1; transform:scale(1.1); z-index:10; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--select); font-weight:800; }
 .tx-b .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 8px var(--select); }
 /* la tenue : la fin d'une note relâche en 150 ms (classe posée par le script) */
@@ -360,7 +363,7 @@ a { color: var(--text-primary); }
 </section>
 
 <section class="variant" id="vb">
-  <header><h2>Variante B · La phrase</h2><span class="tag">le cercle tourne sous une tête de lecture fixe ; les réglages forment une phrase</span></header>
+  <header><h2>Variante B · La phrase</h2><span class="kept">Retenue</span><span class="tag">le cercle tourne sous une tête de lecture fixe ; les réglages forment une phrase</span></header>
   <ul class="three">
     <li><b>Ce que voit le débutant</b>Une roue qui tourne comme une boîte à musique : ce qui passe sous le repère du haut sonne. Dessous, une phrase dont les nombres se règlent : « 5 coups sur 16 cases, départ décalé de 0, joués par la grosse caisse ».</li>
     <li><b>Ce que fait un clic</b>Chaque − / + de la phrase change le nombre, la roue et le son ; « Essayer » charge un rythme du monde dans la phrase. Les outils avancés sont des recettes : un titre en mots simples et ce qu’on va entendre.</li>
@@ -419,7 +422,7 @@ const VM = (() => {
     for (const [k, v] of Object.entries(attrs || {})) {
       if (v == null || v === false) continue;
       if (k === 'class') el.className = v;
-      else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else if (k === 'style' && typeof v === 'object') { for (const [sk, sv] of Object.entries(v)) { if (sk.startsWith('--')) el.style.setProperty(sk, sv); else el.style[sk] = sv; } }
       else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
       else if (k === 'text') el.textContent = v;
       else if (k === 'html') el.innerHTML = v;
@@ -597,7 +600,7 @@ const VM = (() => {
 
   /* ---- barre du haut commune ---- */
   const topbar = (current) => {
-    const pages = [['index.html', 'Sommaire'], ['e1-position-gamme.html', '1 · Position de gamme'], ['e2-math-rythmes-dock.html', '2 · Math & Rythmes'], ['e3-note-qui-joue.html', '3 · Note qui joue']];
+    const pages = [['index.html', 'Sommaire'], ['e1-position-gamme.html', '1 · Position de gamme'], ['e2-math-rythmes-dock.html', '2 · Math & Rythmes'], ['e3-note-qui-joue.html', '3 · Note qui joue'], ['e4-telephone.html', '4 · Téléphone']];
     const zoomBtns = [['Ajusté', false], ['100 %', true]].map(([t, nat]) => h('button', { type: 'button', 'aria-pressed': String(nat === document.body.classList.contains('native')), text: t,
       onclick: (e) => { document.body.classList.toggle('native', nat); [...e.target.parentNode.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.target))); relayout(); } }));
     const soundBtns = [['Son', true], ['Muet', false]].map(([t, on]) => h('button', { type: 'button', 'aria-pressed': String(on === state.sound), text: t,

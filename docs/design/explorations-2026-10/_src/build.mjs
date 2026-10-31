@@ -7,11 +7,12 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const css = readFileSync(join(here, 'shared.css'), 'utf8');
 const js = readFileSync(join(here, 'shared.js'), 'utf8');
-const pages = ['index.html', 'e1-position-gamme.html', 'e2-math-rythmes-dock.html', 'e3-note-qui-joue.html'];
+const pages = ['index.html', 'e1-position-gamme.html', 'e2-math-rythmes-dock.html', 'e3-note-qui-joue.html', 'e4-telephone.html'];
 const artifactDir = process.argv[2];
 for (const p of pages) {
   const src = readFileSync(join(here, p), 'utf8');
-  const out = src.replace('/*@CSS*/', () => css).replace('/*@JS*/', () => js);
+  const out = src.replace('/*@CSS*/', () => css).replace('/*@JS*/', () => js)
+    .replace(/@@IMG:([\w-]+)@@/g, (_, n) => readFileSync(join(here, 'img', n + '.txt'), 'utf8').trim());
   writeFileSync(join(here, '..', p), out);
   if (artifactDir) {
     mkdirSync(artifactDir, { recursive: true });
