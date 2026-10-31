@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Explorations A′ VisualMusic</title>
+<style>
+/* ==========================================================================
+   Explorations A′ — feuille commune (copiée dans chaque page par build.mjs).
+   Couleurs : UNIQUEMENT les jetons de src/styles/tokens.css (valeurs recopiées
+   telles quelles). Aucune police chargée : pas de réseau, les piles de repli
+   de tokens.css s'appliquent (Orbitron / Hanken Grotesk / JetBrains Mono
+   s'affichent seulement si elles sont installées sur la machine).
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+  --bg:#000000; --surface-1:#0a0a0a; --surface-2:#141414; --surface-3:#1f1f1f;
+  --border-subtle:#1f1f1f; --border-default:#333333; --border-strong:#6b6b6b;
+  --text-primary:#e8e8e8; --text-secondary:#a8a8a8; --text-muted:#8c8c8c; --text-disabled:#5c5c5c;
+  --text-on-select:#ffffff; --on-role:#000000; --select:#ffffff;
+  --select-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--select);
+  --role-root:#f07878; --role-third:#a0c4ff; --role-fifth:#80f5c8; --role-extension:#b084dc; --role-target:#e0d840;
+  --role-scale-edge: var(--text-muted);
+  --color-error:#ff8a80; --color-warning:#ffc266; --color-success:#6fdc8c;
+  --seq-kick:#f79009; --seq-snare:#2e90fa; --seq-hat:#bdc7de; --seq-chords:#ffb782; --seq-bass:#32d583;
+  --assistant-from:#6e3fa3; --assistant-from-hover:#7b4bb0; --assistant-to:var(--bg);
+  --assistant-text:var(--text-on-select); --assistant-border:#a77bd8;
+  --key-white:#cfcfcf; --key-black:#1a1a1a; --key-name-on-white:#555555;
+  --fret-wire:var(--border-strong); --string:#8c8c8c; --fret-inlay:#333333;
+  --font-display:'Orbitron','Hanken Grotesk',system-ui,sans-serif;
+  --font-body:'Hanken Grotesk',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --radius-sm:4px; --radius-md:6px; --radius-lg:8px; --radius-xl:12px;
+  /* présentation (hors maquette) : mêmes jetons, échelle 1 */
+  --ui-scale:1; --hit-min:44px;
+}
+/* Échelle des maquettes : celle que tokens.css donne à ces largeurs de fenêtre.
+   2560 px CSS (4K à 150 %) : --ui-scale 1.375, --hit-min 44 px (le 48 px de
+   tokens.css ne s'applique qu'à >= 3840 px CSS). Téléphone 390 px : 1.25. */
+.f4k { --ui-scale:1.375; --hit-min:44px; }
+.fph { --ui-scale:1.25;  --hit-min:44px; }
+.f4k, .fph {
+  --fs-label: calc(12px * var(--ui-scale));
+  --fs-body:  calc(14px * var(--ui-scale));
+  --fs-emph:  calc(16px * var(--ui-scale));
+  --fs-title: calc(20px * var(--ui-scale));
+  --fs-heading: calc(26px * var(--ui-scale));
+  --fs-display: calc(36px * var(--ui-scale));
+}
+
+html, body { background: var(--surface-1); color: var(--text-primary); }
+body { margin:0; font-family: var(--font-body); font-size:15px; line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:0 64px; }
+body::before { content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:30; background:var(--bg); }
+* { box-sizing: border-box; }
+[hidden] { display:none !important; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline:none; box-shadow: var(--select-ring); }
+a { color: var(--text-primary); }
+
+/* ---------- présentation ---------- */
+.topbar { position:sticky; top:env(safe-area-inset-top,0px); z-index:20; display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px;
+  margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px))); padding:10px max(16px, env(safe-area-inset-left,0px));
+  background:var(--bg); border-bottom:1px solid var(--border-default); }
+.topbar .brand { font-family:var(--font-display); font-weight:700; letter-spacing:.04em; color:var(--text-secondary); }
+.topbar nav { display:flex; gap:4px; flex-wrap:wrap; }
+.topbar nav a { text-decoration:none; padding:6px 12px; border-radius:var(--radius-md); border:1px solid var(--border-default); color:var(--text-secondary); font-size:14px; }
+.topbar nav a[aria-current="page"] { color:var(--text-on-select); border-color:var(--select); background:var(--surface-3); }
+.topbar .spacer { flex:1; }
+.seg { display:inline-flex; }
+.seg button { min-height:36px; padding:0 12px; background:var(--bg); border:1px solid var(--border-strong); cursor:pointer; font-size:14px; color:var(--text-secondary); }
+.seg button + button { margin-left:-1px; }
+.seg button:first-child { border-radius:var(--radius-md) 0 0 var(--radius-md); }
+.seg button:last-child { border-radius:0 var(--radius-md) var(--radius-md) 0; }
+.seg button[aria-pressed="true"] { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); position:relative; z-index:1; }
+.ctl-label { font-size:13px; color:var(--text-muted); letter-spacing:.04em; text-transform:uppercase; }
+
+.intro { max-width:1100px; padding-top:28px; }
+.intro h1 { font-family:var(--font-display); font-size:28px; margin:0 0 8px; text-wrap:balance; }
+.intro p { color:var(--text-secondary); max-width:72ch; margin:0 0 8px; }
+.variant { padding-top:40px; border-top:1px solid var(--border-subtle); margin-top:40px; }
+.variant > header { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 16px; margin-bottom:16px; }
+.variant > header h2 { font-family:var(--font-display); font-size:22px; margin:0; }
+.variant > header .tag { color:var(--text-muted); font-size:14px; }
+.three { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin:0 0 20px; padding:0; list-style:none; max-width:1500px; }
+.three li { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:12px 14px; min-width:0; }
+.three li b { display:block; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); font-weight:600; margin-bottom:4px; }
+.frames { display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; }
+.frame-box { min-width:0; flex:1 1 640px; }
+.frame-box.phone { flex:0 1 auto; max-width:100%; overflow-x:auto; }
+.frame-box.phone > div { width:max-content; }
+.frame-cap { font-size:13px; color:var(--text-muted); margin:0 0 6px; display:flex; gap:12px; flex-wrap:wrap; }
+.fit { position:relative; overflow:hidden; border:1px solid var(--border-default); border-radius:var(--radius-md); background:var(--bg); }
+.fit.is-native { overflow:auto; max-height:88vh; }
+.fit > .f4k { transform-origin:0 0; position:absolute; left:0; top:0; }
+.fit.is-native > .f4k { position:relative; }
+.specs { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:16px 32px; margin-top:20px; max-width:1500px; }
+.specs h3 { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); margin:0 0 8px; font-weight:600; }
+.specs table { border-collapse:collapse; width:100%; font-size:14px; }
+.specs td, .specs th { text-align:left; padding:5px 8px 5px 0; border-bottom:1px solid var(--border-subtle); vertical-align:top; font-variant-numeric:tabular-nums; }
+.specs th { color:var(--text-muted); font-weight:500; }
+.specs ul { margin:0; padding-left:18px; font-size:14px; color:var(--text-secondary); }
+.specs li + li { margin-top:6px; }
+.specs code, .note code { font-family:var(--font-mono); font-size:.92em; color:var(--text-primary); }
+.note { border-left:3px solid var(--assistant-border); padding:8px 14px; color:var(--text-secondary); max-width:110ch; margin:16px 0; }
+.table-wrap { overflow-x:auto; }
+
+/* ---------- maquette 4K (2560 px CSS) ---------- */
+.f4k { width:2560px; background:var(--bg); color:var(--text-primary); font-family:var(--font-body); font-size:var(--fs-body); position:relative; }
+.app-header { height:72px; display:flex; align-items:center; gap:24px; padding:0 24px 0 16px; border-bottom:1px solid var(--border-subtle); }
+.app-title { font-family:var(--font-display); font-weight:700; font-size:var(--fs-heading); color:var(--text-secondary); }
+.tab { height:48px; width:220px; border-radius:var(--radius-lg); border:1px solid var(--border-default); background:var(--bg); color:var(--text-secondary); font-size:var(--fs-emph); display:inline-flex; align-items:center; justify-content:center; }
+.tab.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); }
+.btn { min-height:var(--hit-min); padding:0 20px; background:var(--bg); color:var(--text-primary); border:1px solid var(--border-strong); border-radius:var(--radius-md); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.btn.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); }
+.grad { background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); color:var(--assistant-text); border-color:var(--assistant-border); }
+.grad:hover:not(:disabled) { background:linear-gradient(90deg, var(--assistant-from-hover), var(--assistant-to)); }
+.grad:disabled { background:var(--bg); color:var(--text-secondary); border-color:var(--border-subtle); cursor:default; }
+.grad.playing { background:linear-gradient(90deg, var(--assistant-to), var(--assistant-from), var(--assistant-to)); background-size:200% 100%; animation:vm-play 3s linear infinite; }
+@keyframes vm-play { from { background-position:0% 0; } to { background-position:200% 0; } }
+.app-grid { display:flex; align-items:flex-start; gap:24px; padding:0 24px 0 16px; }
+.col { padding-top:24px; display:flex; flex-direction:column; gap:12px; flex:0 0 auto; }
+.col + .col.inst { box-shadow:-13px 0 0 -12px var(--border-subtle); }
+.col.centre { flex:1 1 auto; min-width:0; gap:24px; }
+.wire { border:1px dashed var(--border-default); border-radius:var(--radius-lg); color:var(--text-muted); font-size:var(--fs-label); padding:16px 20px; }
+.wire b { color:var(--text-secondary); font-weight:600; }
+.fold { position:absolute; left:0; right:0; border-top:2px dashed var(--color-warning); pointer-events:none; z-index:40; }
+.fold span { position:absolute; right:24px; top:4px; font-size:var(--fs-label); color:var(--color-warning); background:var(--bg); padding:2px 8px; }
+
+/* tête de colonne (InstrumentHead) : 100 px, deux rangées de 44/48 px */
+.ihead { height:100px; display:flex; flex-direction:column; justify-content:space-between; padding-left:16px; }
+.ihead .row { display:flex; align-items:center; gap:4px; height:var(--hit-min); white-space:nowrap; position:relative; }
+.iname { flex:1 1 auto; height:var(--hit-min); padding:0 12px; text-align:left; font-family:var(--font-display); font-weight:600; font-size:var(--fs-emph); background:var(--bg); border:1px solid var(--border-default); border-radius:var(--radius-md); display:flex; align-items:center; }
+.iname.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); }
+.hbtn { flex:0 0 auto; width:var(--hit-min); height:var(--hit-min); padding:0; border:1px solid var(--border-strong); border-radius:var(--radius-md); background:var(--bg); display:inline-flex; align-items:center; justify-content:center; font-size:var(--fs-emph); cursor:pointer; }
+.hlabel { flex:1 1 auto; min-width:0; height:var(--hit-min); display:flex; align-items:center; justify-content:center; gap:6px; font-size:var(--fs-label); border:1px solid var(--border-default); border-radius:var(--radius-md); background:transparent; cursor:pointer; padding:0 6px; }
+.hlabel .caret { font-size:.75em; color:var(--text-secondary); }
+.warn { color:var(--color-warning); }
+
+/* ---------- manche vertical (géométrie de Fretboard.css / verticalNeckGeometry.js) ---------- */
+.neck { position:relative; flex:0 0 auto; }
+.neck .board { position:absolute; background:var(--surface-3); }
+.neck .wire-f { position:absolute; height:3px; background:var(--fret-wire); }
+.neck .nut { position:absolute; height:6px; background:var(--text-secondary); }
+.neck .str { position:absolute; background:var(--string); transform:translateX(-50%); }
+.neck .inlay { position:absolute; width:12px; height:12px; border-radius:50%; background:var(--border-strong); transform:translate(-50%,-50%); }
+.neck .fno { position:absolute; font-family:var(--font-mono); font-size:var(--fs-label); color:var(--text-muted); text-align:right; line-height:1; transform:translateY(-50%); transition:color 150ms ease; }
+.neck .fno.inl { color:var(--text-primary); }
+.neck .fno.in-pos { color:var(--text-on-select); font-weight:700; }
+.neck .sname { position:absolute; font-size:var(--fs-label); font-weight:600; color:var(--text-secondary); transform:translate(-50%,-50%); }
+.neck .cut { position:absolute; left:0; right:0; text-align:center; font-size:var(--fs-label); color:var(--text-muted); }
+.neck .cell { position:absolute; cursor:pointer; }
+
+/* ---------- pastilles (Fretboard.css .note-marker, vertical : 48 px) ---------- */
+.pm { position:absolute; width:var(--pm,48px); height:var(--pm,48px); margin:calc(var(--pm,48px) / -2) 0 0 calc(var(--pm,48px) / -2);
+  border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:var(--fs-label); font-weight:600; line-height:1; z-index:2;
+  background:var(--surface-3); color:var(--text-primary); white-space:nowrap; }
+.pm.r-root { background:var(--role-root); color:var(--on-role); border-radius:25%; box-shadow:0 0 0 2px var(--bg); }
+.pm.r-third { background:var(--role-third); color:var(--on-role); box-shadow:0 0 0 2px var(--bg); }
+.pm.r-fifth { background:var(--role-fifth); color:var(--on-role); box-shadow:0 0 0 2px var(--bg); }
+.pm.r-ext { background:var(--role-extension); color:var(--on-role); box-shadow:0 0 0 2px var(--bg); }
+.pm.r-target { background:var(--role-target); color:var(--on-role); outline:2px dashed var(--role-target); outline-offset:3px; box-shadow:0 0 0 2px var(--bg); }
+.pm.r-scale { background:none; border:2px solid var(--role-scale-edge); color:var(--text-secondary); }
+.pm.outside { background:transparent; border:3px solid var(--seq-bass); color:var(--text-primary); box-shadow:none; }
+
+/* --- Traitements « note qui joue » (exploration 3), posés sur un ancêtre --- */
+/* Actuel, tel que la cascade le rend : sur une pastille de rôle, la règle
+   .note-marker.role-* (plus bas dans Fretboard.css, même spécificité) remet
+   box-shadow à 0 0 0 2px noir : l'anneau blanc disparaît, il reste scale(1.1). */
+.tx-now .pm.playing { transform:scale(1.1); z-index:10; }
+.tx-now .pm.playing.r-scale, .tx-now .pm.playing.r-none { box-shadow:var(--select-ring); }
+/* Piste déjà proposée : impulsion unique 240 ms, anneau 8 -> 4 px, scale(1.2). */
+.tx-p .pm.playing { transform:scale(1.2); z-index:10; box-shadow:0 0 0 2px var(--bg), 0 0 0 6px var(--select); animation:tx-p 240ms ease-out; }
+.tx-p .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 10px var(--select); animation:tx-p-t 240ms ease-out; }
+@keyframes tx-p { from { box-shadow:0 0 0 2px var(--bg), 0 0 0 10px var(--select); } }
+@keyframes tx-p-t { from { box-shadow:0 0 0 6px var(--bg), 0 0 0 14px var(--select); } }
+/* A — « Marche » : un cran de taille (48 -> 56 px), anneau fin 2 px réellement
+   visible (liseré noir 2 px), étiquette en gras. Pas d'animation : 90 ms d'attaque. */
+.tx-a .pm { transition:transform 90ms ease-out; }
+.tx-a .pm.playing { transform:scale(1.1667); z-index:10; font-weight:800; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--select); }
+.tx-a .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 8px var(--select); }
+/* B — « Projecteur » : pendant la boucle, le dessin passe en veille (40 %) ;
+   ce qui sonne revient à 100 %, scale(1.1), même anneau fin. Moins de surface
+   allumée pendant la boucle (OLED), pas plus. */
+.tx-b .pm { transition:opacity 120ms ease-out, transform 90ms ease-out; }
+.tx-b.is-running .pm { opacity:.4; }
+.tx-b.is-running .pm.playing, .tx-b .pm.playing { opacity:1; transform:scale(1.1); z-index:10; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--select); font-weight:800; }
+.tx-b .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 8px var(--select); }
+/* la tenue : la fin d'une note relâche en 150 ms (classe posée par le script) */
+.tx-a .pm.release, .tx-b .pm.release { transition-duration:150ms; }
+@media (prefers-reduced-motion: reduce) {
+  .pm, .tx-a .pm, .tx-b .pm { transition:none !important; animation:none !important; }
+  .grad.playing { animation:none; }
+}
+.reduce-motion .pm { transition:none !important; animation:none !important; }
+
+/* ---------- clavier vertical (simplifié) ---------- */
+.piano { position:relative; width:238px; margin-left:10px; border:1px solid var(--border-subtle); border-radius:var(--radius-xl); background:var(--surface-1); padding:8px; overflow:hidden; }
+.piano .wk { position:absolute; left:8px; right:8px; background:var(--key-white); border-bottom:1px solid var(--border-subtle); color:var(--key-name-on-white); font-size:var(--fs-label); font-weight:600; display:flex; align-items:center; justify-content:flex-end; padding-right:10px; }
+.piano .bk { position:absolute; left:8px; width:58%; background:var(--key-black); border-radius:0 3px 3px 0; z-index:2; }
+
+/* ---------- téléphone (390 px) ---------- */
+.fph { width:390px; height:844px; background:var(--bg); border:1px solid var(--border-strong); border-radius:28px; overflow:hidden; position:relative; display:flex; flex-direction:column; font-family:var(--font-body); font-size:var(--fs-body); }
+.fph .urlbar { flex:0 0 52px; display:flex; align-items:center; gap:10px; padding:0 14px; border-bottom:1px solid var(--border-subtle); color:var(--text-muted); font-size:14px; }
+.fph .urlbar span { flex:1; height:34px; border-radius:17px; background:var(--surface-2); display:flex; align-items:center; padding:0 14px; }
+.fph .scroll { flex:1 1 auto; overflow-y:auto; overflow-x:hidden; padding:0 16px 16px; }
+.fph .appbar { height:52px; display:flex; align-items:center; gap:12px; }
+.fph .appbar .app-title { font-size:var(--fs-title); }
+.fph .bottombar { flex:0 0 auto; display:flex; gap:8px; padding:8px 16px 12px; border-top:1px solid var(--border-subtle); background:var(--bg); }
+.itabs { display:flex; margin:4px 0 12px; }
+.itabs button { flex:1; height:var(--hit-min); background:var(--bg); border:1px solid var(--border-strong); color:var(--text-secondary); font-size:var(--fs-body); }
+.itabs button + button { margin-left:-1px; }
+.itabs button:first-child { border-radius:var(--radius-md) 0 0 var(--radius-md); }
+.itabs button:last-child { border-radius:0 var(--radius-md) var(--radius-md) 0; }
+.itabs button.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); position:relative; z-index:1; }
+.hit-note { outline:1px dashed var(--color-warning); outline-offset:-1px; }
+
+.cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; max-width:1300px; margin-top:24px; }
+.card { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:18px 20px; display:flex; flex-direction:column; gap:10px; text-decoration:none; color:var(--text-primary); background:var(--bg); min-width:0; }
+.card:hover { border-color:var(--assistant-border); }
+.card .num { font-family:var(--font-display); color:var(--assistant-border); font-size:14px; letter-spacing:.08em; }
+.card h2 { margin:0; font-size:20px; text-wrap:balance; }
+.card p { margin:0; color:var(--text-secondary); font-size:14px; }
+.card ul { margin:0; padding-left:18px; font-size:14px; color:var(--text-secondary); }
+.card .go { margin-top:auto; font-size:14px; color:var(--text-primary); }
+.finds { max-width:1300px; margin-top:32px; }
+.finds h2 { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); font-weight:600; }
+.finds ol { padding-left:20px; color:var(--text-secondary); max-width:110ch; }
+.finds li + li { margin-top:8px; }
+.finds li b { color:var(--text-primary); }
+.finds code { font-family:var(--font-mono); font-size:.92em; color:var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>VisualMusic A′ : trois explorations</h1>
+  <p>Maquettes statiques autonomes, sans réseau. Chaque exploration propose deux variantes, chacune en 4K (2560 px CSS, soit 3840 × 2045 à 150 %) et au téléphone (390 px). Les maquettes sont cliquables et sonores (bouton « Muet » en haut) ; « 100 % » montre la 4K à sa taille réelle, « Réduit » simule <code>prefers-reduced-motion</code>.</p>
+  <p>Seules les couleurs de <code>src/styles/tokens.css</code> sont utilisées ; aucune nouvelle couleur.</p>
+</div>
+<div class="cards">
+  <a class="card" href="e1-position-gamme.html">
+    <span class="num">EXPLORATION 1</span>
+    <h2>Choisir la position d’une gamme sur le manche</h2>
+    <ul><li><b>A · Couloirs :</b> une capsule de 44 px de large par position, quatre couloirs.</li><li><b>B · Onglets et fils :</b> un onglet de 44 × 44 à la première case, un fil fin jusqu’à la dernière (rail de 98 px au lieu de 176).</li></ul>
+    <p>Le ruban des 8 notes se loge dans la ligne X/O du manche, vide pour une gamme : aucune hauteur ajoutée.</p>
+    <span class="go">Ouvrir →</span>
+  </a>
+  <a class="card" href="e2-math-rythmes-dock.html">
+    <span class="num">EXPLORATION 2</span>
+    <h2>Math & Rythmes dans un dock</h2>
+    <ul><li><b>A · La roue :</b> l’aiguille tourne, trois paires − / +, presque pas de texte.</li><li><b>B · La phrase :</b> la roue tourne sous un repère fixe ; « 5 coups sur 16 cases, départ décalé de 0, joués par la grosse caisse ».</li></ul>
+    <p>Inventaire complet : chaque fonction de la fenêtre actuelle a sa place dans les deux variantes.</p>
+    <span class="go">Ouvrir →</span>
+  </a>
+  <a class="card" href="e3-note-qui-joue.html">
+    <span class="num">EXPLORATION 3</span>
+    <h2>La note qui joue et la note dessinée</h2>
+    <ul><li><b>A · La marche :</b> 48 → 56 px, anneau fin réellement visible, pas d’animation.</li><li><b>B · Le projecteur :</b> pendant la boucle, le dessin passe à 40 % et ce qui sonne reste à 100 %.</li></ul>
+    <p>Banc côte à côte avec l’état actuel et la piste déjà proposée (impulsion de 240 ms).</p>
+    <span class="go">Ouvrir →</span>
+  </a>
+</div>
+<div class="finds">
+  <h2>Ce que la lecture du code a révélé (à vérifier)</h2>
+  <ol>
+    <li><b>L’anneau « joue » est effacé sur les pastilles de couleur.</b> <code>.note-marker.role-*</code> remet <code>box-shadow</code> à un simple liseré noir, après <code>.note-marker.is-playing</code> et avec la même spécificité (<code>Fretboard.css</code>). Il ne reste que <code>scale(1.1)</code>. Sur le manche vertical, la pastille fait 48 px, pas 32 px.</li>
+    <li><b>Math & Rythmes : pour n ≠ 16, ce qu’on voit n’est pas ce qu’on entend.</b> L’envoi ne garde que les pas d’indice &lt; 16, sans répéter le motif (<code>CompositionPanel.jsx</code>, <code>handleExport</code>), alors que le cercle boucle sur n.</li>
+    <li><b>À 2560 px CSS (4K à 150 %), <code>tokens.css</code> donne <code>--hit-min</code> 44 px et <code>--fs-label</code> 16,5 px.</b> Les 48 px et 18 px des commentaires valent à ≥ 3840 px CSS. La hauteur utile est d’environ 1283 px CSS, alors que les colonnes d’instruments descendent vers 1995 px.</li>
+    <li><b>Le téléphone n’a pas encore d’écran à lui.</b> <code>AppMobile.jsx</code> réexporte <code>AppDesktop</code> : la mise en page téléphone des maquettes (un instrument à la fois, manche vertical à 53 px par corde, pastilles de 40 px) est entièrement supposée.</li>
+  </ol>
+</div>
+<script>
+/* Explorations A′ — script commun (copié dans chaque page par build.mjs). */
+const VM = (() => {
+  const h = (tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else if (k === 'text') el.textContent = v;
+      else if (k === 'html') el.innerHTML = v;
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+    return el;
+  };
+  const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  const state = { sound: true, reduced: mq.matches };
+
+  /* ---- son : un petit synthé WebAudio, démarré au premier geste ---- */
+  let ctx = null;
+  const audio = () => {
+    if (!state.sound) return null;
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    } catch (e) { return null; }
+  };
+  const freq = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+  const tone = (midi, dur = 0.35, gain = 0.12, type = 'triangle') => {
+    const c = audio(); if (!c) return;
+    const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = freq(midi);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+  };
+  let noiseBuf = null;
+  const noise = (dur, filterType, f, gain) => {
+    const c = audio(); if (!c) return;
+    if (!noiseBuf) { noiseBuf = c.createBuffer(1, c.sampleRate * 0.5, c.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    const t = c.currentTime, s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = noiseBuf; fl.type = filterType; fl.frequency.value = f;
+    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    s.connect(fl).connect(g).connect(c.destination); s.start(t); s.stop(t + dur + 0.02);
+  };
+  const drum = (kind) => {
+    const c = audio(); if (!c) return;
+    if (kind === 'kick') {
+      const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+      o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.14);
+      g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      o.connect(g).connect(c.destination); o.start(t); o.stop(t + 0.2);
+    } else if (kind === 'snare') noise(0.14, 'bandpass', 1800, 0.35);
+    else if (kind === 'hat') noise(0.05, 'highpass', 7000, 0.18);
+    else if (kind === 'bass') tone(36, 0.22, 0.25, 'sine');
+    else if (kind === 'chords') { [60, 64, 67].forEach((m) => tone(m, 0.25, 0.06)); }
+    else if (kind === 'tick') tone(84, 0.04, 0.03, 'sine');
+  };
+
+  /* ---- géométrie du manche vertical (verticalNeckGeometry.js) ----
+     longueur des rangées de cases à 3840 : 29 x 61 + 18 - 2 x 36 - 70 = 1645 px */
+  const ROWS_H = 1645;
+  const pitchFor = (numFrets) => (n) => ROWS_H * (1 + 0.5 * (numFrets - n) / (numFrets - 1)) / (numFrets * 1.25);
+  const INLAYS = { 3: 1, 5: 1, 7: 1, 9: 1, 12: 2, 15: 1, 17: 1, 19: 1, 21: 1 };
+
+  /**
+   * Manche vertical : sillet en haut, graves à gauche, numéros de case dans
+   * une gouttière. `rail` px réservés à gauche de la gouttière.
+   */
+  const buildNeck = (cfg) => {
+    const c = Object.assign({ strings: ['Mi', 'La', 'Ré', 'Sol', 'Si', 'Mi'], maxFret: 12, numFrets: 22, stringPx: 66, gutter: 28,
+      headRow: 36, openRow: 70, rail: 0, pm: 48, bass: false, pitch: null, cut: null }, cfg);
+    const pitch = c.pitch || pitchFor(c.numFrets);
+    const W = c.rail + c.gutter + c.strings.length * c.stringPx;
+    const rows = []; let y = 2 * c.headRow;
+    for (let f = 0; f <= c.maxFret; f++) { const hh = f === 0 ? c.openRow : pitch(f); rows.push({ top: y, h: hh }); y += hh; }
+    const H = y + (c.cut ? 36 : 0);
+    const el = h('div', { class: 'neck', style: { width: W + 'px', height: H + 'px', '--pm': c.pm + 'px' } });
+    const x0 = c.rail + c.gutter;
+    const sx = (s) => x0 + c.stringPx * (s + 0.5);
+    const cy = (f) => rows[f].top + (rows[f].h - (f === 0 ? 6 : 3)) / 2;
+    el.append(h('div', { class: 'board', style: { left: x0 + 'px', top: rows[1].top + 'px', width: (W - x0) + 'px', height: (y - rows[1].top) + 'px' } }));
+    rows.forEach((r, f) => {
+      if (f === 0) el.append(h('div', { class: 'nut', style: { left: x0 + 'px', width: (W - x0) + 'px', top: (r.top + r.h - 6) + 'px' } }));
+      else el.append(h('div', { class: 'wire-f', style: { left: x0 + 'px', width: (W - x0) + 'px', top: (r.top + r.h - 3) + 'px' } }));
+      const n = INLAYS[f] || 0;
+      for (let i = 0; i < n; i++) {
+        const shift = n === 2 ? (i === 0 ? -1 : 1) : 0;
+        el.append(h('div', { class: 'inlay', style: { left: (x0 + c.stringPx * (c.strings.length / 2 + shift)) + 'px', top: cy(f) + 'px' } }));
+      }
+    });
+    const fnos = rows.map((r, f) => {
+      const n = h('div', { class: 'fno' + (INLAYS[f] ? ' inl' : ''), text: String(f), style: { left: c.rail + 'px', width: (c.gutter - 4) + 'px', top: cy(f) + 'px' } });
+      el.append(n); return n;
+    });
+    c.strings.forEach((name, s) => {
+      el.append(h('div', { class: 'str', style: { left: sx(s) + 'px', top: (2 * c.headRow) + 'px', height: (y - 2 * c.headRow) + 'px', width: ((c.bass ? 5 : 4) - s * 0.5) + 'px' } }));
+      el.append(h('div', { class: 'sname', text: name, style: { left: sx(s) + 'px', top: (c.headRow / 2) + 'px' } }));
+    });
+    if (c.cut) el.append(h('div', { class: 'cut', text: c.cut, style: { top: (y + 8) + 'px', left: x0 + 'px' } }));
+    const markers = new Map();
+    const api = {
+      el, rows, sx, cy, W, H, cfg: c, fnos, x0,
+      setNotes(notes) {
+        markers.forEach((m) => m.remove()); markers.clear();
+        notes.forEach((n) => {
+          const m = h('div', { class: `pm r-${n.role || 'none'}${n.outside ? ' outside' : ''}`, text: n.label || '', style: { left: sx(n.s) + 'px', top: cy(n.f) + 'px' }, title: n.title || null });
+          el.append(m); markers.set(`${n.s}:${n.f}`, m);
+        });
+      },
+      marker: (s, f) => markers.get(`${s}:${f}`),
+      markers,
+      play(s, f, on) { const m = markers.get(`${s}:${f}`); if (!m) return; if (on) { m.classList.remove('release'); m.classList.add('playing'); } else { m.classList.add('release'); m.classList.remove('playing'); } },
+      clearPlaying() { markers.forEach((m) => m.classList.remove('playing')); },
+      highlightFrets(a, b) { fnos.forEach((n, f) => n.classList.toggle('in-pos', a != null && f >= a && f <= b)); },
+    };
+    return api;
+  };
+
+  /* ---- clavier vertical simplifié : aigus en haut ---- */
+  const NAMES = ['Do', 'Do♯', 'Ré', 'Ré♯', 'Mi', 'Fa', 'Fa♯', 'Sol', 'Sol♯', 'La', 'La♯', 'Si'];
+  const buildPiano = ({ height, topMidi = 84, keyPx = 61 }) => {
+    const el = h('div', { class: 'piano', style: { height: height + 'px' } });
+    let y = 8, m = topMidi;
+    while (y < height) {
+      const pc = ((m % 12) + 12) % 12;
+      if (NAMES[pc].length <= 3 && !NAMES[pc].includes('♯')) {
+        el.append(h('div', { class: 'wk', text: pc === 0 ? `Do${Math.floor(m / 12) - 1}` : '', style: { top: y + 'px', height: keyPx + 'px' } }));
+        const below = ((m - 1) % 12 + 12) % 12;
+        if (NAMES[below].includes('♯')) el.append(h('div', { class: 'bk', style: { top: (y + keyPx - 18) + 'px', height: '36px' } }));
+        y += keyPx;
+      }
+      m--;
+    }
+    return el;
+  };
+
+  /* ---- en-tête 4K, tête de colonne ---- */
+  const header4k = (mode = 'Dictionnaire') => h('div', { class: 'app-header' },
+    h('span', { class: 'app-title', text: 'VisualMusic' }),
+    h('span', { class: 'tab' + (mode === 'Studio' ? ' on' : ''), text: 'Studio' }),
+    h('span', { class: 'tab' + (mode === 'Dictionnaire' ? ' on' : ''), text: 'Dictionnaire' }),
+    h('span', { style: { flex: 1 } }),
+    h('span', { class: 'btn', text: 'Sur les notes : Do Ré Mi' }),
+    h('span', { class: 'btn grad', text: 'Assistant' }));
+
+  const playGlyph = () => h('span', { 'aria-hidden': 'true', text: '▶' });
+  const head = ({ name, on = false, play = null, setting = null }) => {
+    const row1 = h('div', { class: 'row' }, h('span', { class: 'iname' + (on ? ' on' : ''), text: name }));
+    let playBtn = null;
+    if (play) { playBtn = h('button', { class: 'hbtn', type: 'button', 'aria-label': play.label, title: play.label, onclick: play.onClick }, playGlyph()); row1.append(playBtn); }
+    const row2 = h('div', { class: 'row' });
+    const refs = { playBtn };
+    if (setting) {
+      if (setting.prev) { refs.prev = h('button', { class: 'hbtn grad', type: 'button', 'aria-label': setting.prev.label, title: setting.prev.label, onclick: setting.prev.onClick, text: '‹' }); row2.append(refs.prev); }
+      refs.label = h('button', { class: 'hlabel', type: 'button', onclick: setting.onLabel || null });
+      row2.append(refs.label);
+      if (setting.next) { refs.next = h('button', { class: 'hbtn grad', type: 'button', 'aria-label': setting.next.label, title: setting.next.label, onclick: setting.next.onClick, text: '›' }); row2.append(refs.next); }
+    }
+    return { el: h('div', { class: 'ihead' }, row1, row2), refs };
+  };
+
+  /* ---- mise à l'échelle des cadres 4K ---- */
+  const fits = new Set();
+  const layout = (box) => {
+    const frame = box.firstElementChild; if (!frame) return;
+    if (document.body.classList.contains('native')) {
+      box.classList.add('is-native'); frame.style.transform = ''; box.style.height = '';
+    } else {
+      box.classList.remove('is-native');
+      const s = Math.min(1, box.clientWidth / frame.offsetWidth);
+      frame.style.transform = `scale(${s})`; box.style.height = Math.ceil(frame.offsetHeight * s) + 'px';
+    }
+  };
+  const fit = (box) => {
+    fits.add(box);
+    if ('ResizeObserver' in window) { const ro = new ResizeObserver(() => layout(box)); ro.observe(box); ro.observe(box.firstElementChild); }
+    layout(box);
+  };
+  const relayout = () => fits.forEach(layout);
+
+  /* ---- barre du haut commune ---- */
+  const topbar = (current) => {
+    const pages = [['index.html', 'Sommaire'], ['e1-position-gamme.html', '1 · Position de gamme'], ['e2-math-rythmes-dock.html', '2 · Math & Rythmes'], ['e3-note-qui-joue.html', '3 · Note qui joue']];
+    const zoomBtns = [['Ajusté', false], ['100 %', true]].map(([t, nat]) => h('button', { type: 'button', 'aria-pressed': String(nat === document.body.classList.contains('native')), text: t,
+      onclick: (e) => { document.body.classList.toggle('native', nat); [...e.target.parentNode.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.target))); relayout(); } }));
+    const soundBtns = [['Son', true], ['Muet', false]].map(([t, on]) => h('button', { type: 'button', 'aria-pressed': String(on === state.sound), text: t,
+      onclick: (e) => { state.sound = on; [...e.target.parentNode.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.target))); } }));
+    const motionBtns = [['Mouvement', false], ['Réduit', true]].map(([t, red]) => h('button', { type: 'button', 'aria-pressed': String(red === state.reduced), text: t,
+      onclick: (e) => { state.reduced = red; document.body.classList.toggle('reduce-motion', red); [...e.target.parentNode.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.target))); } }));
+    document.body.classList.toggle('reduce-motion', state.reduced);
+    return h('div', { class: 'topbar' },
+      h('span', { class: 'brand', text: 'A′ · explorations' }),
+      h('nav', { 'aria-label': 'Pages' }, pages.map(([href, t]) => h('a', { href, text: t, 'aria-current': href === current ? 'page' : null }))),
+      h('span', { class: 'spacer' }),
+      h('span', { class: 'ctl-label', text: '4K' }), h('span', { class: 'seg' }, zoomBtns),
+      h('span', { class: 'seg' }, soundBtns),
+      h('span', { class: 'seg', title: 'Simule prefers-reduced-motion' }, motionBtns));
+  };
+
+  /* horloge commune : un pas = une double croche */
+  const clock = (bpm, onStep) => {
+    let timer = null, step = 0;
+    return {
+      get running() { return timer !== null; },
+      start() { if (timer) return; step = 0; const tick = () => { onStep(step++); }; tick(); timer = setInterval(tick, 60000 / bpm / 4); },
+      stop() { clearInterval(timer); timer = null; },
+      setBpm(b) { bpm = b; if (timer) { clearInterval(timer); timer = setInterval(() => onStep(step++), 60000 / bpm / 4); } },
+    };
+  };
+
+  return { h, state, tone, drum, buildNeck, buildPiano, pitchFor, header4k, head, fit, relayout, topbar, clock, NAMES };
+})();
+
+</script>
+<script>document.body.prepend(VM.topbar('index.html'));</script>
+</body>
+</html>

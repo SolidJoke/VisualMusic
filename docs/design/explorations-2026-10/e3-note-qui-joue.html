@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Note qui joue · A′</title>
+<style>
+/* ==========================================================================
+   Explorations A′ — feuille commune (copiée dans chaque page par build.mjs).
+   Couleurs : UNIQUEMENT les jetons de src/styles/tokens.css (valeurs recopiées
+   telles quelles). Aucune police chargée : pas de réseau, les piles de repli
+   de tokens.css s'appliquent (Orbitron / Hanken Grotesk / JetBrains Mono
+   s'affichent seulement si elles sont installées sur la machine).
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+  --bg:#000000; --surface-1:#0a0a0a; --surface-2:#141414; --surface-3:#1f1f1f;
+  --border-subtle:#1f1f1f; --border-default:#333333; --border-strong:#6b6b6b;
+  --text-primary:#e8e8e8; --text-secondary:#a8a8a8; --text-muted:#8c8c8c; --text-disabled:#5c5c5c;
+  --text-on-select:#ffffff; --on-role:#000000; --select:#ffffff;
+  --select-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--select);
+  --role-root:#f07878; --role-third:#a0c4ff; --role-fifth:#80f5c8; --role-extension:#b084dc; --role-target:#e0d840;
+  --role-scale-edge: var(--text-muted);
+  --color-error:#ff8a80; --color-warning:#ffc266; --color-success:#6fdc8c;
+  --seq-kick:#f79009; --seq-snare:#2e90fa; --seq-hat:#bdc7de; --seq-chords:#ffb782; --seq-bass:#32d583;
+  --assistant-from:#6e3fa3; --assistant-from-hover:#7b4bb0; --assistant-to:var(--bg);
+  --assistant-text:var(--text-on-select); --assistant-border:#a77bd8;
+  --key-white:#cfcfcf; --key-black:#1a1a1a; --key-name-on-white:#555555;
+  --fret-wire:var(--border-strong); --string:#8c8c8c; --fret-inlay:#333333;
+  --font-display:'Orbitron','Hanken Grotesk',system-ui,sans-serif;
+  --font-body:'Hanken Grotesk',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --radius-sm:4px; --radius-md:6px; --radius-lg:8px; --radius-xl:12px;
+  /* présentation (hors maquette) : mêmes jetons, échelle 1 */
+  --ui-scale:1; --hit-min:44px;
+}
+/* Échelle des maquettes : celle que tokens.css donne à ces largeurs de fenêtre.
+   2560 px CSS (4K à 150 %) : --ui-scale 1.375, --hit-min 44 px (le 48 px de
+   tokens.css ne s'applique qu'à >= 3840 px CSS). Téléphone 390 px : 1.25. */
+.f4k { --ui-scale:1.375; --hit-min:44px; }
+.fph { --ui-scale:1.25;  --hit-min:44px; }
+.f4k, .fph {
+  --fs-label: calc(12px * var(--ui-scale));
+  --fs-body:  calc(14px * var(--ui-scale));
+  --fs-emph:  calc(16px * var(--ui-scale));
+  --fs-title: calc(20px * var(--ui-scale));
+  --fs-heading: calc(26px * var(--ui-scale));
+  --fs-display: calc(36px * var(--ui-scale));
+}
+
+html, body { background: var(--surface-1); color: var(--text-primary); }
+body { margin:0; font-family: var(--font-body); font-size:15px; line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:0 64px; }
+body::before { content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:30; background:var(--bg); }
+* { box-sizing: border-box; }
+[hidden] { display:none !important; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline:none; box-shadow: var(--select-ring); }
+a { color: var(--text-primary); }
+
+/* ---------- présentation ---------- */
+.topbar { position:sticky; top:env(safe-area-inset-top,0px); z-index:20; display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px;
+  margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px))); padding:10px max(16px, env(safe-area-inset-left,0px));
+  background:var(--bg); border-bottom:1px solid var(--border-default); }
+.topbar .brand { font-family:var(--font-display); font-weight:700; letter-spacing:.04em; color:var(--text-secondary); }
+.topbar nav { display:flex; gap:4px; flex-wrap:wrap; }
+.topbar nav a { text-decoration:none; padding:6px 12px; border-radius:var(--radius-md); border:1px solid var(--border-default); color:var(--text-secondary); font-size:14px; }
+.topbar nav a[aria-current="page"] { color:var(--text-on-select); border-color:var(--select); background:var(--surface-3); }
+.topbar .spacer { flex:1; }
+.seg { display:inline-flex; }
+.seg button { min-height:36px; padding:0 12px; background:var(--bg); border:1px solid var(--border-strong); cursor:pointer; font-size:14px; color:var(--text-secondary); }
+.seg button + button { margin-left:-1px; }
+.seg button:first-child { border-radius:var(--radius-md) 0 0 var(--radius-md); }
+.seg button:last-child { border-radius:0 var(--radius-md) var(--radius-md) 0; }
+.seg button[aria-pressed="true"] { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); position:relative; z-index:1; }
+.ctl-label { font-size:13px; color:var(--text-muted); letter-spacing:.04em; text-transform:uppercase; }
+
+.intro { max-width:1100px; padding-top:28px; }
+.intro h1 { font-family:var(--font-display); font-size:28px; margin:0 0 8px; text-wrap:balance; }
+.intro p { color:var(--text-secondary); max-width:72ch; margin:0 0 8px; }
+.variant { padding-top:40px; border-top:1px solid var(--border-subtle); margin-top:40px; }
+.variant > header { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 16px; margin-bottom:16px; }
+.variant > header h2 { font-family:var(--font-display); font-size:22px; margin:0; }
+.variant > header .tag { color:var(--text-muted); font-size:14px; }
+.three { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin:0 0 20px; padding:0; list-style:none; max-width:1500px; }
+.three li { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:12px 14px; min-width:0; }
+.three li b { display:block; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); font-weight:600; margin-bottom:4px; }
+.frames { display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; }
+.frame-box { min-width:0; flex:1 1 640px; }
+.frame-box.phone { flex:0 1 auto; max-width:100%; overflow-x:auto; }
+.frame-box.phone > div { width:max-content; }
+.frame-cap { font-size:13px; color:var(--text-muted); margin:0 0 6px; display:flex; gap:12px; flex-wrap:wrap; }
+.fit { position:relative; overflow:hidden; border:1px solid var(--border-default); border-radius:var(--radius-md); background:var(--bg); }
+.fit.is-native { overflow:auto; max-height:88vh; }
+.fit > .f4k { transform-origin:0 0; position:absolute; left:0; top:0; }
+.fit.is-native > .f4k { position:relative; }
+.specs { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:16px 32px; margin-top:20px; max-width:1500px; }
+.specs h3 { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); margin:0 0 8px; font-weight:600; }
+.specs table { border-collapse:collapse; width:100%; font-size:14px; }
+.specs td, .specs th { text-align:left; padding:5px 8px 5px 0; border-bottom:1px solid var(--border-subtle); vertical-align:top; font-variant-numeric:tabular-nums; }
+.specs th { color:var(--text-muted); font-weight:500; }
+.specs ul { margin:0; padding-left:18px; font-size:14px; color:var(--text-secondary); }
+.specs li + li { margin-top:6px; }
+.specs code, .note code { font-family:var(--font-mono); font-size:.92em; color:var(--text-primary); }
+.note { border-left:3px solid var(--assistant-border); padding:8px 14px; color:var(--text-secondary); max-width:110ch; margin:16px 0; }
+.table-wrap { overflow-x:auto; }
+
+/* ---------- maquette 4K (2560 px CSS) ---------- */
+.f4k { width:2560px; background:var(--bg); color:var(--text-primary); font-family:var(--font-body); font-size:var(--fs-body); position:relative; }
+.app-header { height:72px; display:flex; align-items:center; gap:24px; padding:0 24px 0 16px; border-bottom:1px solid var(--border-subtle); }
+.app-title { font-family:var(--font-display); font-weight:700; font-size:var(--fs-heading); color:var(--text-secondary); }
+.tab { height:48px; width:220px; border-radius:var(--radius-lg); border:1px solid var(--border-default); background:var(--bg); color:var(--text-secondary); font-size:var(--fs-emph); display:inline-flex; align-items:center; justify-content:center; }
+.tab.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); }
+.btn { min-height:var(--hit-min); padding:0 20px; background:var(--bg); color:var(--text-primary); border:1px solid var(--border-strong); border-radius:var(--radius-md); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.btn.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); }
+.grad { background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); color:var(--assistant-text); border-color:var(--assistant-border); }
+.grad:hover:not(:disabled) { background:linear-gradient(90deg, var(--assistant-from-hover), var(--assistant-to)); }
+.grad:disabled { background:var(--bg); color:var(--text-secondary); border-color:var(--border-subtle); cursor:default; }
+.grad.playing { background:linear-gradient(90deg, var(--assistant-to), var(--assistant-from), var(--assistant-to)); background-size:200% 100%; animation:vm-play 3s linear infinite; }
+@keyframes vm-play { from { background-position:0% 0; } to { background-position:200% 0; } }
+.app-grid { display:flex; align-items:flex-start; gap:24px; padding:0 24px 0 16px; }
+.col { padding-top:24px; display:flex; flex-direction:column; gap:12px; flex:0 0 auto; }
+.col + .col.inst { box-shadow:-13px 0 0 -12px var(--border-subtle); }
+.col.centre { flex:1 1 auto; min-width:0; gap:24px; }
+.wire { border:1px dashed var(--border-default); border-radius:var(--radius-lg); color:var(--text-muted); font-size:var(--fs-label); padding:16px 20px; }
+.wire b { color:var(--text-secondary); font-weight:600; }
+.fold { position:absolute; left:0; right:0; border-top:2px dashed var(--color-warning); pointer-events:none; z-index:40; }
+.fold span { position:absolute; right:24px; top:4px; font-size:var(--fs-label); color:var(--color-warning); background:var(--bg); padding:2px 8px; }
+
+/* tête de colonne (InstrumentHead) : 100 px, deux rangées de 44/48 px */
+.ihead { height:100px; display:flex; flex-direction:column; justify-content:space-between; padding-left:16px; }
+.ihead .row { display:flex; align-items:center; gap:4px; height:var(--hit-min); white-space:nowrap; position:relative; }
+.iname { flex:1 1 auto; height:var(--hit-min); padding:0 12px; text-align:left; font-family:var(--font-display); font-weight:600; font-size:var(--fs-emph); background:var(--bg); border:1px solid var(--border-default); border-radius:var(--radius-md); display:flex; align-items:center; }
+.iname.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); }
+.hbtn { flex:0 0 auto; width:var(--hit-min); height:var(--hit-min); padding:0; border:1px solid var(--border-strong); border-radius:var(--radius-md); background:var(--bg); display:inline-flex; align-items:center; justify-content:center; font-size:var(--fs-emph); cursor:pointer; }
+.hlabel { flex:1 1 auto; min-width:0; height:var(--hit-min); display:flex; align-items:center; justify-content:center; gap:6px; font-size:var(--fs-label); border:1px solid var(--border-default); border-radius:var(--radius-md); background:transparent; cursor:pointer; padding:0 6px; }
+.hlabel .caret { font-size:.75em; color:var(--text-secondary); }
+.warn { color:var(--color-warning); }
+
+/* ---------- manche vertical (géométrie de Fretboard.css / verticalNeckGeometry.js) ---------- */
+.neck { position:relative; flex:0 0 auto; }
+.neck .board { position:absolute; background:var(--surface-3); }
+.neck .wire-f { position:absolute; height:3px; background:var(--fret-wire); }
+.neck .nut { position:absolute; height:6px; background:var(--text-secondary); }
+.neck .str { position:absolute; background:var(--string); transform:translateX(-50%); }
+.neck .inlay { position:absolute; width:12px; height:12px; border-radius:50%; background:var(--border-strong); transform:translate(-50%,-50%); }
+.neck .fno { position:absolute; font-family:var(--font-mono); font-size:var(--fs-label); color:var(--text-muted); text-align:right; line-height:1; transform:translateY(-50%); transition:color 150ms ease; }
+.neck .fno.inl { color:var(--text-primary); }
+.neck .fno.in-pos { color:var(--text-on-select); font-weight:700; }
+.neck .sname { position:absolute; font-size:var(--fs-label); font-weight:600; color:var(--text-secondary); transform:translate(-50%,-50%); }
+.neck .cut { position:absolute; left:0; right:0; text-align:center; font-size:var(--fs-label); color:var(--text-muted); }
+.neck .cell { position:absolute; cursor:pointer; }
+
+/* ---------- pastilles (Fretboard.css .note-marker, vertical : 48 px) ---------- */
+.pm { position:absolute; width:var(--pm,48px); height:var(--pm,48px); margin:calc(var(--pm,48px) / -2) 0 0 calc(var(--pm,48px) / -2);
+  border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:var(--fs-label); font-weight:600; line-height:1; z-index:2;
+  background:var(--surface-3); color:var(--text-primary); white-space:nowrap; }
+.pm.r-root { background:var(--role-root); color:var(--on-role); border-radius:25%; box-shadow:0 0 0 2px var(--bg); }
+.pm.r-third { background:var(--role-third); color:var(--on-role); box-shadow:0 0 0 2px var(--bg); }
+.pm.r-fifth { background:var(--role-fifth); color:var(--on-role); box-shadow:0 0 0 2px var(--bg); }
+.pm.r-ext { background:var(--role-extension); color:var(--on-role); box-shadow:0 0 0 2px var(--bg); }
+.pm.r-target { background:var(--role-target); color:var(--on-role); outline:2px dashed var(--role-target); outline-offset:3px; box-shadow:0 0 0 2px var(--bg); }
+.pm.r-scale { background:none; border:2px solid var(--role-scale-edge); color:var(--text-secondary); }
+.pm.outside { background:transparent; border:3px solid var(--seq-bass); color:var(--text-primary); box-shadow:none; }
+
+/* --- Traitements « note qui joue » (exploration 3), posés sur un ancêtre --- */
+/* Actuel, tel que la cascade le rend : sur une pastille de rôle, la règle
+   .note-marker.role-* (plus bas dans Fretboard.css, même spécificité) remet
+   box-shadow à 0 0 0 2px noir : l'anneau blanc disparaît, il reste scale(1.1). */
+.tx-now .pm.playing { transform:scale(1.1); z-index:10; }
+.tx-now .pm.playing.r-scale, .tx-now .pm.playing.r-none { box-shadow:var(--select-ring); }
+/* Piste déjà proposée : impulsion unique 240 ms, anneau 8 -> 4 px, scale(1.2). */
+.tx-p .pm.playing { transform:scale(1.2); z-index:10; box-shadow:0 0 0 2px var(--bg), 0 0 0 6px var(--select); animation:tx-p 240ms ease-out; }
+.tx-p .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 10px var(--select); animation:tx-p-t 240ms ease-out; }
+@keyframes tx-p { from { box-shadow:0 0 0 2px var(--bg), 0 0 0 10px var(--select); } }
+@keyframes tx-p-t { from { box-shadow:0 0 0 6px var(--bg), 0 0 0 14px var(--select); } }
+/* A — « Marche » : un cran de taille (48 -> 56 px), anneau fin 2 px réellement
+   visible (liseré noir 2 px), étiquette en gras. Pas d'animation : 90 ms d'attaque. */
+.tx-a .pm { transition:transform 90ms ease-out; }
+.tx-a .pm.playing { transform:scale(1.1667); z-index:10; font-weight:800; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--select); }
+.tx-a .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 8px var(--select); }
+/* B — « Projecteur » : pendant la boucle, le dessin passe en veille (40 %) ;
+   ce qui sonne revient à 100 %, scale(1.1), même anneau fin. Moins de surface
+   allumée pendant la boucle (OLED), pas plus. */
+.tx-b .pm { transition:opacity 120ms ease-out, transform 90ms ease-out; }
+.tx-b.is-running .pm { opacity:.4; }
+.tx-b.is-running .pm.playing, .tx-b .pm.playing { opacity:1; transform:scale(1.1); z-index:10; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--select); font-weight:800; }
+.tx-b .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 8px var(--select); }
+/* la tenue : la fin d'une note relâche en 150 ms (classe posée par le script) */
+.tx-a .pm.release, .tx-b .pm.release { transition-duration:150ms; }
+@media (prefers-reduced-motion: reduce) {
+  .pm, .tx-a .pm, .tx-b .pm { transition:none !important; animation:none !important; }
+  .grad.playing { animation:none; }
+}
+.reduce-motion .pm { transition:none !important; animation:none !important; }
+
+/* ---------- clavier vertical (simplifié) ---------- */
+.piano { position:relative; width:238px; margin-left:10px; border:1px solid var(--border-subtle); border-radius:var(--radius-xl); background:var(--surface-1); padding:8px; overflow:hidden; }
+.piano .wk { position:absolute; left:8px; right:8px; background:var(--key-white); border-bottom:1px solid var(--border-subtle); color:var(--key-name-on-white); font-size:var(--fs-label); font-weight:600; display:flex; align-items:center; justify-content:flex-end; padding-right:10px; }
+.piano .bk { position:absolute; left:8px; width:58%; background:var(--key-black); border-radius:0 3px 3px 0; z-index:2; }
+
+/* ---------- téléphone (390 px) ---------- */
+.fph { width:390px; height:844px; background:var(--bg); border:1px solid var(--border-strong); border-radius:28px; overflow:hidden; position:relative; display:flex; flex-direction:column; font-family:var(--font-body); font-size:var(--fs-body); }
+.fph .urlbar { flex:0 0 52px; display:flex; align-items:center; gap:10px; padding:0 14px; border-bottom:1px solid var(--border-subtle); color:var(--text-muted); font-size:14px; }
+.fph .urlbar span { flex:1; height:34px; border-radius:17px; background:var(--surface-2); display:flex; align-items:center; padding:0 14px; }
+.fph .scroll { flex:1 1 auto; overflow-y:auto; overflow-x:hidden; padding:0 16px 16px; }
+.fph .appbar { height:52px; display:flex; align-items:center; gap:12px; }
+.fph .appbar .app-title { font-size:var(--fs-title); }
+.fph .bottombar { flex:0 0 auto; display:flex; gap:8px; padding:8px 16px 12px; border-top:1px solid var(--border-subtle); background:var(--bg); }
+.itabs { display:flex; margin:4px 0 12px; }
+.itabs button { flex:1; height:var(--hit-min); background:var(--bg); border:1px solid var(--border-strong); color:var(--text-secondary); font-size:var(--fs-body); }
+.itabs button + button { margin-left:-1px; }
+.itabs button:first-child { border-radius:var(--radius-md) 0 0 var(--radius-md); }
+.itabs button:last-child { border-radius:0 var(--radius-md) var(--radius-md) 0; }
+.itabs button.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); position:relative; z-index:1; }
+.hit-note { outline:1px dashed var(--color-warning); outline-offset:-1px; }
+
+/* ---- exploration 3 ---- */
+.scale4k { --ui-scale:1.375; --fs-label:calc(12px * 1.375); --fs-body:calc(14px * 1.375); --fs-emph:calc(16px * 1.375); }
+.bench { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; max-width:1500px; }
+.bench > div { border:1px solid var(--border-default); border-radius:var(--radius-lg); background:var(--bg); padding:14px; min-width:0; }
+.bench h3 { margin:0 0 2px; font-size:16px; }
+.bench .sub { font-size:13px; color:var(--text-muted); margin:0 0 12px; min-height:3em; }
+.matrix { display:grid; grid-template-columns:auto repeat(3, 72px); gap:0 4px; align-items:center; font-size:12px; }
+.matrix .hd { color:var(--text-muted); text-align:center; font-size:11px; line-height:1.2; padding-bottom:6px; }
+.matrix .rl { color:var(--text-secondary); font-size:13px; padding-right:6px; }
+.matrix .cell { position:relative; display:block; height:72px; }
+.matrix .cell .pm { left:50%; top:50%; }
+.matrix .dash { text-align:center; color:var(--text-disabled); }
+.excerpt { margin-top:12px; display:flex; justify-content:center; overflow:hidden; }
+.runbar { display:flex; align-items:center; gap:12px; margin:0 0 16px; flex-wrap:wrap; }
+.runbar .btn { font-size:15px; }
+.verdict { font-size:13px; color:var(--text-secondary); margin-top:10px; }
+.verdict b { color:var(--text-primary); }
+/* au téléphone le cran de A est 1.1 : 40 -> 44 px, anneaux compris 52 < 53 px entre deux cordes */
+.fph.tx-a .pm.playing { transform:scale(1.1); }
+.transport4k { display:flex; align-items:center; gap:16px; }
+.transport4k .btn { min-height:64px; padding:0 32px; font-size:var(--fs-emph); font-weight:600; background:var(--surface-3); border-color:var(--select); }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>Distinguer la note qui joue de la note dessinée</h1>
+  <p>Contrainte : pas d’aplat blanc (anti-marquage OLED), le blanc seulement en anneau fin ; compatible avec les cinq couleurs de rôle, la note de gamme (contour gris) et l’anneau vert « hors forme » de la basse ; sobre, et respectueux de <code>prefers-reduced-motion</code> (bouton « Réduit » en haut).</p>
+  <div class="note"><b>Constat dans le code avant de dessiner.</b> Sur le manche vertical, la pastille fait 48 px (<code>--fbv-marker</code>), pas 32 px (32 px est le manche horizontal). Et l’anneau blanc de <code>.note-marker.is-playing</code> (<code>Fretboard.css</code> l. 207) est écrasé par <code>.note-marker.role-*</code>, de même spécificité mais écrit plus bas, qui remet <code>box-shadow: 0 0 0 2px var(--bg)</code>. Sur une pastille de couleur, une note qui joue n’a donc que <code>scale(1.1)</code> ; l’anneau ne se voit que sur la note de gamme. La colonne « Actuel » ci-dessous reproduit ce rendu. À confirmer dans le navigateur, mais c’est sans doute la première raison du « trop discret ».</div>
+</div>
+
+<section class="variant" id="cmp" style="margin-top:24px">
+  <header><h2>Comparer les quatre</h2><span class="tag">taille réelle 4K (2560 px CSS) ; même boucle de démonstration où tous les rôles passent</span></header>
+  <div class="runbar"><button class="btn grad" id="runAll" type="button">▶ Lancer la boucle de démonstration</button><span class="ctl-label">accord de Do (guitare), Si en extension, Ré en note cible, La en note de gamme ; basse en arpège, son Do3 joué hors de la forme</span></div>
+  <div class="bench scale4k" id="bench"></div>
+</section>
+
+<section class="variant" id="va">
+  <header><h2>Variante A · La marche</h2><span class="tag">un cran de taille et un anneau fin qui se voit enfin ; aucune animation</span></header>
+  <ul class="three">
+    <li><b>Ce que voit le débutant</b>La note qui sonne grossit d’un cran (48 → 56 px), son nom passe en gras et un fin anneau blanc l’entoure, séparé par un liseré noir. Elle garde sa couleur et sa forme ; elle reprend sa taille quand le son s’arrête.</li>
+    <li><b>Ce que fait un clic</b>Un clic sur une case joue la note : elle prend cet état le temps du son. Pendant la boucle, l’état suit chaque note jouée, accords et arpèges compris.</li>
+    <li><b>Ce qui change au téléphone</b>La pastille fait 40 px et ne monte qu’à 44 px (scale 1.1), pour que deux cordes voisines qui jouent ensemble ne se touchent pas (53 px entre cordes). Le reste est identique.</li>
+  </ul>
+  <div class="frames">
+    <div class="frame-box"><p class="frame-cap"><span>4K · 2560 px CSS</span><span>Studio · ▶ dans le transport</span></p><div class="fit" id="a4k"></div></div>
+    <div class="frame-box phone"><p class="frame-cap"><span>Téléphone · 390 px</span></p><div id="aph"></div></div>
+  </div>
+  <div class="specs">
+    <div><h3>Tailles et temps (px CSS)</h3><table>
+      <tr><th>Élément</th><th>4K (2560)</th><th>Téléphone</th></tr>
+      <tr><td>Pastille dessinée</td><td>48, étiquette 16,5 en 600</td><td>40, étiquette 15</td></tr>
+      <tr><td>Pastille qui joue</td><td>56 (scale 1.1667), étiquette en 800</td><td>44 (scale 1.1)</td></tr>
+      <tr><td>Anneau</td><td>liseré noir 2 + blanc 2</td><td>idem</td></tr>
+      <tr><td>Note cible qui joue</td><td>anneau repoussé à 6-8 px (au-delà des tirets jaunes)</td><td>idem</td></tr>
+      <tr><td>Encombrement maximal</td><td>56 + 2 × 4 = 64 &lt; 66 entre deux cordes</td><td>44 + 8 = 52 &lt; 53</td></tr>
+      <tr><td>Attaque / relâche</td><td>90 ms / 150 ms ; « mouvement réduit » : instantané</td><td>idem</td></tr>
+      <tr><td>Cible cliquable (case)</td><td>66 × rangée (≥ 61)</td><td>53 × rangée (≥ 56)</td></tr>
+    </table></div>
+    <div><h3>À vérifier dans le code</h3><ul>
+      <li>La correction de cascade d’abord : l’état « joue » doit gagner sur <code>.role-*</code> (sélecteur <code>.note-marker.is-playing.role-*</code> ou règle placée après). Sans elle, aucune proposition ne se verra sur les pastilles de couleur.</li>
+      <li>La durée réelle d’une note : la maquette garde l’état tant que le son dure (accord 6 pas, arpège 1 pas). Vérifier ce que <code>currentlyPlayingNotes</code> fournit : un début et une fin, ou un simple instant.</li>
+      <li>Basse en arpège à la double croche (VMU-199) : à 140 bpm une note dure 107 ms. Prévoir une tenue minimale de 100 ms pour qu’une note se voie.</li>
+      <li>L’anneau vert « hors forme » (<code>is-playing-outside</code>) passe par une classe à part : la maquette lui ajoute le même cran et le même anneau blanc, à l’extérieur du vert.</li>
+      <li>Le piano garde son propre état « joue » (<code>PianoKeyboard.css</code> l. 20) : non traité ici.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section class="variant" id="vb">
+  <header><h2>Variante B · Le projecteur</h2><span class="tag">pendant la boucle, le dessin passe en veille ; ce qui sonne reste en pleine lumière</span></header>
+  <ul class="three">
+    <li><b>Ce que voit le débutant</b>Boucle arrêtée : rien ne change. Dès que la boucle tourne, toutes les pastilles baissent à 40 % ; celles qui sonnent reviennent à 100 % avec l’anneau fin et un petit cran (scale 1.1). La forme reste lisible, la note jouée saute aux yeux.</li>
+    <li><b>Ce que fait un clic</b>Un clic sur une case joue la note avec le même éclairage. ■ remet tout le dessin à 100 %.</li>
+    <li><b>Ce qui change au téléphone</b>Même règle ; le cran reste 1.1 (40 → 44 px). Moins de surface allumée pendant la boucle, ce qui va dans le sens de l’OLED.</li>
+  </ul>
+  <div class="frames">
+    <div class="frame-box"><p class="frame-cap"><span>4K · 2560 px CSS</span><span>Studio · ▶ dans le transport</span></p><div class="fit" id="b4k"></div></div>
+    <div class="frame-box phone"><p class="frame-cap"><span>Téléphone · 390 px</span></p><div id="bph"></div></div>
+  </div>
+  <div class="specs">
+    <div><h3>Tailles et temps (px CSS)</h3><table>
+      <tr><th>Élément</th><th>4K (2560)</th><th>Téléphone</th></tr>
+      <tr><td>Pastille en veille (boucle en cours)</td><td>48, opacité 40 %</td><td>40, 40 %</td></tr>
+      <tr><td>Pastille qui joue</td><td>52,8 (scale 1.1), 100 %, étiquette en 800</td><td>44</td></tr>
+      <tr><td>Anneau</td><td>liseré noir 2 + blanc 2</td><td>idem</td></tr>
+      <tr><td>Encombrement maximal</td><td>52,8 + 8 = 60,8 &lt; 66</td><td>52 &lt; 53</td></tr>
+      <tr><td>Fondu</td><td>120 ms ; « mouvement réduit » : instantané</td><td>idem</td></tr>
+    </table></div>
+    <div><h3>À vérifier dans le code</h3><ul>
+      <li>Il faut savoir sur le manche que la boucle tourne (un état « lecture en cours » au niveau du conteneur), pas seulement quelles notes jouent.</li>
+      <li>Une opacité de 40 % baisse aussi le contraste de l’étiquette (noir sur couleur atténuée). Mesurer les étiquettes en veille (<code>VerticalNeckContrast.test.js</code>) : elles ne sont plus le contenu principal pendant la boucle, mais elles doivent rester lisibles.</li>
+      <li>La note de gamme (contour gris 2 px) à 40 % devient très discrète sur le bois <code>--surface-3</code> : à voir à l’écran, sinon garder les notes de gamme à 60 %.</li>
+      <li>La règle « ce qu’on voit est ce qu’on entend » reste tenue : rien n’est caché, la forme est atténuée.</li>
+    </ul></div>
+  </div>
+</section>
+
+<script>
+/* Explorations A′ — script commun (copié dans chaque page par build.mjs). */
+const VM = (() => {
+  const h = (tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else if (k === 'text') el.textContent = v;
+      else if (k === 'html') el.innerHTML = v;
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+    return el;
+  };
+  const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  const state = { sound: true, reduced: mq.matches };
+
+  /* ---- son : un petit synthé WebAudio, démarré au premier geste ---- */
+  let ctx = null;
+  const audio = () => {
+    if (!state.sound) return null;
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    } catch (e) { return null; }
+  };
+  const freq = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+  const tone = (midi, dur = 0.35, gain = 0.12, type = 'triangle') => {
+    const c = audio(); if (!c) return;
+    const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = freq(midi);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+  };
+  let noiseBuf = null;
+  const noise = (dur, filterType, f, gain) => {
+    const c = audio(); if (!c) return;
+    if (!noiseBuf) { noiseBuf = c.createBuffer(1, c.sampleRate * 0.5, c.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    const t = c.currentTime, s = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = noiseBuf; fl.type = filterType; fl.frequency.value = f;
+    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    s.connect(fl).connect(g).connect(c.destination); s.start(t); s.stop(t + dur + 0.02);
+  };
+  const drum = (kind) => {
+    const c = audio(); if (!c) return;
+    if (kind === 'kick') {
+      const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+      o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.14);
+      g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      o.connect(g).connect(c.destination); o.start(t); o.stop(t + 0.2);
+    } else if (kind === 'snare') noise(0.14, 'bandpass', 1800, 0.35);
+    else if (kind === 'hat') noise(0.05, 'highpass', 7000, 0.18);
+    else if (kind === 'bass') tone(36, 0.22, 0.25, 'sine');
+    else if (kind === 'chords') { [60, 64, 67].forEach((m) => tone(m, 0.25, 0.06)); }
+    else if (kind === 'tick') tone(84, 0.04, 0.03, 'sine');
+  };
+
+  /* ---- géométrie du manche vertical (verticalNeckGeometry.js) ----
+     longueur des rangées de cases à 3840 : 29 x 61 + 18 - 2 x 36 - 70 = 1645 px */
+  const ROWS_H = 1645;
+  const pitchFor = (numFrets) => (n) => ROWS_H * (1 + 0.5 * (numFrets - n) / (numFrets - 1)) / (numFrets * 1.25);
+  const INLAYS = { 3: 1, 5: 1, 7: 1, 9: 1, 12: 2, 15: 1, 17: 1, 19: 1, 21: 1 };
+
+  /**
+   * Manche vertical : sillet en haut, graves à gauche, numéros de case dans
+   * une gouttière. `rail` px réservés à gauche de la gouttière.
+   */
+  const buildNeck = (cfg) => {
+    const c = Object.assign({ strings: ['Mi', 'La', 'Ré', 'Sol', 'Si', 'Mi'], maxFret: 12, numFrets: 22, stringPx: 66, gutter: 28,
+      headRow: 36, openRow: 70, rail: 0, pm: 48, bass: false, pitch: null, cut: null }, cfg);
+    const pitch = c.pitch || pitchFor(c.numFrets);
+    const W = c.rail + c.gutter + c.strings.length * c.stringPx;
+    const rows = []; let y = 2 * c.headRow;
+    for (let f = 0; f <= c.maxFret; f++) { const hh = f === 0 ? c.openRow : pitch(f); rows.push({ top: y, h: hh }); y += hh; }
+    const H = y + (c.cut ? 36 : 0);
+    const el = h('div', { class: 'neck', style: { width: W + 'px', height: H + 'px', '--pm': c.pm + 'px' } });
+    const x0 = c.rail + c.gutter;
+    const sx = (s) => x0 + c.stringPx * (s + 0.5);
+    const cy = (f) => rows[f].top + (rows[f].h - (f === 0 ? 6 : 3)) / 2;
+    el.append(h('div', { class: 'board', style: { left: x0 + 'px', top: rows[1].top + 'px', width: (W - x0) + 'px', height: (y - rows[1].top) + 'px' } }));
+    rows.forEach((r, f) => {
+      if (f === 0) el.append(h('div', { class: 'nut', style: { left: x0 + 'px', width: (W - x0) + 'px', top: (r.top + r.h - 6) + 'px' } }));
+      else el.append(h('div', { class: 'wire-f', style: { left: x0 + 'px', width: (W - x0) + 'px', top: (r.top + r.h - 3) + 'px' } }));
+      const n = INLAYS[f] || 0;
+      for (let i = 0; i < n; i++) {
+        const shift = n === 2 ? (i === 0 ? -1 : 1) : 0;
+        el.append(h('div', { class: 'inlay', style: { left: (x0 + c.stringPx * (c.strings.length / 2 + shift)) + 'px', top: cy(f) + 'px' } }));
+      }
+    });
+    const fnos = rows.map((r, f) => {
+      const n = h('div', { class: 'fno' + (INLAYS[f] ? ' inl' : ''), text: String(f), style: { left: c.rail + 'px', width: (c.gutter - 4) + 'px', top: cy(f) + 'px' } });
+      el.append(n); return n;
+    });
+    c.strings.forEach((name, s) => {
+      el.append(h('div', { class: 'str', style: { left: sx(s) + 'px', top: (2 * c.headRow) + 'px', height: (y - 2 * c.headRow) + 'px', width: ((c.bass ? 5 : 4) - s * 0.5) + 'px' } }));
+      el.append(h('div', { class: 'sname', text: name, style: { left: sx(s) + 'px', top: (c.headRow / 2) + 'px' } }));
+    });
+    if (c.cut) el.append(h('div', { class: 'cut', text: c.cut, style: { top: (y + 8) + 'px', left: x0 + 'px' } }));
+    const markers = new Map();
+    const api = {
+      el, rows, sx, cy, W, H, cfg: c, fnos, x0,
+      setNotes(notes) {
+        markers.forEach((m) => m.remove()); markers.clear();
+        notes.forEach((n) => {
+          const m = h('div', { class: `pm r-${n.role || 'none'}${n.outside ? ' outside' : ''}`, text: n.label || '', style: { left: sx(n.s) + 'px', top: cy(n.f) + 'px' }, title: n.title || null });
+          el.append(m); markers.set(`${n.s}:${n.f}`, m);
+        });
+      },
+      marker: (s, f) => markers.get(`${s}:${f}`),
+      markers,
+      play(s, f, on) { const m = markers.get(`${s}:${f}`); if (!m) return; if (on) { m.classList.remove('release'); m.classList.add('playing'); } else { m.classList.add('release'); m.classList.remove('playing'); } },
+      clearPlaying() { markers.forEach((m) => m.classList.remove('playing')); },
+      highlightFrets(a, b) { fnos.forEach((n, f) => n.classList.toggle('in-pos', a != null && f >= a && f <= b)); },
+    };
+    return api;
+  };
+
+  /* ---- clavier vertical simplifié : aigus en haut ---- */
+  const NAMES = ['Do', 'Do♯', 'Ré', 'Ré♯', 'Mi', 'Fa', 'Fa♯', 'Sol', 'Sol♯', 'La', 'La♯', 'Si'];
+  const buildPiano = ({ height, topMidi = 84, keyPx = 61 }) => {
+    const el = h('div', { class: 'piano', style: { height: height + 'px' } });
+    let y = 8, m = topMidi;
+    while (y < height) {
+      const pc = ((m % 12) + 12) % 12;
+      if (NAMES[pc].length <= 3 && !NAMES[pc].includes('♯')) {
+        el.append(h('div', { class: 'wk', text: pc === 0 ? `Do${Math.floor(m / 12) - 1}` : '', style: { top: y + 'px', height: keyPx + 'px' } }));
+        const below = ((m - 1) % 12 + 12) % 12;
+        if (NAMES[below].includes('♯')) el.append(h('div', { class: 'bk', style: { top: (y + keyPx - 18) + 'px', height: '36px' } }));
+        y += keyPx;
+      }
+      m--;
+    }
+    return el;
+  };
+
+  /* ---- en-tête 4K, tête de colonne ---- */
+  const header4k = (mode = 'Dictionnaire') => h('div', { class: 'app-header' },
+    h('span', { class: 'app-title', text: 'VisualMusic' }),
+    h('span', { class: 'tab' + (mode === 'Studio' ? ' on' : ''), text: 'Studio' }),
+    h('span', { class: 'tab' + (mode === 'Dictionnaire' ? ' on' : ''), text: 'Dictionnaire' }),
+    h('span', { style: { flex: 1 } }),
+    h('span', { class: 'btn', text: 'Sur les notes : Do Ré Mi' }),
+    h('span', { class: 'btn grad', text: 'Assistant' }));
+
+  const playGlyph = () => h('span', { 'aria-hidden': 'true', text: '▶' });
+  const head = ({ name, on = false, play = null, setting = null }) => {
+    const row1 = h('div', { class: 'row' }, h('span', { class: 'iname' + (on ? ' on' : ''), text: name }));
+    let playBtn = null;
+    if (play) { playBtn = h('button', { class: 'hbtn', type: 'button', 'aria-label': play.label, title: play.label, onclick: play.onClick }, playGlyph()); row1.append(playBtn); }
+    const row2 = h('div', { class: 'row' });
+    const refs = { playBtn };
+    if (setting) {
+      if (setting.prev) { refs.prev = h('button', { class: 'hbtn grad', type: 'button', 'aria-label': setting.prev.label, title: setting.prev.label, onclick: setting.prev.onClick, text: '‹' }); row2.append(refs.prev); }
+      refs.label = h('button', { class: 'hlabel', type: 'button', onclick: setting.onLabel || null });
+      row2.append(refs.label);
+      if (setting.next) { refs.next = h('button', { class: 'hbtn grad', type: 'button', 'aria-label': setting.next.label, title: setting.next.label, onclick: setting.next.onClick, text: '›' }); row2.append(refs.next); }
+    }
+    return { el: h('div', { class: 'ihead' }, row1, row2), refs };
+  };
+
+  /* ---- mise à l'échelle des cadres 4K ---- */
+  const fits = new Set();
+  const layout = (box) => {
+    const frame = box.firstElementChild; if (!frame) return;
+    if (document.body.classList.contains('native')) {
+      box.classList.add('is-native'); frame.style.transform = ''; box.style.height = '';
+    } else {
+      box.classList.remove('is-native');
+      const s = Math.min(1, box.clientWidth / frame.offsetWidth);
+      frame.style.transform = `scale(${s})`; box.style.height = Math.ceil(frame.offsetHeight * s) + 'px';
+    }
+  };
+  const fit = (box) => {
+    fits.add(box);
+    if ('ResizeObserver' in window) { const ro = new ResizeObserver(() => layout(box)); ro.observe(box); ro.observe(box.firstElementChild); }
+    layout(box);
+  };
+  const relayout = () => fits.forEach(layout);
+
+  /* ---- barre du haut commune ---- */
+  const topbar = (current) => {
+    const pages = [['index.html', 'Sommaire'], ['e1-position-gamme.html', '1 · Position de gamme'], ['e2-math-rythmes-dock.html', '2 · Math & Rythmes'], ['e3-note-qui-joue.html', '3 · Note qui joue']];
+    const zoomBtns = [['Ajusté', false], ['100 %', true]].map(([t, nat]) => h('button', { type: 'button', 'aria-pressed': String(nat === document.body.classList.contains('native')), text: t,
+      onclick: (e) => { document.body.classList.toggle('native', nat); [...e.target.parentNode.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.target))); relayout(); } }));
+    const soundBtns = [['Son', true], ['Muet', false]].map(([t, on]) => h('button', { type: 'button', 'aria-pressed': String(on === state.sound), text: t,
+      onclick: (e) => { state.sound = on; [...e.target.parentNode.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.target))); } }));
+    const motionBtns = [['Mouvement', false], ['Réduit', true]].map(([t, red]) => h('button', { type: 'button', 'aria-pressed': String(red === state.reduced), text: t,
+      onclick: (e) => { state.reduced = red; document.body.classList.toggle('reduce-motion', red); [...e.target.parentNode.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.target))); } }));
+    document.body.classList.toggle('reduce-motion', state.reduced);
+    return h('div', { class: 'topbar' },
+      h('span', { class: 'brand', text: 'A′ · explorations' }),
+      h('nav', { 'aria-label': 'Pages' }, pages.map(([href, t]) => h('a', { href, text: t, 'aria-current': href === current ? 'page' : null }))),
+      h('span', { class: 'spacer' }),
+      h('span', { class: 'ctl-label', text: '4K' }), h('span', { class: 'seg' }, zoomBtns),
+      h('span', { class: 'seg' }, soundBtns),
+      h('span', { class: 'seg', title: 'Simule prefers-reduced-motion' }, motionBtns));
+  };
+
+  /* horloge commune : un pas = une double croche */
+  const clock = (bpm, onStep) => {
+    let timer = null, step = 0;
+    return {
+      get running() { return timer !== null; },
+      start() { if (timer) return; step = 0; const tick = () => { onStep(step++); }; tick(); timer = setInterval(tick, 60000 / bpm / 4); },
+      stop() { clearInterval(timer); timer = null; },
+      setBpm(b) { bpm = b; if (timer) { clearInterval(timer); timer = setInterval(() => onStep(step++), 60000 / bpm / 4); } },
+    };
+  };
+
+  return { h, state, tone, drum, buildNeck, buildPiano, pitchFor, header4k, head, fit, relayout, topbar, clock, NAMES };
+})();
+
+</script>
+<script>
+(() => {
+  const { h } = VM;
+  document.body.prepend(VM.topbar('e3-note-qui-joue.html'));
+
+  const ROLES = [['root', 'Fondamentale', 'Do'], ['third', 'Tierce', 'Mi'], ['fifth', 'Quinte', 'Sol'], ['ext', 'Extension', 'Si'], ['target', 'Note cible', 'Ré'], ['scale', 'Note de gamme', 'La'], ['out', 'Hors forme', 'Do']];
+  const TX = [
+    ['now', 'Actuel', 'Tel que la cascade le rend : scale(1.1) seul sur une pastille de couleur ; l’anneau ne se voit que sur la note de gamme.'],
+    ['p', 'Piste proposée', 'Impulsion unique de 240 ms, anneau 8 → 4 px, scale(1.2), la pastille garde sa couleur.'],
+    ['a', 'A · La marche', '48 → 56 px, anneau fin réellement visible, étiquette en gras. Pas d’animation.'],
+    ['b', 'B · Le projecteur', 'Pendant la boucle, le dessin baisse à 40 % ; ce qui sonne revient à 100 %, scale(1.1), anneau fin.'],
+  ];
+  const VERDICT = {
+    now: '<b>Constat :</b> au repos et « joue » se ressemblent sur les pastilles de couleur.',
+    p: '<b>Lisible</b> à l’attaque, mais à 48 × 1.2 = 57,6 px plus un anneau de 4 px, deux cordes voisines qui jouent ensemble se chevauchent (69,6 &gt; 66 px), et de 11 px pendant l’impulsion de 8 px. L’impulsion seule disparaît avec « mouvement réduit » ; il reste l’état tenu.',
+    a: '<b>Lisible</b> sans mouvement, identique en « mouvement réduit », ne déborde jamais sur la corde voisine. Moins frappant à l’attaque que la piste proposée.',
+    b: '<b>Le plus net</b> pendant la boucle et le plus sobre pour l’OLED. Change l’allure de tout le manche dès ▶ : à valider avec le propriétaire.',
+  };
+
+  /* banc : matrice statique + extrait de manche animé */
+  const bench = document.getElementById('bench');
+  const excerpts = [];
+  TX.forEach(([id, name, sub]) => {
+    const m = h('div', { class: `matrix tx-${id}` }, h('span'), h('span', { class: 'hd', text: 'au repos' }), h('span', { class: 'hd', text: 'boucle : silencieuse' }), h('span', { class: 'hd', text: 'joue' }));
+    ROLES.forEach(([r, label, note]) => {
+      m.append(h('span', { class: 'rl', text: label }));
+      [0, 1, 2].forEach((col) => {
+        if (r === 'out' && col < 2) { m.append(h('span', { class: 'dash', text: '—', title: 'n’apparaît que lorsqu’elle sonne' })); return; }
+        const cls = r === 'out' ? 'pm outside' : `pm r-${r}`;
+        const playing = col === 2 && !(id === 'now' && r === 'out');
+        const cell = h('span', { class: 'cell' }, h('span', { class: cls + (playing ? ' playing' : ''), text: note }));
+        // la veille de B ne vaut que boucle en cours : les colonnes 2 et 3 sont « boucle en cours »
+        m.append(col >= 1 && id === 'b' ? h('span', { class: 'tx-b is-running', style: { display: 'block' } }, cell) : cell);
+      });
+    });
+    const neck = VM.buildNeck({ maxFret: 4 });
+    const box = h('div', { class: `excerpt tx-${id}` }, neck.el);
+    excerpts.push({ neck, box, tx: id, notes: guitarNotes(neck) });
+    bench.append(h('div', {}, h('h3', { text: name }), h('p', { class: 'sub', text: sub }), m, box, h('p', { class: 'verdict', html: VERDICT[id] })));
+  });
+  // l'extrait de manche : 0 à 4 suffit pour l'accord de Do
+  excerpts.forEach((e) => { e.neck.el.style.transform = 'scale(.62)'; e.neck.el.style.transformOrigin = 'top center'; e.box.style.height = Math.ceil(e.neck.H * 0.62) + 'px'; });
+
+  function guitarNotes(neck) {
+    neck.setNotes([
+      { s: 1, f: 3, label: 'Do', role: 'root' }, { s: 2, f: 2, label: 'Mi', role: 'third' }, { s: 3, f: 0, label: 'Sol', role: 'fifth' },
+      { s: 4, f: 1, label: 'Do', role: 'root' }, { s: 5, f: 0, label: 'Mi', role: 'third' }, { s: 3, f: 4, label: 'Si', role: 'ext' },
+      { s: 4, f: 3, label: 'Ré', role: 'target' }, { s: 3, f: 2, label: 'La', role: 'scale' }, { s: 2, f: 3, label: 'Fa', role: 'scale' }]);
+  }
+  function bassNotes(neck) {
+    neck.setNotes([{ s: 1, f: 3, label: 'Do', role: 'root' }, { s: 2, f: 2, label: 'Mi', role: 'third' }, { s: 2, f: 5, label: 'Sol', role: 'fifth' }, { s: 3, f: 5, label: 'Do', outside: true }]);
+    const o = neck.marker(3, 5); o.style.visibility = 'hidden';
+  }
+
+  /* la boucle de démonstration : 16 doubles croches, 90 bpm */
+  const CHORD = [[1, 3, 48], [2, 2, 52], [3, 0, 55], [4, 1, 60], [5, 0, 64]];
+  const EVENTS = [];
+  [0, 8].forEach((t) => CHORD.forEach(([s, f, m]) => EVENTS.push({ t, inst: 'g', s, f, m, d: 6 })));
+  EVENTS.push({ t: 6, inst: 'g', s: 3, f: 2, m: 57, d: 2 }, { t: 12, inst: 'g', s: 3, f: 4, m: 59, d: 2 }, { t: 14, inst: 'g', s: 4, f: 3, m: 62, d: 2 });
+  [0, 8].forEach((t) => [[1, 3, 36], [2, 2, 40], [2, 5, 43], [3, 5, 48, true]].forEach(([s, f, m, out], i) => EVENTS.push({ t: t + i, inst: 'b', s, f, m, d: 1, out })));
+
+  function loop(targets, frames, onStop) {
+    // targets : [{ neck, inst: 'g'|'b', tx }]
+    const offs = [];
+    const set = (tg, ev, on) => {
+      const mk = tg.neck.marker(ev.s, ev.f); if (!mk) return;
+      if (ev.out) mk.style.visibility = on ? 'visible' : 'hidden';
+      if (ev.out && tg.tx === 'now') return;
+      tg.neck.play(ev.s, ev.f, on);
+    };
+    const clk = VM.clock(90, (t) => {
+      const step = t % 16;
+      for (let i = offs.length - 1; i >= 0; i--) if (offs[i].at <= t) { targets.forEach((tg) => tg.inst === offs[i].ev.inst && set(tg, offs[i].ev, false)); offs.splice(i, 1); }
+      EVENTS.filter((e) => e.t === step).forEach((ev) => {
+        targets.forEach((tg) => tg.inst === ev.inst && set(tg, ev, true));
+        offs.push({ at: t + ev.d, ev });
+        VM.tone(ev.m, ev.inst === 'b' ? 0.2 : ev.d * 0.16, ev.inst === 'b' ? 0.18 : 0.05, ev.inst === 'b' ? 'sine' : 'triangle');
+      });
+    });
+    return {
+      get running() { return clk.running; },
+      start() { frames.forEach((f) => f.classList.add('is-running')); clk.start(); },
+      stop() { clk.stop(); offs.length = 0; frames.forEach((f) => f.classList.remove('is-running')); targets.forEach((tg) => { tg.neck.clearPlaying(); const o = tg.neck.marker(3, 5); if (tg.inst === 'b' && o) o.style.visibility = 'hidden'; }); onStop && onStop(); },
+    };
+  }
+
+  const benchLoop = loop(excerpts.map((e) => ({ neck: e.neck, inst: 'g', tx: e.tx })), excerpts.map((e) => e.box), () => { runAll.textContent = '▶ Lancer la boucle de démonstration'; runAll.classList.remove('playing'); });
+  const runAll = document.getElementById('runAll');
+  runAll.onclick = () => { if (benchLoop.running) benchLoop.stop(); else { benchLoop.start(); runAll.textContent = '■ Arrêter'; runAll.classList.add('playing'); } };
+
+  function build4k(tx, mount) {
+    const guitar = VM.buildNeck({ maxFret: 12, cut: '… cases 13 à 22' }); guitarNotes(guitar);
+    const bass = VM.buildNeck({ strings: ['Mi', 'La', 'Ré', 'Sol'], numFrets: 20, maxFret: 12, bass: true, cut: '… cases 13 à 20' }); bassNotes(bass);
+    const gh = VM.head({ name: 'Guitare', setting: {} }); gh.refs.label.textContent = 'Forme : Do (cases 0-4)'; gh.refs.label.style.justifyContent = 'flex-start';
+    const bh = VM.head({ name: 'Basse', on: true, setting: {} }); bh.refs.label.textContent = 'Forme : Do'; bh.refs.label.style.justifyContent = 'flex-start';
+    const ph = VM.head({ name: 'Piano', setting: {} }); ph.refs.label.textContent = 'Do majeur';
+    const play = h('button', { class: 'btn', type: 'button', text: '▶' });
+    const frame = h('div', { class: `f4k tx-${tx}` }, VM.header4k('Studio'),
+      h('div', { class: 'app-grid' },
+        h('div', { class: 'col centre' },
+          h('div', { class: 'wire transport4k', style: { height: '110px' } }, play, h('b', { text: 'Transport' }), ' · tempo 90, volume'),
+          h('div', { class: 'wire', style: { height: '64px' } }, h('b', { text: 'Sélection' }), ' · Style : Pop'),
+          h('div', { class: 'wire', style: { height: '520px' } }, h('b', { text: 'Séquenceur' })),
+          h('div', { class: 'wire', style: { height: '200px' } }, h('b', { text: 'Légende' }), ' · la légende gagne une ligne : « grossit et s’entoure de blanc = joue maintenant »')),
+        h('div', { class: 'col inst', style: { width: '248px' } }, ph.el, VM.buildPiano({ height: guitar.H - 36, topMidi: 96 })),
+        h('div', { class: 'col inst' }, gh.el, guitar.el),
+        h('div', { class: 'col inst' }, bh.el, bass.el)),
+      h('div', { class: 'fold', style: { top: '1283px' } }, h('span', { text: 'bas de la fenêtre à 150 %' })));
+    mount.append(frame); VM.fit(mount);
+    const lp = loop([{ neck: guitar, inst: 'g', tx }, { neck: bass, inst: 'b', tx }], [frame], () => { play.textContent = '▶'; play.classList.remove('grad', 'playing'); });
+    play.onclick = () => { if (lp.running) lp.stop(); else { lp.start(); play.textContent = '■'; play.classList.add('grad', 'playing'); } };
+  }
+
+  function buildPhone(tx, mount) {
+    const neck = VM.buildNeck({ gutter: 26, stringPx: 53, pm: 40, headRow: 24, openRow: 56, maxFret: 7, pitch: (n) => 66 - (n - 1) * 0.9 }); guitarNotes(neck);
+    const play = h('button', { class: 'btn grad', type: 'button', style: { flex: 1, height: '52px', fontSize: 'var(--fs-emph)' }, text: '▶ Lecture' });
+    const scroll = h('div', { class: 'scroll' },
+      h('div', { class: 'appbar' }, h('span', { class: 'app-title', text: 'VisualMusic' }), h('span', { style: { flex: 1 } }), h('span', { class: 'tab on', style: { width: 'auto', padding: '0 14px', height: '44px', fontSize: 'var(--fs-body)' }, text: 'Studio' })),
+      h('div', { class: 'itabs' }, ['Piano', 'Guitare', 'Basse'].map((t) => h('button', { type: 'button', class: t === 'Guitare' ? 'on' : '', text: t }))),
+      neck.el);
+    const frame = h('div', { class: `fph tx-${tx}` }, h('div', { class: 'urlbar' }, h('span', { text: 'visualmusic.app' })), scroll, h('div', { class: 'bottombar' }, play));
+    mount.append(frame);
+    const lp = loop([{ neck, inst: 'g', tx }], [frame], () => { play.textContent = '▶ Lecture'; play.classList.remove('playing'); });
+    play.onclick = () => { if (lp.running) lp.stop(); else { lp.start(); play.textContent = '■ Arrêter'; play.classList.add('playing'); } };
+  }
+
+  build4k('a', document.getElementById('a4k'));
+  buildPhone('a', document.getElementById('aph'));
+  build4k('b', document.getElementById('b4k'));
+  buildPhone('b', document.getElementById('bph'));
+})();
+</script>
+</body>
+</html>

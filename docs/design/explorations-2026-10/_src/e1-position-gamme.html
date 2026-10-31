@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Position de gamme · A′</title>
+<style>
+/*@CSS*/
+/* ---- exploration 1 ---- */
+.ribbon { position:absolute; display:flex; gap:4px; z-index:3; }
+.ribbon .chip { width:46px; height:32px; border-radius:var(--radius-md); border:1px solid var(--border-default); display:flex; align-items:center; justify-content:center;
+  font-size:var(--fs-label); color:var(--text-secondary); box-shadow:inset 0 -3px 0 var(--role-scale-edge); transition:background 90ms ease-out; }
+.ribbon .chip.root { box-shadow:inset 0 -3px 0 var(--role-root); }
+.ribbon .chip.lit { background:var(--surface-3); color:var(--text-on-select); border:2px solid var(--select); font-weight:700; }
+.rail-head { position:absolute; left:0; top:14px; display:flex; }
+.rail-head .seg button { height:44px; width:56px; padding:0; font-size:var(--fs-label); }
+.octbtn { position:absolute; left:0; top:14px; width:98px; height:44px; font-size:var(--fs-label); }
+.octmenu { position:absolute; left:0; top:62px; z-index:30; display:flex; flex-direction:column; background:var(--surface-1); border:1px solid var(--border-strong); border-radius:var(--radius-md); padding:4px; gap:4px; }
+.octmenu button { width:150px; height:44px; text-align:left; padding:0 12px; font-size:var(--fs-label); background:var(--bg); border:1px solid var(--border-strong); border-radius:var(--radius-md); cursor:pointer; }
+.octmenu button[aria-pressed="true"] { background:var(--surface-3); border-color:var(--select); }
+
+/* Variante A : couloirs larges, une capsule par position */
+.rail-a { position:absolute; width:44px; padding:0; background:none; border:0; cursor:pointer; }
+.rail-a .cap { position:absolute; left:4px; right:4px; top:0; bottom:0; border-radius:18px; border:2px solid var(--border-strong);
+  display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:8px 0; color:var(--text-secondary);
+  font-size:var(--fs-emph); font-weight:700; transition:background 150ms ease; }
+.rail-a.wide .cap { border-style:dashed; }
+.rail-a:hover .cap { background:var(--surface-2); color:var(--text-primary); border-color:var(--text-secondary); }
+.rail-a.sel .cap { background:linear-gradient(180deg, var(--assistant-from), var(--assistant-to)); border-color:var(--assistant-border); color:var(--assistant-text); }
+.rail-a .w { font-size:var(--fs-label); color:var(--color-warning); }
+.rail-a:focus-visible { box-shadow:none; }
+.rail-a:focus-visible .cap { box-shadow:var(--select-ring); }
+
+/* Variante B : une colonne d'onglets (un par position, à sa première case) + des fils en couloirs */
+.tab-b { position:absolute; left:0; width:44px; height:44px; padding:0; border-radius:var(--radius-lg); border:2px solid var(--border-strong); background:var(--bg);
+  color:var(--text-secondary); font-size:var(--fs-emph); font-weight:700; cursor:pointer; z-index:3; }
+.tab-b.wide { border-style:dashed; }
+.tab-b .w { position:absolute; right:-9px; top:-11px; font-size:var(--fs-label); color:var(--color-warning); background:var(--bg); line-height:1; padding:1px; }
+.tab-b:hover { background:var(--surface-2); color:var(--text-primary); border-color:var(--text-secondary); }
+.tab-b.sel { background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); border-color:var(--assistant-border); color:var(--assistant-text); }
+.wire-b { position:absolute; width:12px; padding:0; border:0; background:none; cursor:pointer; }
+.wire-b i { position:absolute; left:4px; width:4px; top:0; bottom:0; border-radius:2px; background:var(--border-strong); }
+.wire-b.wide i { background:repeating-linear-gradient(180deg, var(--border-strong) 0 8px, transparent 8px 14px); }
+.wire-b.sel i { left:2px; width:8px; border-radius:4px; background:linear-gradient(180deg, var(--assistant-from), var(--assistant-to)); box-shadow:0 0 0 1px var(--assistant-border); }
+.link-b { position:absolute; height:2px; background:var(--border-default); }
+.link-b.sel { background:var(--assistant-border); }
+
+/* téléphone */
+.ph-row { display:flex; align-items:center; gap:10px; margin:0 0 12px; }
+.ph-row .lbl { font-size:var(--fs-label); color:var(--text-secondary); min-width:58px; }
+.ph-row .seg button { height:44px; width:72px; font-size:var(--fs-body); padding:0; }
+.ph-sel { width:100%; height:44px; border:1px solid var(--border-strong); border-radius:var(--radius-md); display:flex; align-items:center; padding:0 12px; font-size:var(--fs-body); margin-bottom:8px; justify-content:space-between; }
+.pills { display:flex; justify-content:space-between; margin:0 0 6px; }
+.pill { width:44px; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:0; padding:0; cursor:pointer; }
+.pill b { width:44px; height:44px; border-radius:50%; border:2px solid var(--border-strong); display:flex; align-items:center; justify-content:center; font-size:var(--fs-emph); color:var(--text-secondary); position:relative; }
+.pill.wide b { border-style:dashed; }
+.pill.wide b::after { content:"⚠"; position:absolute; right:-6px; top:-8px; font-size:13px; color:var(--color-warning); background:var(--bg); line-height:1; }
+.pill small { font-size:var(--fs-label); color:var(--text-muted); font-variant-numeric:tabular-nums; }
+.pill.sel b { background:linear-gradient(180deg, var(--assistant-from), var(--assistant-to)); border-color:var(--assistant-border); color:var(--assistant-text); }
+.pill.sel small { color:var(--text-primary); font-weight:700; }
+.pcap { display:flex; align-items:center; gap:8px; margin:6px 0 12px; }
+.pcap .txt { flex:1; text-align:center; font-size:var(--fs-body); }
+.pcap .txt .warn { display:block; font-size:var(--fs-label); }
+.pribbon { display:flex; gap:4px; margin:0 0 12px; }
+.pribbon button { width:40px; height:44px; padding:0; border-radius:var(--radius-md); border:1px solid var(--border-default); background:var(--bg); font-size:var(--fs-label); color:var(--text-secondary); box-shadow:inset 0 -3px 0 var(--role-scale-edge); }
+.pribbon button.root { box-shadow:inset 0 -3px 0 var(--role-root); }
+.pribbon button.lit { background:var(--surface-3); color:var(--text-on-select); border:2px solid var(--select); font-weight:700; }
+.mark-ph { position:absolute; left:2px; width:8px; border-radius:4px; background:linear-gradient(180deg, var(--assistant-from), var(--assistant-to)); box-shadow:0 0 0 1px var(--assistant-border); transition:top 200ms ease, height 200ms ease; }
+.mark-ph.wide { box-shadow:0 0 0 1px var(--color-warning); }
+.reduce-motion .mark-ph { transition:none; }
+.ph-sticky { position:sticky; top:0; z-index:6; background:var(--bg); padding-top:8px; margin:0 -16px; padding-left:16px; padding-right:16px; }
+.fph .scroll { position:relative; }
+.playbig { flex:1; height:52px; font-size:var(--fs-emph); font-weight:600; border-radius:var(--radius-lg); }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>Choisir la position d’une gamme sur le manche</h1>
+  <p>Do majeur, une octave à partir de Do3 (guitare). Sept positions réelles : cases 0-3, 2-5, 3-7 ⚠, 4-8 ⚠, 5-9 ⚠, 7-10, 8-12 ⚠. Le manche n’affiche que les 8 notes de la position choisie. Clique sur un repère du rail, sur ‹ ›, ou sur ▶ pour entendre la gamme (le ruban et la pastille s’allument ensemble).</p>
+  <p>Les deux variantes partagent le ruban (logé dans la ligne X/O du manche, vide pour une gamme : aucune hauteur ajoutée) et le choix du départ (Do3 · Do4 · Do5) posé en tête du rail. Elles diffèrent par le dessin du rail.</p>
+</div>
+
+<section class="variant" id="va">
+  <header><h2>Variante A · Couloirs</h2><span class="tag">une capsule cliquable par position, 4 couloirs de 44 px</span></header>
+  <ul class="three">
+    <li><b>Ce que voit le débutant</b>Sept capsules numérotées à gauche des numéros de case, chacune aussi haute que la main qu’elle représente. Celle qui est choisie est mauve, les grands écarts sont en pointillé avec ⚠.</li>
+    <li><b>Ce que fait un clic</b>Un clic sur une capsule (ou ‹ ›) déplace les 8 pastilles à cet endroit, met en blanc les numéros des cases couvertes et met à jour l’en-tête. Rien ne sonne : les 8 hauteurs restent les mêmes. ▶ joue la gamme.</li>
+    <li><b>Ce qui change au téléphone</b>Sept pastilles numérotées avec leurs cases dessous (« 2-5 ») au-dessus du manche ; un seul repère mauve longe la gouttière ; le manche défile pour cadrer la position.</li>
+  </ul>
+  <div class="frames">
+    <div class="frame-box"><p class="frame-cap"><span>4K · 2560 px CSS (3840 × 2045 à 150 %)</span><span>Dictionnaire · Do majeur, gamme</span></p><div class="fit" id="a4k"></div></div>
+    <div class="frame-box phone"><p class="frame-cap"><span>Téléphone · 390 px (Brave)</span></p><div id="aph"></div></div>
+  </div>
+  <div class="specs">
+    <div><h3>Tailles (px CSS)</h3><table>
+      <tr><th>Élément</th><th>4K (2560)</th><th>Téléphone</th></tr>
+      <tr><td>Repère de position (cible)</td><td>44 × hauteur de la position (≥ 4 cases, 300 à 420)</td><td>pastille 44 × 44</td></tr>
+      <tr><td>Capsule dessinée</td><td>36 de large, rayon 18, bord 2</td><td>—</td></tr>
+      <tr><td>Numéro de position</td><td>22 gras (fs-emph)</td><td>20 (fs-emph)</td></tr>
+      <tr><td>Cases sous la pastille</td><td>—</td><td>15 (fs-label)</td></tr>
+      <tr><td>Rail</td><td>4 couloirs × 44 = 176 ; colonne guitare 424 → 600</td><td>repère 8 de large</td></tr>
+      <tr><td>Départ Do3 · Do4 · Do5</td><td>3 × 56 × 44, texte 16,5</td><td>3 × 72 × 44, texte 17,5</td></tr>
+      <tr><td>‹ › et libellé de position</td><td>44 × 44 ; texte 16,5</td><td>—</td></tr>
+      <tr><td>Ruban (8 notes)</td><td>46 × 32, texte 16,5, non cliquable</td><td>40 × 44, cliquable (joue la note)</td></tr>
+      <tr><td>Pastille de note</td><td>48 (jouée : 56)</td><td>40 (jouée : 46)</td></tr>
+      <tr><td>▶ Écouter</td><td>44 × 44 (en-tête)</td><td>pleine largeur × 52</td></tr>
+    </table></div>
+    <div><h3>À vérifier dans le code</h3><ul>
+      <li>Les doigtés des positions 1, 3 à 7 sont recalculés à la main (seule la position 2 m’était donnée) : comparer avec ce que produit le moteur (<code>placementLabel.js</code>, <code>stepPlacement</code>, <code>positionPanel.js</code>).</li>
+      <li>La 2ᵉ ligne d’en-tête du manche (statut X / O / M, <code>Fretboard.jsx</code> l. 296-311) est vide pour une gamme : le ruban y tient en 36 px sans rien ajouter. Si un statut peut s’y afficher en mode gamme, il faut une autre place.</li>
+      <li>La colonne du manche est <code>min-content</code> (<code>PrototypeA.css</code>) : le rail l’élargit de 176 px, pris sur la colonne centrale (1484 → 1308 px à 2560). Remesurer S1-12 / S1-21.</li>
+      <li>À 2560 px CSS, <code>tokens.css</code> donne <code>--hit-min</code> 44 px et <code>--fs-label</code> 16,5 px ; les 48 px et 18 px cités dans les commentaires valent seulement à ≥ 3840 px CSS (100 %).</li>
+      <li>Hauteur : à 150 % la fenêtre utile est d’environ 1283 px CSS (ligne orange). Le manche complet (cases 0-22) descend vers 1995 px : les positions 6 et 7 passent en partie sous la ligne.</li>
+      <li>Basse (Do2 / Do3) : même rail, positions non simulées ici. Do4 et Do5 non simulés non plus.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section class="variant" id="vb">
+  <header><h2>Variante B · Onglets et fils</h2><span class="tag">un onglet de 44 px à la première case de chaque position, un fil fin jusqu’à la dernière</span></header>
+  <ul class="three">
+    <li><b>Ce que voit le débutant</b>Une échelle d’onglets 1 à 7 qui descend le long du manche, chacun posé à la case où la main commence ; un fil part de chaque onglet jusqu’à la case où elle finit. Le fil choisi est épais et mauve.</li>
+    <li><b>Ce que fait un clic</b>Un clic sur un onglet ou sur son fil choisit la position (même effet qu’en A). Le choix du départ est un seul bouton « Do3 ▾ » qui ouvre la liste.</li>
+    <li><b>Ce qui change au téléphone</b>Sept pastilles sans légende ; une seule ligne dessous, entre ‹ et ›, dit « Position 2 · cases 2 à 5 » et le grand écart en clair. Même repère unique le long du manche.</li>
+  </ul>
+  <div class="frames">
+    <div class="frame-box"><p class="frame-cap"><span>4K · 2560 px CSS</span><span>Dictionnaire · Do majeur, gamme</span></p><div class="fit" id="b4k"></div></div>
+    <div class="frame-box phone"><p class="frame-cap"><span>Téléphone · 390 px</span></p><div id="bph"></div></div>
+  </div>
+  <div class="specs">
+    <div><h3>Tailles (px CSS)</h3><table>
+      <tr><th>Élément</th><th>4K (2560)</th><th>Téléphone</th></tr>
+      <tr><td>Onglet de position (cible)</td><td>44 × 44, bord 2, rayon 8</td><td>pastille 44 × 44</td></tr>
+      <tr><td>Fil (cible secondaire)</td><td>12 × hauteur ; trait 4 (choisi : 8)</td><td>—</td></tr>
+      <tr><td>Numéro</td><td>22 gras</td><td>20</td></tr>
+      <tr><td>Rail</td><td>44 + 6 + 4 × 12 = 98 ; colonne guitare 424 → 522</td><td>repère 8 de large</td></tr>
+      <tr><td>Départ</td><td>bouton 98 × 44 → liste 150 × 44 par ligne</td><td>3 × 72 × 44</td></tr>
+      <tr><td>Légende de position</td><td>libellé d’en-tête 16,5</td><td>17,5 entre ‹ › de 44 × 44 ; ⚠ en 15</td></tr>
+      <tr><td>Ruban</td><td>46 × 32, texte 16,5</td><td>40 × 44, texte 15</td></tr>
+    </table></div>
+    <div><h3>À vérifier dans le code</h3><ul>
+      <li>B suppose que deux positions ne commencent jamais à la même case (ici : 0, 2, 3, 4, 5, 7, 8). Si c’est possible (basse, autres gammes), le second onglet descend d’une rangée et son fil part de là.</li>
+      <li>Rangées ≥ 74 px jusqu’à la case 12 (<code>verticalNeckGeometry.js</code>, guitare 22 cases) : deux onglets de 44 px sur des cases voisines ne se touchent pas. Au-delà de la case 12 les rangées descendent à 61 px : ça tient encore.</li>
+      <li>Le fil (12 px de large) est une cible plus étroite que <code>--hit-min</code> : l’onglet reste la cible principale, le fil n’est qu’un raccourci.</li>
+      <li>Mêmes points que A pour le ruban, la colonne <code>min-content</code> et la hauteur à 150 %.</li>
+    </ul></div>
+  </div>
+</section>
+
+<script>
+/*@JS*/
+</script>
+<script>
+(() => {
+  const { h } = VM;
+  document.body.prepend(VM.topbar('e1-position-gamme.html'));
+
+  /* Do majeur depuis Do3, guitare (cordes 0 = Mi grave … 5 = Mi aigu) */
+  const MIDI = [48, 50, 52, 53, 55, 57, 59, 60];
+  const NAMES = ['Do', 'Ré', 'Mi', 'Fa', 'Sol', 'La', 'Si', 'Do'];
+  const RIB = ['Do3', 'Ré', 'Mi', 'Fa', 'Sol', 'La', 'Si', 'Do4'];
+  const POS = [
+    { a: 0, b: 3, cells: [[1, 3], [2, 0], [2, 2], [2, 3], [3, 0], [3, 2], [4, 0], [4, 1]] },
+    { a: 2, b: 5, cells: [[1, 3], [1, 5], [2, 2], [2, 3], [2, 5], [3, 2], [3, 4], [3, 5]] },
+    { a: 3, b: 7, cells: [[1, 3], [1, 5], [1, 7], [2, 3], [2, 5], [2, 7], [3, 4], [3, 5]] },
+    { a: 4, b: 8, cells: [[0, 8], [1, 5], [1, 7], [1, 8], [2, 5], [2, 7], [3, 4], [3, 5]] },
+    { a: 5, b: 9, cells: [[0, 8], [1, 5], [1, 7], [1, 8], [2, 5], [2, 7], [2, 9], [3, 5]] },
+    { a: 7, b: 10, cells: [[0, 8], [0, 10], [1, 7], [1, 8], [1, 10], [2, 7], [2, 9], [2, 10]] },
+    { a: 8, b: 12, cells: [[0, 8], [0, 10], [0, 12], [1, 8], [1, 10], [1, 12], [2, 9], [2, 10]] },
+  ];
+  // couloirs : le premier libre (intervalles qui se chevauchent -> couloirs différents)
+  const laneEnd = [];
+  POS.forEach((p, i) => { p.n = i + 1; p.wide = p.b - p.a + 1 > 4; let l = laneEnd.findIndex((e) => e < p.a); if (l < 0) l = laneEnd.length; laneEnd[l] = p.b; p.lane = l; });
+  const LANES = laneEnd.length;
+  const notesOf = (p) => p.cells.map(([s, f], i) => ({ s, f, label: NAMES[i], role: i === 0 || i === 7 ? 'root' : 'scale' }));
+  const posLabel = (p) => `Position ${p.n} · cases ${p.a}-${p.b}`;
+
+  /* lecture de la gamme : la puce du ruban et la pastille s'allument ensemble */
+  const player = (onNote, onEnd) => {
+    let t = null, i = 0;
+    const stop = () => { clearTimeout(t); t = null; onNote(-1); onEnd(); };
+    const step = () => { if (i >= 8) { stop(); return; } onNote(i); VM.tone(MIDI[i] + 12, 0.45, 0.12); i++; t = setTimeout(step, 430); };
+    return { get on() { return t !== null; }, toggle() { if (t) stop(); else { i = 0; step(); } } };
+  };
+
+  /* ---------------- 4K ---------------- */
+  function build4k(variant, mount) {
+    const RAIL = variant === 'A' ? LANES * 44 : 44 + 6 + LANES * 12;
+    const neck = VM.buildNeck({ rail: RAIL, maxFret: 12, cut: '… cases 13 à 22' });
+    let sel = 1;
+
+    // ruban dans la ligne X/O (vide pour une gamme)
+    const chips = RIB.map((t, i) => h('span', { class: 'chip' + (i === 0 || i === 7 ? ' root' : ''), text: t }));
+    neck.el.append(h('div', { class: 'ribbon', style: { left: neck.x0 + 'px', top: '38px' }, 'aria-label': 'Les 8 notes de la gamme' }, chips));
+
+    // départ (octave)
+    if (variant === 'A') {
+      neck.el.append(h('div', { class: 'rail-head' }, h('span', { class: 'seg', role: 'group', 'aria-label': 'Départ de la gamme' },
+        ['Do3', 'Do4', 'Do5'].map((o) => h('button', { type: 'button', 'aria-pressed': String(o === 'Do3'), text: o, title: o === 'Do3' ? 'Départ Do3' : 'Non simulé dans la maquette' })))));
+    } else {
+      const menu = h('div', { class: 'octmenu', hidden: true }, ['Do3', 'Do4', 'Do5'].map((o) => h('button', { type: 'button', 'aria-pressed': String(o === 'Do3'), text: `Départ ${o}`, title: o === 'Do3' ? '' : 'Non simulé dans la maquette', onclick: () => { menu.hidden = true; } })));
+      neck.el.append(h('button', { class: 'btn octbtn', type: 'button', 'aria-haspopup': 'true', onclick: () => { menu.hidden = !menu.hidden; } }, 'Do3 ', h('span', { class: 'caret', text: '▾' })), menu);
+    }
+
+    // rail
+    const railEls = POS.map((p, i) => {
+      const top = neck.rows[p.a].top, bot = neck.rows[p.b].top + neck.rows[p.b].h;
+      const choose = () => select(i);
+      const title = `${posLabel(p)}${p.wide ? ' — grand écart (5 cases)' : ''}`;
+      if (variant === 'A') {
+        const b = h('button', { class: 'rail-a' + (p.wide ? ' wide' : ''), type: 'button', title, 'aria-label': title, onclick: choose,
+          style: { left: (p.lane * 44) + 'px', top: (top + 4) + 'px', height: (bot - top - 8) + 'px' } },
+          h('span', { class: 'cap' }, h('span', { text: String(p.n) }), p.wide ? h('span', { class: 'w', text: '⚠' }) : h('span')));
+        neck.el.append(b); return [b];
+      }
+      const wx = 50 + p.lane * 12;
+      const wire = h('button', { class: 'wire-b' + (p.wide ? ' wide' : ''), type: 'button', tabindex: '-1', title, onclick: choose, style: { left: wx + 'px', top: (top + 6) + 'px', height: (bot - top - 12) + 'px' } }, h('i'));
+      const link = h('div', { class: 'link-b', style: { left: '44px', width: (wx + 6 - 44) + 'px', top: (neck.cy(p.a) - 1) + 'px' } });
+      const tab = h('button', { class: 'tab-b' + (p.wide ? ' wide' : ''), type: 'button', title, 'aria-label': title, onclick: choose, style: { top: (neck.cy(p.a) - 22) + 'px' } },
+        String(p.n), p.wide ? h('span', { class: 'w', text: '⚠' }) : null);
+      neck.el.append(link, wire, tab); return [tab, wire, link];
+    });
+
+    // lecture
+    let lit = -1;
+    const pl = player((i) => {
+      if (lit >= 0) { chips[lit].classList.remove('lit'); const c = POS[sel].cells[lit]; neck.play(c[0], c[1], false); }
+      lit = i;
+      if (i >= 0) { chips[i].classList.add('lit'); const c = POS[sel].cells[i]; neck.play(c[0], c[1], true); }
+    }, () => hd.refs.playBtn.classList.remove('grad', 'playing'));
+
+    const hd = VM.head({ name: 'Guitare', on: true, play: { label: 'Écouter la gamme', onClick: () => { pl.toggle(); hd.refs.playBtn.classList.toggle('grad', pl.on); hd.refs.playBtn.classList.toggle('playing', pl.on); } },
+      setting: { prev: { label: 'Position précédente', onClick: () => select(sel - 1) }, next: { label: 'Position suivante', onClick: () => select(sel + 1) } } });
+    hd.refs.label.title = 'Ouvre le panneau de position (inchangé)';
+
+    function select(i) {
+      if (i < 0 || i >= POS.length) return;
+      if (pl.on) pl.toggle();
+      sel = i; const p = POS[i];
+      neck.setNotes(notesOf(p));
+      neck.highlightFrets(p.a, p.b);
+      railEls.forEach((els, j) => els.forEach((e) => e.classList.toggle('sel', j === i)));
+      hd.refs.label.replaceChildren(h('span', { text: posLabel(p) }), p.wide ? h('span', { class: 'warn', text: '⚠', title: 'Grand écart : 5 cases' }) : '', h('span', { class: 'caret', text: '▾' }));
+      hd.refs.prev.disabled = i === 0; hd.refs.next.disabled = i === POS.length - 1;
+    }
+    select(1);
+
+    // la page autour
+    const bass = VM.buildNeck({ strings: ['Mi', 'La', 'Ré', 'Sol'], numFrets: 20, maxFret: 12, bass: true, cut: '… cases 13 à 20' });
+    const bhead = VM.head({ name: 'Basse', play: { label: 'Écouter' }, setting: {} });
+    bhead.refs.label.replaceChildren(h('span', { style: { color: 'var(--text-muted)' }, text: 'Même rail · non simulé' }));
+    const phead = VM.head({ name: 'Piano', play: { label: 'Écouter' }, setting: { prev: { label: 'Octave −' }, next: { label: 'Octave +' } } });
+    phead.refs.label.textContent = 'Do3 – Do7';
+    const centre = h('div', { class: 'col centre' },
+      h('div', { class: 'wire', style: { height: '150px' } }, h('b', { text: 'Transport' }), ' · ▶, tempo − 90 +, métronome, volume, Math & Rythmes, Instruments & Audio'),
+      h('div', { class: 'wire', style: { height: '64px' } }, h('b', { text: 'Sélection' }), ' · Famille : Gammes · Note : Do · Type : Majeure'),
+      h('div', { class: 'wire', style: { height: '60px' } }, 'Visualiseur audio'),
+      h('div', { class: 'wire', style: { height: '520px' } }, h('b', { text: 'Séquenceur / Dictionnaire' })),
+      h('div', { class: 'wire', style: { height: '220px' } }, h('b', { text: 'Légende' }), ' · Fondamentale · Tierce · Quinte · Extension · Note cible · Note de gamme'));
+    const frame = h('div', { class: 'f4k tx-a' }, VM.header4k('Dictionnaire'),
+      h('div', { class: 'app-grid' }, centre,
+        h('div', { class: 'col inst', style: { width: '248px' } }, phead.el, VM.buildPiano({ height: neck.H - 36, topMidi: 96 })),
+        h('div', { class: 'col inst' }, hd.el, neck.el),
+        h('div', { class: 'col inst' }, bhead.el, bass.el)),
+      h('div', { class: 'fold', style: { top: '1283px' } }, h('span', { text: 'bas de la fenêtre à 150 % (≈ 1283 px CSS utiles dans Brave)' })));
+    mount.append(frame);
+    VM.fit(mount);
+  }
+
+  /* ---------------- téléphone ---------------- */
+  function buildPhone(variant, mount) {
+    let sel = 1;
+    const neck = VM.buildNeck({ rail: 14, gutter: 26, stringPx: 53, pm: 40, headRow: 24, openRow: 56, maxFret: 12, pitch: (n) => 66 - (n - 1) * 0.9, cut: '… cases 13 à 22' });
+    const mark = h('div', { class: 'mark-ph' }); neck.el.append(mark);
+    const scroll = h('div', { class: 'scroll' });
+    const pills = POS.map((p, i) => h('button', { class: 'pill' + (p.wide ? ' wide' : ''), type: 'button', 'aria-label': `${posLabel(p)}${p.wide ? ', grand écart' : ''}`, onclick: () => select(i) },
+      h('b', { text: String(p.n) }), variant === 'A' ? h('small', { text: `${p.a}-${p.b}` }) : null));
+    const capTxt = h('div', { class: 'txt' });
+    const prev = h('button', { class: 'hbtn grad', type: 'button', 'aria-label': 'Position précédente', text: '‹', onclick: () => select(sel - 1) });
+    const next = h('button', { class: 'hbtn grad', type: 'button', 'aria-label': 'Position suivante', text: '›', onclick: () => select(sel + 1) });
+    const ribbon = RIB.map((t, i) => h('button', { type: 'button', class: i === 0 || i === 7 ? 'root' : '', text: t, onclick: () => flash(i) }));
+    const playBtn = h('button', { class: 'btn grad playbig', type: 'button' }, '▶ Écouter la gamme');
+    let lit = -1;
+    const light = (i) => {
+      if (lit >= 0) { ribbon[lit].classList.remove('lit'); const c = POS[sel].cells[lit]; neck.play(c[0], c[1], false); }
+      lit = i;
+      if (i >= 0) { ribbon[i].classList.add('lit'); const c = POS[sel].cells[i]; neck.play(c[0], c[1], true); }
+    };
+    const pl = player(light, () => { playBtn.classList.remove('playing'); playBtn.firstChild.textContent = '▶ Écouter la gamme'; });
+    playBtn.onclick = () => { pl.toggle(); playBtn.classList.toggle('playing', pl.on); playBtn.firstChild.textContent = pl.on ? '■ Arrêter' : '▶ Écouter la gamme'; };
+    let ft = null;
+    function flash(i) { if (pl.on) pl.toggle(); light(i); VM.tone(MIDI[i] + 12, 0.45, 0.12); clearTimeout(ft); ft = setTimeout(() => light(-1), 450); }
+
+    const sticky = h('div', { class: 'ph-sticky' },
+      h('div', { class: 'pills', role: 'group', 'aria-label': 'Positions' }, pills),
+      variant === 'B' ? h('div', { class: 'pcap' }, prev, capTxt, next) : h('div', { style: { height: '8px' } }),
+      h('div', { class: 'pribbon' }, ribbon));
+    scroll.append(
+      h('div', { class: 'appbar' }, h('span', { class: 'app-title', text: 'VisualMusic' }), h('span', { style: { flex: 1 } }), h('span', { class: 'tab on', style: { width: 'auto', padding: '0 14px', height: '44px', fontSize: 'var(--fs-body)' }, text: 'Dictionnaire' })),
+      h('div', { class: 'ph-sel' }, h('span', { text: 'Do majeur · gamme' }), h('span', { class: 'caret', text: '▾' })),
+      h('div', { class: 'itabs' }, ['Piano', 'Guitare', 'Basse'].map((t) => h('button', { type: 'button', class: t === 'Guitare' ? 'on' : '', text: t }))),
+      h('div', { class: 'ph-row' }, h('span', { class: 'lbl', text: 'Départ' }), h('span', { class: 'seg' }, ['Do3', 'Do4', 'Do5'].map((o) => h('button', { type: 'button', 'aria-pressed': String(o === 'Do3'), text: o })))),
+      sticky,
+      neck.el);
+    const frame = h('div', { class: 'fph tx-a' }, h('div', { class: 'urlbar' }, h('span', { text: 'visualmusic.app' })), scroll, h('div', { class: 'bottombar' }, playBtn));
+    mount.append(frame);
+
+    function select(i, first) {
+      if (i < 0 || i >= POS.length) return;
+      if (pl.on) pl.toggle();
+      sel = i; const p = POS[i];
+      neck.setNotes(notesOf(p)); neck.highlightFrets(p.a, p.b);
+      pills.forEach((b, j) => b.classList.toggle('sel', j === i));
+      const top = neck.rows[p.a].top, bot = neck.rows[p.b].top + neck.rows[p.b].h;
+      Object.assign(mark.style, { top: (top + 4) + 'px', height: (bot - top - 8) + 'px' }); mark.classList.toggle('wide', p.wide);
+      capTxt.replaceChildren(h('span', { text: `Position ${p.n} · cases ${p.a} à ${p.b}` }), p.wide ? h('span', { class: 'warn', text: '⚠ grand écart : 5 cases' }) : '');
+      prev.disabled = i === 0; next.disabled = i === POS.length - 1;
+      // le manche défile pour cadrer la position (seulement si elle sort de la vue)
+      if (first) return;
+      const viewTop = scroll.scrollTop + sticky.offsetHeight, viewBot = scroll.scrollTop + scroll.clientHeight;
+      const pTop = neck.el.offsetTop + top, pBot = neck.el.offsetTop + bot;
+      let target = null;
+      if (pBot > viewBot - 8) target = pBot - scroll.clientHeight + 16;
+      else if (pTop < viewTop + 8) target = pTop - sticky.offsetHeight - 16;
+      if (target != null) scroll.scrollTo({ top: Math.max(0, target), behavior: document.body.classList.contains('reduce-motion') ? 'auto' : 'smooth' });
+    }
+    select(1, true);
+  }
+
+  build4k('A', document.getElementById('a4k'));
+  buildPhone('A', document.getElementById('aph'));
+  build4k('B', document.getElementById('b4k'));
+  buildPhone('B', document.getElementById('bph'));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+/* ==========================================================================
+   Explorations A′ — feuille commune (copiée dans chaque page par build.mjs).
+   Couleurs : UNIQUEMENT les jetons de src/styles/tokens.css (valeurs recopiées
+   telles quelles). Aucune police chargée : pas de réseau, les piles de repli
+   de tokens.css s'appliquent (Orbitron / Hanken Grotesk / JetBrains Mono
+   s'affichent seulement si elles sont installées sur la machine).
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+  --bg:#000000; --surface-1:#0a0a0a; --surface-2:#141414; --surface-3:#1f1f1f;
+  --border-subtle:#1f1f1f; --border-default:#333333; --border-strong:#6b6b6b;
+  --text-primary:#e8e8e8; --text-secondary:#a8a8a8; --text-muted:#8c8c8c; --text-disabled:#5c5c5c;
+  --text-on-select:#ffffff; --on-role:#000000; --select:#ffffff;
+  --select-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--select);
+  --role-root:#f07878; --role-third:#a0c4ff; --role-fifth:#80f5c8; --role-extension:#b084dc; --role-target:#e0d840;
+  --role-scale-edge: var(--text-muted);
+  --color-error:#ff8a80; --color-warning:#ffc266; --color-success:#6fdc8c;
+  --seq-kick:#f79009; --seq-snare:#2e90fa; --seq-hat:#bdc7de; --seq-chords:#ffb782; --seq-bass:#32d583;
+  --assistant-from:#6e3fa3; --assistant-from-hover:#7b4bb0; --assistant-to:var(--bg);
+  --assistant-text:var(--text-on-select); --assistant-border:#a77bd8;
+  --key-white:#cfcfcf; --key-black:#1a1a1a; --key-name-on-white:#555555;
+  --fret-wire:var(--border-strong); --string:#8c8c8c; --fret-inlay:#333333;
+  --font-display:'Orbitron','Hanken Grotesk',system-ui,sans-serif;
+  --font-body:'Hanken Grotesk',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --radius-sm:4px; --radius-md:6px; --radius-lg:8px; --radius-xl:12px;
+  /* présentation (hors maquette) : mêmes jetons, échelle 1 */
+  --ui-scale:1; --hit-min:44px;
+}
+/* Échelle des maquettes : celle que tokens.css donne à ces largeurs de fenêtre.
+   2560 px CSS (4K à 150 %) : --ui-scale 1.375, --hit-min 44 px (le 48 px de
+   tokens.css ne s'applique qu'à >= 3840 px CSS). Téléphone 390 px : 1.25. */
+.f4k { --ui-scale:1.375; --hit-min:44px; }
+.fph { --ui-scale:1.25;  --hit-min:44px; }
+.f4k, .fph {
+  --fs-label: calc(12px * var(--ui-scale));
+  --fs-body:  calc(14px * var(--ui-scale));
+  --fs-emph:  calc(16px * var(--ui-scale));
+  --fs-title: calc(20px * var(--ui-scale));
+  --fs-heading: calc(26px * var(--ui-scale));
+  --fs-display: calc(36px * var(--ui-scale));
+}
+
+html, body { background: var(--surface-1); color: var(--text-primary); }
+body { margin:0; font-family: var(--font-body); font-size:15px; line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:0 64px; }
+body::before { content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:30; background:var(--bg); }
+* { box-sizing: border-box; }
+[hidden] { display:none !important; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline:none; box-shadow: var(--select-ring); }
+a { color: var(--text-primary); }
+
+/* ---------- présentation ---------- */
+.topbar { position:sticky; top:env(safe-area-inset-top,0px); z-index:20; display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px;
+  margin:0 calc(-1 * max(16px, env(safe-area-inset-left,0px))); padding:10px max(16px, env(safe-area-inset-left,0px));
+  background:var(--bg); border-bottom:1px solid var(--border-default); }
+.topbar .brand { font-family:var(--font-display); font-weight:700; letter-spacing:.04em; color:var(--text-secondary); }
+.topbar nav { display:flex; gap:4px; flex-wrap:wrap; }
+.topbar nav a { text-decoration:none; padding:6px 12px; border-radius:var(--radius-md); border:1px solid var(--border-default); color:var(--text-secondary); font-size:14px; }
+.topbar nav a[aria-current="page"] { color:var(--text-on-select); border-color:var(--select); background:var(--surface-3); }
+.topbar .spacer { flex:1; }
+.seg { display:inline-flex; }
+.seg button { min-height:36px; padding:0 12px; background:var(--bg); border:1px solid var(--border-strong); cursor:pointer; font-size:14px; color:var(--text-secondary); }
+.seg button + button { margin-left:-1px; }
+.seg button:first-child { border-radius:var(--radius-md) 0 0 var(--radius-md); }
+.seg button:last-child { border-radius:0 var(--radius-md) var(--radius-md) 0; }
+.seg button[aria-pressed="true"] { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); position:relative; z-index:1; }
+.ctl-label { font-size:13px; color:var(--text-muted); letter-spacing:.04em; text-transform:uppercase; }
+
+.intro { max-width:1100px; padding-top:28px; }
+.intro h1 { font-family:var(--font-display); font-size:28px; margin:0 0 8px; text-wrap:balance; }
+.intro p { color:var(--text-secondary); max-width:72ch; margin:0 0 8px; }
+.variant { padding-top:40px; border-top:1px solid var(--border-subtle); margin-top:40px; }
+.variant > header { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 16px; margin-bottom:16px; }
+.variant > header h2 { font-family:var(--font-display); font-size:22px; margin:0; }
+.variant > header .tag { color:var(--text-muted); font-size:14px; }
+.three { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px; margin:0 0 20px; padding:0; list-style:none; max-width:1500px; }
+.three li { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:12px 14px; min-width:0; }
+.three li b { display:block; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); font-weight:600; margin-bottom:4px; }
+.frames { display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; }
+.frame-box { min-width:0; flex:1 1 640px; }
+.frame-box.phone { flex:0 1 auto; max-width:100%; overflow-x:auto; }
+.frame-box.phone > div { width:max-content; }
+.frame-cap { font-size:13px; color:var(--text-muted); margin:0 0 6px; display:flex; gap:12px; flex-wrap:wrap; }
+.fit { position:relative; overflow:hidden; border:1px solid var(--border-default); border-radius:var(--radius-md); background:var(--bg); }
+.fit.is-native { overflow:auto; max-height:88vh; }
+.fit > .f4k { transform-origin:0 0; position:absolute; left:0; top:0; }
+.fit.is-native > .f4k { position:relative; }
+.specs { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:16px 32px; margin-top:20px; max-width:1500px; }
+.specs h3 { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); margin:0 0 8px; font-weight:600; }
+.specs table { border-collapse:collapse; width:100%; font-size:14px; }
+.specs td, .specs th { text-align:left; padding:5px 8px 5px 0; border-bottom:1px solid var(--border-subtle); vertical-align:top; font-variant-numeric:tabular-nums; }
+.specs th { color:var(--text-muted); font-weight:500; }
+.specs ul { margin:0; padding-left:18px; font-size:14px; color:var(--text-secondary); }
+.specs li + li { margin-top:6px; }
+.specs code, .note code { font-family:var(--font-mono); font-size:.92em; color:var(--text-primary); }
+.note { border-left:3px solid var(--assistant-border); padding:8px 14px; color:var(--text-secondary); max-width:110ch; margin:16px 0; }
+.table-wrap { overflow-x:auto; }
+
+/* ---------- maquette 4K (2560 px CSS) ---------- */
+.f4k { width:2560px; background:var(--bg); color:var(--text-primary); font-family:var(--font-body); font-size:var(--fs-body); position:relative; }
+.app-header { height:72px; display:flex; align-items:center; gap:24px; padding:0 24px 0 16px; border-bottom:1px solid var(--border-subtle); }
+.app-title { font-family:var(--font-display); font-weight:700; font-size:var(--fs-heading); color:var(--text-secondary); }
+.tab { height:48px; width:220px; border-radius:var(--radius-lg); border:1px solid var(--border-default); background:var(--bg); color:var(--text-secondary); font-size:var(--fs-emph); display:inline-flex; align-items:center; justify-content:center; }
+.tab.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); }
+.btn { min-height:var(--hit-min); padding:0 20px; background:var(--bg); color:var(--text-primary); border:1px solid var(--border-strong); border-radius:var(--radius-md); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.btn.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); }
+.grad { background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); color:var(--assistant-text); border-color:var(--assistant-border); }
+.grad:hover:not(:disabled) { background:linear-gradient(90deg, var(--assistant-from-hover), var(--assistant-to)); }
+.grad:disabled { background:var(--bg); color:var(--text-secondary); border-color:var(--border-subtle); cursor:default; }
+.grad.playing { background:linear-gradient(90deg, var(--assistant-to), var(--assistant-from), var(--assistant-to)); background-size:200% 100%; animation:vm-play 3s linear infinite; }
+@keyframes vm-play { from { background-position:0% 0; } to { background-position:200% 0; } }
+.app-grid { display:flex; align-items:flex-start; gap:24px; padding:0 24px 0 16px; }
+.col { padding-top:24px; display:flex; flex-direction:column; gap:12px; flex:0 0 auto; }
+.col + .col.inst { box-shadow:-13px 0 0 -12px var(--border-subtle); }
+.col.centre { flex:1 1 auto; min-width:0; gap:24px; }
+.wire { border:1px dashed var(--border-default); border-radius:var(--radius-lg); color:var(--text-muted); font-size:var(--fs-label); padding:16px 20px; }
+.wire b { color:var(--text-secondary); font-weight:600; }
+.fold { position:absolute; left:0; right:0; border-top:2px dashed var(--color-warning); pointer-events:none; z-index:40; }
+.fold span { position:absolute; right:24px; top:4px; font-size:var(--fs-label); color:var(--color-warning); background:var(--bg); padding:2px 8px; }
+
+/* tête de colonne (InstrumentHead) : 100 px, deux rangées de 44/48 px */
+.ihead { height:100px; display:flex; flex-direction:column; justify-content:space-between; padding-left:16px; }
+.ihead .row { display:flex; align-items:center; gap:4px; height:var(--hit-min); white-space:nowrap; position:relative; }
+.iname { flex:1 1 auto; height:var(--hit-min); padding:0 12px; text-align:left; font-family:var(--font-display); font-weight:600; font-size:var(--fs-emph); background:var(--bg); border:1px solid var(--border-default); border-radius:var(--radius-md); display:flex; align-items:center; }
+.iname.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); }
+.hbtn { flex:0 0 auto; width:var(--hit-min); height:var(--hit-min); padding:0; border:1px solid var(--border-strong); border-radius:var(--radius-md); background:var(--bg); display:inline-flex; align-items:center; justify-content:center; font-size:var(--fs-emph); cursor:pointer; }
+.hlabel { flex:1 1 auto; min-width:0; height:var(--hit-min); display:flex; align-items:center; justify-content:center; gap:6px; font-size:var(--fs-label); border:1px solid var(--border-default); border-radius:var(--radius-md); background:transparent; cursor:pointer; padding:0 6px; }
+.hlabel .caret { font-size:.75em; color:var(--text-secondary); }
+.warn { color:var(--color-warning); }
+
+/* ---------- manche vertical (géométrie de Fretboard.css / verticalNeckGeometry.js) ---------- */
+.neck { position:relative; flex:0 0 auto; }
+.neck .board { position:absolute; background:var(--surface-3); }
+.neck .wire-f { position:absolute; height:3px; background:var(--fret-wire); }
+.neck .nut { position:absolute; height:6px; background:var(--text-secondary); }
+.neck .str { position:absolute; background:var(--string); transform:translateX(-50%); }
+.neck .inlay { position:absolute; width:12px; height:12px; border-radius:50%; background:var(--border-strong); transform:translate(-50%,-50%); }
+.neck .fno { position:absolute; font-family:var(--font-mono); font-size:var(--fs-label); color:var(--text-muted); text-align:right; line-height:1; transform:translateY(-50%); transition:color 150ms ease; }
+.neck .fno.inl { color:var(--text-primary); }
+.neck .fno.in-pos { color:var(--text-on-select); font-weight:700; }
+.neck .sname { position:absolute; font-size:var(--fs-label); font-weight:600; color:var(--text-secondary); transform:translate(-50%,-50%); }
+.neck .cut { position:absolute; left:0; right:0; text-align:center; font-size:var(--fs-label); color:var(--text-muted); }
+.neck .cell { position:absolute; cursor:pointer; }
+
+/* ---------- pastilles (Fretboard.css .note-marker, vertical : 48 px) ---------- */
+.pm { position:absolute; width:var(--pm,48px); height:var(--pm,48px); margin:calc(var(--pm,48px) / -2) 0 0 calc(var(--pm,48px) / -2);
+  border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:var(--fs-label); font-weight:600; line-height:1; z-index:2;
+  background:var(--surface-3); color:var(--text-primary); white-space:nowrap; }
+.pm.r-root { background:var(--role-root); color:var(--on-role); border-radius:25%; box-shadow:0 0 0 2px var(--bg); }
+.pm.r-third { background:var(--role-third); color:var(--on-role); box-shadow:0 0 0 2px var(--bg); }
+.pm.r-fifth { background:var(--role-fifth); color:var(--on-role); box-shadow:0 0 0 2px var(--bg); }
+.pm.r-ext { background:var(--role-extension); color:var(--on-role); box-shadow:0 0 0 2px var(--bg); }
+.pm.r-target { background:var(--role-target); color:var(--on-role); outline:2px dashed var(--role-target); outline-offset:3px; box-shadow:0 0 0 2px var(--bg); }
+.pm.r-scale { background:none; border:2px solid var(--role-scale-edge); color:var(--text-secondary); }
+.pm.outside { background:transparent; border:3px solid var(--seq-bass); color:var(--text-primary); box-shadow:none; }
+
+/* --- Traitements « note qui joue » (exploration 3), posés sur un ancêtre --- */
+/* Actuel, tel que la cascade le rend : sur une pastille de rôle, la règle
+   .note-marker.role-* (plus bas dans Fretboard.css, même spécificité) remet
+   box-shadow à 0 0 0 2px noir : l'anneau blanc disparaît, il reste scale(1.1). */
+.tx-now .pm.playing { transform:scale(1.1); z-index:10; }
+.tx-now .pm.playing.r-scale, .tx-now .pm.playing.r-none { box-shadow:var(--select-ring); }
+/* Piste déjà proposée : impulsion unique 240 ms, anneau 8 -> 4 px, scale(1.2). */
+.tx-p .pm.playing { transform:scale(1.2); z-index:10; box-shadow:0 0 0 2px var(--bg), 0 0 0 6px var(--select); animation:tx-p 240ms ease-out; }
+.tx-p .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 10px var(--select); animation:tx-p-t 240ms ease-out; }
+@keyframes tx-p { from { box-shadow:0 0 0 2px var(--bg), 0 0 0 10px var(--select); } }
+@keyframes tx-p-t { from { box-shadow:0 0 0 6px var(--bg), 0 0 0 14px var(--select); } }
+/* A — « Marche » : un cran de taille (48 -> 56 px), anneau fin 2 px réellement
+   visible (liseré noir 2 px), étiquette en gras. Pas d'animation : 90 ms d'attaque. */
+.tx-a .pm { transition:transform 90ms ease-out; }
+.tx-a .pm.playing { transform:scale(1.1667); z-index:10; font-weight:800; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--select); }
+.tx-a .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 8px var(--select); }
+/* B — « Projecteur » : pendant la boucle, le dessin passe en veille (40 %) ;
+   ce qui sonne revient à 100 %, scale(1.1), même anneau fin. Moins de surface
+   allumée pendant la boucle (OLED), pas plus. */
+.tx-b .pm { transition:opacity 120ms ease-out, transform 90ms ease-out; }
+.tx-b.is-running .pm { opacity:.4; }
+.tx-b.is-running .pm.playing, .tx-b .pm.playing { opacity:1; transform:scale(1.1); z-index:10; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--select); font-weight:800; }
+.tx-b .pm.playing.r-target { box-shadow:0 0 0 6px var(--bg), 0 0 0 8px var(--select); }
+/* la tenue : la fin d'une note relâche en 150 ms (classe posée par le script) */
+.tx-a .pm.release, .tx-b .pm.release { transition-duration:150ms; }
+@media (prefers-reduced-motion: reduce) {
+  .pm, .tx-a .pm, .tx-b .pm { transition:none !important; animation:none !important; }
+  .grad.playing { animation:none; }
+}
+.reduce-motion .pm { transition:none !important; animation:none !important; }
+
+/* ---------- clavier vertical (simplifié) ---------- */
+.piano { position:relative; width:238px; margin-left:10px; border:1px solid var(--border-subtle); border-radius:var(--radius-xl); background:var(--surface-1); padding:8px; overflow:hidden; }
+.piano .wk { position:absolute; left:8px; right:8px; background:var(--key-white); border-bottom:1px solid var(--border-subtle); color:var(--key-name-on-white); font-size:var(--fs-label); font-weight:600; display:flex; align-items:center; justify-content:flex-end; padding-right:10px; }
+.piano .bk { position:absolute; left:8px; width:58%; background:var(--key-black); border-radius:0 3px 3px 0; z-index:2; }
+
+/* ---------- téléphone (390 px) ---------- */
+.fph { width:390px; height:844px; background:var(--bg); border:1px solid var(--border-strong); border-radius:28px; overflow:hidden; position:relative; display:flex; flex-direction:column; font-family:var(--font-body); font-size:var(--fs-body); }
+.fph .urlbar { flex:0 0 52px; display:flex; align-items:center; gap:10px; padding:0 14px; border-bottom:1px solid var(--border-subtle); color:var(--text-muted); font-size:14px; }
+.fph .urlbar span { flex:1; height:34px; border-radius:17px; background:var(--surface-2); display:flex; align-items:center; padding:0 14px; }
+.fph .scroll { flex:1 1 auto; overflow-y:auto; overflow-x:hidden; padding:0 16px 16px; }
+.fph .appbar { height:52px; display:flex; align-items:center; gap:12px; }
+.fph .appbar .app-title { font-size:var(--fs-title); }
+.fph .bottombar { flex:0 0 auto; display:flex; gap:8px; padding:8px 16px 12px; border-top:1px solid var(--border-subtle); background:var(--bg); }
+.itabs { display:flex; margin:4px 0 12px; }
+.itabs button { flex:1; height:var(--hit-min); background:var(--bg); border:1px solid var(--border-strong); color:var(--text-secondary); font-size:var(--fs-body); }
+.itabs button + button { margin-left:-1px; }
+.itabs button:first-child { border-radius:var(--radius-md) 0 0 var(--radius-md); }
+.itabs button:last-child { border-radius:0 var(--radius-md) var(--radius-md) 0; }
+.itabs button.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); position:relative; z-index:1; }
+.hit-note { outline:1px dashed var(--color-warning); outline-offset:-1px; }

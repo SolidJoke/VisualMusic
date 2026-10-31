@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Note qui joue · A′</title>
+<style>
+/*@CSS*/
+/* ---- exploration 3 ---- */
+.scale4k { --ui-scale:1.375; --fs-label:calc(12px * 1.375); --fs-body:calc(14px * 1.375); --fs-emph:calc(16px * 1.375); }
+.bench { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; max-width:1500px; }
+.bench > div { border:1px solid var(--border-default); border-radius:var(--radius-lg); background:var(--bg); padding:14px; min-width:0; }
+.bench h3 { margin:0 0 2px; font-size:16px; }
+.bench .sub { font-size:13px; color:var(--text-muted); margin:0 0 12px; min-height:3em; }
+.matrix { display:grid; grid-template-columns:auto repeat(3, 72px); gap:0 4px; align-items:center; font-size:12px; }
+.matrix .hd { color:var(--text-muted); text-align:center; font-size:11px; line-height:1.2; padding-bottom:6px; }
+.matrix .rl { color:var(--text-secondary); font-size:13px; padding-right:6px; }
+.matrix .cell { position:relative; display:block; height:72px; }
+.matrix .cell .pm { left:50%; top:50%; }
+.matrix .dash { text-align:center; color:var(--text-disabled); }
+.excerpt { margin-top:12px; display:flex; justify-content:center; overflow:hidden; }
+.runbar { display:flex; align-items:center; gap:12px; margin:0 0 16px; flex-wrap:wrap; }
+.runbar .btn { font-size:15px; }
+.verdict { font-size:13px; color:var(--text-secondary); margin-top:10px; }
+.verdict b { color:var(--text-primary); }
+/* au téléphone le cran de A est 1.1 : 40 -> 44 px, anneaux compris 52 < 53 px entre deux cordes */
+.fph.tx-a .pm.playing { transform:scale(1.1); }
+.transport4k { display:flex; align-items:center; gap:16px; }
+.transport4k .btn { min-height:64px; padding:0 32px; font-size:var(--fs-emph); font-weight:600; background:var(--surface-3); border-color:var(--select); }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>Distinguer la note qui joue de la note dessinée</h1>
+  <p>Contrainte : pas d’aplat blanc (anti-marquage OLED), le blanc seulement en anneau fin ; compatible avec les cinq couleurs de rôle, la note de gamme (contour gris) et l’anneau vert « hors forme » de la basse ; sobre, et respectueux de <code>prefers-reduced-motion</code> (bouton « Réduit » en haut).</p>
+  <div class="note"><b>Constat dans le code avant de dessiner.</b> Sur le manche vertical, la pastille fait 48 px (<code>--fbv-marker</code>), pas 32 px (32 px est le manche horizontal). Et l’anneau blanc de <code>.note-marker.is-playing</code> (<code>Fretboard.css</code> l. 207) est écrasé par <code>.note-marker.role-*</code>, de même spécificité mais écrit plus bas, qui remet <code>box-shadow: 0 0 0 2px var(--bg)</code>. Sur une pastille de couleur, une note qui joue n’a donc que <code>scale(1.1)</code> ; l’anneau ne se voit que sur la note de gamme. La colonne « Actuel » ci-dessous reproduit ce rendu. À confirmer dans le navigateur, mais c’est sans doute la première raison du « trop discret ».</div>
+</div>
+
+<section class="variant" id="cmp" style="margin-top:24px">
+  <header><h2>Comparer les quatre</h2><span class="tag">taille réelle 4K (2560 px CSS) ; même boucle de démonstration où tous les rôles passent</span></header>
+  <div class="runbar"><button class="btn grad" id="runAll" type="button">▶ Lancer la boucle de démonstration</button><span class="ctl-label">accord de Do (guitare), Si en extension, Ré en note cible, La en note de gamme ; basse en arpège, son Do3 joué hors de la forme</span></div>
+  <div class="bench scale4k" id="bench"></div>
+</section>
+
+<section class="variant" id="va">
+  <header><h2>Variante A · La marche</h2><span class="tag">un cran de taille et un anneau fin qui se voit enfin ; aucune animation</span></header>
+  <ul class="three">
+    <li><b>Ce que voit le débutant</b>La note qui sonne grossit d’un cran (48 → 56 px), son nom passe en gras et un fin anneau blanc l’entoure, séparé par un liseré noir. Elle garde sa couleur et sa forme ; elle reprend sa taille quand le son s’arrête.</li>
+    <li><b>Ce que fait un clic</b>Un clic sur une case joue la note : elle prend cet état le temps du son. Pendant la boucle, l’état suit chaque note jouée, accords et arpèges compris.</li>
+    <li><b>Ce qui change au téléphone</b>La pastille fait 40 px et ne monte qu’à 44 px (scale 1.1), pour que deux cordes voisines qui jouent ensemble ne se touchent pas (53 px entre cordes). Le reste est identique.</li>
+  </ul>
+  <div class="frames">
+    <div class="frame-box"><p class="frame-cap"><span>4K · 2560 px CSS</span><span>Studio · ▶ dans le transport</span></p><div class="fit" id="a4k"></div></div>
+    <div class="frame-box phone"><p class="frame-cap"><span>Téléphone · 390 px</span></p><div id="aph"></div></div>
+  </div>
+  <div class="specs">
+    <div><h3>Tailles et temps (px CSS)</h3><table>
+      <tr><th>Élément</th><th>4K (2560)</th><th>Téléphone</th></tr>
+      <tr><td>Pastille dessinée</td><td>48, étiquette 16,5 en 600</td><td>40, étiquette 15</td></tr>
+      <tr><td>Pastille qui joue</td><td>56 (scale 1.1667), étiquette en 800</td><td>44 (scale 1.1)</td></tr>
+      <tr><td>Anneau</td><td>liseré noir 2 + blanc 2</td><td>idem</td></tr>
+      <tr><td>Note cible qui joue</td><td>anneau repoussé à 6-8 px (au-delà des tirets jaunes)</td><td>idem</td></tr>
+      <tr><td>Encombrement maximal</td><td>56 + 2 × 4 = 64 &lt; 66 entre deux cordes</td><td>44 + 8 = 52 &lt; 53</td></tr>
+      <tr><td>Attaque / relâche</td><td>90 ms / 150 ms ; « mouvement réduit » : instantané</td><td>idem</td></tr>
+      <tr><td>Cible cliquable (case)</td><td>66 × rangée (≥ 61)</td><td>53 × rangée (≥ 56)</td></tr>
+    </table></div>
+    <div><h3>À vérifier dans le code</h3><ul>
+      <li>La correction de cascade d’abord : l’état « joue » doit gagner sur <code>.role-*</code> (sélecteur <code>.note-marker.is-playing.role-*</code> ou règle placée après). Sans elle, aucune proposition ne se verra sur les pastilles de couleur.</li>
+      <li>La durée réelle d’une note : la maquette garde l’état tant que le son dure (accord 6 pas, arpège 1 pas). Vérifier ce que <code>currentlyPlayingNotes</code> fournit : un début et une fin, ou un simple instant.</li>
+      <li>Basse en arpège à la double croche (VMU-199) : à 140 bpm une note dure 107 ms. Prévoir une tenue minimale de 100 ms pour qu’une note se voie.</li>
+      <li>L’anneau vert « hors forme » (<code>is-playing-outside</code>) passe par une classe à part : la maquette lui ajoute le même cran et le même anneau blanc, à l’extérieur du vert.</li>
+      <li>Le piano garde son propre état « joue » (<code>PianoKeyboard.css</code> l. 20) : non traité ici.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section class="variant" id="vb">
+  <header><h2>Variante B · Le projecteur</h2><span class="tag">pendant la boucle, le dessin passe en veille ; ce qui sonne reste en pleine lumière</span></header>
+  <ul class="three">
+    <li><b>Ce que voit le débutant</b>Boucle arrêtée : rien ne change. Dès que la boucle tourne, toutes les pastilles baissent à 40 % ; celles qui sonnent reviennent à 100 % avec l’anneau fin et un petit cran (scale 1.1). La forme reste lisible, la note jouée saute aux yeux.</li>
+    <li><b>Ce que fait un clic</b>Un clic sur une case joue la note avec le même éclairage. ■ remet tout le dessin à 100 %.</li>
+    <li><b>Ce qui change au téléphone</b>Même règle ; le cran reste 1.1 (40 → 44 px). Moins de surface allumée pendant la boucle, ce qui va dans le sens de l’OLED.</li>
+  </ul>
+  <div class="frames">
+    <div class="frame-box"><p class="frame-cap"><span>4K · 2560 px CSS</span><span>Studio · ▶ dans le transport</span></p><div class="fit" id="b4k"></div></div>
+    <div class="frame-box phone"><p class="frame-cap"><span>Téléphone · 390 px</span></p><div id="bph"></div></div>
+  </div>
+  <div class="specs">
+    <div><h3>Tailles et temps (px CSS)</h3><table>
+      <tr><th>Élément</th><th>4K (2560)</th><th>Téléphone</th></tr>
+      <tr><td>Pastille en veille (boucle en cours)</td><td>48, opacité 40 %</td><td>40, 40 %</td></tr>
+      <tr><td>Pastille qui joue</td><td>52,8 (scale 1.1), 100 %, étiquette en 800</td><td>44</td></tr>
+      <tr><td>Anneau</td><td>liseré noir 2 + blanc 2</td><td>idem</td></tr>
+      <tr><td>Encombrement maximal</td><td>52,8 + 8 = 60,8 &lt; 66</td><td>52 &lt; 53</td></tr>
+      <tr><td>Fondu</td><td>120 ms ; « mouvement réduit » : instantané</td><td>idem</td></tr>
+    </table></div>
+    <div><h3>À vérifier dans le code</h3><ul>
+      <li>Il faut savoir sur le manche que la boucle tourne (un état « lecture en cours » au niveau du conteneur), pas seulement quelles notes jouent.</li>
+      <li>Une opacité de 40 % baisse aussi le contraste de l’étiquette (noir sur couleur atténuée). Mesurer les étiquettes en veille (<code>VerticalNeckContrast.test.js</code>) : elles ne sont plus le contenu principal pendant la boucle, mais elles doivent rester lisibles.</li>
+      <li>La note de gamme (contour gris 2 px) à 40 % devient très discrète sur le bois <code>--surface-3</code> : à voir à l’écran, sinon garder les notes de gamme à 60 %.</li>
+      <li>La règle « ce qu’on voit est ce qu’on entend » reste tenue : rien n’est caché, la forme est atténuée.</li>
+    </ul></div>
+  </div>
+</section>
+
+<script>
+/*@JS*/
+</script>
+<script>
+(() => {
+  const { h } = VM;
+  document.body.prepend(VM.topbar('e3-note-qui-joue.html'));
+
+  const ROLES = [['root', 'Fondamentale', 'Do'], ['third', 'Tierce', 'Mi'], ['fifth', 'Quinte', 'Sol'], ['ext', 'Extension', 'Si'], ['target', 'Note cible', 'Ré'], ['scale', 'Note de gamme', 'La'], ['out', 'Hors forme', 'Do']];
+  const TX = [
+    ['now', 'Actuel', 'Tel que la cascade le rend : scale(1.1) seul sur une pastille de couleur ; l’anneau ne se voit que sur la note de gamme.'],
+    ['p', 'Piste proposée', 'Impulsion unique de 240 ms, anneau 8 → 4 px, scale(1.2), la pastille garde sa couleur.'],
+    ['a', 'A · La marche', '48 → 56 px, anneau fin réellement visible, étiquette en gras. Pas d’animation.'],
+    ['b', 'B · Le projecteur', 'Pendant la boucle, le dessin baisse à 40 % ; ce qui sonne revient à 100 %, scale(1.1), anneau fin.'],
+  ];
+  const VERDICT = {
+    now: '<b>Constat :</b> au repos et « joue » se ressemblent sur les pastilles de couleur.',
+    p: '<b>Lisible</b> à l’attaque, mais à 48 × 1.2 = 57,6 px plus un anneau de 4 px, deux cordes voisines qui jouent ensemble se chevauchent (69,6 &gt; 66 px), et de 11 px pendant l’impulsion de 8 px. L’impulsion seule disparaît avec « mouvement réduit » ; il reste l’état tenu.',
+    a: '<b>Lisible</b> sans mouvement, identique en « mouvement réduit », ne déborde jamais sur la corde voisine. Moins frappant à l’attaque que la piste proposée.',
+    b: '<b>Le plus net</b> pendant la boucle et le plus sobre pour l’OLED. Change l’allure de tout le manche dès ▶ : à valider avec le propriétaire.',
+  };
+
+  /* banc : matrice statique + extrait de manche animé */
+  const bench = document.getElementById('bench');
+  const excerpts = [];
+  TX.forEach(([id, name, sub]) => {
+    const m = h('div', { class: `matrix tx-${id}` }, h('span'), h('span', { class: 'hd', text: 'au repos' }), h('span', { class: 'hd', text: 'boucle : silencieuse' }), h('span', { class: 'hd', text: 'joue' }));
+    ROLES.forEach(([r, label, note]) => {
+      m.append(h('span', { class: 'rl', text: label }));
+      [0, 1, 2].forEach((col) => {
+        if (r === 'out' && col < 2) { m.append(h('span', { class: 'dash', text: '—', title: 'n’apparaît que lorsqu’elle sonne' })); return; }
+        const cls = r === 'out' ? 'pm outside' : `pm r-${r}`;
+        const playing = col === 2 && !(id === 'now' && r === 'out');
+        const cell = h('span', { class: 'cell' }, h('span', { class: cls + (playing ? ' playing' : ''), text: note }));
+        // la veille de B ne vaut que boucle en cours : les colonnes 2 et 3 sont « boucle en cours »
+        m.append(col >= 1 && id === 'b' ? h('span', { class: 'tx-b is-running', style: { display: 'block' } }, cell) : cell);
+      });
+    });
+    const neck = VM.buildNeck({ maxFret: 4 });
+    const box = h('div', { class: `excerpt tx-${id}` }, neck.el);
+    excerpts.push({ neck, box, tx: id, notes: guitarNotes(neck) });
+    bench.append(h('div', {}, h('h3', { text: name }), h('p', { class: 'sub', text: sub }), m, box, h('p', { class: 'verdict', html: VERDICT[id] })));
+  });
+  // l'extrait de manche : 0 à 4 suffit pour l'accord de Do
+  excerpts.forEach((e) => { e.neck.el.style.transform = 'scale(.62)'; e.neck.el.style.transformOrigin = 'top center'; e.box.style.height = Math.ceil(e.neck.H * 0.62) + 'px'; });
+
+  function guitarNotes(neck) {
+    neck.setNotes([
+      { s: 1, f: 3, label: 'Do', role: 'root' }, { s: 2, f: 2, label: 'Mi', role: 'third' }, { s: 3, f: 0, label: 'Sol', role: 'fifth' },
+      { s: 4, f: 1, label: 'Do', role: 'root' }, { s: 5, f: 0, label: 'Mi', role: 'third' }, { s: 3, f: 4, label: 'Si', role: 'ext' },
+      { s: 4, f: 3, label: 'Ré', role: 'target' }, { s: 3, f: 2, label: 'La', role: 'scale' }, { s: 2, f: 3, label: 'Fa', role: 'scale' }]);
+  }
+  function bassNotes(neck) {
+    neck.setNotes([{ s: 1, f: 3, label: 'Do', role: 'root' }, { s: 2, f: 2, label: 'Mi', role: 'third' }, { s: 2, f: 5, label: 'Sol', role: 'fifth' }, { s: 3, f: 5, label: 'Do', outside: true }]);
+    const o = neck.marker(3, 5); o.style.visibility = 'hidden';
+  }
+
+  /* la boucle de démonstration : 16 doubles croches, 90 bpm */
+  const CHORD = [[1, 3, 48], [2, 2, 52], [3, 0, 55], [4, 1, 60], [5, 0, 64]];
+  const EVENTS = [];
+  [0, 8].forEach((t) => CHORD.forEach(([s, f, m]) => EVENTS.push({ t, inst: 'g', s, f, m, d: 6 })));
+  EVENTS.push({ t: 6, inst: 'g', s: 3, f: 2, m: 57, d: 2 }, { t: 12, inst: 'g', s: 3, f: 4, m: 59, d: 2 }, { t: 14, inst: 'g', s: 4, f: 3, m: 62, d: 2 });
+  [0, 8].forEach((t) => [[1, 3, 36], [2, 2, 40], [2, 5, 43], [3, 5, 48, true]].forEach(([s, f, m, out], i) => EVENTS.push({ t: t + i, inst: 'b', s, f, m, d: 1, out })));
+
+  function loop(targets, frames, onStop) {
+    // targets : [{ neck, inst: 'g'|'b', tx }]
+    const offs = [];
+    const set = (tg, ev, on) => {
+      const mk = tg.neck.marker(ev.s, ev.f); if (!mk) return;
+      if (ev.out) mk.style.visibility = on ? 'visible' : 'hidden';
+      if (ev.out && tg.tx === 'now') return;
+      tg.neck.play(ev.s, ev.f, on);
+    };
+    const clk = VM.clock(90, (t) => {
+      const step = t % 16;
+      for (let i = offs.length - 1; i >= 0; i--) if (offs[i].at <= t) { targets.forEach((tg) => tg.inst === offs[i].ev.inst && set(tg, offs[i].ev, false)); offs.splice(i, 1); }
+      EVENTS.filter((e) => e.t === step).forEach((ev) => {
+        targets.forEach((tg) => tg.inst === ev.inst && set(tg, ev, true));
+        offs.push({ at: t + ev.d, ev });
+        VM.tone(ev.m, ev.inst === 'b' ? 0.2 : ev.d * 0.16, ev.inst === 'b' ? 0.18 : 0.05, ev.inst === 'b' ? 'sine' : 'triangle');
+      });
+    });
+    return {
+      get running() { return clk.running; },
+      start() { frames.forEach((f) => f.classList.add('is-running')); clk.start(); },
+      stop() { clk.stop(); offs.length = 0; frames.forEach((f) => f.classList.remove('is-running')); targets.forEach((tg) => { tg.neck.clearPlaying(); const o = tg.neck.marker(3, 5); if (tg.inst === 'b' && o) o.style.visibility = 'hidden'; }); onStop && onStop(); },
+    };
+  }
+
+  const benchLoop = loop(excerpts.map((e) => ({ neck: e.neck, inst: 'g', tx: e.tx })), excerpts.map((e) => e.box), () => { runAll.textContent = '▶ Lancer la boucle de démonstration'; runAll.classList.remove('playing'); });
+  const runAll = document.getElementById('runAll');
+  runAll.onclick = () => { if (benchLoop.running) benchLoop.stop(); else { benchLoop.start(); runAll.textContent = '■ Arrêter'; runAll.classList.add('playing'); } };
+
+  function build4k(tx, mount) {
+    const guitar = VM.buildNeck({ maxFret: 12, cut: '… cases 13 à 22' }); guitarNotes(guitar);
+    const bass = VM.buildNeck({ strings: ['Mi', 'La', 'Ré', 'Sol'], numFrets: 20, maxFret: 12, bass: true, cut: '… cases 13 à 20' }); bassNotes(bass);
+    const gh = VM.head({ name: 'Guitare', setting: {} }); gh.refs.label.textContent = 'Forme : Do (cases 0-4)'; gh.refs.label.style.justifyContent = 'flex-start';
+    const bh = VM.head({ name: 'Basse', on: true, setting: {} }); bh.refs.label.textContent = 'Forme : Do'; bh.refs.label.style.justifyContent = 'flex-start';
+    const ph = VM.head({ name: 'Piano', setting: {} }); ph.refs.label.textContent = 'Do majeur';
+    const play = h('button', { class: 'btn', type: 'button', text: '▶' });
+    const frame = h('div', { class: `f4k tx-${tx}` }, VM.header4k('Studio'),
+      h('div', { class: 'app-grid' },
+        h('div', { class: 'col centre' },
+          h('div', { class: 'wire transport4k', style: { height: '110px' } }, play, h('b', { text: 'Transport' }), ' · tempo 90, volume'),
+          h('div', { class: 'wire', style: { height: '64px' } }, h('b', { text: 'Sélection' }), ' · Style : Pop'),
+          h('div', { class: 'wire', style: { height: '520px' } }, h('b', { text: 'Séquenceur' })),
+          h('div', { class: 'wire', style: { height: '200px' } }, h('b', { text: 'Légende' }), ' · la légende gagne une ligne : « grossit et s’entoure de blanc = joue maintenant »')),
+        h('div', { class: 'col inst', style: { width: '248px' } }, ph.el, VM.buildPiano({ height: guitar.H - 36, topMidi: 96 })),
+        h('div', { class: 'col inst' }, gh.el, guitar.el),
+        h('div', { class: 'col inst' }, bh.el, bass.el)),
+      h('div', { class: 'fold', style: { top: '1283px' } }, h('span', { text: 'bas de la fenêtre à 150 %' })));
+    mount.append(frame); VM.fit(mount);
+    const lp = loop([{ neck: guitar, inst: 'g', tx }, { neck: bass, inst: 'b', tx }], [frame], () => { play.textContent = '▶'; play.classList.remove('grad', 'playing'); });
+    play.onclick = () => { if (lp.running) lp.stop(); else { lp.start(); play.textContent = '■'; play.classList.add('grad', 'playing'); } };
+  }
+
+  function buildPhone(tx, mount) {
+    const neck = VM.buildNeck({ gutter: 26, stringPx: 53, pm: 40, headRow: 24, openRow: 56, maxFret: 7, pitch: (n) => 66 - (n - 1) * 0.9 }); guitarNotes(neck);
+    const play = h('button', { class: 'btn grad', type: 'button', style: { flex: 1, height: '52px', fontSize: 'var(--fs-emph)' }, text: '▶ Lecture' });
+    const scroll = h('div', { class: 'scroll' },
+      h('div', { class: 'appbar' }, h('span', { class: 'app-title', text: 'VisualMusic' }), h('span', { style: { flex: 1 } }), h('span', { class: 'tab on', style: { width: 'auto', padding: '0 14px', height: '44px', fontSize: 'var(--fs-body)' }, text: 'Studio' })),
+      h('div', { class: 'itabs' }, ['Piano', 'Guitare', 'Basse'].map((t) => h('button', { type: 'button', class: t === 'Guitare' ? 'on' : '', text: t }))),
+      neck.el);
+    const frame = h('div', { class: `fph tx-${tx}` }, h('div', { class: 'urlbar' }, h('span', { text: 'visualmusic.app' })), scroll, h('div', { class: 'bottombar' }, play));
+    mount.append(frame);
+    const lp = loop([{ neck, inst: 'g', tx }], [frame], () => { play.textContent = '▶ Lecture'; play.classList.remove('playing'); });
+    play.onclick = () => { if (lp.running) lp.stop(); else { lp.start(); play.textContent = '■ Arrêter'; play.classList.add('playing'); } };
+  }
+
+  build4k('a', document.getElementById('a4k'));
+  buildPhone('a', document.getElementById('aph'));
+  build4k('b', document.getElementById('b4k'));
+  buildPhone('b', document.getElementById('bph'));
+})();
+</script>
+</body>
+</html>

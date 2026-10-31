@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Explorations A′ VisualMusic</title>
+<style>
+/*@CSS*/
+.cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; max-width:1300px; margin-top:24px; }
+.card { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:18px 20px; display:flex; flex-direction:column; gap:10px; text-decoration:none; color:var(--text-primary); background:var(--bg); min-width:0; }
+.card:hover { border-color:var(--assistant-border); }
+.card .num { font-family:var(--font-display); color:var(--assistant-border); font-size:14px; letter-spacing:.08em; }
+.card h2 { margin:0; font-size:20px; text-wrap:balance; }
+.card p { margin:0; color:var(--text-secondary); font-size:14px; }
+.card ul { margin:0; padding-left:18px; font-size:14px; color:var(--text-secondary); }
+.card .go { margin-top:auto; font-size:14px; color:var(--text-primary); }
+.finds { max-width:1300px; margin-top:32px; }
+.finds h2 { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); font-weight:600; }
+.finds ol { padding-left:20px; color:var(--text-secondary); max-width:110ch; }
+.finds li + li { margin-top:8px; }
+.finds li b { color:var(--text-primary); }
+.finds code { font-family:var(--font-mono); font-size:.92em; color:var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>VisualMusic A′ : trois explorations</h1>
+  <p>Maquettes statiques autonomes, sans réseau. Chaque exploration propose deux variantes, chacune en 4K (2560 px CSS, soit 3840 × 2045 à 150 %) et au téléphone (390 px). Les maquettes sont cliquables et sonores (bouton « Muet » en haut) ; « 100 % » montre la 4K à sa taille réelle, « Réduit » simule <code>prefers-reduced-motion</code>.</p>
+  <p>Seules les couleurs de <code>src/styles/tokens.css</code> sont utilisées ; aucune nouvelle couleur.</p>
+</div>
+<div class="cards">
+  <a class="card" href="e1-position-gamme.html">
+    <span class="num">EXPLORATION 1</span>
+    <h2>Choisir la position d’une gamme sur le manche</h2>
+    <ul><li><b>A · Couloirs :</b> une capsule de 44 px de large par position, quatre couloirs.</li><li><b>B · Onglets et fils :</b> un onglet de 44 × 44 à la première case, un fil fin jusqu’à la dernière (rail de 98 px au lieu de 176).</li></ul>
+    <p>Le ruban des 8 notes se loge dans la ligne X/O du manche, vide pour une gamme : aucune hauteur ajoutée.</p>
+    <span class="go">Ouvrir →</span>
+  </a>
+  <a class="card" href="e2-math-rythmes-dock.html">
+    <span class="num">EXPLORATION 2</span>
+    <h2>Math & Rythmes dans un dock</h2>
+    <ul><li><b>A · La roue :</b> l’aiguille tourne, trois paires − / +, presque pas de texte.</li><li><b>B · La phrase :</b> la roue tourne sous un repère fixe ; « 5 coups sur 16 cases, départ décalé de 0, joués par la grosse caisse ».</li></ul>
+    <p>Inventaire complet : chaque fonction de la fenêtre actuelle a sa place dans les deux variantes.</p>
+    <span class="go">Ouvrir →</span>
+  </a>
+  <a class="card" href="e3-note-qui-joue.html">
+    <span class="num">EXPLORATION 3</span>
+    <h2>La note qui joue et la note dessinée</h2>
+    <ul><li><b>A · La marche :</b> 48 → 56 px, anneau fin réellement visible, pas d’animation.</li><li><b>B · Le projecteur :</b> pendant la boucle, le dessin passe à 40 % et ce qui sonne reste à 100 %.</li></ul>
+    <p>Banc côte à côte avec l’état actuel et la piste déjà proposée (impulsion de 240 ms).</p>
+    <span class="go">Ouvrir →</span>
+  </a>
+</div>
+<div class="finds">
+  <h2>Ce que la lecture du code a révélé (à vérifier)</h2>
+  <ol>
+    <li><b>L’anneau « joue » est effacé sur les pastilles de couleur.</b> <code>.note-marker.role-*</code> remet <code>box-shadow</code> à un simple liseré noir, après <code>.note-marker.is-playing</code> et avec la même spécificité (<code>Fretboard.css</code>). Il ne reste que <code>scale(1.1)</code>. Sur le manche vertical, la pastille fait 48 px, pas 32 px.</li>
+    <li><b>Math & Rythmes : pour n ≠ 16, ce qu’on voit n’est pas ce qu’on entend.</b> L’envoi ne garde que les pas d’indice &lt; 16, sans répéter le motif (<code>CompositionPanel.jsx</code>, <code>handleExport</code>), alors que le cercle boucle sur n.</li>
+    <li><b>À 2560 px CSS (4K à 150 %), <code>tokens.css</code> donne <code>--hit-min</code> 44 px et <code>--fs-label</code> 16,5 px.</b> Les 48 px et 18 px des commentaires valent à ≥ 3840 px CSS. La hauteur utile est d’environ 1283 px CSS, alors que les colonnes d’instruments descendent vers 1995 px.</li>
+    <li><b>Le téléphone n’a pas encore d’écran à lui.</b> <code>AppMobile.jsx</code> réexporte <code>AppDesktop</code> : la mise en page téléphone des maquettes (un instrument à la fois, manche vertical à 53 px par corde, pastilles de 40 px) est entièrement supposée.</li>
+  </ol>
+</div>
+<script>
+/*@JS*/
+</script>
+<script>document.body.prepend(VM.topbar('index.html'));</script>
+</body>
+</html>
