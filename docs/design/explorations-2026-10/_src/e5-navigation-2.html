@@ -125,6 +125,31 @@
   <div class="frames"><div class="frame-box"><div class="fit" id="tab"></div></div></div>
 </section>
 
+<section class="variant" id="piano">
+  <header><h2>Le piano au téléphone : 2 octaves</h2><span class="tag">ce que 2 octaves donnent dans la hauteur de la scène</span></header>
+  <ul class="three">
+    <li><b>Assez pour voir</b>Oui. Tous les accords du Dictionnaire (jusqu’aux 9ᵉ) tiennent en moins d’une octave et demie, une gamme en une octave : 2 octaves les montrent avec leur contexte, et la scène se cale sur les notes jouées.</li>
+    <li><b>Juste pour jouer au doigt</b>La scène fait 490 à 570 px de haut selon le téléphone et la barre du navigateur. 15 touches blanches y font 33 à 37 px ; les noires, à la proportion d’un vrai piano (58 %), 19 à 22 px : environ 3 mm, trop fin pour un doigt et sous les 24 px du minimum WCAG.</li>
+    <li><b>Ma proposition</b>2 octaves par défaut, comme tu le demandes, avec deux ajustements : les noires dessinées à 75 % d’une blanche (25 à 28 px), et un réglage « Grandes touches » (1 octave ½, blanches de 45 à 50 px) pour qui joue sur le téléphone.</li>
+  </ul>
+  <div class="screens" id="pianos"></div>
+  <div class="specs">
+    <div><h3>Épaisseur des touches selon ce qu’on montre</h3><table>
+      <tr><th>Visible</th><th>Touches blanches</th><th>Blanche</th><th>Noire (75 %)</th><th>Verdict</th></tr>
+      <tr><td>2 octaves + Do</td><td>15</td><td>33 à 37 px</td><td>25 à 28 px</td><td>voir : oui ; jouer : les blanches, les noires avec soin</td></tr>
+      <tr><td>1 octave ½</td><td>11</td><td>45 à 50 px</td><td>34 à 38 px</td><td>voir et jouer</td></tr>
+      <tr><td>1 octave + Do</td><td>8</td><td>61 à 69 px</td><td>46 à 52 px</td><td>trop peu : un accord renversé sort de l’écran</td></tr>
+    </table></div>
+    <div><h3>Les nouveaux mots, mesurés</h3><table>
+      <tr><th>Mot</th><th>Largeur (17,5 px)</th><th>Place</th></tr>
+      <tr><td>Montrer le doigté</td><td>142 px</td><td>214 px à côté de Oui / Non : tient</td></tr>
+      <tr><td>Toutes les notes de l’instrument</td><td>273 px</td><td>312 px sur 390 ; mais 284 sur un téléphone de 360 et 222 dans la colonne de tablette : passe à la ligne</td></tr>
+      <tr><td><b>Toutes les notes</b> (retenu)</td><td>140 px</td><td>tient partout ; la phrase dessous dit « le manche ou le clavier entier, sans accord »</td></tr>
+      <tr><td>Show fingering · All notes (anglais)</td><td>125 · 75 px</td><td>tient</td></tr>
+    </table></div>
+  </div>
+</section>
+
 <section class="variant" id="inventaire">
   <header><h2>Où va chaque fonction</h2><span class="tag">registre de parité d’A′ (<code>aPrimeAccess.js</code>) et panneaux Studio, Dictionnaire, Sons : rien ne disparaît</span></header>
   <p class="note">Légende des places : <span class="place p0">haut</span> barre du haut · <span class="place p0">scène</span> au-dessus de l’instrument · <span class="place p0">replié</span> <span class="place">mi</span> <span class="place">plein</span> hauteurs du tiroir · <span class="place out">masqué</span> proposé absent au téléphone (à valider).</p>
@@ -134,10 +159,10 @@
 <section class="variant" id="verifier">
   <header><h2>À vérifier ou à décider</h2></header>
   <div class="specs">
-    <div><h3>À décider</h3><ul>
-      <li>Le visualiseur audio (<code>son.visualiseur</code>) : masqué au téléphone, ou rangé dans Sons ? Il prend 60 à 120 px et n’enseigne rien au débutant.</li>
-      <li>« Mode Doigté (Expert) » et « Explorateur libre » : je les ai renommés « Montrer le doigté » et « Toutes les notes de l’instrument ». À valider (règle de langage).</li>
-      <li>L’octave du piano au Dictionnaire : ‹ › sur la scène (proposé), ou simplement faire défiler le clavier ?</li>
+    <div><h3>Décidé le 31 octobre</h3><ul>
+      <li>Le visualiseur audio (<code>son.visualiseur</code>) est masqué au téléphone.</li>
+      <li>« Mode Doigté (Expert) » devient « Montrer le doigté » ; « Explorateur libre » devient « Toutes les notes » (plus court que proposé, voir les mesures).</li>
+      <li>Piano : 2 octaves dans la scène, ‹ › pour changer d’octave ; « Grandes touches » en réglage (proposé).</li>
     </ul></div>
     <div><h3>À vérifier dans le code</h3><ul>
       <li>Le tiroir à trois hauteurs n’existe pas : <code>BottomNav.jsx</code> a un tiroir « Menu » plein écran, ouvert ou fermé. Il faut un composant à points d’arrêt (replié, mi, plein) et l’historique pour Retour.</li>
@@ -216,7 +241,7 @@
   (() => {
     const neck = neckPh({ maxFret: 1 }); neck.setNotes(CHORD_C.slice(2));
     const drawer = [choice('Accord · Do · majeur'), h('div', { class: 'lab', text: 'Pour aller plus loin' }),
-      tools([['Gammes qui vont avec', 'les notes à jouer par-dessus cet accord'], ['Accords qui suivent bien', 'pour enchaîner, du plus naturel au plus surprenant'], ['Remplacer cet accord', 'des accords proches qui sonnent autrement'], ['Les harmoniques', 'pourquoi ces notes sonnent bien ensemble'], ['Toutes les notes de l’instrument', 'le manche ou le clavier entier, sans accord']]),
+      tools([['Gammes qui vont avec', 'les notes à jouer par-dessus cet accord'], ['Accords qui suivent bien', 'pour enchaîner, du plus naturel au plus surprenant'], ['Remplacer cet accord', 'des accords proches qui sonnent autrement'], ['Les harmoniques', 'pourquoi ces notes sonnent bien ensemble'], ['Toutes les notes', 'le manche ou le clavier entier, sans accord']]),
       h('div', { class: 'lab', text: 'Réglages' }),
       tools([['Sons et instruments', 'volumes, métronome, doigté'], ['Affichage', 'Do Ré Mi ou C D E, noms ou doigts, zones de cases'], ['Langue', 'Français'], ['Aide', 'guide, petite théorie, à propos']])];
     const frame = phone({ mode: 'Dictionnaire', scene: [neck.el], drawer, level: 'full' });
@@ -293,7 +318,7 @@
     ['Volume général', 'son.volume-general', 'transport', P('plein') + 'Sons et instruments (les boutons du téléphone restent le premier réflexe)'],
     ['Math & Rythmes', 'composer.math-ouvrir', 'fenêtre', P('plein') + 'Outils › Rythme (exploration 2, variante B)'],
     ['Instruments & Audio', 'son.ouvrir', 'fenêtre', P('plein') + 'Outils › Sons et instruments'],
-    ['Visualiseur audio', 'son.visualiseur', 'bande de 60 px', P('out', 'masqué') + 'ou rangé dans Sons et instruments'],
+    ['Visualiseur audio', 'son.visualiseur', 'bande de 60 px', P('out', 'masqué') + 'au téléphone (décidé le 31 octobre)'],
     ['Choisir'],
     ['Style', 'composer.style', 'ligne de sélection', P('replié') + 'ligne du choix → ' + P('mi') + 'Style'],
     ['Famille, note, type d’accord, type de gamme', 'dico.famille, dico.fondamentale, dico.type-accord, dico.type-gamme', 'ligne de sélection', P('replié') + 'ligne du choix → ' + P('mi') + 'Choisir (quoi, sur quelle note, quelle couleur)'],
@@ -315,8 +340,9 @@
     ['Score de jouabilité', '—', 'Assistant', P('plein') + '« Facilité à la guitare », 8 / 10'],
     ['Gammes recommandées, accords suivants, substitutions', '—', 'Assistant (Dictionnaire)', P('plein') + 'Pour aller plus loin'],
     ['Série harmonique, mode harmonique', '—', 'Assistant (Dictionnaire)', P('plein') + '« Les harmoniques »'],
-    ['Explorateur libre', '—', 'Assistant (Dictionnaire)', P('plein') + '« Toutes les notes de l’instrument »'],
-    ['Mode doigté, accords de piano allégés, volumes par instrument, zones de cases', '—', 'Instruments & Audio', P('plein') + 'Sons et instruments ; zones de cases dans Affichage'],
+    ['Explorateur libre', '—', 'Assistant (Dictionnaire)', P('plein') + '« Toutes les notes » (décidé)'],
+    ['Mode doigté, accords de piano allégés, volumes par instrument, zones de cases', '—', 'Instruments & Audio', P('plein') + 'Sons et instruments ; « Montrer le doigté » (décidé) et zones de cases dans Affichage'],
+    ['Grandes touches (nouveau)', '—', '—', P('plein') + 'Affichage : piano en 1 octave ½ au lieu de 2'],
   ];
   const tbl = h('table', { class: 'inv' }, h('tr', {}, ['Fonction', 'Aujourd’hui', 'Téléphone, navigation 2'].map((t) => h('th', { text: t }))));
   INV.forEach((r) => {
@@ -324,6 +350,51 @@
     tbl.append(h('tr', {}, h('td', {}, r[0], h('code', { text: r[1] })), h('td', { text: r[2] }), h('td', { html: r[3] })));
   });
   document.getElementById('invwrap').append(tbl);
+  /* piano au téléphone : 2 octaves, ou grandes touches */
+  const NN = ['Do', 'Do♯', 'Ré', 'Ré♯', 'Mi', 'Fa', 'Fa♯', 'Sol', 'Sol♯', 'La', 'La♯', 'Si'];
+  function pianoFit({ top, bottom, keyPx, len = 260, blackRatio = 0.75, roles = {} }) {
+    const whites = []; for (let m = top; m >= bottom; m--) if (!NN[m % 12].includes('♯')) whites.push(m);
+    const el = h('div', { style: { position: 'relative', width: len + 'px', height: (whites.length * keyPx) + 'px', margin: '0 auto' } });
+    const bk = Math.round(keyPx * blackRatio);
+    whites.forEach((m, i) => {
+      const r = roles[m];
+      el.append(h('button', { type: 'button', 'aria-label': `${NN[m % 12]}${Math.floor(m / 12) - 1}`, onclick: () => VM.tone(m, 0.6, 0.1),
+        style: { position: 'absolute', left: 0, top: (i * keyPx) + 'px', width: len + 'px', height: (keyPx - 2) + 'px', border: 0, borderRadius: '0 6px 6px 0', background: r ? `var(--role-${r})` : 'var(--key-white)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '12px', fontSize: '15px', fontWeight: 600, color: r ? 'var(--on-role)' : 'var(--key-name-on-white)', cursor: 'pointer' } },
+        r || m % 12 === 0 ? `${NN[m % 12]}${m % 12 === 0 ? Math.floor(m / 12) - 1 : ''}` : ''));
+      const below = m - 1;
+      if (NN[below % 12].includes('♯') && below >= bottom) el.append(h('button', { type: 'button', 'aria-label': `${NN[below % 12]}${Math.floor(below / 12) - 1}`, onclick: () => VM.tone(below, 0.6, 0.1),
+        style: { position: 'absolute', left: 0, top: ((i + 1) * keyPx - bk / 2 - 1) + 'px', width: Math.round(len * 0.6) + 'px', height: bk + 'px', border: '1px solid var(--bg)', borderRadius: '0 4px 4px 0', background: roles[below] ? `var(--role-${roles[below]})` : 'var(--key-black)', zIndex: 2, cursor: 'pointer', padding: 0 } }));
+    });
+    return el;
+  }
+  const pmount = document.getElementById('pianos');
+  const SCENE = 586 - 20; // 844 − barre d'adresse 52 − barre du haut 56 − tiroir replié 150, moins les marges
+  const octRow = (t) => h('div', { class: 'scene-row', style: { justifyContent: 'space-between' } }, h('button', { class: 'hbtn grad', type: 'button', text: '‹', 'aria-label': 'Une octave plus bas' }), h('span', { class: 't', text: t, style: { fontSize: 'var(--fs-body)', color: 'var(--text-primary)' } }), h('button', { class: 'hbtn grad', type: 'button', text: '›', 'aria-label': 'Une octave plus haut' }));
+  (() => {
+    const k = Math.floor((SCENE - 64) / 15);
+    const frame = phone({ mode: 'Dictionnaire', scene: [octRow('Do3 – Do5'), pianoFit({ top: 72, bottom: 48, keyPx: k, roles: { 60: 'root', 64: 'third', 67: 'fifth' } })], drawer: [choice('Accord · Do · majeur'), instRow('Piano')] });
+    pmount.append(fig(`A · 2 octaves (par défaut)`, `Do3 à Do5, 15 touches blanches de ${k} px et des noires de ${Math.round(k * 0.75)} px (75 % d’une blanche au lieu de 58 % sur un vrai piano, pour le doigt). Tout accord et toute gamme du Dictionnaire y tiennent avec de l’air autour. ‹ › déplacent d’une octave. Touchez les touches.`, frame));
+  })();
+  (() => {
+    const k = Math.floor((SCENE - 64) / 11);
+    const frame = phone({ mode: 'Dictionnaire', scene: [octRow('Sol3 – Do5'), pianoFit({ top: 72, bottom: 55, keyPx: k, roles: { 60: 'root', 64: 'third', 67: 'fifth' } })], drawer: [choice('Accord · Do · majeur'), instRow('Piano')] });
+    pmount.append(fig('B · Grandes touches (réglage)', `Une octave et demie : 11 touches blanches de ${k} px, noires de ${Math.round(k * 0.75)} px. Pour qui joue vraiment au doigt sur le téléphone. Réglage « Grandes touches » dans Affichage ; la scène cadre toujours l’accord.`, frame));
+  })();
+  (() => {
+    const neck = neckPh({ maxFret: 1 }); neck.setNotes(CHORD_C.slice(2));
+    const seg = (on) => h('span', { class: 'seg' }, ['Oui', 'Non'].map((o) => h('button', { type: 'button', 'aria-pressed': String(o === on), text: o, style: { height: '44px', fontSize: 'var(--fs-label)' } })));
+    const row = (t, sub, ctl) => h('div', { style: { minHeight: '60px', display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', background: 'var(--bg)' } },
+      h('span', { style: { flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 } }, h('b', { text: t, style: { fontSize: 'var(--fs-body)', fontWeight: 400 } }), sub ? h('small', { text: sub, style: { fontSize: 'var(--fs-label)', color: 'var(--text-secondary)' } }) : null), ctl);
+    const drawer = [choice('Accord · Do · majeur'), h('div', { class: 'lab', text: '‹ Outils · Affichage' }),
+      row('Noms des notes', '', h('span', { class: 'seg' }, ['Do Ré Mi', 'C D E'].map((o, i) => h('button', { type: 'button', 'aria-pressed': String(i === 0), text: o, style: { height: '44px', fontSize: 'var(--fs-label)' } })))),
+      row('Montrer le doigté', 'quel doigt pour chaque note', seg('Non')),
+      row('Grandes touches', 'piano : 1 octave ½ au lieu de 2', seg('Non')),
+      row('Notes de gamme', 'contour gris autour de l’accord', seg('Oui')),
+      h('div', { class: 'lab', text: 'Le visualiseur audio n’existe pas au téléphone.' })];
+    const frame = phone({ mode: 'Dictionnaire', scene: [neck.el], drawer, level: 'full' });
+    pmount.append(fig('C · Affichage, avec les nouveaux mots', '« Montrer le doigté » tient sur une ligne à côté de Oui / Non (142 px pour 214 disponibles). Chaque réglage garde sa petite phrase dessous.', frame));
+  })();
+
 })();
 </script>
 </body>
