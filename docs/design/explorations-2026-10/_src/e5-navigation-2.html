@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Navigation 2 en détail</title>
+<style>
+/*@CSS*/
+.screens { display:flex; flex-wrap:wrap; gap:28px 24px; align-items:flex-start; }
+.screen { margin:0; flex:0 1 auto; max-width:100%; overflow-x:auto; }
+.screen figcaption { max-width:390px; font-size:14px; color:var(--text-secondary); margin-top:10px; }
+.screen figcaption b { color:var(--text-primary); display:block; font-size:15px; margin-bottom:2px; }
+.rules { counter-reset:r; list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px; max-width:1500px; }
+.rules li { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:14px 16px 14px 52px; position:relative; font-size:14px; color:var(--text-secondary); min-width:0; }
+.rules li::before { counter-increment:r; content:counter(r); position:absolute; left:14px; top:12px; width:26px; height:26px; border-radius:50%; border:2px solid var(--assistant-border); color:var(--text-primary); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+.rules li b { display:block; color:var(--text-primary); font-size:15px; margin-bottom:4px; }
+.inv { border-collapse:collapse; width:100%; font-size:14px; min-width:900px; }
+.inv th, .inv td { text-align:left; padding:7px 10px 7px 0; border-bottom:1px solid var(--border-subtle); vertical-align:top; }
+.inv th { color:var(--text-muted); font-weight:500; position:sticky; top:0; background:var(--surface-1); }
+.inv tr.grp td { padding-top:18px; color:var(--text-muted); font-size:12px; letter-spacing:.06em; text-transform:uppercase; border-bottom:1px solid var(--border-default); }
+.inv code { font-family:var(--font-mono); font-size:12px; color:var(--text-muted); display:block; }
+.inv td:first-child { color:var(--text-primary); }
+.place { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; border:1px solid var(--border-strong); margin-right:6px; white-space:nowrap; color:var(--text-primary); }
+.place.p0 { border-color:var(--assistant-border); }
+.place.out { border-color:var(--color-warning); color:var(--color-warning); }
+.states { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; max-width:1500px; margin-bottom:20px; }
+.states > div { border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:14px 16px; font-size:14px; color:var(--text-secondary); min-width:0; }
+.states h3 { margin:0 0 6px; font-size:15px; color:var(--text-primary); display:flex; align-items:center; gap:10px; }
+.states .mini { display:inline-block; width:22px; height:40px; border:1.5px solid var(--border-strong); border-radius:5px; position:relative; flex:0 0 auto; }
+.states .mini i { position:absolute; left:2px; right:2px; bottom:2px; border-radius:2px; background:linear-gradient(180deg, var(--assistant-from), var(--assistant-to)); border:1px solid var(--assistant-border); }
+.states ul { margin:6px 0 0; padding-left:18px; }
+
+/* téléphone, navigation 2 */
+.fph .scroll { position:relative; }
+.top2 { flex:0 0 56px; display:flex; align-items:center; gap:8px; padding:0 8px 0 16px; border-bottom:1px solid var(--border-subtle); }
+.seg2 { display:flex; flex:1; }
+.seg2 button { flex:1; height:44px; background:var(--bg); border:1px solid var(--border-strong); color:var(--text-secondary); font-size:var(--fs-body); padding:0 6px; }
+.seg2 button + button { margin-left:-1px; }
+.seg2 button:first-child { border-radius:var(--radius-md) 0 0 var(--radius-md); }
+.seg2 button:last-child { border-radius:0 var(--radius-md) var(--radius-md) 0; }
+.seg2 button.on { background:var(--surface-3); color:var(--text-on-select); border-color:var(--select); position:relative; z-index:1; }
+.ibtn { width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; background:none; border:0; border-radius:var(--radius-md); color:var(--text-secondary); padding:0; cursor:pointer; }
+.ibtn svg { stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.drawer { position:absolute; left:0; right:0; bottom:0; z-index:20; background:var(--surface-1); border-top:1px solid var(--border-strong); border-radius:20px 20px 0 0; display:flex; flex-direction:column; }
+.drawer .grab { flex:0 0 auto; width:100%; height:22px; display:flex; align-items:center; justify-content:center; background:none; border:0; padding:0; cursor:grab; }
+.drawer .grab i { width:44px; height:5px; border-radius:3px; background:var(--border-strong); }
+.drawer .body { overflow-y:auto; padding:0 16px 14px; display:flex; flex-direction:column; gap:8px; }
+.drawer .body > *, .tablet .tools > *, .tools > * { flex-shrink:0; }
+.hbtn.grad { background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); border-color:var(--assistant-border); color:var(--assistant-text); }
+.choice { width:100%; height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 14px; border:1px solid var(--border-strong); border-radius:var(--radius-md); background:var(--bg); font-size:var(--fs-body); cursor:pointer; }
+.choice .caret { color:var(--text-secondary); font-size:.8em; }
+.prow { display:flex; gap:6px; align-items:center; }
+.prow .seg2 button { height:56px; font-size:var(--fs-label); }
+.play { width:64px; height:56px; padding:0; font-size:var(--fs-title); border-radius:var(--radius-lg); }
+.lab { font-size:var(--fs-label); color:var(--text-muted); margin-top:6px; }
+.scene-row { position:sticky; top:0; z-index:6; background:var(--bg); display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px 0 10px; }
+.scene-row .t.full { flex:0 0 100%; }
+.scene-row .t { font-size:var(--fs-label); color:var(--text-secondary); }
+.sbtn { height:44px; min-width:44px; padding:0 10px; border-radius:var(--radius-md); border:1px solid var(--border-strong); background:var(--bg); font-size:var(--fs-label); cursor:pointer; white-space:nowrap; }
+.sbtn.on { border-color:var(--assistant-border); background:linear-gradient(90deg, var(--assistant-from), var(--assistant-to)); color:var(--assistant-text); }
+.sbtn.ghost { border-color:var(--border-default); color:var(--text-secondary); margin-left:auto; }
+.notes6 { display:grid; grid-template-columns:repeat(6, 1fr); gap:5px; }
+.notes6 button { height:52px; border-radius:var(--radius-md); border:1px solid var(--border-strong); background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:var(--fs-label); line-height:1.05; padding:0; cursor:pointer; }
+.notes6 button small { font-size:13px; color:var(--text-muted); }
+.notes6 button.on { border:2px solid var(--select); background:var(--surface-3); box-shadow:inset 0 -3px 0 var(--role-root); }
+.types { display:flex; flex-direction:column; gap:6px; }
+.types button { min-height:56px; display:flex; align-items:center; gap:12px; text-align:left; padding:6px 12px; border-radius:var(--radius-md); border:1px solid var(--border-default); background:var(--bg); cursor:pointer; }
+.types button b { font-size:var(--fs-body); min-width:5.2em; }
+.types button small { font-size:var(--fs-label); color:var(--text-secondary); line-height:1.25; }
+.types button.on { border:2px solid var(--select); background:var(--surface-3); }
+.tools { display:flex; flex-direction:column; gap:6px; }
+.tools button { min-height:60px; display:flex; align-items:center; gap:12px; text-align:left; padding:8px 12px; border-radius:var(--radius-md); border:1px solid var(--border-default); background:var(--bg); cursor:pointer; }
+.tools button span { flex:1; display:flex; flex-direction:column; gap:2px; }
+.tools button b { font-size:var(--fs-body); }
+.tools button small { font-size:var(--fs-label); color:var(--text-secondary); line-height:1.25; }
+.tools button em { font-style:normal; color:var(--text-muted); }
+.welcome { border:1px solid var(--assistant-border); border-radius:var(--radius-md); padding:12px; display:flex; flex-direction:column; gap:8px; font-size:var(--fs-label); color:var(--text-secondary); }
+.welcome b { color:var(--text-primary); font-size:var(--fs-body); }
+.welcome ol { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:4px; }
+.legend { position:absolute; right:12px; top:62px; z-index:8; width:230px; background:var(--surface-1); border:1px solid var(--border-strong); border-radius:var(--radius-md); padding:10px 12px; display:flex; flex-direction:column; gap:8px; font-size:var(--fs-label); }
+.legend div { display:flex; align-items:center; gap:10px; }
+.legend i { width:22px; height:22px; border-radius:50%; flex:0 0 auto; }
+/* tablette */
+.tablet { width:820px; height:1180px; background:var(--bg); border:1px solid var(--border-strong); border-radius:32px; overflow:hidden; display:flex; flex-direction:column; font-family:var(--font-body); --ui-scale:1.125; --fs-label:calc(12px * 1.25); --fs-body:calc(14px * 1.25); --fs-emph:calc(16px * 1.25); --fs-title:calc(20px * 1.25); --hit-min:44px; }
+</style>
+</head>
+<body>
+<div class="intro">
+  <h1>Navigation 2 en détail</h1>
+  <p>Suite des décisions du 31 octobre (navigation 2, un instrument au téléphone, paysage automatique). Cette page sert de base à la construction : chaque fonction de l’app a sa place, le tiroir a des règles précises, et les écrans qui manquaient sont dessinés (accord, choisir, outils, premier lancement, couleurs, tablette).</p>
+</div>
+
+<section class="variant" id="tiroir" style="margin-top:24px">
+  <header><h2>Le tiroir : trois hauteurs, une règle</h2><span class="tag">ce qui n’est pas l’instrument est dans le tiroir</span></header>
+  <div class="states">
+    <div><h3><span class="mini"><i style="height:9px"></i></span>Replié · 150 px</h3>Toujours là. Ce qui est montré (une ligne), les trois instruments, ▶. En Studio, la progression en plus (200 px).
+      <ul><li>Ouvre : toucher la ligne du choix (→ mi-hauteur), ou tirer.</li></ul></div>
+    <div><h3><span class="mini"><i style="height:20px"></i></span>Mi-hauteur · 55 %</h3>Choisir (Dictionnaire) ; progression, tempo, métronome, octave des accords (Studio). L’instrument reste visible au-dessus et réagit à chaque toucher.
+      <ul><li>Ouvre : « Outils ⌃ » en bas du tiroir, ou tirer.</li><li>Ferme : toucher la scène, tirer vers le bas, Retour.</li></ul></div>
+    <div><h3><span class="mini"><i style="height:34px"></i></span>Plein · 92 %</h3>La liste des outils, puis l’outil choisi (Rythme, Batterie, Sons, Réglages, Aide…). Une ligne en haut rappelle ce qui est montré.
+      <ul><li>Ferme : « ‹ Outils », Retour, ou tirer vers le bas.</li></ul></div>
+  </div>
+  <ol class="rules">
+    <li><b>Le bouton Retour descend d’un cran</b>Sur Android, Retour fait plein → mi-hauteur → replié, et ne quitte l’app que tiroir replié. Chaque montée ajoute une entrée d’historique (<code>history.pushState</code>), chaque descente la retire. Au clavier, Échap fait la même chose.</li>
+    <li><b>Tirer n’est jamais obligatoire</b>La poignée (44 × 22) est aussi un bouton qui monte d’un cran ; « Choisir ⌃ » et « Outils ⌃ » sont nommés. Seuils du geste : on lâche au-dessus de la moitié du trajet, le tiroir monte.</li>
+    <li><b>Le tiroir garde sa hauteur</b>Par mode : le Dictionnaire rouvre à la dernière hauteur du Dictionnaire, le Studio à la sienne. Au premier lancement, il monte une fois à mi-hauteur avec trois lignes d’accueil.</li>
+    <li><b>La scène ne bouge pas sous le tiroir</b>À mi-hauteur, la scène fait défiler l’instrument pour garder visible ce qui est joué (la position, l’accord) dans la partie découverte.</li>
+    <li><b>Mouvement sobre</b>Montée et descente en 200 ms, sans rebond ; avec <code>prefers-reduced-motion</code>, le tiroir change de hauteur sans glisser.</li>
+  </ol>
+</section>
+
+<section class="variant" id="ecrans">
+  <header><h2>Les écrans qui manquaient</h2><span class="tag">390 px ; cliquables ; le tiroir de chaque écran change de hauteur au toucher de la poignée</span></header>
+  <div class="screens" id="screens"></div>
+</section>
+
+<section class="variant" id="tablette">
+  <header><h2>Tablette en portrait : un instrument, le tiroir en colonne</h2><span class="tag">820 × 1180 (iPad Air) ; même règle « autant d’instruments que la place en loge »</span></header>
+  <ul class="three">
+    <li><b>Ce que voit le débutant</b>Un seul instrument, plus grand qu’au téléphone (pastilles de 48 px, cordes de 80 px), et à droite une colonne qui garde le contenu du tiroir à mi-hauteur toujours ouvert : choix, instruments, ▶, outils.</li>
+    <li><b>Ce que fait un toucher</b>Comme au téléphone, sans geste de tiroir : la colonne ne se replie pas. Un outil s’ouvre à la place de la liste, dans la colonne.</li>
+    <li><b>Pourquoi pas trois instruments</b>Les trois colonnes d’A′ demandent ≈ 1012 px de large et ≈ 1995 px de haut à la taille 4K : en dessous de 1280 × 900, il faudrait des cibles sous 44 px.</li>
+  </ul>
+  <div class="frames"><div class="frame-box"><div class="fit" id="tab"></div></div></div>
+</section>
+
+<section class="variant" id="inventaire">
+  <header><h2>Où va chaque fonction</h2><span class="tag">registre de parité d’A′ (<code>aPrimeAccess.js</code>) et panneaux Studio, Dictionnaire, Sons : rien ne disparaît</span></header>
+  <p class="note">Légende des places : <span class="place p0">haut</span> barre du haut · <span class="place p0">scène</span> au-dessus de l’instrument · <span class="place p0">replié</span> <span class="place">mi</span> <span class="place">plein</span> hauteurs du tiroir · <span class="place out">masqué</span> proposé absent au téléphone (à valider).</p>
+  <div class="table-wrap" id="invwrap"></div>
+</section>
+
+<section class="variant" id="verifier">
+  <header><h2>À vérifier ou à décider</h2></header>
+  <div class="specs">
+    <div><h3>À décider</h3><ul>
+      <li>Le visualiseur audio (<code>son.visualiseur</code>) : masqué au téléphone, ou rangé dans Sons ? Il prend 60 à 120 px et n’enseigne rien au débutant.</li>
+      <li>« Mode Doigté (Expert) » et « Explorateur libre » : je les ai renommés « Montrer le doigté » et « Toutes les notes de l’instrument ». À valider (règle de langage).</li>
+      <li>L’octave du piano au Dictionnaire : ‹ › sur la scène (proposé), ou simplement faire défiler le clavier ?</li>
+    </ul></div>
+    <div><h3>À vérifier dans le code</h3><ul>
+      <li>Le tiroir à trois hauteurs n’existe pas : <code>BottomNav.jsx</code> a un tiroir « Menu » plein écran, ouvert ou fermé. Il faut un composant à points d’arrêt (replié, mi, plein) et l’historique pour Retour.</li>
+      <li>Les réglages de position (<code>PositionPanel.jsx</code>) passent sur la scène, sans panneau : « Fondamentale sur » et les remises à zéro deviennent une ligne de boutons au-dessus du manche.</li>
+      <li>« Instrument affiché = instrument qui sonne » : <code>playbackInstrument</code> suit l’onglet ; la voix des accords de la boucle (<code>dispatch.js</code> l. 193) doit suivre aussi.</li>
+      <li>Export MIDI, zones de cases (Ouverte / Milieu / Aiguë) et volumes par instrument sont gardés dans les outils ; vérifier qu’ils lisent le même état qu’à 4K.</li>
+    </ul></div>
+  </div>
+</section>
+
+<script>
+/*@JS*/
+</script>
+<script>
+(() => {
+  const { h } = VM;
+  document.body.prepend(VM.topbar('e5-navigation-2.html'));
+  const NS = 'http://www.w3.org/2000/svg';
+  const icon = (inner) => { const e = document.createElementNS(NS, 'svg'); e.setAttribute('width', 24); e.setAttribute('height', 24); e.setAttribute('viewBox', '0 0 24 24'); e.setAttribute('aria-hidden', 'true'); e.innerHTML = inner; return e; };
+  const AIDE = '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/><path d="M12 17h.01"/>';
+  const HEIGHTS = { fold: 150, mid: 470, full: 760 };
+
+  /* le cadre : barre du haut, scène, tiroir à trois hauteurs (la poignée fait monter d'un cran) */
+  function phone({ mode, scene, drawer, level = 'fold', foldH = HEIGHTS.fold, extra }) {
+    const top = h('div', { class: 'top2' }, h('div', { class: 'seg2' }, ['Dictionnaire', 'Studio'].map((t) => h('button', { type: 'button', class: t === mode ? 'on' : '', text: t }))), h('button', { class: 'ibtn', type: 'button', 'aria-label': 'Aide' }, icon(AIDE)));
+    const sceneEl = h('div', { class: 'scroll', style: { paddingBottom: (foldH + 20) + 'px' } }, scene);
+    const body = h('div', { class: 'body' }, drawer);
+    const order = ['fold', 'mid', 'full'];
+    const dr = h('div', { class: 'drawer', role: 'region', 'aria-label': 'Tiroir' });
+    const setLevel = (l) => { level = l; dr.style.height = (l === 'fold' ? foldH : HEIGHTS[l]) + 'px'; dr.dataset.level = l; };
+    const grab = h('button', { class: 'grab', type: 'button', 'aria-label': 'Monter ou descendre le tiroir', onclick: () => setLevel(order[(order.indexOf(level) + 1) % 3]) }, h('i'));
+    dr.append(grab, body);
+    if (!document.body.classList.contains('reduce-motion')) dr.style.transition = 'height 200ms ease-out';
+    setLevel(level);
+    return h('div', { class: 'fph tx-b' }, h('div', { class: 'urlbar' }, h('span', { text: 'visualmusic.app' })), top, sceneEl, dr, extra || null);
+  }
+  const instRow = (inst, playing) => h('div', { class: 'prow' },
+    h('div', { class: 'seg2' }, ['Piano', 'Guitare', 'Basse'].map((t) => h('button', { type: 'button', class: t === inst ? 'on' : '', text: t }))),
+    h('button', { class: 'btn grad play' + (playing ? ' playing' : ''), type: 'button', 'aria-label': playing ? 'Arrêter' : 'Écouter', text: playing ? '■' : '▶' }));
+  const choice = (t) => h('button', { class: 'choice', type: 'button' }, t, h('span', { class: 'caret', text: 'Choisir ⌃' }));
+  const toolsBtn = () => h('button', { class: 'btn', type: 'button', text: 'Outils ⌃', style: { fontSize: 'var(--fs-label)' } });
+  const neckPh = (o = {}) => VM.buildNeck(Object.assign({ rail: 14, gutter: 26, stringPx: 53, pm: 40, headRow: 24, openRow: 56, maxFret: 6, pitch: (n) => 66 - (n - 1) * 0.9 }, o));
+  const fig = (title, text, el) => h('figure', { class: 'screen' }, el, h('figcaption', {}, h('b', { text: title }), text));
+  const tools = (list) => h('div', { class: 'tools' }, list.map(([t, sub, more]) => h('button', { type: 'button' }, h('span', {}, h('b', { text: t }), h('small', { text: sub })), h('em', { text: more || '›' }))));
+  const mount = document.getElementById('screens');
+  const CHORD_C = [{ s: 1, f: 3, label: 'Do', role: 'root' }, { s: 2, f: 2, label: 'Mi', role: 'third' }, { s: 3, f: 0, label: 'Sol', role: 'fifth' }, { s: 4, f: 1, label: 'Do', role: 'root' }, { s: 5, f: 0, label: 'Mi', role: 'third' }];
+
+  /* 1 · Dictionnaire, accord, guitare : les réglages de position sur la scène */
+  (() => {
+    const neck = neckPh(); neck.setNotes(CHORD_C);
+    const legend = h('div', { class: 'legend', hidden: true, role: 'dialog', 'aria-label': 'Couleurs' },
+      ...[['--role-root', 'Fondamentale', 'la note qui donne son nom', '25%'], ['--role-third', 'Tierce', 'majeur ou mineur'], ['--role-fifth', 'Quinte', 'la stabilité'], ['--role-extension', 'Extension', '7ᵉ, 9ᵉ : la couleur'], ['--role-target', 'Note cible', 'où aller ensuite']].map(([tok, n, sub, rad]) =>
+        h('div', {}, h('i', { style: { background: `var(${tok})`, borderRadius: rad || '50%' } }), h('span', {}, h('b', { text: n }), ' · ', h('span', { text: sub, style: { color: 'var(--text-secondary)' } })))),
+      h('div', {}, h('i', { style: { border: '2px solid var(--role-scale-edge)' } }), h('span', {}, h('b', { text: 'Note de gamme' }), ' · ', h('span', { text: 'jouable par-dessus', style: { color: 'var(--text-secondary)' } }))));
+    const strBtns = [['Mi', '8'], ['La', '3'], ['Ré', '10']].map(([s, f], i) => h('button', { class: 'sbtn' + (i === 1 ? ' on' : ''), type: 'button', text: `${s} · ${f}`, title: `Fondamentale sur la corde de ${s}, case ${f}` }));
+    const scene = [h('div', { class: 'scene-row' }, h('span', { class: 't full', text: 'Fondamentale sur la corde de :' }), strBtns, h('button', { class: 'sbtn ghost', type: 'button', text: 'Couleurs', onclick: () => { legend.hidden = !legend.hidden; } })), neck.el];
+    const frame = phone({ mode: 'Dictionnaire', scene, drawer: [choice('Accord · Do · majeur'), instRow('Guitare')], extra: legend });
+    mount.append(fig('1 · Dictionnaire, un accord à la guitare', 'Le panneau de position disparaît : « Fondamentale sur Mi · La · Ré » (avec la case) devient une ligne de boutons au-dessus du manche. « Couleurs » ouvre la légende des rôles, en mots simples (touchez-le).', frame));
+  })();
+
+  /* 2 · Choisir (mi-hauteur), Dictionnaire */
+  (() => {
+    const neck = neckPh({ maxFret: 3 }); neck.setNotes(CHORD_C);
+    const notes = [['Do'], ['Do♯', 'Ré♭'], ['Ré'], ['Ré♯', 'Mi♭'], ['Mi'], ['Fa'], ['Fa♯', 'Sol♭'], ['Sol'], ['Sol♯', 'La♭'], ['La'], ['La♯', 'Si♭'], ['Si']];
+    const TYPES = [['majeur', 'joyeux, stable : 3 notes'], ['mineur', 'plus sombre : la tierce descend'], ['7', 'tendu, appelle l’accord suivant'], ['maj7', 'doux, rêveur (jazz, bossa)'], ['m7', 'mineur adouci (soul, jazz)'], ['sus4', 'en suspens : ni majeur ni mineur']];
+    const drawer = [choice('Accord · Do · majeur'), instRow('Guitare'),
+      h('div', { class: 'lab', text: 'Quoi' }), h('div', { class: 'seg2' }, ['Accord', 'Gamme', 'Note seule'].map((t, i) => h('button', { type: 'button', class: i === 0 ? 'on' : '', text: t }))),
+      h('div', { class: 'lab', text: 'Sur quelle note · un toucher la fait entendre' }), h('div', { class: 'notes6' }, notes.map(([a, b], i) => h('button', { type: 'button', class: i === 0 ? 'on' : '', onclick: () => VM.tone(60 + i, 0.5, 0.12) }, a, b ? h('small', { text: b }) : null))),
+      h('div', { class: 'lab', text: 'Quelle couleur' }), h('div', { class: 'types' }, TYPES.map(([t, s], i) => h('button', { type: 'button', class: i === 0 ? 'on' : '' }, h('b', { text: t }), h('small', { text: s })))),
+      toolsBtn()];
+    const frame = phone({ mode: 'Dictionnaire', scene: [neck.el], drawer, level: 'mid' });
+    mount.append(fig('2 · Choisir, à mi-hauteur', 'Trois questions dans l’ordre où un débutant les pose : quoi, sur quelle note, quelle couleur. Chaque type d’accord a sa phrase. Les notes tiennent en 2 rangées de 6 (52 px de haut) pour laisser voir le manche au-dessus.', frame));
+  })();
+
+  /* 3 · Outils (plein), Dictionnaire */
+  (() => {
+    const neck = neckPh({ maxFret: 1 }); neck.setNotes(CHORD_C.slice(2));
+    const drawer = [choice('Accord · Do · majeur'), h('div', { class: 'lab', text: 'Pour aller plus loin' }),
+      tools([['Gammes qui vont avec', 'les notes à jouer par-dessus cet accord'], ['Accords qui suivent bien', 'pour enchaîner, du plus naturel au plus surprenant'], ['Remplacer cet accord', 'des accords proches qui sonnent autrement'], ['Les harmoniques', 'pourquoi ces notes sonnent bien ensemble'], ['Toutes les notes de l’instrument', 'le manche ou le clavier entier, sans accord']]),
+      h('div', { class: 'lab', text: 'Réglages' }),
+      tools([['Sons et instruments', 'volumes, métronome, doigté'], ['Affichage', 'Do Ré Mi ou C D E, noms ou doigts, zones de cases'], ['Langue', 'Français'], ['Aide', 'guide, petite théorie, à propos']])];
+    const frame = phone({ mode: 'Dictionnaire', scene: [neck.el], drawer, level: 'full' });
+    mount.append(fig('3 · Outils du Dictionnaire, en plein', 'Les fonctions du panneau Dictionnaire qui n’étaient que dans l’Assistant : gammes recommandées, accords suivants, remplacements, série harmonique, explorateur libre. Un titre en mots simples et une phrase chacun.', frame));
+  })();
+
+  /* 4 · Outils (plein), Studio */
+  (() => {
+    const neck = neckPh({ maxFret: 1 }); neck.setNotes(CHORD_C.slice(2));
+    const drawer = [choice('Pop · Do majeur · 90 / min'), h('div', { class: 'lab', text: 'Composer' }),
+      tools([['Rythme', 'la roue et la phrase : coups, cases, départ'], ['Batterie', 'la mesure en 4 temps × 4 cases'], ['Progression', 'suites toutes faites, cadence, revenir au 1, renversements'], ['Rythme des accords', 'quand l’accord sonne dans la mesure', 'Croches ›'], ['Basse proposée', 'une ligne de basse faite pour ce style', 'Oui ›'], ['Variante du style', 'deux versions de la même ambiance', 'A ›']]),
+      h('div', { class: 'lab', text: 'Savoir' }),
+      tools([['Facilité à la guitare', 'peu de sauts entre les accords = facile', '8 / 10'], ['Exporter en MIDI', 'pour un autre logiciel de musique']]),
+      h('div', { class: 'lab', text: 'Réglages' }), tools([['Sons et instruments', 'volumes, métronome, doigté'], ['Affichage, langue, aide', '']])];
+    const frame = phone({ mode: 'Studio', scene: [neck.el], drawer, level: 'full', foldH: 200 });
+    mount.append(fig('4 · Outils du Studio, en plein', 'Tout le panneau Studio & Harmonie et la fenêtre Math & Rythmes, rangés en trois groupes. Le réglage en cours est écrit à droite (« Croches », « A ») : on sait sans ouvrir.', frame));
+  })();
+
+  /* 5 · Studio, tiroir mi-hauteur */
+  (() => {
+    const neck = neckPh({ maxFret: 3 }); neck.setNotes(CHORD_C);
+    const prog = h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' } }, ['Do', 'La m', 'Ré m', 'Sol'].map((c, i) => h('button', { type: 'button', class: 'btn' + (i === 0 ? ' grad' : ''), text: c, style: { height: '52px', fontFamily: 'var(--font-display)', fontSize: 'var(--fs-emph)', padding: 0 } })));
+    const stepper = (label, v, unit) => h('div', { class: 'prow' }, h('span', { text: label, style: { flex: 1, fontSize: 'var(--fs-body)' } }), h('button', { class: 'hbtn grad', type: 'button', text: '−', 'aria-label': `${label} −` }), h('b', { text: v, style: { minWidth: '3.4ch', textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: 'var(--fs-emph)' } }), h('button', { class: 'hbtn grad', type: 'button', text: '+', 'aria-label': `${label} +` }), unit ? h('span', { text: unit, style: { fontSize: 'var(--fs-label)', color: 'var(--text-muted)', width: '42px' } }) : null);
+    const drawer = [choice('Pop · Do majeur · 90 / min'), instRow('Guitare', true), h('div', { class: 'lab', text: 'Progression · un toucher joue l’accord' }), prog,
+      h('div', { class: 'lab', text: 'Style' }), h('button', { class: 'choice', type: 'button' }, 'Pop', h('span', { class: 'caret', text: '▾' })),
+      stepper('Tempo', '90', '/ min'), h('div', { class: 'prow' }, h('span', { text: 'Métronome', style: { flex: 1, fontSize: 'var(--fs-body)' } }), h('span', { class: 'seg' }, ['Oui', 'Non'].map((o) => h('button', { type: 'button', 'aria-pressed': String(o === 'Non'), text: o, style: { height: '44px', fontSize: 'var(--fs-label)' } })))),
+      stepper('Octave des accords', 'Do4', ''), toolsBtn()];
+    const frame = phone({ mode: 'Studio', scene: [neck.el], drawer, level: 'mid', foldH: 200 });
+    mount.append(fig('5 · Studio, à mi-hauteur', 'Ce qu’on règle pendant que ça joue : progression, style, tempo, métronome, octave des accords. Le tempo garde − / + et le nombre se tape au toucher (comme à 4K).', frame));
+  })();
+
+  /* 6 · Premier lancement */
+  (() => {
+    const neck = neckPh({ maxFret: 3 }); neck.setNotes(CHORD_C);
+    const drawer = [h('div', { class: 'welcome' }, h('b', { text: 'Bienvenue' }),
+      h('ol', {}, h('li', { text: 'Choisis un accord, une gamme ou une note : la ligne du haut de ce tiroir.' }), h('li', { text: 'Touche ▶ pour l’entendre (le navigateur demande ce premier toucher pour le son).' }), h('li', { text: 'Tire ce tiroir vers le haut pour les outils ; vers le bas pour voir tout l’instrument.' })),
+      h('button', { class: 'btn', type: 'button', text: 'Compris', style: { alignSelf: 'flex-end', fontSize: 'var(--fs-label)' } })),
+      choice('Accord · Do · majeur'), instRow('Guitare')];
+    const frame = phone({ mode: 'Dictionnaire', scene: [neck.el], drawer, level: 'mid' });
+    mount.append(fig('6 · Premier lancement', 'Le tiroir monte une fois à mi-hauteur avec trois lignes, puis redescend sur « Compris » et ne revient plus. L’app s’ouvre sur un accord de Do déjà dessiné : rien d’abstrait à configurer avant d’entendre.', frame));
+  })();
+
+  /* tablette 820 × 1180 */
+  (() => {
+    const neck = VM.buildNeck({ rail: 16, gutter: 30, stringPx: 72, pm: 48, headRow: 32, openRow: 70, maxFret: 12, pitch: (n) => 84 - (n - 1) * 1.6 });
+    neck.setNotes(CHORD_C);
+    const col = h('div', { style: { flex: '0 0 300px', borderLeft: '1px solid var(--border-subtle)', background: 'var(--surface-1)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' } },
+      choice('Accord · Do · majeur'), instRow('Guitare'),
+      h('div', { class: 'lab', text: 'Fondamentale sur' }), h('div', { class: 'prow' }, [['Mi', '8'], ['La', '3'], ['Ré', '10']].map(([s, f], i) => h('button', { class: 'sbtn' + (i === 1 ? ' on' : ''), type: 'button', text: `${s} · ${f}`, style: { flex: 1 } }))),
+      h('div', { class: 'lab', text: 'Pour aller plus loin' }),
+      tools([['Gammes qui vont avec', ''], ['Accords qui suivent bien', ''], ['Remplacer cet accord', ''], ['Les harmoniques', '']]),
+      h('div', { class: 'lab', text: 'Réglages' }), tools([['Sons et instruments', ''], ['Affichage, langue, aide', '']]));
+    const tab = h('div', { class: 'tablet tx-b' },
+      h('div', { style: { flex: '0 0 48px', display: 'flex', alignItems: 'center', padding: '0 18px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '14px' } }, h('span', { text: 'visualmusic.app', style: { flex: 1, height: '32px', borderRadius: '16px', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', padding: '0 14px' } })),
+      h('div', { class: 'top2' }, h('span', { class: 'app-title', text: 'VisualMusic', style: { fontSize: '20px', marginRight: '16px' } }), h('div', { class: 'seg2', style: { maxWidth: '360px' } }, ['Dictionnaire', 'Studio'].map((t) => h('button', { type: 'button', class: t === 'Dictionnaire' ? 'on' : '', text: t }))), h('span', { style: { flex: 1 } }), h('button', { class: 'ibtn', type: 'button', 'aria-label': 'Aide' }, icon(AIDE))),
+      h('div', { style: { flex: 1, display: 'flex', minHeight: 0 } }, h('div', { style: { flex: 1, overflowY: 'auto', padding: '16px 0 0', display: 'flex', justifyContent: 'center' } }, neck.el), col));
+    const box = document.getElementById('tab'); box.append(tab); box.style.maxWidth = '840px'; VM.fit(box);
+  })();
+
+  /* inventaire */
+  const P = (k, t) => `<span class="place${k === 'out' ? ' out' : ['haut', 'scène', 'replié'].includes(k) ? ' p0' : ''}">${t || k}</span>`;
+  const INV = [
+    ['Modes et navigation'],
+    ['Studio · Dictionnaire', 'nav.mode-studio, nav.mode-dictionnaire', 'onglets de l’en-tête', P('haut') + 'segmenté, 2 × ≈ 150 × 44'],
+    ['Assistant (Studio & Harmonie)', 'nav.studio-harmonie, nav.fermer-fenetres', 'tiroir de 896 px sur les instruments', 'dissous : son contenu va dans ' + P('mi') + P('plein') + '; fermer = Retour, tirer vers le bas, ou toucher la scène'],
+    ['Aide : guide, théorie, à propos', 'aide.guide, aide.theorie, aide.a-propos', 'en-tête', P('haut', '?') + 'ouvre Aide en ' + P('plein')],
+    ['Langue', 'nav.langue', 'en-tête (liste)', P('plein') + 'Réglages › Langue, segmenté FR / EN'],
+    ['Noms des notes, doigts', 'nav.noms-notes-eu, nav.noms-notes-us, nav.etiquettes-doigts', 'en-tête, 3 segments', P('plein') + 'Réglages › Affichage'],
+    ['Export de débogage', 'nav.debug', 'en-tête (développement)', P('plein') + 'Réglages, en développement seulement'],
+    ['Lecture et tempo'],
+    ['▶ / ■', 'jouer.lecture, jouer.instrument-play-*', 'transport ; ▶ des têtes', P('replié') + '64 × 56 ; paysage : colonne de droite'],
+    ['Tempo − / + / saisie', 'jouer.tempo, jouer.tempo-moins, jouer.tempo-plus, jouer.tempo-saisie', 'transport', P('mi') + 'Studio ; la valeur se lit aussi dans la ligne du choix'],
+    ['Métronome', 'jouer.metronome', 'transport', P('mi') + 'Studio, Oui / Non'],
+    ['Volume général', 'son.volume-general', 'transport', P('plein') + 'Sons et instruments (les boutons du téléphone restent le premier réflexe)'],
+    ['Math & Rythmes', 'composer.math-ouvrir', 'fenêtre', P('plein') + 'Outils › Rythme (exploration 2, variante B)'],
+    ['Instruments & Audio', 'son.ouvrir', 'fenêtre', P('plein') + 'Outils › Sons et instruments'],
+    ['Visualiseur audio', 'son.visualiseur', 'bande de 60 px', P('out', 'masqué') + 'ou rangé dans Sons et instruments'],
+    ['Choisir'],
+    ['Style', 'composer.style', 'ligne de sélection', P('replié') + 'ligne du choix → ' + P('mi') + 'Style'],
+    ['Famille, note, type d’accord, type de gamme', 'dico.famille, dico.fondamentale, dico.type-accord, dico.type-gamme', 'ligne de sélection', P('replié') + 'ligne du choix → ' + P('mi') + 'Choisir (quoi, sur quelle note, quelle couleur)'],
+    ['Légende des couleurs', 'nav.legende', 'colonne centrale', P('scène') + 'bouton « Couleurs », petite fenêtre'],
+    ['Instruments'],
+    ['Piano · Guitare · Basse (affiché = qui sonne)', 'jouer.piano, jouer.guitare, jouer.basse, jouer.instrument-tuile-*', 'trois colonnes ; nom = qui sonne', P('replié') + 'segmenté 3 × ≈ 90 × 56'],
+    ['Octave du piano', 'jouer.octave-piano-prec, jouer.octave-piano-suiv', 'tête du piano', P('scène') + '‹ Do3 – Do5 › (Dictionnaire) ; Studio : ' + P('mi') + 'Octave des accords'],
+    ['Position (gamme) ‹ ›', 'jouer.position-guitar-*, jouer.position-bass-*', 'tête du manche', P('scène') + 'onglets 1 à 7 + ‹ › (exploration 1, variante B)'],
+    ['Panneau de position', 'jouer.position-panneau-*', 'bouton du libellé de position', 'dissous sur la ' + P('scène')],
+    ['Fondamentale sur Mi / La / Ré', 'jouer.position-fondamentale-corde-*', 'panneau de position', P('scène') + 'ligne de boutons avec la case'],
+    ['Revenir à toutes les notes / au focus', 'jouer.position-reinit-*, jouer.position-reinit-focus-*', 'panneau de position', P('scène') + '« ✕ » au bout de la ligne, quand il y a quelque chose à remettre'],
+    ['Alerte grand écart / hors tessiture', 'jouer.position-alertes-guitar', 'panneau de position', P('scène') + '⚠ et une phrase sous la ligne'],
+    ['Tessiture de l’instrument', 'jouer.instrument-plage-*', 'panneau de position', P('plein') + 'Sons et instruments, et dans la phrase d’alerte'],
+    ['Panneaux Studio, Dictionnaire, Sons (hors registre)'],
+    ['Séquenceurs : batterie, mélodie, harmonie ; 16 / 32 / 64 pas ; pages', 'composer.grilles', 'colonne centrale', P('plein') + 'Batterie (4 × 4), Progression ; 32 / 64 pas = pages ‹ › de 16'],
+    ['Export MIDI', '—', 'séquenceur', P('plein') + 'Outils › Exporter en MIDI'],
+    ['Progressions toutes faites, cadence classique, revenir au 1, renversements', '—', 'Assistant', P('mi') + 'progression ; détails en ' + P('plein') + 'Progression'],
+    ['Variante A / B, basse proposée, rythme des accords', '—', 'Assistant', P('plein') + 'Outils, valeur en cours affichée'],
+    ['Score de jouabilité', '—', 'Assistant', P('plein') + '« Facilité à la guitare », 8 / 10'],
+    ['Gammes recommandées, accords suivants, substitutions', '—', 'Assistant (Dictionnaire)', P('plein') + 'Pour aller plus loin'],
+    ['Série harmonique, mode harmonique', '—', 'Assistant (Dictionnaire)', P('plein') + '« Les harmoniques »'],
+    ['Explorateur libre', '—', 'Assistant (Dictionnaire)', P('plein') + '« Toutes les notes de l’instrument »'],
+    ['Mode doigté, accords de piano allégés, volumes par instrument, zones de cases', '—', 'Instruments & Audio', P('plein') + 'Sons et instruments ; zones de cases dans Affichage'],
+  ];
+  const tbl = h('table', { class: 'inv' }, h('tr', {}, ['Fonction', 'Aujourd’hui', 'Téléphone, navigation 2'].map((t) => h('th', { text: t }))));
+  INV.forEach((r) => {
+    if (r.length === 1) { tbl.append(h('tr', { class: 'grp' }, h('td', { colspan: '3', text: r[0] }))); return; }
+    tbl.append(h('tr', {}, h('td', {}, r[0], h('code', { text: r[1] })), h('td', { text: r[2] }), h('td', { html: r[3] })));
+  });
+  document.getElementById('invwrap').append(tbl);
+})();
+</script>
+</body>
+</html>

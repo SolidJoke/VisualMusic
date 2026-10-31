@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const css = readFileSync(join(here, 'shared.css'), 'utf8');
 const js = readFileSync(join(here, 'shared.js'), 'utf8');
-const pages = ['index.html', 'e1-position-gamme.html', 'e2-math-rythmes-dock.html', 'e3-note-qui-joue.html', 'e4-telephone.html'];
+const pages = ['index.html', 'e1-position-gamme.html', 'e2-math-rythmes-dock.html', 'e3-note-qui-joue.html', 'e4-telephone.html', 'e5-navigation-2.html'];
 const artifactDir = process.argv[2];
 for (const p of pages) {
   const src = readFileSync(join(here, p), 'utf8');
