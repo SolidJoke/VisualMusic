@@ -416,8 +416,8 @@ a { color: var(--text-primary); }
     <div><h3>Combien d’instruments selon la place (proposition)</h3><table>
       <tr><th>Fenêtre (px CSS)</th><th>Exemples</th><th>Instruments</th></tr>
       <tr><td>moins de 768 de large</td><td>téléphone en portrait</td><td>1, au choix ; tiroir en bas</td></tr>
-      <tr><td>768 à 1279 de large, ou moins de 900 de haut</td><td>téléphone en paysage, tablette, petit portable</td><td>1, au choix, plus grand ; tiroir en colonne à droite</td></tr>
-      <tr><td>1280 de large ou plus, et 900 de haut ou plus</td><td>portable 1920 × 1080 (100 %), tablette 12 pouces en paysage, 4K à 150 %</td><td>3 côte à côte (A′)</td></tr>
+      <tr><td>768 à 2559 de large (sous 1440p)</td><td>téléphone en paysage, tablette, portable, écran 1080p</td><td>1, au choix ; tiroir ou colonne à droite (décidé le 1er novembre)</td></tr>
+      <tr><td>2560 de large ou plus</td><td>écran 1440p (100 %), 4K à 150 %</td><td>3 côte à côte (A′)</td></tr>
     </table></div>
     <div><h3>À vérifier dans le code</h3><ul>
       <li>La boucle du Studio envoie les accords à la voix « piano » (<code>src/audio/dispatch.js</code>, l. 193) quel que soit <code>playbackInstrument</code> ; seuls les clics sur un accord suivent l’instrument choisi (<code>useStudioPlayback.js</code>).</li>
