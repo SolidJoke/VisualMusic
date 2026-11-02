@@ -200,16 +200,17 @@
     font-size: var(--fs-label);
     font-weight: 600;
     cursor: default;
+    /* VMU-203 — the "release" transition: when the loop stops and the
+       .is-running class leaves the neck, the pastilles come back over 150 ms.
+       The transform here covers the non-running playing scale(1.1). */
+    transition: opacity 150ms ease-out, transform 90ms ease-out;
 }
 
-/* F1 (spec usage table "Note jouée"): --select-ring + scale(1.1), no more
-   white flash (was note-playing-animation, background-color: #fff/#ffd700). */
-.note-marker.is-playing {
-    box-shadow: var(--select-ring);
-    transform: scale(1.1);
-    color: var(--text-on-select) !important;
-    z-index: 10 !important;
-}
+/* VMU-203 — the playing ring moved below the role-* rules: with equal
+   specificity the role rules' later box-shadow was erasing --select-ring
+   (Part 1). It now lives after .note-marker.subtle-marker, so a playing note
+   keeps its ring on every role. The color is gone: the role's own label
+   colour stays, no more --text-on-select override. */
 
 /* VMU-200 — a Studio loop note OUTSIDE the drawn shape: a ring, no fill, on
    the one cell placeNearShape chose. The instrument's colour is its sequencer
@@ -292,6 +293,61 @@
     border: 1px solid var(--border-subtle);
     color: var(--text-secondary) !important;
     box-shadow: none !important;
+}
+
+/* VMU-203 Part 1 — a playing note keeps its ring on EVERY role. Placed after
+   the role-* rules (same specificity, later wins) so their box-shadow no
+   longer erases --select-ring. The role's own fill/label colour is untouched. */
+.note-marker.is-playing {
+    box-shadow: var(--select-ring);
+    transform: scale(1.1);
+    z-index: 10 !important;
+}
+
+/* VMU-203 — the target note's playing ring is the thicker 6px/8px ring, and it
+   holds whether or not the loop runs: the design rule is NOT gated by
+   .is-running. Placed after .note-marker.is-playing (three classes beat two,
+   and later wins over the role-* rules) so the pushed ring always lands. */
+.note-marker.is-playing.is-target-note {
+    box-shadow: 0 0 0 6px var(--bg), 0 0 0 8px var(--select);
+}
+
+/* VMU-203 Part 2 — the spotlight. Only while the neck's container carries
+   .is-running (the Studio sequencer's isPlaying, threaded through
+   useFretboard.js): the shape dims, the sounding note lights up. */
+.is-running .note-marker {
+    transition: opacity 120ms ease-out, transform 90ms ease-out;
+    opacity: 0.4;
+}
+
+.is-running .note-marker.role-scale {
+    opacity: 0.6;
+}
+
+/* The playing note punches through the dim. Ring is --select-ring from the
+   .is-playing rule above; the label goes heavier to carry the attention. */
+.is-running .note-marker.is-playing {
+    opacity: 1;
+    font-weight: 800;
+}
+
+/* A loop note outside the drawn shape stays fully visible (VMU-200's ringed
+   cell is itself the attention; the dim must not swallow it). */
+.is-running .note-marker.is-playing-outside {
+    opacity: 1;
+}
+
+/* VMU-203 — the inline opacity 0.25 for cells outside the selected fret zone
+   (Dictionary) moved here so the spotlight's own opacity can still win. */
+.note-marker.is-out-of-zone {
+    opacity: 0.25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .note-marker,
+    .is-running .note-marker {
+        transition: none !important;
+    }
 }
 
 /* Legend Markers */

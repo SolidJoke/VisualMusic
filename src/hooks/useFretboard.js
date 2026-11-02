@@ -49,6 +49,13 @@ export function useFretboard(instrument) {
     isGuitarOutOfRange,
     isBassOutOfRange,
     appMode = "studio",
+    // VMU-203 — whether the STUDIO loop is running (the sequencer's transport
+    // state, useSequencer.js), not `currentlyPlayingNotes` (empty between two
+    // notes). The neck dims its shape only while this is true AND we are in
+    // the Studio; in the Dictionary the transport never plays (its ▶ plays
+    // through playDictionaryAudio), and a loop left running across a mode
+    // switch must not dim the Dictionary's necks.
+    isPlaying = false,
     activeBrick,
   } = useMusicEngineContext();
 
@@ -67,6 +74,11 @@ export function useFretboard(instrument) {
   const fingering = instrument === "bass" ? bassFingering : guitarFingering;
   const isOutOfRange = instrument === "bass" ? isBassOutOfRange : isGuitarOutOfRange;
   const dictType = appMode === "dictionary" ? rawDictType : null;
+  // VMU-203 — the spotlight dims the neck only while the Studio's loop is
+  // actually running. Gated on appMode so a loop left running across a mode
+  // switch to the Dictionary does not dim its necks (the Dictionary's ▶ never
+  // starts the transport; useSequencer.js owns isPlaying).
+  const isLoopRunning = appMode === "studio" && isPlaying;
   // VMU-123 decision #4 — the bass never shows a target note. The engine
   // (useMusicEngine's targetValuesByInstrument) already returns [] for
   // "bass"; this re-asserts it here rather than trusting a single source,
@@ -140,6 +152,7 @@ export function useFretboard(instrument) {
     isOutOfRange,
     dictType,
     notation,
+    isLoopRunning,
 
     // Props transmises telles quelles au composant (pour computeFretMetadata)
     rootValue,

@@ -55,10 +55,12 @@ export function arpeggioStepSeconds(bpm) {
  * `startTime` and spaced by `stepTime`.
  *
  * Duplicated pitches are kept: two strings can produce the same pitch, and the
- * player hears both attacks. The clear date follows the scale branch's rule
- * (useDictionaryPlayback.js): a note's light stays on until just before the
- * next step, never less than 0.05 s, so a very fast step still leaves a
- * visible flash.
+ * player hears both attacks. VMU-203 hold: a note's light stays on until the
+ * next note replaces it, so a sixteenth at 120 bpm no longer blinks for 75 ms
+ * and leaves a gap. The LAST note holds for `max(stepTime, 0.1)` s — at least
+ * 100 ms however fast the tempo. The caller's clear must still be conditional
+ * (it sets `[]`): a clear scheduled at the same instant as the next note's
+ * light must never erase that next note.
  *
  * @param {Array<number | {absoluteValue: number}>} notes
  * @param {number} startTime audio-clock time of the first note.
@@ -73,6 +75,8 @@ export function planArpeggio(notes, startTime, stepTime) {
     .sort((a, b) => pitchOf(a) - pitchOf(b))
     .map((note, index) => {
       const time = startTime + index * stepTime;
-      return { note, time, clearAt: time + Math.max(stepTime - 0.05, 0.05) };
+      const isLast = index === notes.length - 1;
+      const clearAt = isLast ? time + Math.max(stepTime, 0.1) : time + stepTime;
+      return { note, time, clearAt };
     });
 }

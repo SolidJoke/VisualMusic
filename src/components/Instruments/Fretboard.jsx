@@ -48,6 +48,7 @@ function Fretboard({
     showFingerNumbers,
     scaleAnchor,
     appMode,
+    isLoopRunning,
   } = useFretboard(instrument);
 
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -275,7 +276,7 @@ function Fretboard({
 
     return (
       <div
-        className={`fretboard-container fretboard-container--vertical instrument-${instrument} ${outOfRange ? "is-out-of-range" : ""}`}
+        className={`fretboard-container fretboard-container--vertical instrument-${instrument} ${outOfRange ? "is-out-of-range" : ""} ${isLoopRunning ? "is-running" : ""}`}
         data-orientation="vertical"
         style={{ "--fbv-strings": columns.length, "--fbv-n": numFrets }}
         title={fingering?.isOutOfRange ? "⚠️ Accord hors tessiture instrument" : ""}
@@ -376,9 +377,8 @@ function Fretboard({
                       />
                       {showMarker && (
                         <div
-                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isPlayingOutside ? "is-playing-outside" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""} ${fret === 0 ? "open-marker" : ""}`}
+                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isPlayingOutside ? "is-playing-outside" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""} ${fret === 0 ? "open-marker" : ""} ${inZone ? "" : "is-out-of-zone"}`}
                           title={`${meta.noteInfo.us} / ${meta.noteInfo.eu}`}
-                          style={{ opacity: inZone ? 1 : 0.25 }}
                         >
                           {meta.label}
                         </div>
@@ -396,7 +396,7 @@ function Fretboard({
 
   return (
     <div
-      className={`fretboard-container instrument-${instrument} ${(fingering?.isOutOfRange || isOutOfRange) ? "is-out-of-range" : ""}`}
+      className={`fretboard-container instrument-${instrument} ${(fingering?.isOutOfRange || isOutOfRange) ? "is-out-of-range" : ""} ${isLoopRunning ? "is-running" : ""}`}
       style={{ "--fretboard-grid": activeGridTemplate }}
       title={fingering?.isOutOfRange ? "⚠️ Accord hors tessiture instrument" : ""}
     >
@@ -511,12 +511,8 @@ function Fretboard({
                       <div className="string-line"></div>
                       {(meta.isActive || meta.isPlaying || meta.isPlayingOutside) && (
                         <div
-                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isPlayingOutside ? "is-playing-outside" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""}`}
+                          className={`note-marker ${meta.roleClass} ${meta.isPlaying ? "is-playing" : ""} ${meta.isPlayingOutside ? "is-playing-outside" : ""} ${meta.isTargetNote ? "is-target-note" : ""} ${meta.isSubtle ? "subtle-marker" : ""} ${showFingering ? "is-fingering" : ""} ${inZone ? "" : "is-out-of-zone"}`}
                           title={`${meta.noteInfo.us} / ${meta.noteInfo.eu}`}
-                          style={{
-                            opacity: inZone ? 1 : 0.25,
-                            transition: "opacity 0.3s",
-                          }}
                         >
                           {meta.label}
                         </div>

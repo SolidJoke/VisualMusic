@@ -118,3 +118,34 @@ describe("the vertical neck's board colour", () => {
     expect(contrast(token("--border-strong"), resolve("#2a2a2a"))).toBeLessThan(3);
   });
 });
+
+// VMU-203 — the spotlight dims the whole pastille (opacity 0.4, scale notes
+// 0.6) over the board, so a dimmed label is a blend of its colour with the
+// board. The F1 colour rule is "no dimming", which the spotlight knowingly
+// relaxes: this reports the dimmed numbers for the owner to review, and does
+// NOT assert a threshold (the requirement is to report, not to gate).
+const blend = (colour, over, alpha) => ({
+  r: Math.round(alpha * colour.r + (1 - alpha) * over.r),
+  g: Math.round(alpha * colour.g + (1 - alpha) * over.g),
+  b: Math.round(alpha * colour.b + (1 - alpha) * over.b),
+});
+
+describe("VMU-203 — dimmed spotlight contrast (reported, not asserted)", () => {
+  it("logs the dimmed label contrast at 0.4 (filled) and 0.6 (scale)", () => {
+    const b = board();
+    const lines = [];
+
+    for (const fillName of ["--role-root", "--role-third", "--role-fifth", "--role-extension", "--role-target"]) {
+      const label = blend(token("--on-role"), b, 0.4);
+      const fill = blend(token(fillName), b, 0.4);
+      lines.push(`${fillName}: ${contrast(label, fill).toFixed(2)}:1 at opacity 0.4`);
+    }
+    const scaleLabel = blend(token("--text-secondary"), b, 0.6);
+    lines.push(`scale label: ${contrast(scaleLabel, b).toFixed(2)}:1 at opacity 0.6`);
+
+    console.log(`[VMU-203 dimmed contrast]\n  ${lines.join("\n  ")}`);
+
+    // No threshold asserted on purpose — see the block comment above.
+    expect(lines.length).toBeGreaterThan(0);
+  });
+});

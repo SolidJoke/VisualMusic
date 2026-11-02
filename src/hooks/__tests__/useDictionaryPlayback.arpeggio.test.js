@@ -42,7 +42,7 @@ const C_GUITAR = [
   { value: 4, absoluteValue: 64, order: 3, stringIndex: 0, fret: 0, instrument: 'guitar' },
 ];
 
-function mount(instrument, realizations) {
+function mount(instrument, realizations, currentBpm = 120) {
   const setCurrentlyPlayingNotes = vi.fn();
   const scheduler = {
     ensureAudioReady: vi.fn(() => Promise.resolve()),
@@ -59,7 +59,7 @@ function mount(instrument, realizations) {
     bassFingering: null,
     activeBrick: null,
     realizationsByInstrument: realizations,
-    currentBpm: 120,
+    currentBpm,
     lastClickedContext: null,
     setCurrentlyPlayingNotes,
     scheduler,
@@ -129,5 +129,57 @@ describe('VMU-199 — a bass chord in the Dictionary is a rising arpeggio', () =
     const lit = litInOrder(setCurrentlyPlayingNotes);
     expect(lit).toHaveLength(1);
     expect(lit[0]).toEqual(C_GUITAR);
+  });
+});
+
+describe('VMU-203 — the Dictionary arpeggio holds each note until the next replaces it', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    draws.scheduled.length = 0;
+  });
+
+  it('does not erase the next note when its clear fires after the next light', async () => {
+    const { result, setCurrentlyPlayingNotes } = mount('bass', {
+      bass: C_BASS, piano: [], guitar: [],
+    });
+
+    await act(async () => {
+      await result.current.playDictionaryAudio('bass');
+    });
+
+    const atBoundary = draws.scheduled.filter((d) => d.time === 1.125);
+    expect(atBoundary).toHaveLength(2);
+    const [clearNote0, lightNote1] = atBoundary;
+
+    let current = [];
+    setCurrentlyPlayingNotes.mockImplementation((updater) => {
+      current = typeof updater === 'function' ? updater(current) : updater;
+    });
+    setCurrentlyPlayingNotes([C_BASS[1]]); // C2 lit…
+    lightNote1.cb(); // G2 lights…
+    clearNote0.cb(); // …and C2's clear must leave G2 alone
+    expect(current.map((n) => n.absoluteValue)).toEqual([43]);
+  });
+
+  it('holds the last note for stepTime (0.125 s) at 120 bpm', async () => {
+    const { result } = mount('bass', { bass: C_BASS, piano: [], guitar: [] }, 120);
+
+    await act(async () => {
+      await result.current.playDictionaryAudio('bass');
+    });
+
+    const times = draws.scheduled.map((d) => d.time).sort((a, b) => a - b);
+    expect(times[times.length - 1]).toBe(1.375);
+  });
+
+  it('holds the last note for the 0.1 s floor at 200 bpm', async () => {
+    const { result } = mount('bass', { bass: C_BASS, piano: [], guitar: [] }, 200);
+
+    await act(async () => {
+      await result.current.playDictionaryAudio('bass');
+    });
+
+    const times = draws.scheduled.map((d) => d.time).sort((a, b) => a - b);
+    expect(times[times.length - 1]).toBe(1.25);
   });
 });

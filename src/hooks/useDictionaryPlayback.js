@@ -179,7 +179,11 @@ export function useDictionaryPlayback({
             if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([note]);
           }, time);
           Tone.getDraw().schedule(() => {
-            if (scheduler.isCurrentSession(currentToken)) setCurrentlyPlayingNotes([]);
+            if (!scheduler.isCurrentSession(currentToken)) return;
+            // VMU-203 hold: never blank the next note (see useStudioPlayback.js).
+            setCurrentlyPlayingNotes((prev) =>
+              Array.isArray(prev) && prev.length === 1 && prev[0] === note ? [] : prev
+            );
           }, clearAt);
         }
       } else {
