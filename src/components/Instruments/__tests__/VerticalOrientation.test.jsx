@@ -227,7 +227,7 @@ describe.each(["guitar", "bass"])("Fretboard %s orientation=\"vertical\"", (inst
   it("nut at the top (fret rows 0..numFrets downwards), low strings on the left", () => {
     const { vertical } = renderBoth(SCENARIOS[0], (o) => <Fretboard instrument={instrument} orientation={o} />);
     const frets = Array.from(vertical.querySelectorAll(".fbv-fret-row")).map((r) => Number(r.getAttribute("data-fret")));
-    const numFrets = instrument === "bass" ? 20 : 22; // useFretboard.js getNumFrets
+    const numFrets = 22; // useFretboard.js getNumFrets (both instruments)
     expect(frets).toEqual(Array.from({ length: numFrets + 1 }, (_, f) => f));
     expect(vertical.querySelector(".fbv-fret-row").classList.contains("fbv-row--open")).toBe(true);
 

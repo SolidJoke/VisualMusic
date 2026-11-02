@@ -21,10 +21,10 @@
  *     pitch(n)  = share(n) * rowsHeight
  *
  * The shares sum to 1 for ANY number of frets, so the same function fills the
- * same length for the guitar (22 frets: 91.3px down to 60.9px, mean 76.1px)
- * and the bass (20 frets: 100.4px down to 67.0px, mean 83.7px) - the bass, with
- * fewer frets in the same length, has the larger scale. S1-5 (>= 64px up to
- * fret 12) and S1-4 (>= 52px everywhere) hold with room to spare.
+ * same length for the guitar and the bass (both 22 frets: 91.3px down to
+ * 60.9px, mean 76.1px) - the two necks, with the same fret count in the same
+ * length, have the same scale. S1-5 (>= 64px up to fret 12) and S1-4 (>= 52px
+ * everywhere) hold with room to spare.
  *
  * Where the length comes from: the PAGE. PrototypeA.css derives it once from
  * the keyboard (--proto-inst-h, from the key thickness) and gives it to the
@@ -78,6 +78,6 @@ export function verticalFretPitchCss(fret, numFrets) {
 /**
  * The frets that carry a marker on a real neck, and how many dots each:
  * 3, 5, 7, 9, 15, 17, 19, 21 one, 12 two. Gabriel's list. A neck draws only
- * the ones it has (the bass stops at 20).
+ * the ones it has (both necks have 22 frets, so both carry the 21 dot).
  */
 export const INLAY_FRET_DOTS = { 3: 1, 5: 1, 7: 1, 9: 1, 12: 2, 15: 1, 17: 1, 19: 1, 21: 1 };
