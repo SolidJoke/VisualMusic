@@ -128,7 +128,7 @@
 <section class="variant" id="portable">
   <header><h2>Sous 1440p, sur ordinateur : un instrument, au choix</h2><span class="kept">Décidé</span><span class="tag">portable ou écran 1920 × 1080 ; piano par défaut au Studio</span></header>
   <ul class="three">
-    <li><b>Ce que voit le débutant</b>La page d’A′ avec une seule colonne d’instrument. Sa tête devient le choix : « Piano · Guitare · Basse », et l’instrument choisi est celui qui sonne. Au Studio, le piano est choisi d’office ; au Dictionnaire aussi, je propose, puis l’app retient le dernier choix par mode.</li>
+    <li><b>Ce que voit le débutant</b>La page d’A′ avec une seule colonne d’instrument. Sa tête devient le choix : « Piano · Guitare · Basse », et l’instrument choisi est celui qui sonne. Le piano est choisi d’office, au Studio comme au Dictionnaire ; ensuite l’app retient le dernier choix par mode.</li>
     <li><b>La place libérée</b>Deux colonnes d’instrument en moins, c’est ≈ 700 px de large : le dock Rythme (exploration 2, variante B) y tient en permanence, à côté de l’instrument qui joue.</li>
     <li><b>Les tailles</b>La colonne garde la largeur de la guitare (424 px) pour que rien ne saute quand on change d’instrument. Le piano y montre 2 octaves avec des touches de 49 px ; le manche, les cases 0 à 12 avec des rangées de 55 à 65 px.</li>
   </ul>
@@ -143,7 +143,7 @@
     <div><h3>À vérifier</h3><ul>
       <li>« Sous 1440p » traduit en largeur CSS ≥ 2560 : c’est déjà le seuil « desktop » d’<code>AppRouter.jsx</code>, et il couvre la 4K à 150 % (2560 × 1363). Un écran 1440p réglé à 125 % donne 2048 px CSS : il aurait un seul instrument. À confirmer.</li>
       <li>À 2560 px CSS la hauteur utile est d’environ 1283 px (4K à 150 %) ou 1330 px (1440p) : les colonnes d’A′ (≈ 1995 px) doivent se caler sur la hauteur de la fenêtre.</li>
-      <li>Au Studio, piano par défaut : c’est déjà la voix des accords de la boucle (<code>dispatch.js</code> l. 193). Si l’on choisit la guitare, je propose toujours que la guitare joue les accords (à décider).</li>
+      <li>Décidé : ce qu’on choisit est ce qu’on voit et ce qu’on entend. Guitare choisie, la guitare joue les accords de la boucle ; aujourd’hui <code>dispatch.js</code> (l. 193) les envoie toujours au piano : à changer.</li>
     </ul></div>
   </div>
 </section>
@@ -182,7 +182,10 @@
 <section class="variant" id="verifier">
   <header><h2>À vérifier ou à décider</h2></header>
   <div class="specs">
-    <div><h3>Décidé le 1er novembre</h3><ul>
+    <div><h3>Décidé le 2 novembre</h3><ul>
+      <li>Piano par défaut, au Studio comme au Dictionnaire, avec un sélecteur pour choisir son instrument.</li>
+      <li>Ce qu’on choisit est ce qu’on voit et ce qu’on entend : l’instrument choisi joue aussi les accords de la boucle du Studio.</li>
+    </ul><h3 style="margin-top:14px">Décidé le 1er novembre</h3><ul>
       <li>Un seul instrument sous 1440p (en CSS : moins de 2560 px de large), trois au-delà.</li>
       <li>On choisit toujours son instrument ; au Studio, le piano par défaut.</li>
     </ul><h3 style="margin-top:14px">Décidé le 31 octobre</h3><ul>
@@ -193,7 +196,7 @@
     <div><h3>À vérifier dans le code</h3><ul>
       <li>Le tiroir à trois hauteurs n’existe pas : <code>BottomNav.jsx</code> a un tiroir « Menu » plein écran, ouvert ou fermé. Il faut un composant à points d’arrêt (replié, mi, plein) et l’historique pour Retour.</li>
       <li>Les réglages de position (<code>PositionPanel.jsx</code>) passent sur la scène, sans panneau : « Fondamentale sur » et les remises à zéro deviennent une ligne de boutons au-dessus du manche.</li>
-      <li>« Instrument affiché = instrument qui sonne » : <code>playbackInstrument</code> suit le choix, piano par défaut au Studio. Reste à décider si la guitare choisie joue les accords de la boucle (<code>dispatch.js</code> l. 193 les envoie au piano).</li>
+      <li>« Ce qu’on choisit = ce qu’on voit et entend » : <code>playbackInstrument</code> suit le sélecteur (piano par défaut), et la voix des accords de la boucle aussi (<code>dispatch.js</code> l. 193 envoie aujourd’hui toujours au piano).</li>
       <li>Export MIDI, zones de cases (Ouverte / Milieu / Aiguë) et volumes par instrument sont gardés dans les outils ; vérifier qu’ils lisent le même état qu’à 4K.</li>
     </ul></div>
   </div>
@@ -324,7 +327,7 @@
       h('button', { class: 'btn', type: 'button', text: 'Compris', style: { alignSelf: 'flex-end', fontSize: 'var(--fs-label)' } })),
       choice('Accord · Do · majeur'), instRow('Piano')];
     const frame = phone({ mode: 'Dictionnaire', scene: [piano6], drawer, level: 'mid' });
-    mount.append(fig('6 · Premier lancement', 'Le tiroir monte une fois à mi-hauteur avec trois lignes, puis redescend sur « Compris » et ne revient plus. L’app s’ouvre sur un accord de Do déjà dessiné : rien d’abstrait à configurer avant d’entendre. Piano par défaut ici aussi (proposé) ; ensuite l’app garde le dernier instrument choisi dans chaque mode.', frame));
+    mount.append(fig('6 · Premier lancement', 'Le tiroir monte une fois à mi-hauteur avec trois lignes, puis redescend sur « Compris » et ne revient plus. L’app s’ouvre sur un accord de Do déjà dessiné : rien d’abstrait à configurer avant d’entendre. Piano par défaut (décidé) ; ensuite l’app garde le dernier instrument choisi dans chaque mode.', frame));
   })();
 
   /* tablette 820 × 1180 */
