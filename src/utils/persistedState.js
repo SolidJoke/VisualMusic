@@ -3,8 +3,13 @@
 //
 // ONE versioned key in localStorage holding ONE JSON object:
 //
-//   visualmusic.state.v1 = { v: 1, appMode, lang, notation, playbackInstrument,
-//                            brickId, chordOctaveOffset, dictRoot, dictType, dictOctave }
+//   visualmusic.state.v1 = { v: 1, appMode, lang, notation,
+//                            playbackInstrumentByMode, brickId,
+//                            chordOctaveOffset, dictRoot, dictType, dictOctave }
+//
+// `playbackInstrumentByMode` is `{ studio, dictionary }` — one instrument per
+// mode (VMU-209). A pre-VMU-209 entry's single `playbackInstrument` is migrated
+// to both modes on read; it is never written back as the old field.
 //
 // It keeps CONTENT (what the user was looking at), nothing about what they
 // understood, nothing personal, no identifier. NOT kept in this slice: the
@@ -33,6 +38,15 @@ const isIntIn = (v, lo, hi) => typeof v === "number" && Number.isInteger(v) && v
 
 const PLAYBACK_INSTRUMENTS = ["piano", "guitar", "bass"];
 
+/** @param {unknown} v */
+const isValidInstrument = (v) => typeof v === "string" && PLAYBACK_INSTRUMENTS.includes(v);
+
+/** @param {unknown} v */
+const isPlaybackInstrumentByMode = (v) =>
+  typeof v === "object" && v !== null && !Array.isArray(v) &&
+  isValidInstrument(/** @type {Record<string, unknown>} */ (v).studio) &&
+  isValidInstrument(/** @type {Record<string, unknown>} */ (v).dictionary);
+
 /** @param {object} table @param {string} key */
 const has = (table, key) => Object.prototype.hasOwnProperty.call(table, key);
 
@@ -47,7 +61,7 @@ const FIELDS = {
   appMode: (v) => v === "studio" || v === "dictionary",
   lang: (v) => typeof v === "string" && has(translations, v),
   notation: (v) => v === "eu" || v === "us",
-  playbackInstrument: (v) => typeof v === "string" && PLAYBACK_INSTRUMENTS.includes(v),
+  playbackInstrumentByMode: isPlaybackInstrumentByMode,
   brickId: (v) => typeof v === "string" && BRICKS.some((b) => b.name.en === v),
   chordOctaveOffset: (v) => isIntIn(v, -3, 3),
   dictRoot: (v) => isIntIn(v, 0, 11),
@@ -72,6 +86,23 @@ function sanitize(candidate) {
 }
 
 /**
+ * VMU-209 — a pre-VMU-209 entry carried one `playbackInstrument` for both
+ * modes. Read it as that instrument in each mode, unless the entry already
+ * carries the per-mode shape (`playbackInstrumentByMode`), which wins.
+ * @param {Record<string, any>} valid the sanitized known fields
+ * @param {unknown} raw the parsed, unsanitized object
+ * @returns {Record<string, any>}
+ */
+function migrateLegacyInstrument(valid, raw) {
+  if (has(valid, "playbackInstrumentByMode")) return valid;
+  const legacy = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? /** @type {Record<string, unknown>} */ (raw).playbackInstrument
+    : undefined;
+  if (!isValidInstrument(legacy)) return valid;
+  return { ...valid, playbackInstrumentByMode: { studio: legacy, dictionary: legacy } };
+}
+
+/**
  * The stored object's valid fields, or {} for anything wrong with storage.
  * @returns {Record<string, any>}
  */
@@ -81,7 +112,7 @@ export function loadPersisted() {
     if (raw === null || raw === undefined) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || parsed.v !== VERSION) return {};
-    return sanitize(parsed);
+    return migrateLegacyInstrument(sanitize(parsed), parsed);
   } catch {
     return {};
   }

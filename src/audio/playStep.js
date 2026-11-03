@@ -50,7 +50,7 @@ export function toneDuration(steps) {
  *
  * @typedef {Object} PlayedNote
  * @property {number} absoluteValue MIDI note, C4 = 60
- * @property {"piano"|"bass"} instrument the synth that played it
+ * @property {"piano"|"bass"|"guitar"} instrument the synth that played it
  * @property {boolean} [nearShape] place this pitch near the drawn shape
  */
 
@@ -64,12 +64,20 @@ export function toneDuration(steps) {
  * @param {StepSynths} synths
  * @param {import("./dispatch").StepEvent[]} events
  * @param {number} time Tone time of the step
+ * @param {Object} [options]
+ * @param {"piano"|"guitar"} [options.chordInstrument] which synth the chord
+ *   sounds on. Defaults to "piano" — the pre-VMU-209 voice, which the MIDI
+ *   export and the audio harness still play by leaving `options` off.
+ * @param {Array<{ absoluteValue: number }>} [options.guitarNotes] the guitar
+ *   grip to play when `chordInstrument` is "guitar" — the cells
+ *   core/guitarGrip.js computes for the step's chord, one per sounding string.
  * @returns {PlayedNote[]} the MIDI notes sounded, chord notes then melodic
  *   notes (drums excluded), each tagged with the instrument that played it —
  *   what the loop lights on screen. `scheduledPitches` in the audio harness
  *   maps them back to numbers.
  */
-export function playStepEvents(synths, events, time) {
+export function playStepEvents(synths, events, time, options = {}) {
+  const chordInstrument = options.chordInstrument || "piano";
   /** @type {PlayedNote[]} */
   const notes = [];
   events.forEach((event) => {
@@ -79,9 +87,20 @@ export function playStepEvents(synths, events, time) {
       else if (event.instrument === "snare") synths.snareSynth.triggerAttackRelease(duration, time, event.velocity);
       else synths.hatSynth.triggerAttackRelease(duration, time, event.velocity);
     } else if (event.voice === "chords") {
-      const notesToPlay = event.midi.map((p) => midiToNoteName(p));
-      synths.playDictionaryNote("piano", notesToPlay, duration, time);
-      notes.push(...event.midi.map((p) => /** @type {PlayedNote} */ ({ absoluteValue: p, instrument: "piano" })));
+      if (chordInstrument === "guitar") {
+        // VMU-209 — the guitar plays exactly the grip drawn for the step's
+        // chord (core/guitarGrip.js), not the theoretical chord fold: the
+        // notes are the neck's own cells, so what the neck lights is what the
+        // guitar sounds.
+        const grip = options.guitarNotes || [];
+        const notesToPlay = grip.map((c) => midiToNoteName(c.absoluteValue));
+        synths.playDictionaryNote("guitar", notesToPlay, duration, time);
+        notes.push(...grip.map((c) => /** @type {PlayedNote} */ ({ absoluteValue: c.absoluteValue, instrument: "guitar", nearShape: true })));
+      } else {
+        const notesToPlay = event.midi.map((p) => midiToNoteName(p));
+        synths.playDictionaryNote("piano", notesToPlay, duration, time);
+        notes.push(...event.midi.map((p) => /** @type {PlayedNote} */ ({ absoluteValue: p, instrument: "piano" })));
+      }
     } else {
       synths.bassSynth.triggerAttackRelease(midiToNoteName(event.midi[0]), duration, time, event.velocity);
       notes.push({ absoluteValue: event.midi[0], instrument: "bass", nearShape: true });

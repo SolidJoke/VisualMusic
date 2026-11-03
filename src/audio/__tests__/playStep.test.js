@@ -73,3 +73,46 @@ describe('playStepEvents — the notes it returns are tagged with their instrume
     expect(synths.hatSynth.triggerAttackRelease).not.toHaveBeenCalled();
   });
 });
+
+describe('playStepEvents — VMU-209 the chord voice follows the chosen instrument', () => {
+  const chordEvent = () => ({
+    voice: 'chords', instrument: 'piano', role: 'chords', track: 'Chords',
+    midi: [60, 64, 67], durationSteps: 4, velocity: 1,
+  });
+
+  it('piano (the default: no options) plays the chord midi exactly as before', () => {
+    const synths = makeSynths();
+    expect(playStepEvents(synths, [chordEvent()], TIME)).toEqual([
+      { absoluteValue: 60, instrument: 'piano' },
+      { absoluteValue: 64, instrument: 'piano' },
+      { absoluteValue: 67, instrument: 'piano' },
+    ]);
+    expect(synths.playDictionaryNote).toHaveBeenCalledWith('piano', ['C4', 'E4', 'G4'], '4n', TIME);
+  });
+
+  it('guitar plays the grip cells, not the chord fold, tagged guitar with nearShape', () => {
+    const synths = makeSynths();
+    const grip = [
+      { absoluteValue: 64, stringIndex: 0, fret: 0 },
+      { absoluteValue: 60, stringIndex: 1, fret: 1 },
+      { absoluteValue: 55, stringIndex: 2, fret: 0 },
+      { absoluteValue: 52, stringIndex: 3, fret: 2 },
+      { absoluteValue: 48, stringIndex: 4, fret: 3 },
+    ];
+    expect(playStepEvents(synths, [chordEvent()], TIME, { chordInstrument: 'guitar', guitarNotes: grip })).toEqual([
+      { absoluteValue: 64, instrument: 'guitar', nearShape: true },
+      { absoluteValue: 60, instrument: 'guitar', nearShape: true },
+      { absoluteValue: 55, instrument: 'guitar', nearShape: true },
+      { absoluteValue: 52, instrument: 'guitar', nearShape: true },
+      { absoluteValue: 48, instrument: 'guitar', nearShape: true },
+    ]);
+    expect(synths.playDictionaryNote).toHaveBeenCalledWith('guitar', ['E4', 'C4', 'G3', 'E3', 'C3'], '4n', TIME);
+  });
+
+  it('bass keeps the chord on the piano (its loop voice is its bass line)', () => {
+    const synths = makeSynths();
+    // useSequencer maps every non-guitar choice to chordInstrument "piano".
+    playStepEvents(synths, [chordEvent()], TIME, { chordInstrument: 'piano', guitarNotes: null });
+    expect(synths.playDictionaryNote).toHaveBeenCalledWith('piano', ['C4', 'E4', 'G4'], '4n', TIME);
+  });
+});

@@ -25,6 +25,7 @@
  *     (41 = the same on the classic page, ?layout=classic, where the octave moves the necks)
  *   5  the piano's flash on notes of another instrument (4 gestures)
  *   6  scale positions: bass, C major, octave 0, automatic position
+ *   7  Studio, guitar chosen, during the loop: the chords' grip vs the neck
  *
  * It does not judge a result: it prints the measured quantities and a verdict
  * word (SAME / DIFFERENT / FLASHES / QUIET) that the report reads. Exit 1 only
@@ -610,6 +611,42 @@ async function point6(browser, errors) {
   await page.close();
 }
 
+async function point7(browser, errors) {
+  out("\n== POINT 7 · Studio, guitar chosen, during the loop: the chords' grip ==");
+  const page = await studioSetup(browser, errors, { instrument: "guitar", octave: 0 });
+  await tap(page);
+  await resetRecorders(page);
+  // VMU-209 — with the guitar chosen, the loop's chord plays the grip the neck
+  // draws, so the guitar synth's chord notes and the neck's is-playing cells are
+  // the same pitches; the piano flashes no chord note. Sample the drawn grip
+  // (and its position string) so a chord change is observable, not asserted.
+  const drawnUnion = new Set();
+  const positionsSeen = new Set();
+  await page.locator('[data-fn="jouer.lecture"]').click();
+  const t0 = Date.now();
+  while (Date.now() - t0 < 12000) {
+    const shown = await page.evaluate(readShown);
+    positionsSeen.add(shown.guitarAttr);
+    drawnNeck(shown, "guitar").forEach((m) => drawnUnion.add(m));
+    await page.waitForTimeout(80);
+  }
+  const rec = await readRecorders(page);
+  await page.locator('[data-fn="jouer.lecture"]').click();
+  const guitarProg = uniqSorted(programmed(rec.log, (s) => /guitar/.test(s)));
+  const flashed = uniqSorted(rec.flash.guitar.map((k) => {
+    const [s, f] = k.split(":").map(Number);
+    return cellToMidi("guitar", { s, f });
+  }));
+  const drawn = [...drawnUnion].sort((a, b) => a - b);
+  const pianoFlashed = uniqSorted(rec.flash.piano);
+  out(`  guitar chord notes programmed (distinct, 12 s) [${names(guitarProg)}] (${guitarProg.length})`);
+  out(`  guitar neck flashed (is-playing) [${names(flashed)}] (${flashed.length})`);
+  out(`  guitar neck drawn (union) [${names(drawn)}]; distinct positions seen ${positionsSeen.size} -> ${positionsSeen.size >= 2 ? "chord change(s) observed" : "NO chord change observed"}`);
+  out(`  piano flashed during the loop [${names(pianoFlashed)}]; bass neck flashed ${JSON.stringify(rec.flash.bass)}`);
+  out(`  programmed == flashed -> ${same(guitarProg, flashed) ? "SAME" : "DIFFERENT"}; drawn == programmed -> ${same(drawn, guitarProg) ? "SAME" : "DIFFERENT"}; piano -> ${pianoFlashed.length ? "PIANO-FLASHES" : "QUIET"}`);
+  await page.close();
+}
+
 // ─── run ───────────────────────────────────────────────────────────────────
 
 const { chromium } = await import("playwright");
@@ -622,7 +659,7 @@ const browser = await chromium.launch();
 const errors = [];
 let failed = false;
 try {
-  for (const [n, fn] of [[1, point1], [2, point2], [3, point3], [4, point4], [41, point4b], [5, point5], [6, point6]]) {
+  for (const [n, fn] of [[1, point1], [2, point2], [3, point3], [4, point4], [41, point4b], [5, point5], [6, point6], [7, point7]]) {
     if (!want(n)) continue;
     try {
       await fn(browser, errors);
