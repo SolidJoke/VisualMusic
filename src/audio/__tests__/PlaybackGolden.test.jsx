@@ -87,7 +87,15 @@ const LOOP_STEPS = 64;
 async function playbackJournal(state) {
   rec.log = [];
   rec.repeat = null;
-  const setCurrentlyPlayingNotes = (notes) => rec.log.push({ call: "setCurrentlyPlayingNotes", args: [notes] });
+  let lastPublished = [];
+  const setCurrentlyPlayingNotes = (updater) => {
+    // VMU-207: resolve a functional update the way React's useState setter
+    // would, so the journal holds states, not functions — the loop's clear is
+    // now an updater, and JSON.stringify of a function is `null`.
+    const notes = typeof updater === "function" ? updater(lastPublished) : updater;
+    lastPublished = notes;
+    rec.log.push({ call: "setCurrentlyPlayingNotes", args: [notes] });
+  };
   const { result, unmount } = renderHook(() =>
     useSequencer({
       appMode: "studio",
@@ -153,6 +161,13 @@ function allCases() {
 // of bare MIDI numbers, so the fingerprints below changed while every synth
 // call, every pitch and every entry count stayed the same (checked: counts
 // unchanged for all 23 cases). Nothing audible moved.
+// VMU-207: the loop's clear is now a functional update (it must not blank a note
+// a later step published), and the recorder above resolves it the way React's
+// useState setter would, so the journal still holds states, not the function. In
+// this harness that state is the same `[]` the unconditional clear produced, so
+// the fingerprints and entry counts below are unchanged — step 2 of the brief
+// proved it: every case's hash with `setCurrentlyPlayingNotes` removed is
+// byte-identical before and after. Nothing audible moved.
 const GOLDEN = {
   "0:A Modern Pop (4 Chords)": ["d785c550ed37d0a3641984eed4164ee59990472c74160d0a460e568086e81283", 120],
   "0:B Modern Pop (4 Chords)": ["d785c550ed37d0a3641984eed4164ee59990472c74160d0a460e568086e81283", 120],

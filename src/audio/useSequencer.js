@@ -228,7 +228,14 @@ export function useSequencer({
       if (frameNotes.length > 0) {
         const publish = setCurrentlyPlayingNotesRef.current;
         Tone.Draw.schedule(() => publish(frameNotes), time);
-        Tone.Draw.schedule(() => publish([]), time + 0.15);
+        Tone.Draw.schedule(() => {
+          // VMU-207 hold: never blank a note that has just replaced another
+          // (the same rule VMU-203 gave the arpeggio, useStudioPlayback.js).
+          // The clear fires only while THIS step's notes are still the ones
+          // shown, so a clear scheduled after the next step's light cannot
+          // erase it — whichever fires first, the next step's light wins.
+          publish((prev) => (prev === frameNotes ? [] : prev));
+        }, time + 0.15);
       }
     } catch (err) {
       console.error("Error in useSequencer repeat loop:", err);
