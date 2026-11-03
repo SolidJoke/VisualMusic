@@ -5,15 +5,16 @@
 // placements.js), realized by the same function the app plays and lights
 // (realization.js realizeDictionarySelection).
 //
-// The shapes are fingeringLogic.js's (VMU-115): this file only measures them.
-// It pins the counts so that a change of the shapes shows here.
+// VMU-202: the shapes are now the scale-position engine's (core/scalePositions.js)
+// — one complete octave each, so no position is flagged. This file pins that
+// invariant so a change of the engine shows here.
 //
 // Print the full table:  B1_MEASURE=1 npx vitest run src/core/__tests__/placementsMeasure.test.js
 import { describe, it, expect } from "vitest";
 import process from "node:process";
 import { listPlacements, isOutsideTessitura, tessitura } from "../placements";
 import { realizeDictionarySelection } from "../realization";
-import { SCALES, CHORDS, NOTES } from "../theory";
+import { SCALES, CHORDS, NOTES, resolveScaleSemitones } from "../theory";
 import { TUNINGS } from "../tunings";
 
 const INSTRUMENTS = [
@@ -23,6 +24,10 @@ const INSTRUMENTS = [
 const ROOTS = Array.from({ length: 12 }, (_, i) => i);
 const SCALE_TYPES = Object.keys(SCALES);
 const FLAG_BELOW = 5;
+// VMU-202: a position is one complete octave, so it realizes N+1 notes (N =
+// the scale's intervals): 8 for a heptatonic scale, 6 for a pentatonic, 13 for
+// the chromatic.
+const OCTAVE_NOTES = Object.fromEntries(SCALE_TYPES.map((t) => [t, resolveScaleSemitones(t).length + 1]));
 
 function realized(placement, instrument, root) {
   return realizeDictionarySelection({
@@ -82,39 +87,41 @@ if (process.env.B1_MEASURE) {
 }
 
 describe("MEASURE — notes realized by each scale position (INST-B1)", () => {
-  it("covers 12 roots x every catalog scale x guitar and bass, five positions each", () => {
+  it("covers 12 roots x every catalog scale x guitar and bass, every engine position", () => {
     expect(SCALE_TYPES.length).toBe(18);
-    expect(ROWS.length).toBe(12 * 18 * 2 * 5);
+    const expected = INSTRUMENTS.reduce((sum, instrument) => {
+      for (const type of SCALE_TYPES) {
+        for (const root of ROOTS) sum += listPlacements({ type, root }, instrument).length;
+      }
+      return sum;
+    }, 0);
+    expect(ROWS.length).toBe(expected);
   });
 
-  it("counts measured on 0883c0b + INST-B1: guitar 0 of 1080 positions below 5 notes; bass 212 of 1080, 60 of them the box shown by default at octave 0", () => {
-    const flagged = (id) => ROWS.filter((r) => r.instrument === id && r.count < FLAG_BELOW);
-    expect(flagged("guitar")).toHaveLength(0);
-    expect(flagged("bass")).toHaveLength(212);
-    expect(flagged("bass").filter((r) => r.isDefault0)).toHaveLength(60);
-    // Every guitar box holds one octave of its scale, root to root: 8 notes
-    // for a 7-note scale, 6 for a pentatonic, 13 for the chromatic.
-    const guitarCounts = (type) => [...new Set(ROWS.filter((r) => r.instrument === "guitar" && r.type === type).map((r) => r.count))];
-    expect(guitarCounts("scale_major")).toEqual([8]);
-    expect(guitarCounts("scale_pentatonic_minor")).toEqual([6]);
-    expect(guitarCounts("scale_chromatic")).toEqual([13]);
+  it("every position realizes exactly one octave, root to root (N+1 notes), never below 5", () => {
+    expect(ROWS.every((r) => r.count === OCTAVE_NOTES[r.type])).toBe(true);
+    expect(ROWS.filter((r) => r.count < FLAG_BELOW)).toHaveLength(0);
+    // A spot check of the sizes, as the old measure pinned them: major 8,
+    // pentatonic minor 6, chromatic 13.
+    expect(OCTAVE_NOTES.scale_major).toBe(8);
+    expect(OCTAVE_NOTES.scale_pentatonic_minor).toBe(6);
+    expect(OCTAVE_NOTES.scale_chromatic).toBe(13);
   });
 
-  it("finding 1 CONFIRMED — bass, Do major, octave 0, default position: two notes only, C3 D3 (48 50)", () => {
+  it("finding 1 REVISED — bass, Do major, default position: one full octave C2..C3 (36..48), not two notes", () => {
     const bass = INSTRUMENTS[1];
     const list = listPlacements({ type: "scale_major", root: 0, octave: 0 }, bass);
     const shown = list.find((p) => p.isDefault);
-    expect(shown.index).toBe(2);
-    expect(realized(shown, bass, 0).map((n) => n.absoluteValue)).toEqual([48, 50]);
+    expect(shown.index).toBe(0);
+    expect(realized(shown, bass, 0).map((n) => n.absoluteValue)).toEqual([36, 38, 40, 41, 43, 45, 47, 48]);
   });
 
-  it("finding 2 CONFIRMED — guitar, Do major, default position: 8 cells on strings 2 to 5, none on the high E (0) or the B (1)", () => {
+  it("finding 2 REVISED — guitar, Do major, default position (0-3): 8 cells, one full octave C3..C4", () => {
     const guitar = INSTRUMENTS[0];
     const shown = listPlacements({ type: "scale_major", root: 0, octave: 0 }, guitar).find((p) => p.isDefault);
     expect(shown.fingering.scaleFrets).toHaveLength(8);
-    expect([...new Set(shown.fingering.scaleFrets.map((c) => c.stringIndex))].sort()).toEqual([2, 3, 4, 5]);
-    // One octave, root to root: C3..C4 — fingeringLogic.js cuts every box from
-    // its lowest root to the next one.
+    expect(shown.lowFret).toBe(0);
+    expect(shown.highFret).toBe(3);
     expect(realized(shown, guitar, 0).map((n) => n.absoluteValue)).toEqual([48, 50, 52, 53, 55, 57, 59, 60]);
   });
 });

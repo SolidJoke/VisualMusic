@@ -114,7 +114,7 @@ describe('buildScaleBoxSequence', () => {
     // Le défaut corrigé : reversedTuning[i] est un NOM de note, donc
     // `reversedTuning[i] + fret` concatène — 'G3' + 5 === 'G35' — et tout
     // `% 12` en aval devient NaN, jusqu'au NOTES[NaN] qui levait une exception.
-    const seq = buildScaleBoxSequence(C_MAJOR_POS_2, REVERSED, 0, 'guitar');
+    const seq = buildScaleBoxSequence(C_MAJOR_POS_2, REVERSED, 'guitar');
 
     expect(seq.length).toBeGreaterThan(0);
     for (const note of seq) {
@@ -125,7 +125,7 @@ describe('buildScaleBoxSequence', () => {
   });
 
   it('monte de la fondamentale à l’octave sur une gamme majeure, puis redescend', () => {
-    const seq = buildScaleBoxSequence(C_MAJOR_POS_2, REVERSED, 0, 'guitar');
+    const seq = buildScaleBoxSequence(C_MAJOR_POS_2, REVERSED, 'guitar');
     const pitches = seq.map((n) => n.absoluteValue);
 
     // Aller : 8 notes, de Do3 à Do4
@@ -151,20 +151,28 @@ describe('buildScaleBoxSequence', () => {
                       C_MAJOR_POS_2[7], C_MAJOR_POS_2[1], C_MAJOR_POS_2[5],
                       C_MAJOR_POS_2[2], C_MAJOR_POS_2[4]];
 
-    const fromShuffled = buildScaleBoxSequence(shuffled, REVERSED, 0, 'guitar');
-    const fromOrdered = buildScaleBoxSequence(C_MAJOR_POS_2, REVERSED, 0, 'guitar');
+    const fromShuffled = buildScaleBoxSequence(shuffled, REVERSED, 'guitar');
+    const fromOrdered = buildScaleBoxSequence(C_MAJOR_POS_2, REVERSED, 'guitar');
 
     expect(fromShuffled.map((n) => n.absoluteValue))
       .toEqual(fromOrdered.map((n) => n.absoluteValue));
   });
 
   it('conserve corde et frette pour le retour visuel', () => {
-    const seq = buildScaleBoxSequence(C_MAJOR_POS_2, REVERSED, 0, 'guitar');
+    const seq = buildScaleBoxSequence(C_MAJOR_POS_2, REVERSED, 'guitar');
     expect(seq[0]).toMatchObject({ absoluteValue: 48, stringIndex: 5, fret: 8, instrument: 'guitar' });
   });
 
+  it("ne coupe plus à l'octave: joue exactement les cellules affichées, montée puis descente (VMU-202)", () => {
+    // Une cellule au-delà de l'octave (E4 = 64, au-dessus du Do4): l'ancien
+    // découpage racine→racine l'aurait abandonnée; le nouveau la joue.
+    const withExtra = [...C_MAJOR_POS_2, { stringIndex: 0, fret: 0 }]; // E4 open = 64
+    const seq = buildScaleBoxSequence(withExtra, REVERSED, 'guitar');
+    expect(seq.map((n) => n.absoluteValue)).toEqual([48, 50, 52, 53, 55, 57, 59, 60, 64, 60, 59, 57, 55, 53, 52, 50, 48]);
+  });
+
   it('retourne un tableau vide sans scaleFrets', () => {
-    expect(buildScaleBoxSequence([], REVERSED, 0)).toEqual([]);
-    expect(buildScaleBoxSequence(undefined, REVERSED, 0)).toEqual([]);
+    expect(buildScaleBoxSequence([], REVERSED)).toEqual([]);
+    expect(buildScaleBoxSequence(undefined, REVERSED)).toEqual([]);
   });
 });

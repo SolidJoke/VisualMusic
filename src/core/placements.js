@@ -21,7 +21,6 @@
 import {
   getAvailableGuitarFingerings,
   getAvailableBassFingerings,
-  getAvailableScaleFingerings,
   getAvailableSingleNoteFingerings,
   getGuitarFingering,
   getBassFingering,
@@ -30,6 +29,7 @@ import {
 import { realizeScaleFromBox, realizationRange } from "./realization";
 import { getAbsoluteNoteValue } from "./theory";
 import { TUNINGS } from "./tunings";
+import { listScalePositions, availableStartPitches, defaultPositionIndex } from "./scalePositions";
 
 /**
  * @typedef {Object} Selection
@@ -43,6 +43,8 @@ import { TUNINGS } from "./tunings";
  *   string the default chord shape puts its root on (guitar 5/4/3, bass 3/2/1),
  *   null = let the shape choose
  * @property {number|null} [notePitch] single note only: its absolute pitch
+ * @property {number|null} [startPitch] scale only: the MIDI pitch of the
+ *   octave's first note (the neck's start pitch); null = the neck's preset
  */
 
 /**
@@ -83,34 +85,97 @@ export function familyOf(type) {
 }
 
 /**
- * C-06 — the common Dictionary octave picks a scale box.
+ * The number of frets on a neck, derived the way `tessitura` does it: the
+ * instrument's top reachable pitch minus its highest standard open string
+ * (86 - E4 = 22 on the guitar, 65 - G2 = 22 on the bass).
  *
- * Today one octave segment serves three instruments with three meanings; for a
- * scale on the guitar or the bass it is converted, linearly, into the rank of
- * a box: -3 = the first box (nearest the nut), +3 = the last. This link used
- * to be written inline twice in useMusicEngine.js; it is named here, called
- * from one place only (listPlacements, to mark the default box), so that it
- * can be removed in one place.
- *
- * It disappears with the common octave segment, when each column head carries
- * its own position control (L1b-1 / B2).
- *
- * @param {number} octave -3..+3 (clamped)
- * @param {number} count number of boxes
- * @returns {number|null} rank of the box, or null when there is none
+ * @param {'guitar'|'bass'} instrumentId
+ * @returns {number}
  */
-export function scalePositionForOctave(octave, count) {
-  if (!(count > 0)) return null;
-  const octaveNorm = Math.max(-3, Math.min(3, Number(octave ?? 0)));
-  const posIdx = Math.round((octaveNorm + 3) / 6 * (count - 1));
-  return Math.max(0, Math.min(count - 1, posIdx));
+export function neckFretCount(instrumentId) {
+  const range = INSTRUMENT_RANGES[instrumentId];
+  if (!range) return 0;
+  const standard = instrumentId === "bass" ? TUNINGS.BASS_STANDARD : TUNINGS.GUITAR_STANDARD;
+  return range.max - Math.max(...standard.map(getAbsoluteNoteValue));
+}
+
+/**
+ * The inputs the scale-position engine needs for a scale on a neck, from the
+ * same facts listPlacements uses: the tuning as open-string MIDI pitches (low
+ * -> high) and the neck's fret count. null when the instrument is not a neck.
+ */
+function scaleEngineInputs(selection, instrument) {
+  const id = instrument?.id;
+  if (id !== "guitar" && id !== "bass") return null;
+  const tuning = instrument.tuning?.length
+    ? instrument.tuning
+    : (id === "bass" ? TUNINGS.BASS_STANDARD : TUNINGS.GUITAR_STANDARD);
+  return {
+    scaleType: selection?.type,
+    root: Number(selection?.root ?? 0),
+    instrument: id,
+    tuning: tuning.map(getAbsoluteNoteValue),
+    numFrets: neckFretCount(id),
+  };
+}
+
+/**
+ * The complete octaves of a scale reachable on a neck, the choices of the
+ * minimal start-pitch control: { pitch, label, positionCount }, lowest octave
+ * first. The label is the engine's MIDI note name (US); the UI translates it
+ * to the app's notation.
+ *
+ * @param {Selection|null} selection
+ * @param {Instrument} instrument
+ * @returns {Array<{pitch: number, label: string, positionCount: number}>}
+ */
+export function scaleStartPitchOptions(selection, instrument) {
+  const inputs = scaleEngineInputs(selection, instrument);
+  if (!inputs) return [];
+  return availableStartPitches(inputs);
+}
+
+/**
+ * The start pitch a neck shows by default, per the owner's decision: the
+ * guitar's root in octave 3 (C3 = 48, A3 = 57), the bass's root in octave 2
+ * (C2 = 36, A2 = 45). Falls back to the lowest offered octave when the neck
+ * has no complete octave there, and to null when it has none at all.
+ *
+ * @param {Array<{pitch: number}>} options the list scaleStartPitchOptions built
+ * @param {'guitar'|'bass'} instrumentId
+ * @returns {number|null}
+ */
+export function presetScaleStartPitch(options, instrumentId) {
+  if (!Array.isArray(options) || options.length === 0) return null;
+  const presetOctave = instrumentId === "bass" ? 2 : 3;
+  const inPreset = options.find((o) => Math.floor(o.pitch / 12) - 1 === presetOctave);
+  return (inPreset ?? options[0]).pitch;
+}
+
+/**
+ * The start pitch a scale on a neck actually uses: the chosen octave when it
+ * is among the reachable ones, the neck's preset otherwise (an empty neck:
+ * null). Named here so listPlacements and the UI read the same value.
+ *
+ * @param {Selection|null} selection
+ * @param {Instrument} instrument
+ * @param {number|null} [chosen]
+ * @returns {number|null}
+ */
+export function scaleStartPitch(selection, instrument, chosen = null) {
+  const id = instrument?.id;
+  if (id !== "guitar" && id !== "bass") return null;
+  const options = scaleStartPitchOptions(selection, instrument);
+  if (options.length === 0) return null;
+  const preset = presetScaleStartPitch(options, id);
+  const wanted = Number(chosen);
+  return Number.isFinite(wanted) && options.some((o) => o.pitch === wanted) ? wanted : preset;
 }
 
 /**
  * Whether a change of the common octave clears a chosen placement.
  *
- * - scale: yes — C-06, the octave picks the box (kept as it is until the octave
- *   segment goes, with scalePositionForOctave);
+ * - scale: no — VMU-202, the start pitch (not the octave) picks the position;
  * - single note: yes — the octave changes the note itself, so its places on the
  *   neck are other cells;
  * - chord: no — the octave does not move a shape (it only decides which shape
@@ -126,7 +191,7 @@ export function scalePositionForOctave(octave, count) {
 export function octaveClearsPlacement(type, { pianoOwnsOctave = false } = {}) {
   const family = familyOf(type);
   if (pianoOwnsOctave) return family === "note";
-  return family === "scale" || family === "note";
+  return family === "note";
 }
 
 /** The cells a fingering plays, as { stringIndex, fret } (fret >= 0). */
@@ -170,7 +235,7 @@ function sameMap(a, b) {
 export function listPlacements(selection, instrument) {
   const id = instrument?.id;
   if (id !== "guitar" && id !== "bass") return [];
-  const { type, root = 0, octave = 0, rootString = null, notePitch = null } = selection ?? {};
+  const { type, root = 0, octave = 0, rootString = null, notePitch = null, startPitch = null } = selection ?? {};
   const family = selection?.family ?? familyOf(type);
   const tuning = instrument.tuning?.length
     ? instrument.tuning
@@ -185,16 +250,26 @@ export function listPlacements(selection, instrument) {
   let defaultShape = null;
 
   if (family === "scale") {
-    const boxes = getAvailableScaleFingerings(rootValue, type, id, tuning);
-    shapes = boxes.map((box) => ({
-      id: box.id,
-      label: box.label,
-      fingering: { scaleFrets: box.scaleFrets, isScaleMode: true, startFret: box.startFret, endFret: box.endFret },
+    // VMU-202 — the scale's positions are the engine's (core/scalePositions.js),
+    // for one octave starting at the neck's start pitch (the chosen octave, or
+    // the neck's preset). One position = exactly one octave, N+1 notes.
+    const chosen = scaleStartPitch(selection, instrument, startPitch);
+    if (chosen === null) return [];
+    const inputs = scaleEngineInputs(selection, instrument);
+    const positions = listScalePositions({ ...inputs, startPitch: chosen });
+    const defaultIdx = defaultPositionIndex(positions);
+    shapes = positions.map((p) => ({
+      id: p.id,
+      label: String(p.index + 1),
+      fingering: {
+        scaleFrets: p.scaleFrets,
+        isScaleMode: true,
+        startFret: p.minFret,
+        endFret: p.maxFret,
+        difficultStretch: p.span === 5,
+      },
     }));
-    // C-06: the box the octave picks, by rank in fingeringLogic's own order
-    // (the order of the windows), exactly as useMusicEngine.js picked it.
-    const rank = scalePositionForOctave(octave, shapes.length);
-    defaultShape = rank === null ? null : shapes[rank];
+    defaultShape = defaultIdx === null ? null : shapes[defaultIdx];
   } else if (family === "note") {
     if (notePitch === null || notePitch === undefined || !Number.isFinite(Number(notePitch))) return [];
     shapes = getAvailableSingleNoteFingerings(Number(notePitch), id, notation).map((p) => ({

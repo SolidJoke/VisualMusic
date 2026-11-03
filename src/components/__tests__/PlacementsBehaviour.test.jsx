@@ -23,7 +23,8 @@
 // A shape barred at fret 3 (3-5), the E shape at fret 8 (8-10), the D shape at
 // fret 10 (10-13). On the bass: root on the A string fret 3 (3-5), on the E
 // string fret 8 (8-10), on the D string fret 10 (10-12). The Do major scale:
-// five boxes starting at frets 0, 2, 4, 6, 8.
+// seven positions starting at frets 0, 2, 3, 4, 5, 7, 8 (the preset Do3), each
+// one complete octave; the common octave no longer moves them (VMU-202).
 import React, { useEffect } from "react";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, act, fireEvent } from "@testing-library/react";
@@ -241,7 +242,7 @@ describe("INST-B1 — characterization: what the position controls do, kept", ()
     expect(bass).toEqual({ Mi: [8, 10], La: [3, 5], Ré: [10, 12] });
   });
 
-  it("Do major scale: the octave picks the position (C-06), guitar and bass", () => {
+  it("Do major scale: the octave no longer moves the default position (VMU-202), guitar and bass", () => {
     const { container, ctl } = mount();
     select(ctl, { type: "scale_major" });
     const lows = { guitar: [], bass: [] };
@@ -250,27 +251,27 @@ describe("INST-B1 — characterization: what the position controls do, kept", ()
       lows.guitar.push(neck(container, "guitar").frets[0]);
       lows.bass.push(neck(container, "bass").frets[0]);
     }
-    expect(lows.guitar).toEqual([0, 2, 2, 4, 7, 7, 8]);
-    expect(lows.bass).toEqual([0, 2, 2, 5, 7, 7, 8]);
+    expect(lows.guitar).toEqual([0, 0, 0, 0, 0, 0, 0]);
+    expect(lows.bass).toEqual([2, 2, 2, 2, 2, 2, 2]);
   });
 
-  it("Do major scale: the arrows walk the five boxes from the nut to the body", () => {
+  it("Do major scale: the arrows walk the seven positions from the nut to the body", () => {
     const { container, ctl } = mount();
     select(ctl, { type: "scale_major" });
     const chosen = cycle(container, "guitar").filter((s) => s.chosen);
-    expect(chosen.map((s) => s.frets)).toEqual([[0, 3], [2, 5], [4, 8], [7, 10], [8, 12]]);
+    expect(chosen.map((s) => s.frets)).toEqual([[0, 3], [2, 5], [3, 7], [4, 8], [5, 9], [7, 10], [8, 12]]);
     const bass = cycle(container, "bass").filter((s) => s.chosen);
-    expect(bass.map((s) => s.frets[0])).toEqual([0, 2, 5, 7, 8]);
+    expect(bass.map((s) => s.frets[0])).toEqual([2, 3, 4, 5, 7, 8]);
   });
 
-  it("a chosen scale box is cleared by an octave change — the octave picks the box again (C-06, kept)", () => {
+  it("a chosen scale position survives an octave change — the start pitch picks it (VMU-202)", () => {
     const { container, ctl } = mount();
     select(ctl, { type: "scale_major" });
-    fireEvent.click(selector(container, "guitar").next); // first box, frets 0-3
+    fireEvent.click(selector(container, "guitar").next); // first position, frets 0-3
     expect(neck(container, "guitar").frets).toEqual([0, 3]);
     act(() => ctl.current.dict.setDictOctave(3));
-    expect(selector(container, "guitar").chosen).toBe(false);
-    expect(neck(container, "guitar").frets).toEqual([8, 12]); // octave +3 -> last box
+    expect(selector(container, "guitar").chosen).toBe(true);
+    expect(neck(container, "guitar").frets).toEqual([0, 3]);
   });
 
   it("a chosen position is cleared by a change of root or of type", () => {
@@ -426,20 +427,20 @@ describe("INST-B1 — the label of the default position names the shape shown (r
     expect(selector(container, "bass").label).toBe(auto("Corde La"));
   });
 
-  it("Do major scale: the box the octave picked, numbered from the nut ('3 sur 5' at octave 0)", () => {
+  it("Do major scale: the default position, numbered from the nut ('1 sur 7'), whatever the octave", () => {
     const { container, ctl } = mount();
     select(ctl, { type: "scale_major" });
-    expect(selector(container, "guitar").label).toBe(auto(`3 ${fr.voicingOf} 5`));
-    expect(neck(container, "guitar").frets).toEqual([4, 8]);
+    expect(selector(container, "guitar").label).toBe(auto(`1 ${fr.voicingOf} 7`));
+    expect(neck(container, "guitar").frets).toEqual([0, 3]);
     act(() => ctl.current.dict.setDictOctave(-3));
-    expect(selector(container, "guitar").label).toBe(auto(`1 ${fr.voicingOf} 5`));
+    expect(selector(container, "guitar").label).toBe(auto(`1 ${fr.voicingOf} 7`));
   });
 
-  it("a chosen scale box reads 'n sur 5' — it read 'n eu 5', the notation code, under the arrows", () => {
+  it("a chosen scale position reads 'n sur 7' — it read 'n eu 7', the notation code, under the arrows", () => {
     const { container, ctl } = mount();
     select(ctl, { type: "scale_major" });
     fireEvent.click(selector(container, "guitar").next);
-    expect(selector(container, "guitar").label).toBe(`1 ${fr.voicingOf} 5`);
+    expect(selector(container, "guitar").label).toBe(`1 ${fr.voicingOf} 7`);
   });
 
   it("a single note keeps 'Toutes les notes': with no position chosen every place of the note is lit", () => {

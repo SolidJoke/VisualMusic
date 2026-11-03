@@ -5,11 +5,9 @@
 // (dictOctave): B1 does not move it.
 //
 // What clears a chosen index: a new root or a new type (as before); the common
-// octave only for a scale (C-06: the octave picks the box, kept until the
-// octave segment goes, L1b-1 / B2) and for a single note (the octave changes
-// the note itself). A chord shape survives an octave change: the octave does
-// not move it (core/__tests__/placements.test.js, "the octave does not move a
-// shape").
+// octave for a single note (the octave changes the note itself). A chord shape
+// and a scale position survive an octave change: the octave moves neither (a
+// scale's start pitch picks its position, VMU-202).
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import React from "react";
@@ -58,16 +56,22 @@ describe("useDictionaryMode — placementByInstrument (INST-B1)", () => {
     expect(result.current.placementByInstrument.bass.index).toBe(1);
   });
 
-  it("a scale (C-06) and a note: the octave clears both chosen placements", () => {
-    for (const type of ["scale_major", "single_note"]) {
-      const { result } = setup(type);
-      act(() => {
-        result.current.setPlacementIndex("guitar", 3);
-        result.current.setPlacementIndex("bass", 1);
-      });
-      act(() => result.current.setDictOctave(-2));
-      expect(result.current.placementByInstrument, type).toMatchObject({ guitar: { index: null }, bass: { index: null } });
-    }
+  it("a scale: the octave keeps the chosen position (the start pitch picks it, VMU-202); a note: it clears it", () => {
+    const scale = setup("scale_major");
+    act(() => {
+      scale.result.current.setPlacementIndex("guitar", 3);
+      scale.result.current.setPlacementIndex("bass", 1);
+    });
+    act(() => scale.result.current.setDictOctave(-2));
+    expect(scale.result.current.placementByInstrument).toMatchObject({ guitar: { index: 3 }, bass: { index: 1 } });
+
+    const note = setup("single_note");
+    act(() => {
+      note.result.current.setPlacementIndex("guitar", 3);
+      note.result.current.setPlacementIndex("bass", 1);
+    });
+    act(() => note.result.current.setDictOctave(-2));
+    expect(note.result.current.placementByInstrument).toMatchObject({ guitar: { index: null }, bass: { index: null } });
   });
 
   it("a new root or a new type clears both, as before", () => {

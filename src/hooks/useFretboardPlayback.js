@@ -77,14 +77,14 @@ export function useFretboardPlayback({
             const tuning = getInstrumentTuning(inst, activeBrick);
             const reversedTuning = [...tuning].reverse();
 
-            // Root up to the next root an octave higher, then back down.
+            // The displayed cells, in pitch order, up then back down (VMU-202:
+            // a position is one octave, root to root — no cut).
             // Extracted to playbackUtils so the pitch arithmetic is unit-tested:
             // the inline version added a fret number to a note NAME, producing
             // strings like 'G33' and throwing on every scale-root click.
             absolutePitches = buildScaleBoxSequence(
               currentFingering.scaleFrets,
               reversedTuning,
-              absNote % 12,
               inst
             );
           } else {

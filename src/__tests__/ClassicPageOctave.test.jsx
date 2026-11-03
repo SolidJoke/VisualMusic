@@ -13,8 +13,9 @@
 // any other octave -> the A shape barred at fret 3 (fingeringLogic.js
 // getGuitarFingering: the open shapes are the default at the octave 0 only).
 // The bass's default (root on the A string) does not depend on the octave.
-// The Do major scale's default box follows the octave (C-06): -3 -> box 1 of 5,
-// +3 -> box 5 of 5.
+// The Do major scale's default position no longer follows the octave (VMU-202):
+// its start pitch (the preset Do3 on the guitar) picks it — 1 of 7, whatever
+// the octave.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import React from "react";
@@ -122,22 +123,22 @@ describe("L1b-1b (e) — the classic page keeps its octave as it is (characteriz
     expect(positionLabel("guitar")).toBe("Open (auto)");
   });
 
-  it("the Do major scale: the octave still picks the default box (C-06): -3 -> 1 of 5, +3 -> 5 of 5", async () => {
+  it("the Do major scale: the octave no longer picks the default position (VMU-202): 1 of 7 at every octave", async () => {
     await openClassicDictionary();
     await press(screen.getByRole("button", { name: /gammes/i }));
     await press(segment("-3"));
-    expect(positionLabel("guitar")).toBe("1 sur 5 (auto)");
+    expect(positionLabel("guitar")).toBe("1 sur 7 (auto)");
     await press(segment("+3"));
-    expect(positionLabel("guitar")).toBe("5 sur 5 (auto)");
+    expect(positionLabel("guitar")).toBe("1 sur 7 (auto)");
   });
 
-  it("the octave still clears a chosen scale box", async () => {
+  it("the octave no longer clears a chosen scale position (the start pitch picks it, VMU-202)", async () => {
     await openClassicDictionary();
     await press(screen.getByRole("button", { name: /gammes/i }));
     const section = document.querySelector("#instrument-section-guitar-content");
     await press([...section.querySelectorAll("button")].find((b) => b.textContent.trim() === "›"));
-    expect(positionLabel("guitar")).toBe("1 sur 5");
+    expect(positionLabel("guitar")).toBe("1 sur 7");
     await press(segment("+1"));
-    expect(positionLabel("guitar")).toMatch(/\(auto\)$/);
+    expect(positionLabel("guitar")).toBe("1 sur 7");
   });
 });

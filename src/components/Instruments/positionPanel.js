@@ -8,7 +8,7 @@
  * Strings are fingeringLogic.js' indices, counted from the high string: on the
  * guitar the low E, A and D strings are 5, 4 and 3; the bass (E A D G) 3, 2, 1.
  */
-import { NOTES } from "../../core/theory";
+import { NOTES, midiToDisplayName } from "../../core/theory";
 
 /** The three strings a root can be put on, per neck: index and open-string pitch class. */
 const ROOT_STRINGS = {
@@ -69,13 +69,25 @@ export function positionResets({ isScaleMode, scaleAnchor, placementIndex }) {
  * @param {number|null} args.placementIndex
  * @param {any} [args.fingering]
  * @param {string} [args.range]
+ * @param {Array<{pitch: number, label: string, positionCount: number}>} [args.startPitches]
+ *   the reachable start octaves of a scale on this neck (engine order)
+ * @param {number|null} [args.startPitch] the octave actually in use
  */
-export function positionPanelView({ instrumentType, rootVal, notation, isScaleMode, scaleAnchor = null, placementIndex, fingering = null, range = "" }) {
+export function positionPanelView({ instrumentType, rootVal, notation, isScaleMode, scaleAnchor = null, placementIndex, fingering = null, range = "", startPitches = [], startPitch = null }) {
   const rootStrings = isScaleMode ? null : rootStringChoices({ instrumentType, rootVal, notation });
   const resets = positionResets({ isScaleMode, scaleAnchor, placementIndex });
   const alerts = positionAlerts({ instrumentType, fingering });
   const barre = instrumentType === "guitar";
   const alert = alerts.outOfRange ? "outOfRange" : alerts.difficultStretch ? "difficultStretch" : null;
-  const hasContent = Boolean(rootStrings || resets.focus || resets.position || alert || barre || range);
-  return { rootStrings, resets, alerts, alert, barre, range, hasContent };
+  // VMU-202 — the start-pitch control: the scale's reachable octaves, labelled
+  // in the app's notation. Only when there is a real choice (a single octave is
+  // not a control).
+  const startPitchControl = isScaleMode && Array.isArray(startPitches) && startPitches.length > 1
+    ? {
+      current: startPitch,
+      choices: startPitches.map((o) => ({ pitch: o.pitch, label: midiToDisplayName(o.pitch, notation) })),
+    }
+    : null;
+  const hasContent = Boolean(rootStrings || resets.focus || resets.position || alert || barre || range || startPitchControl);
+  return { rootStrings, resets, alerts, alert, barre, range, startPitches: startPitchControl, hasContent };
 }

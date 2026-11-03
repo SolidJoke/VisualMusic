@@ -15,6 +15,9 @@ const NO_PLACEMENT = { guitar: null, bass: null };
 /** @param {PlacementIndexes} prev @returns {PlacementIndexes} */
 const clearPlacements = (prev) => (prev.guitar === null && prev.bass === null ? prev : NO_PLACEMENT);
 
+/** No start pitch chosen on either neck: each shows its preset. @type {PlacementIndexes} */
+const NO_START_PITCH = { guitar: null, bass: null };
+
 /**
  * @param {Object} [options]
  * @param {boolean} options.pianoOwnsOctave L1b-1b — true on A′ (?prototype=a):
@@ -46,6 +49,11 @@ export function useDictionaryMode({ pianoOwnsOctave } = { pianoOwnsOctave: false
   const [placementIndex, setPlacementIndexState] = useState(NO_PLACEMENT);
   const [scaleAnchor, setScaleAnchor] = useState(null); // { stringIndex, fret, absoluteValue }
   const [dictOctave, setDictOctave] = useState(() => loadPersisted().dictOctave ?? 0); // -3..+3 (offset relative to octave 4)
+  // VMU-202 — the start pitch of each neck for a scale: the MIDI pitch of the
+  // octave's first note, null = the neck's preset (guitar Do3, bass Do2). It
+  // sits next to the chosen position and moves with it: a new start pitch puts
+  // the neck back on its default position, exactly as a new root or type does.
+  const [startPitchByInstrument, setStartPitchByInstrument] = useState(NO_START_PITCH);
 
   /**
    * Chooses a position on one neck (`index` into its list), or null for its default.
@@ -57,13 +65,26 @@ export function useDictionaryMode({ pianoOwnsOctave } = { pianoOwnsOctave: false
     setPlacementIndexState((prev) => (prev[instrument] === index ? prev : { ...prev, [instrument]: index }));
   }, []);
 
+  /**
+   * Chooses a start pitch on one neck, or null for its preset. A new start
+   * pitch resets only that neck's chosen position, exactly as a new root or
+   * type does (VMU-202): the neck shows its default position at the new octave.
+   * @param {string} instrument "guitar" or "bass"; anything else is ignored
+   * @param {number|null} pitch
+   */
+  const setStartPitch = useCallback((instrument, pitch) => {
+    if (instrument !== "guitar" && instrument !== "bass") return;
+    setStartPitchByInstrument((prev) => (prev[instrument] === pitch ? prev : { ...prev, [instrument]: pitch }));
+    setPlacementIndexState((p) => (p[instrument] === null ? p : { ...p, [instrument]: null }));
+  }, []);
+
   // What clears a chosen placement (both necks back to their default):
   // - a new root or type, as before;
   // - the common octave, only where it changes what is shown
-  //   (core/placements.js octaveClearsPlacement): a scale — C-06, the octave
-  //   picks the box, kept until the common octave segment goes (L1b-1 / B2) —
-  //   and a single note — the octave changes the note. A chord shape the
-  //   player chose stays: the octave does not move it.
+  //   (core/placements.js octaveClearsPlacement): a single note — the octave
+  //   changes the note. A chord shape or a scale position the player chose
+  //   stays: the octave moves neither (a scale's start pitch picks its
+  //   position now, VMU-202).
   // One effect, as before; the previous selection, kept in a ref, tells a new
   // root or type from an octave change.
   // L1b-1b: on A′ (pianoOwnsOctave) the octave clears a single note's place only.
@@ -152,6 +173,7 @@ export function useDictionaryMode({ pianoOwnsOctave } = { pianoOwnsOctave: false
     selectedRootStringBass, setSelectedRootStringBass,
     harmonicMode, setHarmonicMode,
     placementByInstrument, setPlacementIndex,
+    startPitchByInstrument, setStartPitch,
     scaleAnchor, setScaleAnchor,
     dictOctave, setDictOctave,
     activeNotes

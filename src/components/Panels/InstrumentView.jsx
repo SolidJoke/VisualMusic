@@ -43,6 +43,11 @@ const InstrumentView = memo(function InstrumentView() {
     placementsByInstrument,
     placementByInstrument,
     setPlacementIndex,
+    // VMU-202 — each neck's start pitch (a scale's octave): the reachable
+    // octaves, the one in use, and the setter.
+    startPitchesByInstrument,
+    startPitchByInstrument,
+    setStartPitch,
     scaleAnchor = null,
     setScaleAnchor,
     playbackInstrument = "piano",
@@ -160,6 +165,9 @@ const InstrumentView = memo(function InstrumentView() {
               rootVal={currentRootValue}
               scaleAnchor={scaleAnchor}
               setScaleAnchor={setScaleAnchor}
+              startPitches={startPitchesByInstrument?.guitar ?? []}
+              startPitch={startPitchByInstrument?.guitar ?? null}
+              setStartPitch={(pitch) => setStartPitch?.("guitar", pitch)}
             />
           )}
 
@@ -191,6 +199,9 @@ const InstrumentView = memo(function InstrumentView() {
               rootVal={currentRootValue}
               scaleAnchor={scaleAnchor}
               setScaleAnchor={setScaleAnchor}
+              startPitches={startPitchesByInstrument?.bass ?? []}
+              startPitch={startPitchByInstrument?.bass ?? null}
+              setStartPitch={(pitch) => setStartPitch?.("bass", pitch)}
             />
           )}
 
