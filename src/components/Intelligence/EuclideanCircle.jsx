@@ -2,230 +2,192 @@ import React, { useMemo } from 'react';
 import './EuclideanCircle.css';
 
 /**
- * EuclideanCircle - SVG Circular Visualization of Euclidean Rhythms
- * Displays beats distributed around a clock-like circle.
- * Connects active beats with a primary polygon and complementary beats with a secondary dashed polygon.
- * Supports overlaying multiple colored polygons for polyrhythm algebra (COMP-08).
+ * EuclideanCircle — the rotating wheel of the Math & Rythmes window.
  *
- * @param {Object} props
- * @param {number[]} props.pattern Binary pattern array (e.g. [1, 0, 0, 1, 0, 0, 1, 0])
- * @param {number} props.n Total number of subdivisions
- * @param {number} [props.highlightIndex=-1] Current playback index for active beat highlighting
- * @param {string} [props.label=""] Optional text label for the center of the circle
- * @param {boolean} [props.showComplement=false] Whether to draw the complementary polygon
- * @param {string} [props.sublabel] Text under E(k,n) in the centre (translated by the caller); defaults to "<k> Pulses"
- * @param {Array<{indices: number[], color: string, label: string, op: string}>} [props.extraPolygons=[]]
- *   Optional list of additional polygons to overlay (for polyrhythm algebra mode).
- *   Each entry: { indices: number[], color: string, label: string, op: '+' | '-' }
+ * VMU-195-B (variant B, "la phrase"): the pattern turns like a music box under
+ * a FIXED marker at the top; what passes under the marker is the step that
+ * sounds. Its angle follows the loop's TOTAL step counter (`currentStep`), so
+ * `angle = currentStep * 360 / n` — never `currentStep % n`, or the wheel would
+ * jump backwards at every turn. A linear CSS transition spans one step; with
+ * `prefers-reduced-motion` the transition is dropped and the wheel steps.
+ *
+ * The hits take the colour of the track that plays them (a `--seq-*` token,
+ * passed as `color`). The centre no longer shows "E(k,n)": it shows the number
+ * of hits above "k coups sur n" (the notation stays in the tooltip of the
+ * preset pills). Stacked rhythms (`extraPolygons`) are grey, told apart by
+ * their stroke, never by track colours. In the stack mode the balance point
+ * (centroid) is drawn in the wheel and the caller's `balanceWord` is shown.
+ *
+ * @param {number[]} props.pattern Binary pattern of the active mode.
+ * @param {number} props.n Number of steps (the circle's subdivision).
+ * @param {number} [props.currentStep=-1] The loop's TOTAL step counter.
+ * @param {boolean} [props.showEmpty=false] Draw the empty cases (Ø 12) vs a hair.
+ * @param {string} [props.color] Track colour token for the hits.
+ * @param {Array<{indices: number[], dash: string}>} [props.extraPolygons] Grey stacked rhythms.
+ * @param {{centroid:{x:number,y:number}, offset:number}|null} [props.balanceInfo]
+ * @param {string|null} [props.balanceWord] The balance word shown in the centre.
+ * @param {string} [props.sur="sur"] The word between "k" and "n" ("sur"/"over").
+ * @param {string} [props.hitsUnit="coups"] The word after the hit count.
  */
 export function EuclideanCircle({
   pattern = [],
   n = 8,
-  highlightIndex = -1,
-  label = "",
-  showComplement = false,
-  sublabel,
+  currentStep = -1,
+  showEmpty = false,
+  color = 'var(--seq-kick)',
   extraPolygons = [],
+  balanceInfo = null,
+  balanceWord = null,
+  sur = 'sur',
+  hitsUnit = 'coups',
 }) {
-  const size = 220;
-  const center = size / 2;
-  const radius = 80;
+  // Diameter 420 px at 2560 px CSS (the reference spec); the wheel leaves a
+  // 26 px margin, hits are Ø 22 (r 11), empty cases Ø 12 (r 6).
+  const D = 420;
+  const C = D / 2;
+  const R = D / 2 - 26; // 184
+  const steps = Math.max(2, n);
 
-  // Calculate coordinates for all subdivisions (from 0 to n-1)
-  // Subdivisions are rotated by -90 deg (-PI/2) to start at 12 o'clock
-  const points = useMemo(() => {
-    const pts = [];
-    const totalSubdivisions = Math.max(2, n);
-    for (let i = 0; i < totalSubdivisions; i++) {
-      const angle = (2 * Math.PI * i) / totalSubdivisions - Math.PI / 2;
-      const x = center + radius * Math.cos(angle);
-      const y = center + radius * Math.sin(angle);
-      const isActive = pattern[i] === 1;
-      pts.push({ x, y, angle, isActive, index: i });
+  // The pattern normalised to `steps` slots (so an empty pattern still draws
+  // the empty ring of cases).
+  const slots = useMemo(() => {
+    const arr = new Array(steps).fill(0);
+    for (let i = 0; i < Math.min(pattern.length, steps); i += 1) {
+      if (pattern[i]) arr[i] = 1;
     }
-    return pts;
-  }, [n, pattern, center, radius]);
+    return arr;
+  }, [pattern, steps]);
 
-  // Points that belong to the active rhythm (1s)
-  const activePoints = useMemo(() => {
-    return points.filter(p => p.isActive);
-  }, [points]);
+  const hits = useMemo(
+    () => slots.map((v, i) => (v ? i : -1)).filter((i) => i >= 0),
+    [slots]
+  );
 
-  // Points that belong to the complementary rhythm (0s)
-  const complementPoints = useMemo(() => {
-    return points.filter(p => !p.isActive);
-  }, [points]);
+  // A point on the circle for step i (0 = 12 o'clock, clockwise).
+  const pt = (i, radius = R) => {
+    const a = (2 * Math.PI * i) / steps;
+    return [C + radius * Math.sin(a), C - radius * Math.cos(a)];
+  };
 
-  // Build polygon points string for the active rhythm
+  // The wheel angle follows the TOTAL counter, never the modulo.
+  const angle = currentStep >= 0 ? (currentStep * 360) / steps : 0;
+  const cur = currentStep >= 0 ? ((currentStep % steps) + steps) % steps : -1;
+
   const activePolygonPoints = useMemo(() => {
-    if (activePoints.length < 3) return "";
-    return activePoints.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-  }, [activePoints]);
+    if (hits.length < 3) return '';
+    return hits.map((i) => pt(i).map((c) => c.toFixed(1)).join(',')).join(' ');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hits, steps]);
 
-  // Build polygon points string for the complementary rhythm
-  const complementPolygonPoints = useMemo(() => {
-    if (complementPoints.length < 3) return "";
-    return complementPoints.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-  }, [complementPoints]);
-
-  // Count active beats
-  const activeCount = pattern.filter(x => x === 1).length;
+  const wheelStyle = {
+    transform: `rotate(${-angle}deg)`,
+    transformOrigin: `${C}px ${C}px`,
+  };
 
   return (
-    <div className="euclidean-circle-container glass-panel">
-      {label && <h4 className="euclidean-circle-header accent-text">{label}</h4>}
-      
+    <div className="euclidean-circle-container" style={{ '--c': color }}>
       <div className="euclidean-svg-wrapper">
-        <svg 
-          width="100%" 
-          height="100%" 
-          viewBox={`0 0 ${size} ${size}`} 
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${D} ${D}`}
           className="euclidean-svg"
+          role="img"
+          aria-label={`${hits.length} ${hitsUnit} ${sur} ${steps}`}
         >
-          {/* Background Outer Ring */}
-          <circle 
-            cx={center} 
-            cy={center} 
-            r={radius} 
-            className="euclidean-bg-ring" 
-          />
+          {/* The rotating part: ring, polygon(s), dots. */}
+          <g className="euclidean-wheel" data-step={currentStep} data-rotation={angle} style={wheelStyle}>
+            <circle cx={C} cy={C} r={R} className="euclidean-bg-ring" />
 
-          {/* Complementary Polygon (if requested and we have enough points) */}
-          {showComplement && complementPolygonPoints && (
-            <polygon 
-              points={complementPolygonPoints} 
-              className="euclidean-polygon-complement" 
-            />
-          )}
+            {/* Stacked rhythms: grey, distinct strokes, never track colours. */}
+            {extraPolygons.map((poly, polyIdx) => {
+              const polyPts = poly.indices
+                .map((idx) => pt(idx).map((c) => c.toFixed(1)).join(','))
+                .join(' ');
+              return poly.indices.length >= 2 ? (
+                <polygon
+                  key={`extra-poly-${polyIdx}`}
+                  points={polyPts}
+                  className="euclidean-polygon-stacked"
+                  style={{ strokeDasharray: poly.dash || undefined }}
+                />
+              ) : null;
+            })}
 
-          {/* Complementary Lines (if only 2 complement points) */}
-          {showComplement && complementPoints.length === 2 && (
-            <line
-              x1={complementPoints[0].x}
-              y1={complementPoints[0].y}
-              x2={complementPoints[1].x}
-              y2={complementPoints[1].y}
-              className="euclidean-polygon-complement euclidean-line"
-            />
-          )}
-
-          {/* Extra Polygons (COMP-08 — Polyrhythm Algebra overlay) */}
-          {extraPolygons.map((poly, polyIdx) => {
-            const polyPts = poly.indices
-              .map(idx => {
-                const angle = (2 * Math.PI * idx) / Math.max(2, n) - Math.PI / 2;
-                const x = center + radius * Math.cos(angle);
-                const y = center + radius * Math.sin(angle);
-                return `${x.toFixed(1)},${y.toFixed(1)}`;
-              })
-              .join(' ');
-            const strokeColor = poly.color || 'var(--select)';
-            const isDash = poly.op === '-';
-            return poly.indices.length >= 3 ? (
-              <polygon
-                key={`extra-poly-${polyIdx}`}
-                points={polyPts}
-                fill="none"
-                stroke={strokeColor}
-                strokeWidth={isDash ? 1.5 : 2}
-                strokeDasharray={isDash ? '4 3' : undefined}
-                opacity={0.65}
-              />
-            ) : poly.indices.length === 2 ? (
+            {/* Primary active polygon / line */}
+            {hits.length >= 3 ? (
+              <polygon points={activePolygonPoints} className="euclidean-polygon-active" />
+            ) : hits.length === 2 ? (
               <line
-                key={`extra-line-${polyIdx}`}
-                x1={center + radius * Math.cos((2 * Math.PI * poly.indices[0]) / Math.max(2, n) - Math.PI / 2)}
-                y1={center + radius * Math.sin((2 * Math.PI * poly.indices[0]) / Math.max(2, n) - Math.PI / 2)}
-                x2={center + radius * Math.cos((2 * Math.PI * poly.indices[1]) / Math.max(2, n) - Math.PI / 2)}
-                y2={center + radius * Math.sin((2 * Math.PI * poly.indices[1]) / Math.max(2, n) - Math.PI / 2)}
-                stroke={strokeColor}
-                strokeWidth={1.5}
-                strokeDasharray={isDash ? '4 3' : undefined}
-                opacity={0.65}
+                x1={pt(hits[0])[0]}
+                y1={pt(hits[0])[1]}
+                x2={pt(hits[1])[0]}
+                y2={pt(hits[1])[1]}
+                className="euclidean-polygon-active euclidean-line"
               />
-            ) : null;
-          })}
+            ) : null}
 
-          {/* Primary Active Polygon */}
-          {activePolygonPoints && (
-            <polygon 
-              points={activePolygonPoints} 
-              className="euclidean-polygon-active" 
-            />
-          )}
-
-          {/* Primary Lines (if only 2 active points) */}
-          {activePoints.length === 2 && (
-            <line
-              x1={activePoints[0].x}
-              y1={activePoints[0].y}
-              x2={activePoints[1].x}
-              y2={activePoints[1].y}
-              className="euclidean-polygon-active euclidean-line"
-            />
-          )}
-
-          {/* Center Info Text (displays E(k,n) / duality status) */}
-          <g className="euclidean-center-info">
-            <text 
-              x={center} 
-              y={center - 5} 
-              textAnchor="middle" 
-              className="center-formula accent-text"
-            >
-              E({activeCount},{n})
-            </text>
-            <text 
-              x={center} 
-              y={center + 15} 
-              textAnchor="middle" 
-              className="center-sublabel"
-            >
-              {sublabel ?? `${activeCount} Pulses`}
-            </text>
+            {/* Step dots: hits coloured, empty cases outlined. */}
+            {slots.map((v, i) => {
+              const [x, y] = pt(i);
+              const isHit = v === 1;
+              const r = isHit ? 11 : showEmpty ? 6 : 2;
+              return (
+                <g key={`dot-${i}`} className="euclidean-node-group">
+                  {i === cur && (
+                    <circle cx={x} cy={y} r={r + 5} className="euclidean-node-halo" />
+                  )}
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={r}
+                    className={`euclidean-node ${isHit ? 'is-active' : 'is-empty'}`}
+                  />
+                </g>
+              );
+            })}
           </g>
 
-          {/* Subdivisions / Beat Nodes */}
-          {points.map((pt) => {
-            const isHighlighted = highlightIndex === pt.index;
-            let nodeClass = "euclidean-node";
-            if (pt.isActive) nodeClass += " is-active";
-            if (isHighlighted) nodeClass += " is-current";
+          {/* The fixed part: the marker, the centre text, the balance point. */}
+          <g className="euclidean-fixed">
+            {/* Fixed marker at the top: a 16 px triangle pointing at the wheel. */}
+            <path d={`M ${C - 9} 2 L ${C + 9} 2 L ${C} 16 Z`} className="euclidean-marker" />
 
-            return (
-              <g key={pt.index} className="euclidean-node-group">
-                {/* Node Ring Halo on active play */}
-                {isHighlighted && (
-                  <circle
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={pt.isActive ? 12 : 9}
-                    className="euclidean-node-halo"
-                  />
-                )}
-
-                {/* Main Interactive Node */}
-                <circle
-                  cx={pt.x}
-                  cy={pt.y}
-                  r={pt.isActive ? 6 : 4}
-                  className={nodeClass}
+            {balanceInfo ? (
+              <g className="euclidean-balance">
+                {/* isBalanced() returns the centroid in (cos, sin) of the step
+                    angle; the wheel draws steps from 12 o'clock (sin, -cos). */}
+                <line
+                  x1={C}
+                  y1={C}
+                  x2={C + balanceInfo.centroid.y * R}
+                  y2={C - balanceInfo.centroid.x * R}
+                  className="euclidean-plumb"
                 />
-
-                {/* Subtitle / Number above the node (for every 4th or 8th beats or when zoom is high) */}
-                {(n <= 16 || pt.index % 4 === 0) && (
-                  <text
-                    x={center + (radius + 15) * Math.cos(pt.angle)}
-                    y={center + (radius + 15) * Math.sin(pt.angle) + 4}
-                    textAnchor="middle"
-                    className={`euclidean-node-label ${isHighlighted ? 'accent-text font-bold' : ''}`}
-                  >
-                    {pt.index + 1}
+                <circle cx={C} cy={C} r={3} className="euclidean-balance-centre" />
+                <circle
+                  cx={C + balanceInfo.centroid.y * R}
+                  cy={C - balanceInfo.centroid.x * R}
+                  r={8}
+                  className="euclidean-balance-dot"
+                />
+                {balanceWord && (
+                  <text x={C} y={C + 56} textAnchor="middle" className="euclidean-center-formula" data-testid="wheel-balance-word">
+                    {balanceWord}
                   </text>
                 )}
               </g>
-            );
-          })}
+            ) : (
+              <g className="euclidean-center-info">
+                <text x={C} y={C + 8} textAnchor="middle" className="euclidean-center-big">
+                  {hits.length}
+                </text>
+                <text x={C} y={C + 42} textAnchor="middle" className="euclidean-center-formula" data-testid="center-formula">
+                  {hitsUnit} {sur} {steps}
+                </text>
+              </g>
+            )}
+          </g>
         </svg>
       </div>
     </div>

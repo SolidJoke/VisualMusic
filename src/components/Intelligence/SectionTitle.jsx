@@ -9,9 +9,10 @@ import React, { useEffect, useId, useState } from "react";
  *
  * `id` names the test hooks (comp-help-<id>); `name` (plain text) names the
  * button for screen readers; `Tag` is the title's element; what follows the
- * title (a value display, say) goes in `extra`.
+ * title (a value display, say) goes in `extra`. `title` (optional) keeps the
+ * hover tooltip on the label beside the drawn "?" (VMU-195-B fix 2).
  */
-export default function SectionTitle({ id, name, Tag = "label", htmlFor, className = "section-label", help, helpLabel, extra = null, children }) {
+export default function SectionTitle({ id, name, Tag = "label", htmlFor, className = "section-label", help, helpLabel, title, extra = null, children }) {
   const [open, setOpen] = useState(false);
   const textId = useId();
 
@@ -29,7 +30,7 @@ export default function SectionTitle({ id, name, Tag = "label", htmlFor, classNa
   return (
     <>
       <div className="section-head">
-        <Tag className={className} htmlFor={Tag === "label" ? htmlFor : undefined}>{children}</Tag>
+        <Tag className={className} htmlFor={Tag === "label" ? htmlFor : undefined} title={title}>{children}</Tag>
         {help && (
           <button
             type="button"

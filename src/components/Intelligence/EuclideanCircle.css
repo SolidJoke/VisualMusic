@@ -1,152 +1,129 @@
-/* src/components/Intelligence/EuclideanCircle.css */
+/* src/components/Intelligence/EuclideanCircle.css
+   VMU-195-B (variant B, "la phrase"): the circle becomes a wheel that turns
+   under a FIXED marker at the top. The wheel's angle follows the loop's total
+   step counter with a linear transition of one step; `prefers-reduced-motion`
+   drops the transition so it steps. Colours come from the `--c` track token
+   set on the container (never hard-coded, never --role-*). */
 
 .euclidean-circle-container {
+  --c: var(--select);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: 4px;
   width: 100%;
-  /* VMU-195-A: 320px -> 480px so that the labels, set in the SVG's own units,
-     come out at 18px or more once scaled (viewBox 220 -> up to 480px). */
-  max-width: 480px;
-  margin: 0 auto;
   box-sizing: border-box;
-}
-
-.euclidean-circle-header {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.95rem;
-  letter-spacing: 0.1em;
-  margin: 0 0 15px 0;
-  text-align: center;
-  text-transform: uppercase;
 }
 
 .euclidean-svg-wrapper {
   position: relative;
   width: 100%;
+  max-width: 460px;
   aspect-ratio: 1 / 1;
-  max-height: 440px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .euclidean-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
   overflow: visible;
 }
 
-/* Background Ring */
+/* The rotating part: one linear step per sixteenth note. */
+.euclidean-wheel {
+  transition: transform var(--stepdur, 150ms) linear;
+}
+.reduce-motion .euclidean-wheel {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .euclidean-wheel {
+    transition: none;
+  }
+}
+
+/* Background ring */
 .euclidean-bg-ring {
   fill: none;
   stroke: var(--border-subtle);
-  stroke-width: 1.5px;
-  stroke-dasharray: 4, 4;
+  stroke-width: 2px;
 }
 
-/* Active Polygon */
+/* Active polygon / line: filled with the track colour at low opacity. */
 .euclidean-polygon-active {
-  fill: var(--surface-2);
-  stroke: var(--led-cyan);
+  fill: var(--c, var(--select));
+  fill-opacity: 0.08;
+  stroke: var(--c, var(--select));
   stroke-width: 2px;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 4px var(--lg-accent-glow));
-  transition: all 0.3s ease;
 }
-
-/* Complementary Polygon */
-.euclidean-polygon-complement {
-  fill: var(--surface-2);
-  stroke: var(--border-subtle);
-  stroke-width: 1.5px;
-  stroke-dasharray: 3, 3;
-  stroke-linejoin: round;
-  transition: all 0.3s ease;
-}
-
-/* Linear connections */
 .euclidean-line {
   stroke-linecap: round;
 }
 
-/* Info Center */
-.euclidean-center-info {
-  pointer-events: none;
+/* Stacked rhythms: grey, told apart by their stroke (solid / dashes / dots). */
+.euclidean-polygon-stacked {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 2px;
+  stroke-linejoin: round;
 }
 
-.center-formula {
-  font-family: 'Courier New', Courier, monospace;
-  /* SVG user units (viewBox 220): scaled by the container's width / 220. */
-  font-size: 16px;
-  font-weight: bold;
-  fill: var(--led-cyan);
-  text-shadow: 0 0 10px var(--lg-accent-glow);
-}
-
-.center-sublabel {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 11px;
-  fill: var(--text-muted);
-}
-
-/* Node Styling */
+/* Step dots: hits take the track colour, empty cases are outlined. */
 .euclidean-node {
-  fill: var(--surface-2);
-  stroke: var(--border-strong);
-  stroke-width: 1.5px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
+  stroke-width: 2px;
 }
-
-/* Active Node */
 .euclidean-node.is-active {
-  fill: var(--led-cyan);
-  stroke: var(--select);
-  stroke-width: 1px;
-  filter: drop-shadow(0 0 6px var(--lg-accent-glow));
+  fill: var(--c, var(--select));
+  stroke: none;
+}
+.euclidean-node.is-empty {
+  fill: none;
+  stroke: var(--border-strong);
 }
 
-/* Playback node current position */
-.euclidean-node.is-current {
-  fill: var(--select) !important;
-  stroke: var(--select) !important;
-  transform: scale(1.3);
-  filter: drop-shadow(0 0 8px var(--lg-accent-glow)) !important;
-}
-
-/* Halo on play - kept colored (not neutered to --lg-accent-glow like the
-   drop-shadow glows above): this ring IS the whole visual, not a halo
-   layered on an already-visible element, so removing its color would
-   remove the pulse-on-play cue entirely (brief point 2 restricts
-   decorative removal to 3 named spots, none of which is this file). */
+/* The "now" ring around the step that passes under the marker. */
 .euclidean-node-halo {
   fill: none;
   stroke: var(--select);
   stroke-width: 2px;
-  animation: pulse-ring 0.6s infinite ease-out;
 }
 
-/* Node labels (Numbers around circle) */
-.euclidean-node-label {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 12px;
-  fill: var(--text-muted);
-  user-select: none;
-  transition: all 0.2s ease;
+/* Fixed marker at the top (a 16 px triangle). */
+.euclidean-marker {
+  fill: var(--text-primary);
 }
 
-/* Pulsing halo ring animation */
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1.3);
-    opacity: 0;
-  }
+/* Centre text: the number of hits above "k coups sur n". */
+.euclidean-center-big {
+  fill: var(--text-primary);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 64px;
+}
+.euclidean-center-formula {
+  fill: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 17px;
+}
+.euclidean-center-info {
+  pointer-events: none;
+}
+
+/* Balance point (stack mode): a plumb line from the centre to the centroid. */
+.euclidean-plumb {
+  stroke: var(--text-primary);
+  stroke-width: 1.5px;
+  stroke-dasharray: 3 4;
+}
+.euclidean-balance-centre {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 2px;
+}
+.euclidean-balance-dot {
+  fill: var(--text-primary);
 }

@@ -165,8 +165,12 @@
 /* Click, not hover (VMU-151): one or two sentences under the title. */
 .help-btn {
   flex: none;
-  width: 36px;
-  height: 36px;
+  width: var(--hit-min);
+  height: var(--hit-min);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   border: 1px solid var(--border-strong);
   background: var(--surface-2);
@@ -195,6 +199,12 @@
   font-size: var(--fs-read);
   line-height: 1.45;
   user-select: text;
+}
+/* Inside a flex row (the phrase, the footer) the sentence takes its own line. */
+.phrase-sentence .help-text,
+.export-footer .help-text {
+  flex-basis: 100%;
+  margin: 0;
 }
 
 /* Vintage Select Inputs */
@@ -472,32 +482,11 @@
   font-family: monospace;
 }
 
-/* Send-to panel */
-.export-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-.target-select {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--fs-read);
-  font-weight: 700;
-  color: var(--text-secondary);
-}
+/* Send-to panel footer: one row, tokens only, buttons auto-width 44px high. */
 .retro-select.mini {
   width: auto;
   padding: 6px 10px;
   font-size: var(--fs-read);
-}
-.live-note {
-  margin: 4px 0 12px;
-  font-size: var(--fs-read);
-  color: var(--text-secondary);
 }
 
 /* Luminscent tactile buttons - "keycap" 3-layer bevel shadow and gradient
@@ -534,7 +523,6 @@
   color: var(--select);
   border-color: var(--select);
   text-shadow: none;
-  flex-grow: 1;
 }
 /* .success is a real state name (not a generic "active" toggle), so it
    gets --color-success rather than the neutral surface-3 recipe used for
@@ -547,18 +535,10 @@
   box-shadow: none;
 }
 .listen-btn {
-  width: 100%;
   color: var(--select);
   border-color: var(--select);
 }
 
-.clear-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-  border-top: 1px dashed var(--border-subtle);
-  padding-top: 10px;
-}
 .clear-btn {
   background: transparent;
   border: 1px dashed var(--border-default);
@@ -845,4 +825,316 @@
   margin-bottom: 8px;
   color: var(--select);
   font-size: var(--fs-read);
+}
+
+/* ===================================================
+   VMU-195-B — variant B, "la phrase": the wheel, the sentence of steppers,
+   the "Essayer :" pills, the recipes and the footer.
+   =================================================== */
+
+/* The panel is a single vertical column (the reference dock is 560px wide);
+   this beats Modal.css's grid for #composition-panel at every width. */
+.modal-body--columns #composition-panel .panel-body.phrase-body,
+.modal-container--wide .modal-body--columns #composition-panel .panel-body.phrase-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.phrase-body > .panel-section {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+/* ---- the phrase : "5 coups sur 16 cases, départ décalé de 0, joués par …" ---- */
+.phrase-sentence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 8px;
+  font-size: var(--fs-emph);
+  line-height: 1;
+  margin: 0;
+}
+.phrase-word {
+  font-size: var(--fs-emph);
+  color: var(--text-primary);
+}
+.stp-grp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.stp-val {
+  min-width: 2.4ch;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-title);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* − / + : 44 × 44, Assistant gradient. */
+.sbtn {
+  width: var(--hit-min);
+  height: var(--hit-min);
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--assistant-border);
+  background: linear-gradient(90deg, var(--assistant-from), var(--assistant-to));
+  color: var(--assistant-text);
+  font-size: var(--fs-emph);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sbtn:hover:not(:disabled) {
+  background: linear-gradient(90deg, var(--assistant-from-hover), var(--assistant-to));
+}
+.sbtn:disabled {
+  background: var(--bg);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+  cursor: default;
+}
+.sbtn:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+/* The instrument inside the phrase: a 44px-high button opening 5 targets. */
+.phrase-target {
+  width: auto;
+  min-height: var(--hit-min);
+  font-size: var(--fs-emph);
+  font-family: var(--font-body);
+}
+
+/* ---- the wheel, its strip, the empty-cases toggle ---- */
+.wheel-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.empty-toggle {
+  min-height: var(--hit-min);
+}
+.badge-sym {
+  font-size: var(--fs-read);
+  color: var(--text-secondary);
+}
+
+/* The strip of cases under the wheel: one column per case, hits in the
+   track colour, the current case ringed. */
+.euclidean-strip {
+  display: grid;
+  gap: 3px;
+  margin-top: 4px;
+}
+.strip-cell {
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid var(--border-default);
+  background: var(--surface-3);
+  display: block;
+}
+.strip-cell.hit {
+  background: var(--c, var(--select));
+  border-color: var(--c, var(--select));
+}
+.strip-cell.now {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--select);
+}
+
+/* ---- "Essayer :" the world-rhythm pills ---- */
+.trychips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.trychip {
+  min-height: var(--hit-min);
+  padding: 0 14px;
+  border-radius: 22px;
+  border: 1px solid var(--border-default);
+  background: var(--bg);
+  font-size: var(--fs-read);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
+.trychip[aria-pressed="true"] {
+  border-color: var(--select);
+  background: var(--surface-3);
+}
+.trychip:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+.mini-circle {
+  flex: none;
+}
+.mini-ring {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5px;
+}
+.mini-hit {
+  fill: var(--select);
+}
+
+/* ---- the recipes : 520 × 56, title + one line ---- */
+.recipes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.recipe-btn {
+  min-height: 56px;
+  max-width: 520px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg);
+  cursor: pointer;
+  text-align: left;
+  font-size: var(--fs-read);
+  color: var(--text-primary);
+}
+.recipe-btn[aria-pressed="true"] {
+  border-color: var(--select);
+  background: var(--surface-3);
+}
+.recipe-btn:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+.recipe-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.recipe-text b {
+  font-weight: 600;
+  font-size: var(--fs-read);
+}
+.recipe-text small {
+  color: var(--text-muted);
+  font-size: var(--fs-read);
+}
+
+/* ---- a recipe open : one panel under its button ---- */
+.mode-panel {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: var(--fs-read);
+  margin-top: 8px;
+}
+.mode-say {
+  font-size: var(--fs-read);
+  color: var(--text-primary);
+  margin: 0;
+}
+.mode-hint {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ---- stacked rhythms: grey voices, a mini polygon each ---- */
+.poly-op-vname {
+  min-width: 96px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: var(--fs-read);
+}
+.poly-mini-polygon {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+.poly-mini-bary {
+  fill: var(--text-primary);
+}
+.poly-field-label {
+  font-size: var(--fs-read);
+  color: var(--text-muted);
+  min-width: 18px;
+}
+.poly-hits-unit {
+  font-size: var(--fs-read);
+  color: var(--text-secondary);
+}
+.poly-op-row {
+  border-left: 3px solid var(--border-strong);
+}
+
+/* The balance is now a word (the point is drawn in the wheel). */
+.balance-indicator {
+  font-family: var(--font-body);
+  align-items: center;
+}
+.balance-dot {
+  color: var(--text-primary);
+}
+.balance-status {
+  color: var(--text-primary);
+}
+.balance-hint {
+  color: var(--text-muted);
+  font-size: var(--fs-read);
+}
+
+/* ---- the footer: one row, text on the left then the buttons; wraps onto a
+   second row only when the window is too narrow. ---- */
+.export-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 0 0;
+}
+.live-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--fs-read);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c, var(--select));
+  display: inline-block;
+}
+/* The footer buttons: auto width, 44px high (--hit-min), tokens only. */
+.export-footer .retro-btn {
+  height: var(--hit-min);
+  min-height: var(--hit-min);
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  box-sizing: border-box;
 }

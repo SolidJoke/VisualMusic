@@ -119,8 +119,8 @@ describe("CompositionPanel Crash Fuzzer (Gemini Flash Task)", () => {
       const polySwitch = screen.getByTestId("comp-mode-poly");
       fireEvent.click(polySwitch);
 
-      const select = screen.getAllByRole("combobox")[0]; // Rhythmic preset
-      fireEvent.change(select, { target: { value: "cinquillo" } });
+      // The "Essayer :" pill, not the old dropdown.
+      fireEvent.click(screen.getByTestId("comp-preset-cinquillo"));
     }).not.toThrow();
   });
 });

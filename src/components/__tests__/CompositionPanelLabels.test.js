@@ -25,7 +25,7 @@ const LABELS = [
   ["grid", "Les cases du rythme", "The rhythm's steps"],
   ["exportPanel", "Envoyer vers", "Send to"],
   ["exportBtn", "Envoyer maintenant", "Send now"],
-  ["resetAll", "Revenir au rythme du style", "Back to the style's rhythm"],
+  ["resetAll", "↺ Rythme du style", "↺ Style rhythm"],
   ["advanced", "Pour aller plus loin", "Go further"],
   ["live", "La piste suit tes réglages en direct.", "The track follows your settings live."],
 ];
