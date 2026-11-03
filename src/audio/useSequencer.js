@@ -18,6 +18,8 @@ import { DEFAULT_MIXER_LEVELS } from "./InstrumentPresets";
 import { resolveChordAt, stepEvents } from "./dispatch";
 import { playStepEvents } from "./playStep";
 import { describeChord, loopSteps, timelineFromSelection } from "../core/timeline";
+import { guitarGripCells } from "../core/guitarGrip";
+import { TUNINGS } from "../core/tunings";
 import {
   playMusic,
   stopMusic,
@@ -58,6 +60,14 @@ const NOTHING = /** @type {any[]} */ (Object.freeze([]));
  * @param {number} options.currentRootValue
  * @param {Function} options.setCurrentlyPlayingNotes
  * @param {number} [options.chordOctaveOffset]
+ * @param {'piano'|'guitar'|'bass'} [options.playbackInstrument] the instrument
+ *   the user chose in the Studio (VMU-209). "guitar" makes the loop's chord
+ *   voice play the grip drawn on the guitar neck; anything else (piano, or
+ *   bass — whose loop voice stays its bass line) keeps the chord on the piano.
+ *   Defaults to "piano", the pre-VMU-209 voice.
+ * @param {number|null} [options.selectedRootStringGuitar] the Studio's chosen
+ *   guitar root string; read only when `playbackInstrument` is "guitar", so the
+ *   loop's grip is the same position the neck draws.
  */
 export function useSequencer({
   appMode,
@@ -69,7 +79,9 @@ export function useSequencer({
   activeRhythm = null,
   currentRootValue,
   setCurrentlyPlayingNotes,
-  chordOctaveOffset = 0
+  chordOctaveOffset = 0,
+  playbackInstrument = "piano",
+  selectedRootStringGuitar = null
 }) {
   const [isAudioReady, setIsAudioReady] = useState(false);
   // T2 (VMU-025, decision 4): whether the music plays and the tempo are the
@@ -121,6 +133,11 @@ export function useSequencer({
   const appModeRef = useRef(appMode);
   const brickRef = useRef(activeBrick);
   const octaveRef = useRef(chordOctaveOffset);
+  // VMU-209 — the loop's chord voice follows the chosen instrument and the
+  // chosen guitar position, read at call time like the others, so the
+  // long-lived `repeat` sees the latest choice.
+  const instrumentRef = useRef(playbackInstrument);
+  const guitarRootStringRef = useRef(selectedRootStringGuitar);
   // The loop's own progress, kept in refs (not local effect variables) so
   // `repeat` below can be registered directly from togglePlayback instead of
   // from an effect (VMU-163-fix2, decision 2 — see that function).
@@ -145,6 +162,8 @@ export function useSequencer({
   brickRef.current = activeBrick;
   octaveRef.current = chordOctaveOffset;
   setCurrentlyPlayingNotesRef.current = setCurrentlyPlayingNotes;
+  instrumentRef.current = playbackInstrument;
+  guitarRootStringRef.current = selectedRootStringGuitar;
 
   const handleInstrumentVolumeChange = (instrument, value) => {
     const val = Number(value);
@@ -223,7 +242,25 @@ export function useSequencer({
       // Decided by stepEvents (dispatch.js), the same function the MIDI
       // export and the audio harness read; this loop only plays it.
       const events = stepEvents(doc, stepCounter, { octaveOffset, rootValue: rootRef.current });
-      const frameNotes = playStepEvents(STUDIO_SYNTHS, events, time);
+
+      // --- The chord's voice (VMU-209) ---
+      // Guitar chosen: the chord plays the grip the guitar neck draws for the
+      // chord covering THIS step (not the published currentPlayingChord, which
+      // lags the scheduling-ahead by one chord on a chord change). The grip is
+      // core/guitarGrip's — the same getGuitarFingering + shapeCellsFromFingering
+      // the neck uses — so the cell the neck lights is the note the guitar
+      // sounds. Piano and bass keep the chord on the piano (the bass's loop
+      // voice stays its bass line).
+      const chordInstrument = instrumentRef.current === "guitar" ? "guitar" : "piano";
+      const guitarNotes = chordInstrument === "guitar" && playing
+        ? guitarGripCells({
+            rootPc: playing.chord.rootPc,
+            chordType: playing.chord.type,
+            rootString: guitarRootStringRef.current,
+            tuning: brickRef.current?.guitarStrings || TUNINGS.GUITAR_STANDARD,
+          })
+        : null;
+      const frameNotes = playStepEvents(STUDIO_SYNTHS, events, time, { chordInstrument, guitarNotes });
 
       if (frameNotes.length > 0) {
         const publish = setCurrentlyPlayingNotesRef.current;

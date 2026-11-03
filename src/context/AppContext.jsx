@@ -26,6 +26,12 @@ const initialState = {
   // its degree. Off by default — degree is the default label. The old
   // anatomic/classical label set (I/M/A/m) is removed entirely.
   showFingerNumbers: false,
+  // VMU-209 — the instrument is remembered per mode: piano in both by default,
+  // and choosing one in the Studio does not change the Dictionary's (nor vice
+  // versa). `playbackInstrumentByMode` is what persists; `playbackInstrument`
+  // is its per-mode value for the active mode, kept here so every reader of
+  // `state` keeps reading one name.
+  playbackInstrumentByMode: { studio: 'piano', dictionary: 'piano' },
   playbackInstrument: 'piano',
   // VMU-112: replaces layoutMode/activeTab ("Tout afficher / Mode Focus").
   // Keyed by section id ("sequencer" | "piano" | "guitar" | "bass"); a
@@ -41,31 +47,52 @@ const initialState = {
   useShellVoicings: false
 };
 
-// VMU-050: what the app reopens on. The four values the last visit left
-// (mode, language, notation, played instrument) replace the defaults above, read
-// once, in the lazy initializer so the very first render is already right (no
-// flash of the defaults). Pure: loadPersisted() only reads, and every field it
-// returns is validated; with nothing stored, or storage broken, it is the
-// defaults exactly as before.
+// VMU-050: what the app reopens on. The kept values (mode, language, notation,
+// the instrument remembered per mode) replace the defaults above, read once, in
+// the lazy initializer so the very first render is already right (no flash of
+// the defaults). Pure: loadPersisted() only reads, and every field it returns
+// is validated; with nothing stored, or storage broken, it is the defaults
+// exactly as before.
 function initState() {
-  const { appMode, lang, notation, playbackInstrument } = loadPersisted();
+  const { appMode, lang, notation, playbackInstrumentByMode } = loadPersisted();
+  const mode = appMode !== undefined ? appMode : initialState.appMode;
+  const byMode = playbackInstrumentByMode !== undefined
+    ? playbackInstrumentByMode
+    : initialState.playbackInstrumentByMode;
   return {
     ...initialState,
-    ...(appMode !== undefined && { appMode }),
+    ...(appMode !== undefined && { appMode: mode }),
     ...(lang !== undefined && { lang }),
     ...(notation !== undefined && { notation }),
-    ...(playbackInstrument !== undefined && { playbackInstrument }),
+    ...(playbackInstrumentByMode !== undefined && { playbackInstrumentByMode: byMode }),
+    playbackInstrument: byMode[mode],
   };
 }
 
 function appReducer(state, action) {
   switch (action.type) {
-    case 'SET_APP_MODE':
-      return { ...state, appMode: action.payload };
+    case 'SET_APP_MODE': {
+      // VMU-209 — switching mode restores that mode's own instrument.
+      const appMode = action.payload;
+      return { ...state, appMode, playbackInstrument: state.playbackInstrumentByMode[appMode] };
+    }
     case 'SET_LANG':
       return { ...state, lang: action.payload };
     case 'SET_NOTATION':
       return { ...state, notation: action.payload };
+    // VMU-209 — choosing an instrument writes it for the ACTIVE mode only, so
+    // the Studio and the Dictionary each keep their own (decision 1).
+    case 'SET_PLAYBACK_INSTRUMENT': {
+      const playbackInstrument = action.payload;
+      return {
+        ...state,
+        playbackInstrument,
+        playbackInstrumentByMode: {
+          ...state.playbackInstrumentByMode,
+          [state.appMode]: playbackInstrument,
+        },
+      };
+    }
     case 'SET_UI_VALUE':
       return { ...state, [action.payload.key]: action.payload.value };
     case 'SET_HARMONIC_MODE':

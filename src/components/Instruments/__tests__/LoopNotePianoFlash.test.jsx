@@ -48,6 +48,13 @@ describe('PianoKeyboard — a loop note of another instrument does not flash a k
     expect(keysFlashed(container)).toEqual([]);
   });
 
+  it('a guitar-tagged chord note (nearShape) leaves the piano quiet too', () => {
+    // VMU-209 — the loop's chord notes are guitar-tagged when the guitar is
+    // chosen; the piano must not flash the other instrument's chord.
+    const { container } = render(<Harness notes={[{ absoluteValue: 60, instrument: 'guitar', nearShape: true }]} />);
+    expect(keysFlashed(container)).toEqual([]);
+  });
+
   it('a piano-tagged chord note flashes its own key', () => {
     const { container } = render(<Harness notes={[{ absoluteValue: 60, instrument: 'piano' }]} />);
     expect(keysFlashed(container)).toEqual([60]);

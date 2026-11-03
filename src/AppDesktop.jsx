@@ -48,13 +48,14 @@ const PrototypeA = React.lazy(() => import("./prototype/PrototypeA"));
 
 function AppDesktop() {
   const { lang, txt, notation, state, dispatch } = useAppContext();
-  const { 
+  const {
     appMode,
     showAbout,
     showTheory,
     showFingering,
     showFingerNumbers,
     playbackInstrument,
+    playbackInstrumentByMode,
     collapsedSections,
     targetNotesPreset,
     useShellVoicings
@@ -80,7 +81,7 @@ function AppDesktop() {
   const setShowTheory = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showTheory', value: val } }), [dispatch]);
   const setShowFingering = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingering', value: val } }), [dispatch]);
   const setShowFingerNumbers = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'showFingerNumbers', value: val } }), [dispatch]);
-  const setPlaybackInstrument = useCallback((val) => dispatch({ type: 'SET_UI_VALUE', payload: { key: 'playbackInstrument', value: val } }), [dispatch]);
+  const setPlaybackInstrument = useCallback((val) => dispatch({ type: 'SET_PLAYBACK_INSTRUMENT', payload: val }), [dispatch]);
   // VMU-112: replaces setLayoutMode/setActiveTab. Folding is independent of
   // which instrument is played — this never touches playbackInstrument.
   // Memoized: passed to InstrumentView (memoized), stable ref avoids unnecessary re-renders
@@ -213,6 +214,8 @@ function AppDesktop() {
     currentRootValue: clickedChord ? clickedChord.rootNote.value : activeBrick.rootValue,
     setCurrentlyPlayingNotes,
     chordOctaveOffset,
+    playbackInstrument,
+    selectedRootStringGuitar,
   });
 
   // --- Music Engine (Harmonics & Fingering) ---
@@ -358,9 +361,9 @@ function AppDesktop() {
   const brickId = activeBrick ? activeBrick.name.en : undefined;
   useEffect(() => {
     savePersisted({
-      appMode, lang, notation, playbackInstrument, brickId, chordOctaveOffset, dictRoot, dictType, dictOctave,
+      appMode, lang, notation, playbackInstrumentByMode, brickId, chordOctaveOffset, dictRoot, dictType, dictOctave,
     });
-  }, [appMode, lang, notation, playbackInstrument, brickId, chordOctaveOffset, dictRoot, dictType, dictOctave]);
+  }, [appMode, lang, notation, playbackInstrumentByMode, brickId, chordOctaveOffset, dictRoot, dictType, dictOctave]);
 
   // Handlers implemented via usePlaybackHandlers
 

@@ -204,7 +204,7 @@ describe("VMU-050 - what is kept, what is not", () => {
         "dictType",
         "lang",
         "notation",
-        "playbackInstrument",
+        "playbackInstrumentByMode",
         "v",
       ].sort(),
     );

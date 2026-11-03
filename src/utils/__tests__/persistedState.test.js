@@ -12,7 +12,7 @@ const FULL = {
   appMode: "dictionary",
   lang: "en",
   notation: "us",
-  playbackInstrument: "guitar",
+  playbackInstrumentByMode: { studio: "guitar", dictionary: "bass" },
   brickId: "Bossa Nova",
   chordOctaveOffset: 2,
   dictRoot: 7,
@@ -123,6 +123,36 @@ describe("persistedState - what is invalid is ignored, the rest is kept", () => 
   it("does not store an invalid value on save either, and keeps the valid ones", () => {
     savePersisted({ lang: "en", dictOctave: 99 });
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY))).toEqual({ v: 1, lang: "en" });
+  });
+
+  it("rejects a per-mode instrument missing one mode, or with an unknown instrument", () => {
+    plant({ v: 1, playbackInstrumentByMode: { studio: "guitar" } });
+    expect(loadPersisted()).toEqual({});
+    plant({ v: 1, playbackInstrumentByMode: { studio: "kazoo", dictionary: "piano" } });
+    expect(loadPersisted()).toEqual({});
+    plant({ v: 1, playbackInstrumentByMode: "guitar" });
+    expect(loadPersisted()).toEqual({});
+  });
+});
+
+describe("persistedState - VMU-209 the single legacy instrument migrates to both modes", () => {
+  it("reads a pre-VMU-209 playbackInstrument as the same instrument in each mode", () => {
+    plant({ v: 1, playbackInstrument: "bass" });
+    expect(loadPersisted()).toEqual({
+      playbackInstrumentByMode: { studio: "bass", dictionary: "bass" },
+    });
+  });
+
+  it("does not migrate an invalid legacy instrument (and stores nothing else from it)", () => {
+    plant({ v: 1, playbackInstrument: "kazoo", lang: "en" });
+    expect(loadPersisted()).toEqual({ lang: "en" });
+  });
+
+  it("prefers the per-mode shape when both are present", () => {
+    plant({ v: 1, playbackInstrument: "bass", playbackInstrumentByMode: { studio: "guitar", dictionary: "piano" } });
+    expect(loadPersisted()).toEqual({
+      playbackInstrumentByMode: { studio: "guitar", dictionary: "piano" },
+    });
   });
 });
 
