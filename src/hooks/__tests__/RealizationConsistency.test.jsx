@@ -65,6 +65,9 @@ const activeBrick = {
 function playedPitches(calls) {
   const all = new Set();
   for (const [notes] of calls) {
+    // VMU-203 — the arpeggio's clear is a conditional updater (a function), so
+    // it can never erase the next note. It is not a "lit" state: skip it.
+    if (typeof notes === "function") continue;
     for (const n of notes ?? []) {
       all.add(typeof n === "object" && n !== null ? n.absoluteValue : n);
     }

@@ -152,3 +152,80 @@ describe('VMU-199 — a bass chord click in the Studio is a rising arpeggio', ()
     );
   });
 });
+
+describe('VMU-203 — the arpeggio holds each note until the next replaces it', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    draws.scheduled.length = 0;
+  });
+
+  const runDrawTimeline = (setCurrentlyPlayingNotes) => {
+    let current = [];
+    const states = [];
+    setCurrentlyPlayingNotes.mockImplementation((updater) => {
+      current = typeof updater === 'function' ? updater(current) : updater;
+      states.push(current.slice());
+    });
+    for (const { cb } of [...draws.scheduled].sort((a, b) => a.time - b.time)) cb();
+    return states;
+  };
+
+  it('does not erase the next note when its clear fires after the next light', async () => {
+    const { result, setCurrentlyPlayingNotes } = mount('bass', 120);
+
+    await act(async () => {
+      await result.current.handleChordClick(C_CHORD, 0);
+    });
+
+    // At 1.125 s the note0 clear and the note1 light share an instant; FIFO
+    // order is clear-then-light. Run them the OTHER way round to prove the
+    // conditional clear cannot blank the note that has just replaced it.
+    const atBoundary = draws.scheduled.filter((d) => d.time === 1.125);
+    expect(atBoundary).toHaveLength(2);
+    const [clearNote0, lightNote1] = atBoundary;
+
+    let current = [];
+    setCurrentlyPlayingNotes.mockImplementation((updater) => {
+      current = typeof updater === 'function' ? updater(current) : updater;
+    });
+    setCurrentlyPlayingNotes([{ absoluteValue: 36, instrument: 'bass' }]);
+    lightNote1.cb(); // note1 (G2) lights…
+    clearNote0.cb(); // …and note0's clear must leave it alone
+    expect(current.map((n) => n.absoluteValue)).toEqual([43]);
+  });
+
+  it('lights the three notes in order with no gap: the next light is the previous clear', async () => {
+    const { result, setCurrentlyPlayingNotes } = mount('bass', 120);
+
+    await act(async () => {
+      await result.current.handleChordClick(C_CHORD, 0);
+    });
+
+    const states = runDrawTimeline(setCurrentlyPlayingNotes);
+    expect(states.filter((s) => s.length > 0).map(([n]) => n.absoluteValue)).toEqual([36, 43, 48]);
+  });
+
+  it('holds the last note for stepTime (0.125 s) at 120 bpm', async () => {
+    const { result } = mount('bass', 120);
+
+    await act(async () => {
+      await result.current.handleChordClick(C_CHORD, 0);
+    });
+
+    const times = draws.scheduled.map((d) => d.time).sort((a, b) => a - b);
+    // Lights at 1, 1.125, 1.25; the last clear at 1.25 + 0.125.
+    expect(times[times.length - 1]).toBe(1.375);
+  });
+
+  it('holds the last note for the 0.1 s floor at 200 bpm', async () => {
+    const { result } = mount('bass', 200);
+
+    await act(async () => {
+      await result.current.handleChordClick(C_CHORD, 0);
+    });
+
+    const times = draws.scheduled.map((d) => d.time).sort((a, b) => a - b);
+    // Lights at 1, 1.075, 1.15; the last clear at 1.15 + 0.1.
+    expect(times[times.length - 1]).toBe(1.25);
+  });
+});

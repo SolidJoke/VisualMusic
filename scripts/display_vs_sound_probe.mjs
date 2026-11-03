@@ -151,6 +151,36 @@ function readOutline() {
   };
 }
 
+/**
+ * Runs in the page: VMU-203 — the bass neck's running class and the computed
+ * styles the spotlight produces, at the instant a filled playing pastille is
+ * on screen. Returns nulls for anything not present (scale pastilles never
+ * appear in the Studio loop, so their entry reads "none" in the report).
+ */
+function readRunning() {
+  const neck = document.querySelector('[data-s1="bass"]');
+  if (!neck) return null;
+  const container = neck.querySelector(".fretboard-container") || neck;
+  const style = (sel) => {
+    const el = neck.querySelector(sel);
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return {
+      boxShadow: cs.boxShadow,
+      opacity: cs.opacity,
+      fontWeight: cs.fontWeight,
+      backgroundColor: cs.backgroundColor,
+    };
+  };
+  return {
+    containerClass: container.className,
+    playing: style(".note-marker.is-playing"),
+    nonPlaying: style(".note-marker:not(.is-playing):not(.is-playing-outside)"),
+    scale: style(".note-marker.role-scale"),
+    playingOutside: style(".note-marker.is-playing-outside"),
+  };
+}
+
 // ─── helpers on the node side ──────────────────────────────────────────────
 
 const uniqSorted = (a) => [...new Set(a)].sort((x, y) => x - y);
@@ -322,12 +352,24 @@ async function point3(browser, errors) {
     const playingSamples = [];
     // Element screenshots are requested only for the Jazz Standard run.
     const shots = SHOTS_DIR && style ? { ring: false, lit: false } : null;
+    let runningCaptured = false;
     await page.locator('[data-fn="jouer.lecture"]').click();
     const t0 = Date.now();
     while (Date.now() - t0 < 9000) {
       const shown = await page.evaluate(readShown);
       drawnNeck(shown, "bass").forEach((m) => drawnUnion.add(m));
       playingSamples.push(shown.bassCells.filter((c) => c.playing).length);
+      // VMU-203 — first moment a filled playing pastille is on screen: the
+      // neck's running class and the spotlight's computed styles.
+      if (!runningCaptured && shown.bassCells.some((c) => c.playing)) {
+        const r = await page.evaluate(readRunning);
+        out(`  bass neck running state: class "${r.containerClass}" -> is-running ${/\bis-running\b/.test(r.containerClass)}`);
+        out(`  computed playing pastille: ${JSON.stringify(r.playing)}`);
+        out(`  computed non-playing pastille: ${JSON.stringify(r.nonPlaying)}`);
+        out(`  computed scale pastille: ${r.scale ? JSON.stringify(r.scale) : "none (no role-scale in the Studio loop)"}`);
+        out(`  computed is-playing-outside: ${JSON.stringify(r.playingOutside)}`);
+        runningCaptured = true;
+      }
       if (shots) {
         // First moment a loop note outside the drawn shape is outlined: its
         // computed style, then the bass column (not the full page) as a PNG.

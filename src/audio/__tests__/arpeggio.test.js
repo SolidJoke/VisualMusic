@@ -35,15 +35,29 @@ describe("planArpeggio — a chord's notes as a rising sequence", () => {
     expect(steps[0].note).toBe(low);
   });
 
-  it("clears each note just before the next step (stepTime 0.25)", () => {
+  // VMU-203 hold rule: a note's light stays on until the next note replaces it,
+  // and the LAST note holds for at least 0.1 s however fast the tempo. The old
+  // plan cleared each note just BEFORE the next step, leaving a gap at 120 bpm.
+  it("clears each note exactly when the next step starts (stepTime 0.25)", () => {
     const steps = planArpeggio([48, 55, 60], 1, 0.25);
-    expect(steps.map((s) => s.clearAt)).toEqual([1.2, 1.45, 1.7]);
+    expect(steps.map((s) => s.time)).toEqual([1, 1.25, 1.5]);
+    expect(steps.map((s) => s.clearAt)).toEqual([1.25, 1.5, 1.75]);
   });
 
-  it("never clears sooner than 0.05 s, even for a tiny step (0.03)", () => {
+  it("holds the last note at least 0.1 s, even for a tiny step (0.03)", () => {
     const steps = planArpeggio([48, 55], 1, 0.03);
     expect(steps.map((s) => s.time)).toEqual([1, 1.03]);
-    expect(steps.map((s) => s.clearAt)).toEqual([1.05, 1.08]);
+    expect(steps.map((s) => s.clearAt)[0]).toBeCloseTo(1.03, 12);
+    expect(steps.map((s) => s.clearAt)[1]).toBeCloseTo(1.13, 12);
+  });
+
+  it("holds the last note max(stepTime, 0.1) s at any tempo", () => {
+    // 120 bpm -> step 0.125 s, so the last note holds 0.125 s (stepTime wins).
+    const fast = planArpeggio([48, 55], 0, arpeggioStepSeconds(120));
+    expect(fast.map((s) => s.clearAt)).toEqual([0.125, 0.25]);
+    // 200 bpm -> step 0.075 s, so the last note holds the 0.1 s floor.
+    const faster = planArpeggio([48, 55], 0, arpeggioStepSeconds(200));
+    expect(faster.map((s) => s.clearAt)).toEqual([0.075, 0.175]);
   });
 
   it("keeps duplicated pitches: two strings can give the same note", () => {

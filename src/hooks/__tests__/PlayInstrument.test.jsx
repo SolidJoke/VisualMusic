@@ -250,7 +250,10 @@ describe("INST-A2 — playInstrument(id) plays the realization of that instrumen
         expect(setter).toHaveBeenCalledWith(id);
         // The animation lights what was played.
         const lit = unique(
-          setCurrentlyPlayingNotes.mock.calls.flatMap((c) => pitchesOf(c[0]))
+          setCurrentlyPlayingNotes.mock.calls
+            // VMU-203 — a clear updater (a function) is not a lit state; skip it.
+            .filter((c) => typeof c[0] !== "function")
+            .flatMap((c) => pitchesOf(c[0]))
         );
         expect(lit).toEqual(unique(expected));
       }
