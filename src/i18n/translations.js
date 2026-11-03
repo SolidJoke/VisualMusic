@@ -185,6 +185,7 @@ export const translations = {
     guitarLabel: "Guitare",
     bassLabel: "Basse",
     voicingSelector: "Position :",
+    startPitch: "Octave de départ",
     posOf: "sur",
     voicingAllNotes: "Toutes les notes",
     // INST-B1 — no position chosen: the shape shown, marked as the default.
@@ -432,6 +433,7 @@ export const translations = {
       positionBarre: "= Barré",
       positionRange: "Plage",
       positionAlerts: "Alertes",
+      positionStartPitch: "Octave de départ",
       // VMU-185: the direct selectors, a second row of the transport block.
       selectionAria: "Choix direct du style, de la note et du type",
       selectionStyle: "Style",
@@ -627,6 +629,7 @@ export const translations = {
     guitarLabel: "Guitar",
     bassLabel: "Bass",
     voicingSelector: "Position:",
+    startPitch: "Start octave",
     posOf: "of",
     voicingAllNotes: "All notes",
     positionDefault: (label) => `${label} (auto)`,
@@ -869,6 +872,7 @@ export const translations = {
       positionBarre: "= Barre",
       positionRange: "Range",
       positionAlerts: "Alerts",
+      positionStartPitch: "Start octave",
       // VMU-185: the direct selectors, a second row of the transport block.
       selectionAria: "Direct choice of style, note and type",
       selectionStyle: "Style",
@@ -1053,6 +1057,7 @@ export const translations = {
     playInstrument: "Tocar",
     rootStringLabel: "Tônica em:",
     voicingSelector: "Posição:",
+    startPitch: "Oitava de partida",
     posOf: "de",
     voicingAllNotes: "Todas as notas",
     positionDefault: (label) => `${label} (auto)`,
@@ -1245,6 +1250,7 @@ export const translations = {
       positionBarre: "= Pestana",
       positionRange: "Extensão",
       positionAlerts: "Alertas",
+      positionStartPitch: "Oitava de partida",
       // VMU-185: the direct selectors, a second row of the transport block.
       selectionAria: "Escolha direta de estilo, nota e tipo",
       selectionStyle: "Estilo",
@@ -1474,6 +1480,7 @@ export const translations = {
     playInstrument: "播放",
     rootStringLabel: "根音在:",
     voicingSelector: "位置:",
+    startPitch: "起始八度",
     posOf: "于",
     voicingAllNotes: "所有音符",
     positionDefault: (label) => `${label}（自动）`,
@@ -1660,6 +1667,7 @@ export const translations = {
       positionBarre: "= 横按",
       positionRange: "音域",
       positionAlerts: "提示",
+      positionStartPitch: "起始八度",
       // VMU-185: the direct selectors, a second row of the transport block.
       selectionAria: "直接选择风格、音符和类型",
       selectionStyle: "风格",

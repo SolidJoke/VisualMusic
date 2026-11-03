@@ -27,11 +27,14 @@ const PositionSelector = ({
   isScaleMode,
   rootVal,
   scaleAnchor,
-  setScaleAnchor
+  setScaleAnchor,
+  startPitches = [],
+  startPitch = null,
+  setStartPitch
 }) => {
   const { txt, notation } = useAppContext();
 
-  const view = positionPanelView({ instrumentType, rootVal, notation, isScaleMode, scaleAnchor, placementIndex, fingering });
+  const view = positionPanelView({ instrumentType, rootVal, notation, isScaleMode, scaleAnchor, placementIndex, fingering, startPitches, startPitch });
   const strings = view.rootStrings ?? [];
 
   // The arrows step nut -> body and back to the default (placementLabel.js
@@ -47,6 +50,22 @@ const PositionSelector = ({
 
   return (
     <div style={{ marginBottom: "15px", display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
+      {view.startPitches && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "var(--surface-2)", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-subtle)", alignItems: "center" }}>
+          <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: "bold", textAlign: "center" }}>
+            {instrumentType === "guitar" ? txt.guitarLabel : txt.bassLabel} : {txt.startPitch || "Start pitch"}
+          </div>
+          <select
+            value={view.startPitches.current ?? ""}
+            onChange={(e) => setStartPitch && setStartPitch(instrumentType, Number(e.target.value))}
+            style={{ padding: "5px 12px", fontSize: "12px", borderRadius: "15px" }}
+          >
+            {view.startPitches.choices.map((c) => (
+              <option key={c.pitch} value={String(c.pitch)}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
       {view.rootStrings && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "var(--surface-2)", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-subtle)", alignItems: "center" }}>
           <div style={{ fontSize: "11px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: "bold", textAlign: "center" }}>

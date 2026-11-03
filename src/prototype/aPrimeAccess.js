@@ -92,10 +92,12 @@ export const A_PRIME_ACCESS = [
   { fn: "jouer.position-bass-suiv", where: "instruments", needs: "dictionary" },
   // L1b-1c — the position panel: the label of a neck's position is the button
   // that opens it. Inside: "Fondamentale sur" (one button per string; chords),
-  // the two resets (a position chosen; a scale's focus), the alerts (guitar),
-  // and the instrument's range.
+  // the start-pitch octaves (a scale), the two resets (a position chosen; a
+  // scale's focus), the alerts (guitar), and the instrument's range.
   { fn: "jouer.position-panneau-guitar", where: "instruments", needs: "dictionary" },
   { fn: "jouer.position-panneau-bass", where: "instruments", needs: "dictionary" },
+  { fn: "jouer.position-depart-guitar", where: "instruments", needs: "panel" },
+  { fn: "jouer.position-depart-bass", where: "instruments", needs: "panel" },
   { fn: "jouer.position-fondamentale-corde-guitar-5", where: "instruments", needs: "panel" },
   { fn: "jouer.position-fondamentale-corde-guitar-4", where: "instruments", needs: "panel" },
   { fn: "jouer.position-fondamentale-corde-guitar-3", where: "instruments", needs: "panel" },

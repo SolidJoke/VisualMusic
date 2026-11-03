@@ -18,8 +18,8 @@
 // fret 3 (3-5), the E shape at fret 8 (8-10), the D shape at fret 10 (10-13);
 // on the bass the root on the A string (3-5), on the E string (8-10), on the D
 // string (10-12) — INST-B1's list, nut -> body. The piano plays C4 E4 G4
-// (60 64 67). The Do major scale's default box at the octave 0 starts at fret 4
-// on the guitar (C-06: 0, 2, 2, 4, 7, 7, 8 for the octaves -3..+3).
+// (60 64 67). The Do major scale's default position is the preset Do3, frets 0-3
+// on the guitar (VMU-202: the start pitch picks it, not the common octave).
 //
 // RED FIRST (L1b-1b): every test of this file except the characterization of
 // the classic page, which lives in its own file (ClassicPageOctave.test.jsx:
@@ -333,15 +333,15 @@ describe("L1b-1b (d): ‹ Octave › in the Dictionary sets the piano alone", ()
     expect(`${headLabel("guitar")} ${neckFrets("guitar")}`).toBe("La-forme (fr. 3) 3-5");
   });
 
-  it("a scale: the octave neither moves the default box (C-06 cut in A′: the box of the octave 0) nor clears a chosen one", async () => {
+  it("a scale: the octave neither moves the default position (VMU-202: the preset Do3) nor clears a chosen one", async () => {
     await renderApp("?prototype=a&scenario=cmajscale");
     const box = neckFrets("guitar");
-    expect(box.startsWith("4-")).toBe(true);
+    expect(box).toBe("0-3");
     await press(fn("jouer.octave-piano-suiv"));
     expect(neckFrets("guitar")).toBe(box);
     await press(fn("jouer.position-guitar-suiv"));
     const chosen = `${headLabel("guitar")} ${neckFrets("guitar")}`;
-    expect(chosen.startsWith("1 sur 5 0-")).toBe(true);
+    expect(chosen.startsWith("1 sur 7 0-")).toBe(true);
     await press(fn("jouer.octave-piano-suiv"));
     expect(`${headLabel("guitar")} ${neckFrets("guitar")}`).toBe(chosen);
   });

@@ -90,8 +90,10 @@ export function buildAscDescSequence(notes) {
 }
 
 /**
- * Builds the playback sequence for a displayed scale box: from the root up to
- * the next root an octave higher, then back down to the root.
+ * Builds the playback sequence for a displayed scale position: exactly the
+ * cells shown, in pitch order, up then back down — no cut. A position is one
+ * complete octave (N+1 notes, root to root, VMU-202's engine), so the cells
+ * are sorted by pitch and played ascending then descending.
  *
  * `reversedTuning` holds open-string NOTE NAMES (`['E4','B3',...]`, high→low
  * index), so every entry must go through getAbsoluteNoteValue() before any
@@ -102,14 +104,13 @@ export function buildAscDescSequence(notes) {
  *
  * @param {Array<{stringIndex: number, fret: number}>} scaleFrets
  * @param {string[]} reversedTuning - open string note names, high→low index
- * @param {number} rootPitchClass - 0-11, the pitch class to start and end on
  * @param {string} [instrument]
  * @returns {Array<{absoluteValue: number, stringIndex: number, fret: number, instrument?: string}>}
  */
-export function buildScaleBoxSequence(scaleFrets, reversedTuning, rootPitchClass, instrument = null) {
+export function buildScaleBoxSequence(scaleFrets, reversedTuning, instrument = null) {
   if (!scaleFrets?.length) return [];
 
-  const allNotes = scaleFrets
+  const ascending = scaleFrets
     .map((sf) => ({
       absoluteValue: getAbsoluteNoteValue(reversedTuning[sf.stringIndex]) + sf.fret,
       stringIndex: sf.stringIndex,
@@ -118,15 +119,5 @@ export function buildScaleBoxSequence(scaleFrets, reversedTuning, rootPitchClass
     }))
     .sort((a, b) => a.absoluteValue - b.absoluteValue);
 
-  // Anchor on the root. getAvailableScaleFingerings already slices the box from
-  // root to root, but this function must not depend on that staying true.
-  const startIdx = allNotes.findIndex((n) => n.absoluteValue % 12 === rootPitchClass);
-  const rootIdx = startIdx >= 0 ? startIdx : 0;
-
-  let endIdx = allNotes.findIndex((n, idx) => idx > rootIdx && n.absoluteValue % 12 === rootPitchClass);
-  if (endIdx === -1) endIdx = allNotes.length - 1;
-
-  const ascending = allNotes.slice(rootIdx, endIdx + 1);
-  const descending = ascending.slice(0, ascending.length - 1).reverse();
-  return [...ascending, ...descending];
+  return buildAscDescSequence(ascending);
 }

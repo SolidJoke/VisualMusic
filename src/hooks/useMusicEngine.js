@@ -14,7 +14,9 @@ import {
   resolvePlacement,
   familyOf,
   tessitura,
-  isOutsideTessitura
+  isOutsideTessitura,
+  scaleStartPitch,
+  scaleStartPitchOptions
 } from "../core/placements";
 import { getChordTargetNotes, getModeTargetNote } from "../core/targetNotes";
 
@@ -32,11 +34,11 @@ import { getChordTargetNotes, getModeTargetNote } from "../core/targetNotes";
  * read the chosen index (unchanged).
  * @returns {import("../core/placements").Selection|null}
  */
-function placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, rootString }) {
+function placementSelectionFor({ appMode, dictType, dictRoot, dictOctave, dictActiveNotes, effectiveChord, rootString, startPitch }) {
   /** @returns {import("../core/placements").Selection} */
   const noteSelection = () => ({ family: "note", type: "single_note", notePitch: dictActiveNotes?.[0]?.absoluteValue ?? null });
   if (appMode === "dictionary" && dictType) {
-    if (dictType.includes("scale")) return { family: "scale", type: dictType, root: dictRoot, octave: dictOctave };
+    if (dictType.includes("scale")) return { family: "scale", type: dictType, root: dictRoot, octave: dictOctave, startPitch };
     if (dictType === "single_note") return noteSelection();
     return { family: "chord", type: dictType, root: Number(dictRoot), octave: dictOctave, rootString };
   }
@@ -151,6 +153,12 @@ function fingeringFor({ instrument, placements, index, rootString, appMode, dict
  * @param {string} options.dictType
  * @param {any[]} options.dictActiveNotes
  * @param {number} options.dictOctave
+ * @param {{guitar: number|null, bass: number|null}} [options.startPitchByInstrument]
+ *   VMU-202 — the chosen start pitch of each neck (useDictionaryMode), null =
+ *   that neck's preset. Read for a scale only; the hook resolves each to the
+ *   octave actually in use (a chosen octave no longer reachable after a root
+ *   change falls back to the preset) and publishes both the resolved pitches
+ *   and the reachable octaves (`startPitchesByInstrument`).
  * @param {string} options.notation
  * @param {'piano'|'guitar'|'bass'} [options.playbackInstrument] instrument that
  *   owns the realization: its fingering decides the pitches that are both
@@ -187,7 +195,8 @@ export function useMusicEngine({
   notation,
   playbackInstrument = 'piano',
   targetNotesPreset = 'majorMinor',
-  pianoOwnsOctave
+  pianoOwnsOctave,
+  startPitchByInstrument: chosenStartPitchByInstrument = { guitar: null, bass: null }
 }) {
   // L1b-1b — the octave the necks' default position is chosen at, in the
   // Dictionary: the common octave on the classic page, the octave 0 on A′ (the
@@ -363,15 +372,52 @@ export function useMusicEngine({
   const guitarIndex = placementByInstrument?.guitar?.index ?? null;
   const bassIndex = placementByInstrument?.bass?.index ?? null;
 
+  // VMU-202 — the reachable start octaves of a scale on each neck (the choices
+  // of the minimal control) and the octave actually in use (the chosen one when
+  // still reachable, the preset otherwise). Empty / null outside a scale.
+  const guitarStartPitches = useMemo(() => (
+    appMode === "dictionary" && typeof dictType === "string" && dictType.includes("scale")
+      ? scaleStartPitchOptions({ family: "scale", type: dictType, root: Number(dictRoot), octave: neckOctave }, { id: "guitar", tuning: guitarTuning, notation })
+      : []
+  ), [appMode, dictType, dictRoot, neckOctave, guitarTuning, notation]);
+
+  const bassStartPitches = useMemo(() => (
+    appMode === "dictionary" && typeof dictType === "string" && dictType.includes("scale")
+      ? scaleStartPitchOptions({ family: "scale", type: dictType, root: Number(dictRoot), octave: neckOctave }, { id: "bass", tuning: bassTuning, notation })
+      : []
+  ), [appMode, dictType, dictRoot, neckOctave, bassTuning, notation]);
+
+  const guitarStartPitch = useMemo(() => (
+    appMode === "dictionary" && typeof dictType === "string" && dictType.includes("scale")
+      ? scaleStartPitch({ family: "scale", type: dictType, root: Number(dictRoot), octave: neckOctave }, { id: "guitar", tuning: guitarTuning, notation }, chosenStartPitchByInstrument?.guitar ?? null)
+      : null
+  ), [appMode, dictType, dictRoot, neckOctave, guitarTuning, notation, chosenStartPitchByInstrument]);
+
+  const bassStartPitch = useMemo(() => (
+    appMode === "dictionary" && typeof dictType === "string" && dictType.includes("scale")
+      ? scaleStartPitch({ family: "scale", type: dictType, root: Number(dictRoot), octave: neckOctave }, { id: "bass", tuning: bassTuning, notation }, chosenStartPitchByInstrument?.bass ?? null)
+      : null
+  ), [appMode, dictType, dictRoot, neckOctave, bassTuning, notation, chosenStartPitchByInstrument]);
+
+  const startPitchesByInstrument = useMemo(() => ({
+    guitar: guitarStartPitches,
+    bass: bassStartPitches,
+  }), [guitarStartPitches, bassStartPitches]);
+
+  const startPitchByInstrument = useMemo(() => ({
+    guitar: guitarStartPitch,
+    bass: bassStartPitch,
+  }), [guitarStartPitch, bassStartPitch]);
+
   const guitarPlacements = useMemo(() => listPlacements(
-    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, rootString: selectedRootStringGuitar }),
+    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, rootString: selectedRootStringGuitar, startPitch: guitarStartPitch }),
     { id: "guitar", tuning: guitarTuning, notation }
-  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, selectedRootStringGuitar, guitarTuning, notation]);
+  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, selectedRootStringGuitar, guitarTuning, notation, guitarStartPitch]);
 
   const bassPlacements = useMemo(() => listPlacements(
-    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, rootString: selectedRootStringBass }),
+    placementSelectionFor({ appMode, dictType, dictRoot, dictOctave: neckOctave, dictActiveNotes, effectiveChord, rootString: selectedRootStringBass, startPitch: bassStartPitch }),
     { id: "bass", tuning: bassTuning, notation }
-  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, selectedRootStringBass, bassTuning, notation]);
+  ), [appMode, dictType, dictRoot, neckOctave, dictActiveNotes, effectiveChord, selectedRootStringBass, bassTuning, notation, bassStartPitch]);
 
   const placementsByInstrument = useMemo(() => ({
     guitar: guitarPlacements,
@@ -492,6 +538,8 @@ export function useMusicEngine({
     guitarFingering,
     bassFingering,
     placementsByInstrument,
+    startPitchesByInstrument,
+    startPitchByInstrument,
     isGuitarOutOfRange,
     isBassOutOfRange
   };

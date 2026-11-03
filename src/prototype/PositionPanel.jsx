@@ -24,11 +24,27 @@ import React from "react";
  * @param {(idx: number|null) => void} props.setSelectedRootString
  * @param {(index: number|null) => void} props.setPlacementIndex
  * @param {(anchor: null) => void} props.setScaleAnchor
+ * @param {(pitch: number|null) => void} props.setStartPitch
  */
-export default function PositionPanel({ id, view, T, txt, selectedRootString, placementIndex, setSelectedRootString, setPlacementIndex, setScaleAnchor }) {
+export default function PositionPanel({ id, view, T, txt, selectedRootString, placementIndex, setSelectedRootString, setPlacementIndex, setScaleAnchor, setStartPitch }) {
   const alertText = view.alert === "outOfRange" ? txt.warningOutOfRange : view.alert === "difficultStretch" ? txt.warningDifficultStretch : null;
   return (
     <div className="proto-a__pp">
+      {view.startPitches && (
+        <div className="proto-a__pp-group" role="group" aria-label={T.positionStartPitch}>
+          <div className="proto-a__pp-title">{T.positionStartPitch}</div>
+          <select
+            className="proto-a__pp-select"
+            data-fn={`jouer.position-depart-${id}`}
+            value={view.startPitches.current ?? ""}
+            onChange={(e) => setStartPitch && setStartPitch(Number(e.target.value))}
+          >
+            {view.startPitches.choices.map((c) => (
+              <option key={c.pitch} value={String(c.pitch)}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
       {view.rootStrings && (
         <div className="proto-a__pp-group" role="group" aria-label={T.positionRootOn}>
           <div className="proto-a__pp-title">{T.positionRootOn}</div>

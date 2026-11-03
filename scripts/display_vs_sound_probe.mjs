@@ -26,6 +26,7 @@
  *   5  the piano's flash on notes of another instrument (4 gestures)
  *   6  scale positions: bass, C major, octave 0, automatic position
  *   7  Studio, guitar chosen, during the loop: the chords' grip vs the neck
+ *   8  VMU-202: the scale position's ▶ — drawn cells == programmed (up then down)
  *
  * It does not judge a result: it prints the measured quantities and a verdict
  * word (SAME / DIFFERENT / FLASHES / QUIET) that the report reads. Exit 1 only
@@ -647,6 +648,24 @@ async function point7(browser, errors) {
   await page.close();
 }
 
+async function point8(browser, errors) {
+  out("\n== POINT 8 · VMU-202: the scale position's ▶ plays exactly the drawn cells, up then down ==");
+  const page = await openPage(browser, "&bench=1&scenario=cmajscale", errors);
+  for (const inst of ["guitar", "bass"]) {
+    await tap(page);
+    await resetRecorders(page);
+    const shown = await page.evaluate(readShown);
+    const drawn = drawnNeck(shown, inst);
+    await page.locator(`[data-fn="jouer.instrument-play-${inst}"]`).click();
+    // One octave, up then down (N + N-1 notes at stepTime = 0.25 s at 120 bpm).
+    await settle(page, 5000);
+    const rec = await readRecorders(page);
+    const prog = uniqSorted(programmed(rec.log, (s) => new RegExp(inst).test(s)));
+    out(`  ${inst}: drawn [${names(drawn)}] (${drawn.length}) | ▶ programmed distinct [${names(prog)}] (${prog.length}) -> ${same(drawn, prog) ? "SAME" : "DIFFERENT"}`);
+  }
+  await page.close();
+}
+
 // ─── run ───────────────────────────────────────────────────────────────────
 
 const { chromium } = await import("playwright");
@@ -659,7 +678,7 @@ const browser = await chromium.launch();
 const errors = [];
 let failed = false;
 try {
-  for (const [n, fn] of [[1, point1], [2, point2], [3, point3], [4, point4], [41, point4b], [5, point5], [6, point6], [7, point7]]) {
+  for (const [n, fn] of [[1, point1], [2, point2], [3, point3], [4, point4], [41, point4b], [5, point5], [6, point6], [7, point7], [8, point8]]) {
     if (!want(n)) continue;
     try {
       await fn(browser, errors);

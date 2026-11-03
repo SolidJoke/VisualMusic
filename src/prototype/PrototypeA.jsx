@@ -370,6 +370,8 @@ export default function PrototypeA({
       // The classic tile shows it in the Dictionary only: in the Studio every instrument
       // holds the chord's theoretical notes, not what its neck plays.
       range: isDictionary ? formatPitchRange(realizationRange(engine.realizationsByInstrument?.[id]), notation) : "",
+      startPitches: engine.startPitchesByInstrument?.[id] ?? [],
+      startPitch: engine.startPitchByInstrument?.[id] ?? null,
     });
     if (!view.hasContent) return null;
     const alertText = view.alert === "outOfRange" ? TX.warningOutOfRange : view.alert === "difficultStretch" ? TX.warningDifficultStretch : null;
@@ -388,6 +390,7 @@ export default function PrototypeA({
           setSelectedRootString={(idx) => setSelectedRootString && setSelectedRootString(idx)}
           setPlacementIndex={(i) => engine.setPlacementIndex && engine.setPlacementIndex(id, i)}
           setScaleAnchor={(anchor) => engine.setScaleAnchor && engine.setScaleAnchor(anchor)}
+          setStartPitch={(pitch) => engine.setStartPitch && engine.setStartPitch(id, pitch)}
         />
       ),
     };
