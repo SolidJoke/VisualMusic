@@ -5,8 +5,8 @@
 //
 //   1. a dot (data-fret-marker="<n>") on frets 3, 5, 7, 9, 15, 17, 19, 21 and
 //      two on 12 — and nowhere else (the attribute is absent off the list);
-//   2. only the frets a neck has: the guitar's 22, the bass's 20 (no 21 on a
-//      bass, nothing drawn for a fret that does not exist);
+//   2. only the frets a neck has: the guitar's and the bass's 22 (a 21 dot on
+//      both, nothing drawn for a fret that does not exist);
 //   3. each dot lives in the row of its own fret, so it moves with that row
 //      (one position function, not a second calculation), and comes before
 //      the cells in the row so the pastilles paint over it;
@@ -118,7 +118,7 @@ function renderNeck(instrument) {
 
 const EXPECTED = {
   guitar: { frets: 22, dots: { 3: 1, 5: 1, 7: 1, 9: 1, 12: 2, 15: 1, 17: 1, 19: 1, 21: 1 } },
-  bass: { frets: 20, dots: { 3: 1, 5: 1, 7: 1, 9: 1, 12: 2, 15: 1, 17: 1, 19: 1 } },
+  bass: { frets: 22, dots: { 3: 1, 5: 1, 7: 1, 9: 1, 12: 2, 15: 1, 17: 1, 19: 1, 21: 1 } },
 };
 
 describe.each(["guitar", "bass"])("vertical %s neck: fret markers", (instrument) => {

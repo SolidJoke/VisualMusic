@@ -13,8 +13,8 @@
 // in the page's CSS (--proto-inst-h, from the key thickness) that both the
 // keyboard and the necks read.
 //
-// What is asserted here is the FUNCTION (pure, no layout), for the guitar's 22
-// frets and the bass's 20, with the keyboard's height read from PrototypeA.css
+// What is asserted here is the FUNCTION (pure, no layout), for the guitar's
+// and the bass's 22 frets, with the keyboard's height read from PrototypeA.css
 // and the neck's fixed lines from Fretboard.css, where they are declared, so
 // this file cannot drift from the stylesheets:
 //
@@ -37,7 +37,7 @@ import {
   INLAY_FRET_DOTS,
 } from "../verticalNeckGeometry";
 
-const NECKS = { guitar: 22, bass: 20 }; // useFretboard.js getNumFrets
+const NECKS = { guitar: 22, bass: 22 }; // useFretboard.js getNumFrets
 
 const read = (p) => fs.readFileSync(path.resolve(p), "utf8");
 const neckCss = read("src/components/Instruments/Fretboard.css");
@@ -112,10 +112,10 @@ describe.each(Object.entries(NECKS))("verticalFretShare / verticalFretPitch on t
     p.forEach((v, i) => expect(v, `fret ${i + 1}`).toBeGreaterThanOrEqual(52));
   });
 
-  it("gives the bass the same neck length as the guitar, with its own, larger scale", () => {
-    // Both fill the same height, so the shorter neck (20 frets) has the larger mean pitch.
+  it("gives the bass the same neck length and the same rows as the guitar", () => {
+    // Both have 22 frets now, so both fill the same height with the same rows.
     const mean = (n) => sum(pitches(n)) / n;
-    expect(mean(NECKS.bass)).toBeGreaterThan(mean(NECKS.guitar));
+    expect(mean(NECKS.bass)).toBeCloseTo(mean(NECKS.guitar), 6);
     expect(geo().fixed + sum(pitches(NECKS.bass))).toBeCloseTo(geo().fixed + sum(pitches(NECKS.guitar)), 0);
   });
 

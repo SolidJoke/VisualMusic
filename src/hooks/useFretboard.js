@@ -11,8 +11,9 @@ import {
   extractBarreData,
 } from "../core/fretboardUtils";
 
-// D.1.2 — numFrets par instrument : bass → 20 frets, guitar → 22 frets
-const getNumFrets = (instrument) => instrument === "bass" ? 20 : 22;
+// D.1.2 — numFrets : 22 frets for both instruments (VMU-202, 2026-11-02:
+// the bass gets 22 frets "like the guitar")
+const getNumFrets = () => 22;
 
 /**
  * Hook d'orchestration du Fretboard.
@@ -28,7 +29,7 @@ const getNumFrets = (instrument) => instrument === "bass" ? 20 : 22;
  * taille derive. TypeScript l'infere exactement depuis l'objet retourne.
  */
 export function useFretboard(instrument) {
-  const numFrets = getNumFrets(instrument);
+  const numFrets = getNumFrets();
   const {
     realizationsByInstrument,
     fretboardActiveNotes,
@@ -95,7 +96,7 @@ export function useFretboard(instrument) {
     [fingering, strings]
   );
 
-  // ── Largeurs des cases (dépend de l'instrument car numFrets varie) ──
+  // ── Largeurs des cases (22 frets pour les deux instruments) ──
   const fretWidths = useMemo(() => getFretWidths(numFrets), [numFrets]);
 
   // ── Template CSS (dépend des largeurs, lui-même stable) ──
