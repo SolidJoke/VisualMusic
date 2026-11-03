@@ -139,13 +139,16 @@ const CHORD_TRACK_ID = "chords";
  * unused.
  *
  * @typedef {Object} StudioOverrides
- * @property {Object<string, number[]>|null} [customDrums] drum track name ->
- *   active steps of one measure (Math & Rythmes panel).
- * @property {number[]|null} [customRhythm] a chord rhythm (the rhythm
- *   selector, the Math & Rythmes panel).
+ * @property {Object<string, number[]|{activeSteps:number[], cycleLength:number}>|null} [customDrums]
+ *   drum track name -> active steps of one measure, or (Math & Rythmes) a
+ *   whole circle `{ activeSteps, cycleLength }` repeated across measures.
+ * @property {number[]|{activeSteps:number[], cycleLength:number}|null} [customRhythm]
+ *   a chord rhythm (the rhythm selector, the Math & Rythmes panel) — an array
+ *   of steps, or (Math & Rythmes) a whole circle.
  * @property {string[]|null} [customProgression] NNS degrees (Quick Start).
  * @property {any} [suggestedBassTrack] a one-measure pattern replacing the
- *   melodic track named "Bass" (bass suggestion, Math & Rythmes panel).
+ *   melodic track named "Bass" (bass suggestion, Math & Rythmes panel); may
+ *   carry `cycleLength` like any other Math & Rythmes override.
  */
 
 /**
@@ -168,21 +171,27 @@ function measuresOf(provenance) {
 }
 
 /**
- * The cells of a one-measure pattern — bricks.json's shape: `activeSteps`
- * (steps 0-15), `lowVelocitySteps`, `pitchSteps` — copied into every measure.
- * A step plays when the pattern lists it, exactly as playback matched it
+ * The cells of a pattern — bricks.json's shape: `activeSteps` (steps 0-15),
+ * `lowVelocitySteps`, `pitchSteps` — copied into every measure. A step plays
+ * when the pattern lists it, exactly as playback matched it
  * (`activeSteps.includes(step % 16)`) before T3.
+ *
+ * VMU-208: a pattern may also carry a `cycleLength` (a Math & Rythmes
+ * override): then the cell at document step `s` is index `s % cycleLength`,
+ * so the circle continues from one measure to the next instead of folding
+ * back onto one measure.
  *
  * @param {any} pattern
  * @returns {(TimelineCell|null)[]}
  */
 function patternCells(pattern) {
+  const cycleLength = pattern.cycleLength;
   return Array.from({ length: MAX_STEPS }, (_, step) => {
-    const inMeasure = step % STEPS_PER_MEASURE;
-    if (!pattern.activeSteps?.includes(inMeasure)) return null;
+    const inPattern = cycleLength ? step % cycleLength : step % STEPS_PER_MEASURE;
+    if (!pattern.activeSteps?.includes(inPattern)) return null;
     /** @type {TimelineCell} */
-    const cell = { vel: pattern.lowVelocitySteps?.includes(inMeasure) ? "ghost" : "normal" };
-    const pitch = pattern.pitchSteps?.[inMeasure];
+    const cell = { vel: pattern.lowVelocitySteps?.includes(inPattern) ? "ghost" : "normal" };
+    const pitch = pattern.pitchSteps?.[inPattern];
     if (pitch) cell.pitch = pitch;
     return cell;
   });
@@ -212,10 +221,23 @@ export function trackFromPattern(pattern, { id = pattern.name, role, provenance 
  * steps), a rhythm of several hits strikes each for a 16th (1 step). An empty
  * rhythm strikes nothing.
  *
- * @param {number[]} rhythm
+ * @param {number[] | { activeSteps: number[], cycleLength: number }} rhythm
  * @returns {(TimelineCell|null)[]}
  */
 export function chordHitCells(rhythm) {
+  // VMU-208: the Math & Rythmes panel sends the chord row an object form
+  // `{ activeSteps, cycleLength }`, so the circle continues across measures
+  // (cell at step `s` = index `s % cycleLength`) instead of folding back onto
+  // one measure.
+  if (!Array.isArray(rhythm)) {
+    const { activeSteps, cycleLength } = rhythm;
+    const len = activeSteps.length > 1 ? 1 : 4;
+    return Array.from({ length: MAX_STEPS }, (_, step) => {
+      const hit = activeSteps.includes(step % cycleLength);
+      return hit ? { vel: "normal", len } : null;
+    });
+  }
+
   const stepsOfOneMeasure = rhythm.some((step) => step > 3);
   const len = rhythm.length > 1 ? 1 : 4;
   return Array.from({ length: MAX_STEPS }, (_, step) => {
@@ -357,15 +379,23 @@ function applyOverrides(brick, style, overrides) {
 
   let drums = style.drums;
   if (customDrums) {
+    // A drum override is an array of one-measure steps (the legacy shape) or,
+    // from the Math & Rythmes panel, a whole circle `{ activeSteps,
+    // cycleLength }` repeated across measures.
+    const overridden = (track, value) =>
+      Array.isArray(value)
+        ? { ...track, activeSteps: value }
+        : { ...track, activeSteps: value.activeSteps, cycleLength: value.cycleLength };
     drums = style.drums.map((track, i) => {
-      if (customDrums[track.name] === undefined) return track;
+      const value = customDrums[track.name];
+      if (value === undefined) return track;
       replaced.add(`drum-${i}`);
-      return { ...track, activeSteps: customDrums[track.name] };
+      return overridden(track, value);
     });
     Object.keys(customDrums).forEach((name) => {
       if (!drums.some((t) => t.name === name)) {
         replaced.add(`drum-${drums.length}`);
-        drums.push({ name, activeSteps: customDrums[name] });
+        drums.push(overridden({ name }, customDrums[name]));
       }
     });
   }

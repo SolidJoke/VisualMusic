@@ -319,7 +319,7 @@ describe("the live send is intact (VMU-195-A)", () => {
     const { setCustomDrums } = setup({ txt: en });
     expect(setCustomDrums).not.toHaveBeenCalled();
     fireEvent.change(screen.getByTestId("comp-slider-k"), { target: { value: "6" } });
-    expect(lastKick(setCustomDrums)).toHaveLength(6);
+    expect(lastKick(setCustomDrums).activeSteps).toHaveLength(6);
   });
 
   it("changing the instrument sends to that instrument", () => {

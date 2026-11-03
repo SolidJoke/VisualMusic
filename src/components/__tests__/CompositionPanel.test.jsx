@@ -76,11 +76,11 @@ describe("CompositionPanel Component", () => {
     fireEvent.click(exportBtn);
     expect(setCustomDrums).toHaveBeenCalledTimes(1);
 
-    // E(5,16) yields indices [0, 3, 6, 9, 12]
+    // E(5,16) yields indices [0, 3, 6, 9, 12], sent whole with their cycle length.
     const drumSetterArg = setCustomDrums.mock.calls[0][0];
     const dummyPrev = {};
     const result = drumSetterArg(dummyPrev);
-    expect(result.Kick).toEqual([0, 3, 6, 9, 12]);
+    expect(result.Kick).toEqual({ activeSteps: [0, 3, 6, 9, 12], cycleLength: 16 });
   });
 
   it("calls setSuggestedBassTrack when exporting to Bass", () => {
@@ -214,9 +214,10 @@ describe("CompositionPanel — opening writes nothing to the sequencer (VMU-113)
     // E(6,16): six onsets among sixteen steps, whatever the rotation.
     expect(setCustomDrums).toHaveBeenCalled();
     const kick = lastKick(setCustomDrums);
-    expect(kick).toHaveLength(6);
-    expect(new Set(kick).size).toBe(6);
-    expect(kick.every((step) => step >= 0 && step < 16)).toBe(true);
+    expect(kick.cycleLength).toBe(16);
+    expect(kick.activeSteps).toHaveLength(6);
+    expect(new Set(kick.activeSteps).size).toBe(6);
+    expect(kick.activeSteps.every((step) => step >= 0 && step < 16)).toBe(true);
   });
 
   it("returning to the opening value after a change still exports it", () => {
@@ -228,6 +229,6 @@ describe("CompositionPanel — opening writes nothing to the sequencer (VMU-113)
     fireEvent.change(pulsesSlider(container), { target: { value: "6" } });
     fireEvent.change(pulsesSlider(container), { target: { value: "5" } });
 
-    expect(lastKick(setCustomDrums)).toHaveLength(5);
+    expect(lastKick(setCustomDrums).activeSteps).toHaveLength(5);
   });
 });

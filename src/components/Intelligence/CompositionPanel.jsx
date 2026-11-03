@@ -132,38 +132,41 @@ export default function CompositionPanel({
 
   // Export to Sequencer Action (now called automatically)
   const handleExport = () => {
+    // VMU-208: the circle is exported WHOLE — every case of the active mode,
+    // whatever its length — with that length as `cycleLength`. The sequencer
+    // then plays case `step % cycleLength` at document step `step`, so the
+    // circle continues across measures (and restarts with the loop).
     let activeStepsToExport = [];
     let pitchStepsToExport = {};
+    let cycleLength = subdivisions;
 
     if (showIsorhythm && isorhythmResult) {
+      cycleLength = isorhythmResult.sequence.length;
       isorhythmResult.sequence.forEach((note, idx) => {
-        if (idx < 16) {
-          if (note) {
-            activeStepsToExport.push(idx);
-            pitchStepsToExport[idx] = note;
-          }
+        if (note) {
+          activeStepsToExport.push(idx);
+          pitchStepsToExport[idx] = note;
         }
       });
     } else if (showRealignment && realignedPattern) {
+      cycleLength = realignedPattern.length;
       realignedPattern.forEach((val, idx) => {
-        if (idx < 16) {
-          if (val === 1) {
-            activeStepsToExport.push(idx);
-            pitchStepsToExport[idx] = "R";
-          }
+        if (val === 1) {
+          activeStepsToExport.push(idx);
+          pitchStepsToExport[idx] = "R";
         }
       });
     } else if (showPolyrhythm && polyrhythmResult) {
+      cycleLength = polyrhythmResult.pattern.length;
       polyrhythmResult.pattern.forEach((val, idx) => {
-        if (idx < 16 && val === 1) {
-           activeStepsToExport.push(idx);
-           pitchStepsToExport[idx] = "R";
+        if (val === 1) {
+          activeStepsToExport.push(idx);
+          pitchStepsToExport[idx] = "R";
         }
       });
     } else {
-      const steps = indices.filter(idx => idx < 16);
-      activeStepsToExport = steps;
-      steps.forEach(step => {
+      activeStepsToExport = indices;
+      activeStepsToExport.forEach(step => {
         pitchStepsToExport[step] = "R";
       });
     }
@@ -172,15 +175,16 @@ export default function CompositionPanel({
       setSuggestedBassTrack({
         name: "Bass",
         activeSteps: activeStepsToExport,
-        pitchSteps: pitchStepsToExport
+        pitchSteps: pitchStepsToExport,
+        cycleLength
       });
     } else if (exportTarget === "Chords") {
-      setCustomRhythm(activeStepsToExport);
+      setCustomRhythm({ activeSteps: activeStepsToExport, cycleLength });
     } else {
       // Drum target (Kick, Snare, Hat)
       setCustomDrums(prev => {
         const drums = prev ? { ...prev } : {};
-        drums[exportTarget] = activeStepsToExport;
+        drums[exportTarget] = { activeSteps: activeStepsToExport, cycleLength };
         return drums;
       });
     }
