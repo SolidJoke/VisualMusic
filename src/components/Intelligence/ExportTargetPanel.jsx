@@ -1,52 +1,48 @@
 import React from 'react';
-import SectionTitle from './SectionTitle';
+import HelpButton from './HelpButton';
 
+/**
+ * ExportTargetPanel — the footer of the Math & Rythmes window (VMU-195-B).
+ * The instrument choice moved into the phrase ("joués par [Grosse caisse ▾]");
+ * what stays here is what the footer says: "● en direct sur …", "Envoyer
+ * maintenant", "▶ Écouter / ■ Arrêter" and "↺ Rythme du style".
+ */
 export default function ExportTargetPanel({
   txt,
-  exportTarget,
-  setExportTarget,
+  exportTarget = 'Kick',
   showExportSuccess,
   handleExport,
   handleClearOverrides,
   isPlaying = false,
   togglePlayback
 }) {
+  // The instrument's name for the live note, first letter lowercased
+  // ("en direct sur grosse caisse").
+  const labels = {
+    Kick: txt.kick,
+    Snare: txt.snare,
+    Hat: txt.hat,
+    Bass: txt.bass,
+    Chords: txt.chordsOut,
+  };
+  const name = labels[exportTarget] || exportTarget;
+  const lower = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+  // Statically addressed so the CSS-variable scan sees each --seq-* name.
+  const SEQ_TOKEN = {
+    Kick: 'var(--seq-kick)',
+    Snare: 'var(--seq-snare)',
+    Hat: 'var(--seq-hat)',
+    Bass: 'var(--seq-bass)',
+    Chords: 'var(--seq-chords)',
+  };
+  const trackToken = SEQ_TOKEN[exportTarget] || SEQ_TOKEN.Kick;
+
   return (
-    <div className="panel-section export-section" data-testid="comp-export">
-      <SectionTitle id="export" name={txt.exportPanel} help={txt.helpExport} helpLabel={txt.help}>
-        {txt.exportPanel || "Send to"}
-      </SectionTitle>
+    <div className="panel-section export-section export-footer" data-testid="comp-export">
+      <p className="live-note" data-testid="comp-live-note" style={{ '--c': trackToken }}>
+        <i className="live-dot" aria-hidden="true" /> {txt.liveOn} {lower(name)}
+      </p>
 
-      <div className="export-controls">
-        <div className="target-select">
-          <label htmlFor="comp-target">{txt.target || "Instrument:"}</label>
-          <select
-            id="comp-target"
-            data-testid="comp-target"
-            value={exportTarget}
-            onChange={(e) => setExportTarget(e.target.value)}
-            className="retro-select mini"
-          >
-            <option value="Kick">{txt.kick || "Kick drum"}</option>
-            <option value="Snare">{txt.snare || "Snare drum"}</option>
-            <option value="Hat">{txt.hat || "Hi-hat"}</option>
-            <option value="Bass">{txt.bass || "Bass line"}</option>
-            <option value="Chords">{txt.chordsOut || "Chord rhythm"}</option>
-          </select>
-        </div>
-
-        <button
-          onClick={handleExport}
-          data-testid="comp-send"
-          className={`retro-btn export-btn ${showExportSuccess ? "success" : ""}`}
-        >
-          {showExportSuccess ? (txt.exportSuccess || "Sent!") : (txt.exportBtn || "Send now")}
-        </button>
-      </div>
-
-      {/* The track already follows the settings: say so, and let the user
-          hear it without closing the window (the main loop, not a new engine). */}
-      <p className="live-note">{txt.live}</p>
       {togglePlayback && (
         <button
           type="button"
@@ -58,15 +54,24 @@ export default function ExportTargetPanel({
         </button>
       )}
 
-      <div className="clear-container">
-        <button
-          onClick={handleClearOverrides}
-          data-testid="comp-reset"
-          className="retro-btn clear-btn"
-        >
-          {txt.resetAll || "Back to the style's rhythm"}
-        </button>
-      </div>
+      <button
+        onClick={handleExport}
+        data-testid="comp-send"
+        title={txt.helpExport}
+        className={`retro-btn export-btn ${showExportSuccess ? 'success' : ''}`}
+      >
+        {showExportSuccess ? (txt.exportSuccess || 'Sent!') : (txt.exportBtn || 'Send now')}
+      </button>
+
+      <HelpButton id="export" name={txt.exportBtn} help={txt.helpExport} helpLabel={txt.help} />
+
+      <button
+        onClick={handleClearOverrides}
+        data-testid="comp-reset"
+        className="retro-btn clear-btn"
+      >
+        {txt.resetAll || '↺ Rythme du style'}
+      </button>
     </div>
   );
 }

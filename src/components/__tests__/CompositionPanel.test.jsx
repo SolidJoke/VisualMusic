@@ -17,40 +17,32 @@ describe("CompositionPanel Component", () => {
     currentStep: -1
   };
 
-  it("renders correctly with default presets and sliders", () => {
+  it("renders the phrase steppers, the instrument and the send button", () => {
     const { container } = render(<CompositionPanel {...defaultProps} />);
 
-    // Check main title is present (VMU-195-A: stable hook, not the wording)
+    // Main title is present (stable hook, not the wording).
     expect(screen.getByTestId("comp-title")).toBeTruthy();
 
-    // Check select preset dropdown exists
-    const select = screen.getAllByRole("combobox")[0]; // first select is preset selector
-    expect(select).toBeTruthy();
+    // The instrument is the one select ("joués par …").
+    expect(screen.getByTestId("comp-target")).toBeTruthy();
 
-    // Check subdivisions slider
-    const subLabel = screen.getByTestId("comp-slider-n");
-    expect(subLabel).toBeTruthy();
+    // The three numbers of the phrase have their − / + pairs.
+    expect(screen.getByTestId("comp-k-value").textContent).toBe("5");
+    expect(screen.getByTestId("comp-n-value").textContent).toBe("16");
+    expect(screen.getByTestId("comp-r-value").textContent).toBe("0");
 
-    // Check pulses slider
-    const pulsesLabel = screen.getByTestId("comp-slider-k");
-    expect(pulsesLabel).toBeTruthy();
-
-    // Check export button
+    // Send button.
     expect(container.querySelector(".export-btn")).toBeTruthy();
   });
 
-  it("updates parameters when choosing a rhythmic preset", () => {
-    const { container } = render(<CompositionPanel {...defaultProps} />);
+  it("sets n and k when choosing a rhythmic pill", () => {
+    render(<CompositionPanel {...defaultProps} />);
 
-    const select = screen.getAllByRole("combobox")[0];
+    fireEvent.click(screen.getByTestId("comp-preset-tresillo"));
 
-    // Choose "Tresillo" from presets
-    fireEvent.change(select, { target: { value: "tresillo" } });
-
-    // Tresillo is E(3,8)
-    const lcds = container.querySelectorAll(".lcd-value");
-    expect(lcds[0].textContent).toBe("8"); // Subdivisions
-    expect(lcds[1].textContent).toBe("3"); // Pulses
+    // Tresillo is E(3,8).
+    expect(screen.getByTestId("comp-n-value").textContent).toBe("8");
+    expect(screen.getByTestId("comp-k-value").textContent).toBe("3");
   });
 
   it("calls export handlers correctly for different targets", () => {
@@ -70,16 +62,13 @@ describe("CompositionPanel Component", () => {
     const exportBtn = container.querySelector(".export-btn");
 
     // Default target is Kick drum, should call setCustomDrums — once, for the
-    // click. This asserted 2 calls, and passed: the second was the export the
-    // panel fired on mount, which overwrote the style's kick the moment the
-    // modal opened (VMU-113). The test was certifying the bug.
+    // click (opening the window writes nothing, VMU-113).
     fireEvent.click(exportBtn);
     expect(setCustomDrums).toHaveBeenCalledTimes(1);
 
     // E(5,16) yields indices [0, 3, 6, 9, 12], sent whole with their cycle length.
     const drumSetterArg = setCustomDrums.mock.calls[0][0];
-    const dummyPrev = {};
-    const result = drumSetterArg(dummyPrev);
+    const result = drumSetterArg({});
     expect(result.Kick).toEqual({ activeSteps: [0, 3, 6, 9, 12], cycleLength: 16 });
   });
 
@@ -93,10 +82,8 @@ describe("CompositionPanel Component", () => {
       />
     );
 
-    // Select Bass target
-    const selects = screen.getAllByRole("combobox");
-    const targetSelect = selects[1]; // second select is the target selector
-    fireEvent.change(targetSelect, { target: { value: "Bass" } });
+    // The one select is the instrument of the phrase.
+    fireEvent.change(screen.getByTestId("comp-target"), { target: { value: "Bass" } });
 
     const exportBtn = container.querySelector(".export-btn");
     fireEvent.click(exportBtn);
@@ -120,48 +107,65 @@ describe("CompositionPanel Component", () => {
       />
     );
 
-    const resetBtn = screen.getByTestId("comp-reset");
-    fireEvent.click(resetBtn);
+    fireEvent.click(screen.getByTestId("comp-reset"));
 
     expect(setSuggestedBassTrack).toHaveBeenCalledWith(null);
     expect(setCustomRhythm).toHaveBeenCalledWith(null);
     expect(setCustomDrums).toHaveBeenCalledWith(null);
   });
 
-  it("handles Isorhythm Mode toggle and mutual exclusion", () => {
-    render(<CompositionPanel {...defaultProps} />);
+  it("handles each recipe and its exact exclusion of the others (four-row rule)", () => {
+    // The marker each recipe leaves visible when it is switched on: its own
+    // section for the first three, the polyrhythm editor for "Empiler des
+    // rythmes" (which has no comp-*-section test id).
+    const section = {
+      phasing: "comp-phasing-section",
+      iso: "comp-iso-section",
+      mesh: "comp-realign-section",
+      poly: "comp-poly-add",
+    };
+    // Turning a recipe on switches off every other recipe except the ones
+    // listed here — the HEAD rule restored for VMU-195-B: phasing and iso
+    // leave poly on, mesh and poly switch everything else off.
+    const leavesOn = {
+      phasing: ["poly"],
+      iso: ["poly"],
+      mesh: [],
+      poly: [],
+    };
 
-    // The composer tools are folded by default (VMU-195-A): unfold them first
-    fireEvent.click(screen.getByTestId("comp-advanced-toggle"));
+    for (const [target, kept] of Object.entries(leavesOn)) {
+      for (const other of Object.keys(section)) {
+        if (other === target) continue;
 
-    // By default, Isorhythm section should not be present
-    expect(screen.queryByTestId("comp-iso-section")).toBeNull();
+        const { unmount } = render(<CompositionPanel {...defaultProps} />);
+        // The recipes are folded by default: unfold them first.
+        fireEvent.click(screen.getByTestId("comp-advanced-toggle"));
 
-    // Toggle Isorhythm switch
-    const isorhythmSwitch = screen.getByTestId("comp-mode-iso");
-    fireEvent.click(isorhythmSwitch);
+        // Switch the other recipe on first, so the target must either keep it
+        // on or switch it off.
+        fireEvent.click(screen.getByTestId(`comp-mode-${other}`));
+        expect(screen.getByTestId(section[other])).toBeTruthy();
 
-    // Isorhythm section should now be visible
-    expect(screen.getByTestId("comp-iso-section")).toBeTruthy();
-    expect(screen.getByTestId("comp-iso-pitches")).toBeTruthy();
+        fireEvent.click(screen.getByTestId(`comp-mode-${target}`));
+        expect(screen.getByTestId(section[target])).toBeTruthy();
 
-    // Toggle Forced Realignment switch (Mode M)
-    const realignmentSwitch = screen.getByTestId("comp-mode-mesh");
-    fireEvent.click(realignmentSwitch);
-
-    // Forced Realignment section should now be visible
-    expect(screen.getByTestId("comp-realign-section")).toBeTruthy();
-
-    // Isorhythm section should be closed due to mutual exclusion
-    expect(screen.queryByTestId("comp-iso-section")).toBeNull();
+        if (kept.includes(other)) {
+          expect(screen.getByTestId(section[other])).toBeTruthy();
+        } else {
+          expect(screen.queryByTestId(section[other])).toBeNull();
+        }
+        unmount();
+      }
+    }
   });
 });
 
 // VMU-113. The panel lives in a modal that mounts its content on opening. An
 // effect exported the current rhythm on every render-time change, mount
 // included, so opening "Math & Rythmes" replaced the style's kick with E(5,16)
-// before the user touched anything. Measured in the browser on d54badb: kick
-// steps 0,8 -> 0,3,6,9,12 on opening, still there after closing.
+// before the user touched anything. The phrase's − / + must keep the same
+// guarantee: opening writes nothing.
 describe("CompositionPanel — opening writes nothing to the sequencer (VMU-113)", () => {
   const renderPanel = (wrap = (node) => node) => {
     const setters = {
@@ -181,14 +185,10 @@ describe("CompositionPanel — opening writes nothing to the sequencer (VMU-113)
     return { ...utils, ...setters };
   };
 
-  // The rhythm the last drum export would write, read through the functional
-  // updater the panel passes to setCustomDrums.
   const lastKick = (setCustomDrums) => {
     const calls = setCustomDrums.mock.calls;
     return calls[calls.length - 1][0]({}).Kick;
   };
-
-  const pulsesSlider = (container) => container.querySelectorAll('input[type="range"]')[1];
 
   it("opening the panel calls no sequencer setter", () => {
     const { setSuggestedBassTrack, setCustomRhythm, setCustomDrums } = renderPanel();
@@ -199,17 +199,15 @@ describe("CompositionPanel — opening writes nothing to the sequencer (VMU-113)
   });
 
   it("opening the panel under StrictMode calls no sequencer setter either", () => {
-    // main.jsx renders the app in StrictMode, which runs mount effects twice in
-    // development. A "skip the first run" flag would export on the second.
     const { setCustomDrums } = renderPanel((node) => <React.StrictMode>{node}</React.StrictMode>);
 
     expect(setCustomDrums).not.toHaveBeenCalled();
   });
 
-  it("a change made by the user is still exported live", () => {
-    const { container, setCustomDrums } = renderPanel();
+  it("a change made by the user with the − / + is still exported live", () => {
+    const { setCustomDrums } = renderPanel();
 
-    fireEvent.change(pulsesSlider(container), { target: { value: "6" } });
+    fireEvent.click(screen.getByTestId("comp-k-plus"));
 
     // E(6,16): six onsets among sixteen steps, whatever the rotation.
     expect(setCustomDrums).toHaveBeenCalled();
@@ -221,13 +219,10 @@ describe("CompositionPanel — opening writes nothing to the sequencer (VMU-113)
   });
 
   it("returning to the opening value after a change still exports it", () => {
-    // Once the user has changed something, the sequencer must follow the panel
-    // even back to where it started; otherwise the track keeps E(6,16) while
-    // the panel shows E(5,16).
-    const { container, setCustomDrums } = renderPanel();
+    const { setCustomDrums } = renderPanel();
 
-    fireEvent.change(pulsesSlider(container), { target: { value: "6" } });
-    fireEvent.change(pulsesSlider(container), { target: { value: "5" } });
+    fireEvent.click(screen.getByTestId("comp-k-plus"));
+    fireEvent.click(screen.getByTestId("comp-k-minus"));
 
     expect(lastKick(setCustomDrums).activeSteps).toHaveLength(5);
   });

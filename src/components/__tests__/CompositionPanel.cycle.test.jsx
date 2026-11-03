@@ -35,7 +35,7 @@ describe("CompositionPanel — exports the whole pattern with its cycle length (
     const setCustomDrums = vi.fn();
     render(<CompositionPanel {...props({ setCustomDrums })} />);
 
-    fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "tresillo" } });
+    fireEvent.click(screen.getByTestId("comp-preset-tresillo"));
 
     // Tresillo is E(3,8): indices [0, 3, 6].
     expect(lastDrum(setCustomDrums)).toEqual({ activeSteps: [0, 3, 6], cycleLength: 8 });
@@ -43,11 +43,11 @@ describe("CompositionPanel — exports the whole pattern with its cycle length (
 
   it("n = 20 keeps indices >= 16, with cycleLength 20", () => {
     const setCustomDrums = vi.fn();
-    const { container } = render(<CompositionPanel {...props({ setCustomDrums })} />);
+    render(<CompositionPanel {...props({ setCustomDrums })} />);
 
-    const sliders = container.querySelectorAll('input[type="range"]');
-    fireEvent.change(sliders[0], { target: { value: "20" } }); // n
-    fireEvent.change(sliders[1], { target: { value: "7" } }); // k
+    // n 16 → 20, then k 5 → 7, through the phrase's − / +.
+    for (let i = 0; i < 4; i += 1) fireEvent.click(screen.getByTestId("comp-n-plus"));
+    for (let i = 0; i < 2; i += 1) fireEvent.click(screen.getByTestId("comp-k-plus"));
 
     const kick = lastDrum(setCustomDrums);
     expect(kick.cycleLength).toBe(20);

@@ -549,7 +549,6 @@ function AppDesktop() {
     <Modal isOpen={showMathModal} onClose={() => setShowMathModal(false)} title={txt.mathRhythms || "📐 Math & Rythmes"} columns wide>
       {appMode !== "dictionary" ? (
         <CompositionPanel
-          activeTracks={activeTracks}
           setSuggestedBassTrack={setSuggestedBassTrack}
           setCustomRhythm={setCustomRhythm}
           setCustomDrums={setCustomDrums}
