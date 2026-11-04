@@ -76,7 +76,10 @@ vi.mock("../../components/Instruments/Fretboard", () => ({ default: () => <div d
 vi.mock("../../components/Panels/SequencerPanel", () => ({ default: () => <div data-testid="sequencer-stub" /> }));
 
 import React, { Suspense } from "react";
-import { render, cleanup, waitFor } from "@testing-library/react";
+import { render, cleanup, waitFor, fireEvent } from "@testing-library/react";
+import { translations } from "../../i18n/translations";
+
+const FR = translations.fr;
 
 // Each case loads the whole app (lazy A′ chunk included): generous limits.
 vi.setConfig({ testTimeout: 60_000 });
@@ -149,6 +152,21 @@ describe("VMU-188: which page the app shows", () => {
   it("(f) pianoOwnsOctave follows the choice: true on A′, false on the classic page", async () => {
     expect((await openApp("", true)).pianoOwnsOctave).toBe(true);
     expect((await openApp("?layout=classic", true)).pianoOwnsOctave).toBe(false);
+  });
+
+  it("(g) the classic page keeps the Math & Rythmes Modal and never shows the A′ dock", async () => {
+    await openApp("?layout=classic", true);
+    expect(document.querySelector(".math-dock")).toBeNull();
+    const mathButton = [...document.querySelectorAll(".sidebar-cta-btn")].find(
+      (b) => b.textContent === FR.mathRhythms
+    );
+    expect(mathButton, "the classic sidebar's Math & Rythmes button").toBeTruthy();
+    fireEvent.click(mathButton);
+    const modal = document.querySelector(".modal-container");
+    expect(modal).not.toBeNull();
+    expect(modal.querySelector("#composition-panel")).not.toBeNull();
+    expect(modal.querySelector(".euclidean-svg")).not.toBeNull();
+    expect(document.querySelector(".math-dock")).toBeNull();
   });
 
   it("(f) one owner: only src/layout.js reads the layout or prototype parameter", () => {

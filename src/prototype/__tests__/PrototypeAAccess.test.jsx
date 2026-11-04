@@ -213,20 +213,21 @@ describe("A′-ACCÈS (b): the classic windows open from A′, with the classic 
     expect(document.querySelector(".modal-container")).toBeNull();
   });
 
-  it("'Math & Rythmes' opens CompositionPanel in Studio (the euclidean circle), its warning in Dictionary; Escape closes it", async () => {
+  it("'Math & Rythmes' opens the dock in Studio (the euclidean circle), its warning in Dictionary; Escape closes it", async () => {
     await renderApp();
     fireEvent.click(fn("nav.mode-studio"));
     fireEvent.click(fn("composer.math-ouvrir"));
-    let modal = document.querySelector(".modal-container");
-    expect(modal).not.toBeNull();
-    expect(modal.querySelector("#composition-panel")).not.toBeNull();
-    expect(modal.querySelector(".euclidean-svg")).not.toBeNull();
+    const dock = document.querySelector(".math-dock");
+    expect(dock).not.toBeNull();
+    expect(dock.querySelector("#composition-panel")).not.toBeNull();
+    expect(dock.querySelector(".euclidean-svg")).not.toBeNull();
     escape();
-    expect(document.querySelector(".modal-container")).toBeNull();
+    expect(document.querySelector(".math-dock")).toBeNull();
 
     fireEvent.click(fn("nav.mode-dictionnaire"));
     fireEvent.click(fn("composer.math-ouvrir"));
-    modal = document.querySelector(".modal-container");
+    const modal = document.querySelector(".modal-container");
+    expect(modal).not.toBeNull();
     expect(modal.textContent).toContain(FR.dictNoRhythmWarning);
     fireEvent.click(modal.querySelector(".modal-close-btn"));
     expect(document.querySelector(".modal-container")).toBeNull();
@@ -236,22 +237,71 @@ describe("A′-ACCÈS (b): the classic windows open from A′, with the classic 
     await renderApp();
     fireEvent.click(fn("nav.mode-studio"));
     fireEvent.click(fn("composer.math-ouvrir"));
-    const modal = document.querySelector(".modal-container");
-    expect(modal.classList.contains("modal-container--wide")).toBe(true);
-    // The window's own title is the only one: no inner header, no second h3.
-    expect(modal.querySelectorAll(".modal-title")).toHaveLength(1);
-    expect(modal.querySelector("#composition-panel .panel__header")).toBeNull();
-    expect(modal.querySelector("#composition-panel h3")).toBeNull();
-    expect(modal.querySelector('[data-testid="comp-advanced-toggle"]').getAttribute("aria-expanded")).toBe("false");
+    const dock = document.querySelector(".math-dock");
+    // The dock's own title is the only one: no inner header, no second h3.
+    expect(dock.querySelectorAll(".math-dock__title")).toHaveLength(1);
+    expect(dock.querySelector(".math-dock__title").textContent).toBe(FR.protoA.mathRhythms);
+    expect(dock.querySelector("#composition-panel .panel__header")).toBeNull();
+    expect(dock.querySelector("#composition-panel h3")).toBeNull();
+    expect(dock.querySelector('[data-testid="comp-advanced-toggle"]').getAttribute("aria-expanded")).toBe("false");
     // "Listen" is offered, and it starts/stops the main loop (its label follows isPlaying).
-    const listen = modal.querySelector('[data-testid="comp-listen"]');
+    const listen = dock.querySelector('[data-testid="comp-listen"]');
     expect(listen).not.toBeNull();
     expect(listen.textContent).toBe(FR.comp.listen);
     // Starting the loop is asynchronous (the audio engine wakes first).
     fireEvent.click(listen);
-    await waitFor(() => expect(modal.querySelector('[data-testid="comp-listen"]').textContent).toBe(FR.comp.stopListen), { timeout: 5000 });
-    fireEvent.click(modal.querySelector('[data-testid="comp-listen"]'));
-    await waitFor(() => expect(modal.querySelector('[data-testid="comp-listen"]').textContent).toBe(FR.comp.listen), { timeout: 5000 });
+    await waitFor(() => expect(dock.querySelector('[data-testid="comp-listen"]').textContent).toBe(FR.comp.stopListen), { timeout: 5000 });
+    fireEvent.click(dock.querySelector('[data-testid="comp-listen"]'));
+    await waitFor(() => expect(dock.querySelector('[data-testid="comp-listen"]').textContent).toBe(FR.comp.listen), { timeout: 5000 });
+  });
+
+  describe("A′-ACCÈS (b bis): the Math & Rythmes dock (VMU-195 C)", () => {
+    it("is closed by default, and the transport button toggles it, with aria-expanded following", async () => {
+      await renderApp();
+      expect(document.querySelector(".math-dock")).toBeNull();
+      expect(fn("composer.math-ouvrir").getAttribute("aria-expanded")).toBe("false");
+      fireEvent.click(fn("composer.math-ouvrir"));
+      expect(document.querySelector(".math-dock")).not.toBeNull();
+      expect(fn("composer.math-ouvrir").getAttribute("aria-expanded")).toBe("true");
+      fireEvent.click(fn("composer.math-ouvrir"));
+      expect(document.querySelector(".math-dock")).toBeNull();
+      expect(fn("composer.math-ouvrir").getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("its ✕ (composer.math-fermer) closes it", async () => {
+      await renderApp();
+      fireEvent.click(fn("composer.math-ouvrir"));
+      expect(document.querySelector(".math-dock")).not.toBeNull();
+      fireEvent.click(fn("composer.math-fermer"));
+      expect(document.querySelector(".math-dock")).toBeNull();
+    });
+
+    it("Escape closes it, and with a Modal open Escape closes the Modal only", async () => {
+      await renderApp();
+      fireEvent.click(fn("composer.math-ouvrir"));
+      expect(document.querySelector(".math-dock")).not.toBeNull();
+      escape();
+      expect(document.querySelector(".math-dock")).toBeNull();
+
+      fireEvent.click(fn("composer.math-ouvrir"));
+      fireEvent.click(fn("son.ouvrir"));
+      expect(document.querySelector(".modal-container")).not.toBeNull();
+      escape();
+      expect(document.querySelector(".modal-container")).toBeNull();
+      expect(document.querySelector(".math-dock")).not.toBeNull();
+    });
+
+    it("carries its close button once the dock is open, and never before", async () => {
+      await renderApp();
+      for (const f of A_PRIME_ACCESS.filter((x) => x.needs === "dock")) {
+        expect(document.querySelectorAll(`[data-fn="${f.fn}"]`).length, f.fn).toBe(0);
+      }
+      fireEvent.click(fn("composer.math-ouvrir"));
+      for (const f of A_PRIME_ACCESS.filter((x) => x.needs === "dock")) {
+        expect(document.querySelectorAll(`[data-fn="${f.fn}"]`).length, f.fn).toBe(1);
+        expect(isVisible(fn(f.fn)), f.fn).toBe(true);
+      }
+    });
   });
 
   it("the Guide opens and Escape closes it", async () => {

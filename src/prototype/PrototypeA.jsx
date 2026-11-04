@@ -19,6 +19,7 @@ import PositionPanel from "./PositionPanel";
 import PositionRail from "./PositionRail";
 import { positionPanelView } from "../components/Instruments/positionPanel";
 import SelectionRow from "./SelectionRow";
+import MathDock from "./MathDock";
 
 /**
  * S1 prototype — layout A′ at 3840px (VMU-135 / 035, VMU-155).
@@ -178,6 +179,11 @@ export default function PrototypeA({
   modalOpen = false,
   onOpenMath,
   onOpenAudio,
+  // VMU-195 C: the Math dock reuses the classic window's three writers — the
+  // dock renders the SAME CompositionPanel, never a copy of its state.
+  setSuggestedBassTrack,
+  setCustomRhythm,
+  setCustomDrums,
   masterVolume = -12,
   setMasterVolume,
   // VMU-185: the direct selectors (SelectionRow.jsx) - the page's language and
@@ -190,6 +196,10 @@ export default function PrototypeA({
   // caller hands no translations (the unit tests render with txt={}).
   const T = txt && txt.protoA ? txt.protoA : translations.fr.protoA;
   const [drawerOpen, setDrawerOpen] = useState(() => readParams().drawer === "open");
+  // VMU-195 C: the Math & Rythmes dock is closed by default; the transport's
+  // "Math & Rythmes" button toggles it (Studio only — the Dictionary keeps the
+  // classic Modal with its warning).
+  const [mathDockOpen, setMathDockOpen] = useState(false);
   const bpmEditor = useBpmEditor({ currentBpm, onCommit: handleBpmChange });
 
   // Escape closes the drawer, like the classic windows — but not when it
@@ -211,6 +221,20 @@ export default function PrototypeA({
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [drawerOpen, modalOpen]);
+
+  // Escape closes the Math dock, like the classic window it replaces — but not
+  // when a Modal is open over it (that closes alone) and not while a "?" help
+  // is open: HelpButton / SectionTitle take Escape in the capture phase and
+  // stop propagation, so this bubble-phase handler only fires on the NEXT
+  // press, exactly like Modal.jsx.
+  useEffect(() => {
+    if (!mathDockOpen || modalOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setMathDockOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mathDockOpen, modalOpen]);
   // The probe's fixture buttons: read once, like the other URL parameters.
   const [bench] = useState(() => readParams().bench);
   // A Studio state's chord is clicked once the base octave it needs is in
@@ -622,8 +646,16 @@ export default function PrototypeA({
                   </output>
                 </label>
                 <div className="proto-a__spacer" />
-                {/* The two classic windows, as they are (provisional, until the dock). */}
-                <button type="button" className="proto-a__btn" data-fn="composer.math-ouvrir" onClick={onOpenMath}>
+                {/* Math & Rythmes: in the Studio it toggles the dock (closed by
+                    default); in the Dictionary it still opens the classic Modal
+                    with its warning (AppDesktop's mathRhythmsModal). */}
+                <button
+                  type="button"
+                  className="proto-a__btn"
+                  data-fn="composer.math-ouvrir"
+                  aria-expanded={isDictionary ? undefined : mathDockOpen}
+                  onClick={isDictionary ? onOpenMath : () => setMathDockOpen((v) => !v)}
+                >
                   {T.mathRhythms}
                 </button>
                 <button type="button" className="proto-a__btn" data-fn="son.ouvrir" onClick={onOpenAudio}>
@@ -702,6 +734,21 @@ export default function PrototypeA({
                   chordOctaveOffset={chordOctaveOffset}
                 />
               </section>
+
+              {appMode === "studio" && mathDockOpen && (
+                <MathDock
+                  title={T.mathRhythms}
+                  closeLabel={T.close}
+                  onClose={() => setMathDockOpen(false)}
+                  setSuggestedBassTrack={setSuggestedBassTrack}
+                  setCustomRhythm={setCustomRhythm}
+                  setCustomDrums={setCustomDrums}
+                  currentStep={currentStep}
+                  txt={txt && txt.comp ? txt.comp : undefined}
+                  isPlaying={isPlaying}
+                  togglePlayback={togglePlayback}
+                />
+              )}
 
               <section className="proto-a__legend" data-s1="legend" data-fn="nav.legende">
                 <TheoryLegend />
