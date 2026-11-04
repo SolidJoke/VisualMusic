@@ -2909,18 +2909,28 @@ async function reportPositionPanel(browser, viewport) {
 
 // ─── S1-27 (VMU-195-A): the "Math & Rythmes" window, readable on a 4K screen ──
 //
-// Opened from A′ (data-fn="composer.math-ouvrir"), Studio: the window carries ONE
-// title (the Modal's; no inner header, no second h3); the smallest rendered text
-// in it is >= 18px (an SVG text counts at its on-screen size: font-size x the
-// viewBox scale); every visible clickable thing is >= 32px on both sides, the
-// buttons and the selects >= 48px high, a slider's thumb >= 24px, a grid cell
-// >= 32px; the composers' tools ("Pour aller plus loin") are folded; the "Écouter"
-// button is there and on top. A screenshot of the window goes to probe.local/.
-// Positive control: the same measure on a checkout of origin/main (texts ~11px,
-// three titles, tools unfolded, no Écouter) must fail:
+// Opened from A′ (data-fn="composer.math-ouvrir"), Studio. PR #172 (VMU-195-B)
+// rebuilt the window as a sentence ("5 coups sur 16 cases, départ décalé de 0,
+// joués par …") with − / + steppers, a wheel and a strip of cases; the sliders
+// and the LED grid left the main view and now only appear inside
+// "Pour aller plus loin" when a recipe is on. Phase A, the window as it opens
+// (folded): ONE title (the Modal's; no inner header, no second h3); the smallest
+// rendered text >= 18px (an SVG text counts at its on-screen size: font-size x
+// the viewBox scale); every visible clickable thing >= 32px on both sides, the
+// buttons and the selects >= 48px high; the cases strip [data-testid=comp-grid]
+// visible with as many .strip-cell as [data-testid=comp-n-value] shows, each cell
+// >= 22px high; six button.sbtn steppers (comp-k/n/r-minus/plus) each >= 44px on
+// both sides; a slider, if one is visible, has its thumb >= 24px (pixels); the
+// "Pour aller plus loin" toggle aria-expanded=false with no comp-advanced body and
+// no visible comp-mode-* recipe; the "Écouter" button is there and on top. Phase B
+// opens "Pour aller plus loin" and turns on phasing then poly: at least one slider
+// with a >= 24px thumb (pixels), for poly at least one .grid-led >= 32px, and
+// texts >= 18px / targets >= 32px inside the advanced body too. Screenshots go to
+// probe.local/. Positive control: the same measure on a checkout of origin/main
+// (texts ~11px, three titles, tools unfolded, no Écouter) must fail:
 //   S1_PROBE_PORT=<port of a server on the main checkout> npm run s1:probe -- --math-window-only
 
-const S1_27 = { text: 18, target: 32, button: 48, thumb: 24, cell: 32 };
+const S1_27 = { text: 18, target: 32, button: 48, thumb: 24, cell: 32, stepper: 44, strip: 22 };
 
 /** In page: what S1-27 reads off the open Math & Rythmes window. */
 function mathWindowMeasure() {
@@ -2977,6 +2987,25 @@ function mathWindowMeasure() {
     return { x: b.left, y: b.top, w: b.width, h: b.height };
   });
   const cells = [...modal.querySelectorAll(".grid-led")].filter(shown).map((el) => Math.min(r(el).width, r(el).height));
+  // The cases strip (PR #172's replacement for the LED grid in the folded window):
+  // visible, as many .strip-cell as the n stepper shows, each >= 22px high.
+  const stripEl = modal.querySelector('[data-testid="comp-grid"]');
+  const stripCells = stripEl ? [...stripEl.querySelectorAll(".strip-cell")] : [];
+  const stripHeights = stripCells.map((el) => r(el).height);
+  const nValueEl = modal.querySelector('[data-testid="comp-n-value"]');
+  const nValue = nValueEl ? parseInt(nValueEl.textContent.trim(), 10) : NaN;
+  const strip = {
+    visible: stripEl ? shown(stripEl) : false,
+    count: stripCells.length,
+    minH: stripHeights.length ? Math.min(...stripHeights) : null,
+    nValue: Number.isFinite(nValue) ? nValue : null,
+  };
+  // The six − / + buttons of the k / n / r steppers.
+  const steppers = [...modal.querySelectorAll("button.sbtn")].filter(shown).map((el) => ({
+    id: el.getAttribute("data-testid") || "",
+    w: Math.round(r(el).width * 10) / 10,
+    h: Math.round(r(el).height * 10) / 10,
+  }));
   // titles: every heading-like element showing "Math"
   const titles = [...modal.querySelectorAll("h1, h2, h3, h4, .panel__title, .modal-title, [data-testid=comp-title]")].filter(shown).filter((el) => /math/i.test(el.textContent));
   const toggle = modal.querySelector('[data-testid="comp-advanced-toggle"]');
@@ -2994,9 +3023,11 @@ function mathWindowMeasure() {
     selectRgb,
     sliderBoxes,
     cells,
+    strip,
+    steppers,
     toggle: toggle ? toggle.getAttribute("aria-expanded") : null,
     advancedBody: Boolean(modal.querySelector('[data-testid="comp-advanced"]')),
-    modeSwitches: [...modal.querySelectorAll('input[type=checkbox]')].filter((el) => el.id !== "comp-mode-complement").length,
+    modeButtons: [...modal.querySelectorAll('[data-testid^="comp-mode-"]')].filter(shown).length,
     listen: listen ? { text: listen.textContent.trim(), onTop: Boolean(listenHit && (listenHit === listen || listen.contains(listenHit))) } : null,
     helpButtons: modal.querySelectorAll("button.help-btn").length,
   };
@@ -3031,6 +3062,31 @@ async function thumbOnPixels(page, box, selectRgb) {
     }
     return x1 < 0 ? null : { w: x1 - x0 + 1, h: y1 - y0 + 1 };
   }, { b64: png.toString("base64"), rgb: selectRgb });
+}
+
+/** Phase B of S1-27: the advanced body's checks, each failure prefixed [advanced]. */
+async function advancedMathChecks(page, m, requireGridLed) {
+  const fails = [];
+  const low = m.smallestText[0];
+  if (!low || low.size < S1_27.text) fails.push(`[advanced] smallest text ${low ? `${round1(low.size)}px (${low.what})` : "none"}, >= ${S1_27.text}px expected`);
+  const small = m.targets.filter((t) => Math.min(t.w, t.h) < S1_27.target);
+  if (small.length) fails.push(`[advanced] ${small.length} clickable thing(s) under ${S1_27.target}px: ${small.slice(0, 3).map((t) => `${t.what} ${t.w}x${t.h}`).join(", ")}`);
+  const thumbSizes = [];
+  for (const box of m.sliderBoxes) {
+    const t = await thumbOnPixels(page, box, m.selectRgb);
+    if (t) thumbSizes.push(Math.min(t.w, t.h));
+  }
+  const thumbMin = thumbSizes.length ? Math.min(...thumbSizes) : null;
+  if (!m.sliderBoxes.length) fails.push(`[advanced] no slider found in the advanced body; >= 1 expected`);
+  else if (thumbMin === null || thumbMin < S1_27.thumb) fails.push(`[advanced] slider thumb ${thumbMin === null ? "not found on the pixels (no --select coloured thumb)" : `${thumbMin}px`}, >= ${S1_27.thumb}px expected`);
+  let cellMin = null;
+  if (m.cells.length) cellMin = Math.min(...m.cells);
+  if (requireGridLed) {
+    if (!m.cells.length) fails.push(`[advanced] no .grid-led found; >= 1 expected`);
+    else if (cellMin < S1_27.cell) fails.push(`[advanced] grid-led cell ${round1(cellMin)}px, >= ${S1_27.cell}px expected`);
+  }
+  const notes = `${m.sliderBoxes.length} slider(s) (smallest thumb ${thumbMin === null ? "-" : `${thumbMin}px`}), ${m.cells.length} grid-led cell(s) (smallest ${cellMin === null ? "-" : `${round1(cellMin)}px`}); ${m.textCount} texts (smallest ${low ? `${round1(low.size)}px` : "-"}), ${m.targets.length} targets`;
+  return { fails, notes };
 }
 
 /** S1-27 on one viewport, on Gabriel's page (Studio, no bench). */
@@ -3068,20 +3124,54 @@ async function reportMathWindow(browser, viewport) {
     if (buttons.length) fails.push(`[button] ${buttons.length} button/select under ${S1_27.button}px high: ${buttons.slice(0, 3).map((t) => `${t.what} ${t.h}`).join(", ")}`);
     const covered = m.targets.filter((t) => t.inView && !t.onTop);
     if (covered.length) fails.push(`[foreground] ${covered.length} control(s) covered: ${covered.slice(0, 3).map((t) => t.what).join(", ")}`);
+    // A slider is no longer part of the folded window; if one is visible, its
+    // thumb is still measured on pixels and must reach the same 24px.
     const thumbSizes = [];
     for (const box of m.sliderBoxes) {
       const t = await thumbOnPixels(page, box, m.selectRgb);
       if (t) thumbSizes.push(Math.min(t.w, t.h));
     }
     const thumbMin = thumbSizes.length ? Math.min(...thumbSizes) : null;
-    if (thumbMin === null || !(thumbMin >= S1_27.thumb)) fails.push(`[thumb] slider thumb ${thumbMin === null ? "not found on the pixels (no --select coloured thumb)" : `${thumbMin}px`}, >= ${S1_27.thumb}px expected`);
-    const cellMin = m.cells.length ? Math.min(...m.cells) : null;
-    if (cellMin === null || cellMin < S1_27.cell) fails.push(`[cell] grid cell ${cellMin === null ? "none" : `${round1(cellMin)}px`}, >= ${S1_27.cell}px expected`);
-    if (m.toggle !== "false" || m.advancedBody || m.modeSwitches !== 0) fails.push(`[folded] "Pour aller plus loin" toggle aria-expanded=${m.toggle}, body ${m.advancedBody ? "shown" : "absent"}, ${m.modeSwitches} mode switch(es) showing; closed, 0 switches expected`);
+    if (m.sliderBoxes.length && (thumbMin === null || !(thumbMin >= S1_27.thumb))) fails.push(`[thumb] slider thumb ${thumbMin === null ? "not found on the pixels (no --select coloured thumb)" : `${thumbMin}px`}, >= ${S1_27.thumb}px expected`);
+    // The cases strip replaces the LED grid in the folded window: as many cells
+    // as the n stepper shows, each >= 22px high.
+    if (!m.strip.visible) fails.push(`[strip] the cases strip (comp-grid) is not visible`);
+    else {
+      if (m.strip.count !== m.strip.nValue) fails.push(`[strip] ${m.strip.count} strip cell(s) but the phrase shows ${m.strip.nValue === null ? "no" : m.strip.nValue} case(s) (comp-n-value); equal expected`);
+      if (m.strip.minH === null || m.strip.minH < S1_27.strip - 0.5) fails.push(`[strip] strip cell ${m.strip.minH === null ? "none" : `${round1(m.strip.minH)}px`}, >= ${S1_27.strip}px high expected`);
+    }
+    if (m.steppers.length !== 6) fails.push(`[stepper] ${m.steppers.length} stepper button(s) in the phrase (comp-k/n/r-minus/plus), 6 expected`);
+    else if (m.steppers.some((s) => s.w < S1_27.stepper - 0.5 || s.h < S1_27.stepper - 0.5)) {
+      const under = m.steppers.filter((s) => s.w < S1_27.stepper - 0.5 || s.h < S1_27.stepper - 0.5).map((s) => `${s.id} ${s.w}x${s.h}`).join(", ");
+      fails.push(`[stepper] stepper(s) under ${S1_27.stepper}px on a side: ${under}`);
+    }
+    if (m.toggle !== "false" || m.advancedBody || m.modeButtons !== 0) fails.push(`[folded] "Pour aller plus loin" toggle aria-expanded=${m.toggle}, body ${m.advancedBody ? "shown" : "absent"}, ${m.modeButtons} visible recipe button(s); closed, 0 recipes expected`);
     if (!m.listen || !m.listen.onTop) fails.push(`[listen] ${m.listen ? "the Écouter button is covered" : "no Écouter button in the window"}`);
     if (m.helpButtons < 7) fails.push(`[help] ${m.helpButtons} "?" button(s), 7 expected`);
     notes.push(`window ${m.modal.w}x${m.modal.h} at y=${m.modal.top}..${m.modal.bottom}; ${m.textCount} texts, smallest ${m.smallestText.map((t) => `${round1(t.size)}px ${t.what}`).join(" | ")}`);
-    notes.push(`${m.targets.length} targets, smallest ${Math.min(...m.targets.map((t) => Math.min(t.w, t.h)))}px; thumbs ${thumbMin}px; grid cells ${cellMin === null ? "-" : round1(cellMin)}px; titles ${JSON.stringify(m.titles)}; help buttons ${m.helpButtons}; folded: toggle ${m.toggle}, ${m.modeSwitches} mode switches; Écouter ${m.listen ? JSON.stringify(m.listen) : "absent"}`);
+    notes.push(`${m.targets.length} targets, smallest ${m.targets.length ? Math.min(...m.targets.map((t) => Math.min(t.w, t.h))) : "-"}px; strip ${m.strip.count} cell(s) x ${m.strip.minH === null ? "-" : round1(m.strip.minH)}px (n=${m.strip.nValue}); steppers ${m.steppers.length} (smallest ${m.steppers.length ? Math.min(...m.steppers.map((s) => Math.min(s.w, s.h))) : "-"}px); thumbs ${thumbMin === null ? "-" : `${thumbMin}px`}; titles ${JSON.stringify(m.titles)}; help buttons ${m.helpButtons}; folded: toggle ${m.toggle}, ${m.modeButtons} visible recipe(s); Écouter ${m.listen ? JSON.stringify(m.listen) : "absent"}`);
+
+    // Phase B — "Pour aller plus loin": phasing (a slider), then poly (grid-led).
+    await page.locator('[data-testid="comp-advanced-toggle"]').click({ timeout: 4000 });
+    await page.locator('[data-testid="comp-mode-phasing"]').click({ timeout: 4000 });
+    await page.waitForTimeout(300);
+    const mPhasing = await page.evaluate(mathWindowMeasure);
+    const phasing = await advancedMathChecks(page, mPhasing, false);
+    fails.push(...phasing.fails);
+    notes.push(`phasing: ${phasing.notes}`);
+
+    await page.locator('[data-testid="comp-mode-phasing"]').click({ timeout: 4000 });
+    await page.locator('[data-testid="comp-mode-poly"]').click({ timeout: 4000 });
+    await page.waitForTimeout(300);
+    const mPoly = await page.evaluate(mathWindowMeasure);
+    const poly = await advancedMathChecks(page, mPoly, true);
+    fails.push(...poly.fails);
+    notes.push(`poly: ${poly.notes}`);
+
+    const advShot = path.join(ROOT, "probe.local", `s1-27-math-window-advanced-${viewport.label}.png`);
+    fs.mkdirSync(path.dirname(advShot), { recursive: true });
+    await page.locator(".modal-container").screenshot({ path: advShot });
+    notes.push(`screenshot ${path.relative(ROOT, advShot).replace(/\\/g, "/")}`);
   } catch (err) {
     fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
   } finally {
@@ -3091,7 +3181,7 @@ async function reportMathWindow(browser, viewport) {
   mathWindowChecks[viewport.label] = { fails, notes };
   if (AS_JSON) return;
   const lead = `${viewport.label} S1-27 (math window)`;
-  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  one title, texts >= ${S1_27.text}px, targets >= ${S1_27.target}px (buttons ${S1_27.button}px), thumbs >= ${S1_27.thumb}px, cells >= ${S1_27.cell}px, composers' tools folded, Écouter on top`);
+  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  phase A: one title, texts >= ${S1_27.text}px, targets >= ${S1_27.target}px (buttons ${S1_27.button}px), strip cells >= ${S1_27.strip}px, 6 steppers >= ${S1_27.stepper}px, tools folded, Écouter on top; phase B: phasing slider thumb >= ${S1_27.thumb}px, poly grid-led >= ${S1_27.cell}px`);
   for (const n of notes) console.log(`${lead}   ${n}`);
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
@@ -3287,7 +3377,7 @@ if (AS_JSON) {
   console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);
   console.log(`  S1-25 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
   console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; no warning sign in the Studio (VMU-201)`);
-  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-A Math & Rythmes window: one title, every text >= ${S1_27.text}px (SVG at its on-screen size), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), slider thumbs >= ${S1_27.thumb}px, grid cells >= ${S1_27.cell}px, the composers' tools folded, seven "?" buttons, "Écouter" on top`);
+  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-A Math & Rythmes window: phase A one title, every text >= ${S1_27.text}px (SVG at its on-screen size), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, the composers' tools folded, seven "?" buttons, "Écouter" on top; phase B phasing slider thumb >= ${S1_27.thumb}px, poly grid-led >= ${S1_27.cell}px`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
   console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-27 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
