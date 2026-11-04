@@ -29,7 +29,7 @@ import {
 import { realizeScaleFromBox, realizationRange } from "./realization";
 import { getAbsoluteNoteValue } from "./theory";
 import { TUNINGS } from "./tunings";
-import { listScalePositions, availableStartPitches, defaultPositionIndex } from "./scalePositions";
+import { listScalePositions, availableStartPitches, defaultPositionIndex, railLanes } from "./scalePositions";
 
 /**
  * @typedef {Object} Selection
@@ -258,7 +258,13 @@ export function listPlacements(selection, instrument) {
     const inputs = scaleEngineInputs(selection, instrument);
     const positions = listScalePositions({ ...inputs, startPitch: chosen });
     const defaultIdx = defaultPositionIndex(positions);
-    shapes = positions.map((p) => ({
+    // VMU-202 (slice 3) — the position rail beside the neck: each placement
+    // carries the facts the rail draws (its fret window, the grand-écart
+    // warning, the hand shift, and the lane its thread runs in). The lane is
+    // the same greedy interval colouring the engine computes (railLanes), so
+    // two positions sharing a fret never share a lane.
+    const lanes = railLanes(positions);
+    shapes = positions.map((p, i) => ({
       id: p.id,
       label: String(p.index + 1),
       fingering: {
@@ -267,6 +273,16 @@ export function listPlacements(selection, instrument) {
         startFret: p.minFret,
         endFret: p.maxFret,
         difficultStretch: p.span === 5,
+      },
+      extra: {
+        rail: {
+          minFret: p.minFret,
+          maxFret: p.maxFret,
+          span: p.span,
+          warning: p.warning,
+          shift: p.shift,
+          lane: lanes[i],
+        },
       },
     }));
     defaultShape = defaultIdx === null ? null : shapes[defaultIdx];

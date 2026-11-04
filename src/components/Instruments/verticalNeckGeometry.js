@@ -76,6 +76,20 @@ export function verticalFretPitchCss(fret, numFrets) {
 }
 
 /**
+ * The share (0..1) of the rows height ABOVE the row of fret `fret`
+ * (1 .. numFrets): the sum of every earlier fret's share. 0 for fret 1 — and
+ * 0 for fret 0, whose row is the fixed open-string row and not part of
+ * --fbv-rows-h at all. The position rail (VMU-202 slice 3) uses it to put a
+ * tab or a thread at the row of a fret, the same way Fretboard.jsx lays out
+ * its rows.
+ */
+export function verticalFretRowTopShare(fret, numFrets) {
+  let share = 0;
+  for (let f = 1; f < fret; f++) share += verticalFretShare(f, numFrets);
+  return Math.round(share * 1e8) / 1e8;
+}
+
+/**
  * The frets that carry a marker on a real neck, and how many dots each:
  * 3, 5, 7, 9, 15, 17, 19, 21 one, 12 two. Gabriel's list. A neck draws only
  * the ones it has (both necks have 22 frets, so both carry the 21 dot).
