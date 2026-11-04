@@ -5,9 +5,10 @@ import CompositionPanel from "../Intelligence/CompositionPanel";
 import Modal from "../Common/Modal";
 import { translations } from "../../i18n/translations";
 
-// VMU-195-A. "Math & Rythmes" had to become readable for a beginner without
-// losing a single function: one title, plain words, short help on click,
-// the composer tools folded away, and a way to listen without closing it.
+// VMU-195-B. "Math & Rythmes" became a phrase ("5 coups sur 16 cases, départ
+// décalé de 0, joués par …"), the circle a wheel, the presets "Essayer :" pills,
+// the composer tools four recipes, and every "?" became a tooltip on its label.
+// None of the beginner-readability goals of VMU-195-A disappear.
 
 const fr = translations.fr.comp;
 const en = translations.en.comp;
@@ -31,14 +32,12 @@ const setup = (extra = {}) => {
 const advancedToggle = () => screen.getByTestId("comp-advanced-toggle");
 const expand = () => fireEvent.click(advancedToggle());
 
-// The rhythm the last drum export would write, read through the functional
-// updater the panel passes to setCustomDrums.
 const lastKick = (setCustomDrums) => {
   const calls = setCustomDrums.mock.calls;
   return calls[calls.length - 1][0]({}).Kick;
 };
 
-describe("one title (VMU-195-A)", () => {
+describe("one title (VMU-195-B)", () => {
   it("inside the window (hideTitle) the panel draws no title of its own", () => {
     const { container } = setup({ hideTitle: true });
     expect(container.querySelector(".panel__header")).toBeNull();
@@ -71,42 +70,39 @@ describe("one title (VMU-195-A)", () => {
   });
 });
 
-describe("plain words (VMU-195-A)", () => {
-  it("shows the French words of the table, the advanced ones after unfolding", () => {
+describe("the phrase and its plain words (VMU-195-B)", () => {
+  it("shows the French phrase, the pills, the recipes after unfolding", () => {
     setup({ txt: fr, togglePlayback: vi.fn(), isPlaying: false });
-    for (const key of ["presets", "geoParams", "subdivisions", "pulses", "rotation", "showComp", "grid", "exportPanel", "target", "exportBtn", "resetAll", "live", "listen", "advanced"]) {
+
+    for (const key of ["phraseHits", "phraseSteps", "phraseStart", "phrasePlayedBy", "tryLabel", "hideComp", "resetAll", "liveOn", "advanced", "kick"]) {
       expect(screen.getAllByText(fr[key], { exact: false }).length, key).toBeGreaterThan(0);
     }
     expect(screen.getByText(fr.customGeo)).toBeTruthy();
-    expect(screen.getByText(fr.subdivisions, { exact: false }).textContent).toContain("n");
-    expect(screen.queryByText(fr.phasingMode)).toBeNull();
-    expect(fr.exportSuccess).toBe("Envoyé !");
-    expect(fr.stopListen).toBe("■ Arrêter");
-    expect(fr.listen).toBe("▶ Écouter");
-    expect(fr.live).toBe("La piste suit tes réglages en direct.");
-    expect(fr.advanced).toBe("Pour aller plus loin");
+    // The three numbers of the phrase.
+    for (const id of ["k", "n", "r"]) expect(screen.getByTestId(`comp-${id}-value`)).toBeTruthy();
+    expect(screen.queryByText(fr.recipePhase)).toBeNull();
 
     expand();
-    for (const key of ["phasingMode", "isoMode", "meshMode", "polyAlg", "symmetry"]) {
+    for (const key of ["recipePhase", "recipeIso", "recipeMesh", "recipePoly"]) {
       expect(screen.getAllByText(fr[key], { exact: false }).length, key).toBeGreaterThan(0);
     }
-    expect(screen.getByText(fr.asym)).toBeTruthy();
   });
 
-  it("shows the English words of the table", () => {
+  it("shows the English phrase and recipes", () => {
     setup({ txt: en, togglePlayback: vi.fn(), isPlaying: false });
-    for (const key of ["presets", "geoParams", "subdivisions", "pulses", "rotation", "showComp", "grid", "exportPanel", "target", "exportBtn", "resetAll", "live", "listen", "advanced"]) {
+
+    for (const key of ["phraseHits", "phraseSteps", "phraseStart", "phrasePlayedBy", "tryLabel", "hideComp", "resetAll", "liveOn", "advanced"]) {
       expect(screen.getAllByText(en[key], { exact: false }).length, key).toBeGreaterThan(0);
     }
-    expect(en.presets).toBe("World rhythms");
-    expect(en.subdivisions).toBe("Number of steps");
-    expect(en.pulses).toBe("Number of hits");
-    expect(en.exportSuccess).toBe("Sent!");
-    expect(en.live).toBe("The track follows your settings live.");
+    expect(en.phraseHits).toBe("hits over");
+    expect(en.phraseSteps).toBe("steps");
+    expect(en.phrasePlayedBy).toBe("played by");
+    expect(en.resetAll).toBe("↺ Style rhythm");
+
     expand();
     expect(screen.getByTestId("comp-mode-phasing")).toBeTruthy();
-    expect(screen.getByText(en.phasingMode)).toBeTruthy();
-    expect(screen.getByText(en.polyAlg)).toBeTruthy();
+    expect(screen.getByText(en.recipePhase)).toBeTruthy();
+    expect(screen.getByText(en.recipePoly)).toBeTruthy();
   });
 
   it("the success label comes from the table after a send", () => {
@@ -115,11 +111,15 @@ describe("plain words (VMU-195-A)", () => {
     expect(screen.getByTestId("comp-send").textContent).toBe(fr.exportSuccess);
   });
 
-  it("the world rhythms carry their origin from the engine's data", () => {
+  it("the world rhythms carry their origin and notation in the pill's tooltip", () => {
     setup({ txt: fr });
-    const options = Array.from(screen.getByTestId("comp-preset").querySelectorAll("option")).map((o) => o.textContent);
-    expect(options.some((t) => t.includes("Tresillo") && t.includes("Cub"))).toBe(true);
-    expect(options.some((t) => t.includes("Samba") && t.includes("Brésil"))).toBe(true);
+    const tresillo = screen.getByTestId("comp-preset-tresillo");
+    expect(tresillo.textContent).toContain("Tresillo");
+    expect(tresillo.getAttribute("title")).toContain("Cub");
+    expect(tresillo.getAttribute("title")).toContain("E(3,8)");
+    const samba = screen.getByTestId("comp-preset-samba");
+    expect(samba.getAttribute("title")).toContain("Brésil");
+    expect(samba.getAttribute("title")).toContain("E(7,16)");
   });
 
   it.each(["fr", "en", "pt", "zh"])("the %s table has every key, none empty", (lang) => {
@@ -140,6 +140,19 @@ describe("plain words (VMU-195-A)", () => {
     expect(translations[lang].comp.subdivisions).not.toBe(en.subdivisions);
     expect(translations[lang].comp.exportBtn).not.toBe(en.exportBtn);
     expect(translations[lang].comp.helpPulses).not.toBe(en.helpPulses);
+  });
+});
+
+describe("the title tooltip stays beside the drawn ? (VMU-195-B)", () => {
+  it("each label still carries its help sentence as a title", () => {
+    setup({ txt: en });
+    expect(screen.getByText(en.circle).getAttribute("title")).toBe(en.helpCircle);
+    expect(screen.getByText(en.tryLabel).getAttribute("title")).toBe(en.helpPresets);
+    expect(screen.getByTestId("comp-k-value").parentElement.getAttribute("title")).toBe(en.helpPulses);
+    expect(screen.getByTestId("comp-n-value").parentElement.getAttribute("title")).toBe(en.helpSubdivisions);
+    expect(screen.getByTestId("comp-r-value").parentElement.getAttribute("title")).toBe(en.helpRotation);
+    expect(advancedToggle().parentElement.getAttribute("title")).toBe(en.helpAdvanced);
+    expect(screen.getByTestId("comp-send").getAttribute("title")).toBe(en.helpExport);
   });
 });
 
@@ -214,38 +227,35 @@ describe("short help on click (VMU-195-A)", () => {
   });
 });
 
-describe("the composer tools are folded away (VMU-195-A)", () => {
-  it("'Go further' is closed by default and holds the four modes and the symmetry badge", () => {
-    const { container } = setup({ txt: en });
+describe("the recipes are folded away (VMU-195-B)", () => {
+  it("'Go further' is closed by default and holds the four recipes", () => {
+    setup({ txt: en });
     expect(advancedToggle().getAttribute("aria-expanded")).toBe("false");
     for (const mode of ["phasing", "iso", "mesh", "poly"]) {
       expect(screen.queryByTestId(`comp-mode-${mode}`)).toBeNull();
     }
-    expect(container.querySelector(".metadata-badge")).toBeNull();
 
     expand();
     expect(advancedToggle().getAttribute("aria-expanded")).toBe("true");
     const body = screen.getByTestId("comp-advanced");
     for (const mode of ["phasing", "iso", "mesh", "poly"]) {
-      expect(within(body).getByTestId(`comp-mode-${mode}`).checked).toBe(false);
+      expect(within(body).getByTestId(`comp-mode-${mode}`).getAttribute("aria-pressed")).toBe("false");
     }
-    expect(body.querySelector(".metadata-badge")).not.toBeNull();
 
     expand();
     expect(screen.queryByTestId("comp-advanced")).toBeNull();
   });
 
-  it("while folded, the preset, the three settings, the circle, the steps and 'Send to' stay visible", () => {
+  it("while folded, the phrase, the circle, the strip and the send stay visible", () => {
     const { container } = setup({ txt: en });
-    expect(screen.getByTestId("comp-preset")).toBeTruthy();
-    for (const id of ["n", "k", "r"]) expect(screen.getByTestId(`comp-slider-${id}`)).toBeTruthy();
+    for (const id of ["k", "n", "r"]) expect(screen.getByTestId(`comp-${id}-value`)).toBeTruthy();
     expect(container.querySelector(".euclidean-svg")).not.toBeNull();
-    expect(container.querySelector(".binary-grid")).not.toBeNull();
+    expect(container.querySelector(".euclidean-strip")).not.toBeNull();
     expect(screen.getByTestId("comp-send")).toBeTruthy();
     expect(screen.getByTestId("comp-target")).toBeTruthy();
   });
 
-  it("a mode switched on survives folding and unfolding, and is still what is sent", () => {
+  it("a recipe switched on survives folding and unfolding, and is still what is sent", () => {
     const { setCustomDrums } = setup({ txt: en });
     expand();
     fireEvent.click(screen.getByTestId("comp-mode-iso"));
@@ -255,27 +265,27 @@ describe("the composer tools are folded away (VMU-195-A)", () => {
     expand(); // fold
     expect(screen.queryByTestId("comp-mode-iso")).toBeNull();
     expect(screen.getByTestId("comp-advanced-active")).toBeTruthy();
-    fireEvent.change(screen.getByTestId("comp-slider-k"), { target: { value: "7" } });
+    fireEvent.click(screen.getByTestId("comp-k-plus"));
     expect(lastKick(setCustomDrums)).not.toEqual(sentWhileOpen);
 
     expand(); // unfold
-    expect(screen.getByTestId("comp-mode-iso").checked).toBe(true);
+    expect(screen.getByTestId("comp-mode-iso").getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByTestId("comp-iso-section")).toBeTruthy();
   });
 
-  it("the modes still exclude each other once unfolded", () => {
+  it("the recipes still exclude each other once unfolded", () => {
     setup({ txt: en });
     expand();
     fireEvent.click(screen.getByTestId("comp-mode-iso"));
     fireEvent.click(screen.getByTestId("comp-mode-mesh"));
-    expect(screen.getByTestId("comp-mode-iso").checked).toBe(false);
-    expect(screen.getByTestId("comp-mode-mesh").checked).toBe(true);
+    expect(screen.getByTestId("comp-mode-iso").getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByTestId("comp-mode-mesh").getAttribute("aria-pressed")).toBe("true");
     expect(screen.queryByTestId("comp-iso-section")).toBeNull();
     expect(screen.getByTestId("comp-realign-section")).toBeTruthy();
   });
 });
 
-describe("listen without closing the window (VMU-195-A)", () => {
+describe("listen without closing the window (VMU-195-B)", () => {
   it("'Listen' calls the main playback and becomes 'Stop' while it plays", () => {
     const togglePlayback = vi.fn();
     const { rerender } = render(
@@ -307,24 +317,25 @@ describe("listen without closing the window (VMU-195-A)", () => {
     expect(screen.queryByTestId("comp-listen")).toBeNull();
   });
 
-  it("the live sentence sits under 'Send to'", () => {
+  it("the live sentence sits in the footer as '● en direct sur …'", () => {
     setup({ txt: en });
     const exportSection = screen.getByTestId("comp-export");
-    expect(within(exportSection).getByText(en.live)).toBeTruthy();
+    expect(within(exportSection).getByText(en.liveOn, { exact: false })).toBeTruthy();
+    expect(within(exportSection).getByTestId("comp-live-note").textContent).toContain(en.liveOn);
   });
 });
 
-describe("the live send is intact (VMU-195-A)", () => {
-  it("a setting changed while the tools are folded still reaches the track", () => {
+describe("the live send is intact (VMU-195-B)", () => {
+  it("a change made with the − / + while the tools are folded still reaches the track", () => {
     const { setCustomDrums } = setup({ txt: en });
     expect(setCustomDrums).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByTestId("comp-slider-k"), { target: { value: "6" } });
+    fireEvent.click(screen.getByTestId("comp-k-plus"));
     expect(lastKick(setCustomDrums).activeSteps).toHaveLength(6);
   });
 
   it("changing the instrument sends to that instrument", () => {
     const { setSuggestedBassTrack } = setup({ txt: en });
-    fireEvent.change(screen.getByTestId("comp-slider-k"), { target: { value: "4" } });
+    fireEvent.click(screen.getByTestId("comp-k-minus"));
     fireEvent.change(screen.getByTestId("comp-target"), { target: { value: "Bass" } });
     const last = setSuggestedBassTrack.mock.calls[setSuggestedBassTrack.mock.calls.length - 1][0];
     expect(last.name).toBe("Bass");
