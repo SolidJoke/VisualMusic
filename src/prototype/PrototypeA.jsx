@@ -16,6 +16,7 @@ import { useBpmEditor } from "../hooks/useBpmEditor";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
 import InstrumentHead from "./InstrumentHead";
 import PositionPanel from "./PositionPanel";
+import PositionRail from "./PositionRail";
 import { positionPanelView } from "../components/Instruments/positionPanel";
 import SelectionRow from "./SelectionRow";
 
@@ -390,7 +391,6 @@ export default function PrototypeA({
           setSelectedRootString={(idx) => setSelectedRootString && setSelectedRootString(idx)}
           setPlacementIndex={(i) => engine.setPlacementIndex && engine.setPlacementIndex(id, i)}
           setScaleAnchor={(anchor) => engine.setScaleAnchor && engine.setScaleAnchor(anchor)}
-          setStartPitch={(pitch) => engine.setStartPitch && engine.setStartPitch(id, pitch)}
         />
       ),
     };
@@ -428,6 +428,51 @@ export default function PrototypeA({
       setting={setting}
     />
   );
+
+  // VMU-202 (slice 3) — the position rail beside each vertical neck, only for a
+  // scale (chords, notes and the Studio have no rail). It reads the same
+  // placements the arrows step through, and the same setters; its start-octave
+  // button carries the registry name the slice-2 panel select used to hold
+  // (jouer.position-depart-<id>), so the parity list keeps its data-fn.
+  const railFor = (id) => {
+    if (!isScaleMode) return null;
+    const placements = engine.placementsByInstrument?.[id] ?? [];
+    if (!placements.some((p) => p?.rail)) return null;
+    // The chosen index the rail marks (8px + gradient thread, active tab) is
+    // the placement the neck actually shows: the chosen one, or the default
+    // when none is chosen (placementIndex null). The neck never shows nothing.
+    const chosen = engine.placementByInstrument?.[id]?.index ?? null;
+    const chosenIndex = chosen ?? placements.find((p) => p.isDefault)?.index ?? null;
+    return (
+      <PositionRail
+        id={id}
+        placements={placements}
+        startPitches={engine.startPitchesByInstrument?.[id] ?? []}
+        startPitch={engine.startPitchByInstrument?.[id] ?? null}
+        chosenIndex={chosenIndex}
+        notation={notation}
+        dictType={dictType}
+        currentlyPlayingNotes={engine.currentlyPlayingNotes ?? []}
+        onSelectPosition={(index) => engine.setPlacementIndex && engine.setPlacementIndex(id, index)}
+        onSelectStartPitch={(pitch) => engine.setStartPitch && engine.setStartPitch(id, pitch)}
+        strings={id === "bass" ? 4 : 6}
+        T={T}
+      />
+    );
+  };
+
+  // The neck column with its rail (or without): the 98px rail margin and column
+  // growth exist only when the rail is rendered (a scale), so a chord, a note
+  // or the Studio keep the full centre column (S1-11).
+  const neckFor = (id) => {
+    const rail = railFor(id);
+    return (
+      <div className={`proto-a__neck${rail ? " proto-a__neck--rail" : ""}`}>
+        {rail}
+        <Fretboard instrument={id} orientation="vertical" />
+      </div>
+    );
+  };
 
   return (
     <MusicEngineProvider value={musicEngineContextValue}>
@@ -686,7 +731,7 @@ export default function PrototypeA({
               title={T.neckCaption}
             >
               {head("guitar", T.guitar, neckSetting("guitar"))}
-              <Fretboard instrument="guitar" orientation="vertical" />
+              {neckFor("guitar")}
             </section>
 
             <section
@@ -698,7 +743,7 @@ export default function PrototypeA({
               title={T.neckCaption}
             >
               {head("bass", T.bass, neckSetting("bass"))}
-              <Fretboard instrument="bass" orientation="vertical" />
+              {neckFor("bass")}
             </section>
           </div>
 

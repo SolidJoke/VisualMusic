@@ -76,8 +76,9 @@
  * the controls do, against literal anchors and invariances: › › on the guitar
  * changes the guitar's data-s1-positions only (open 0-3 -> A shape 3-5), › › on
  * the bass the bass's only (A string 3-5 -> E string 8-10), › on the piano
- * shifts data-s1-notes by 12 and leaves both necks; the Do major scale's box
- * stays the octave 0's (C-06 cut in A′). S1-16 and S1-20 keep their "one line"
+ * shifts data-s1-notes by 12 and leaves both necks; the Do major scale's
+ * default box is the span-4 position nearest the nut, 0-3 (VMU-202 / PR #171:
+ * the octave no longer picks a scale box). S1-16 and S1-20 keep their "one line"
  * per ROW of a head (reformulated: a row's text boxes grouped into horizontal
  * bands); S1-20 now also walks the Dictionary-only functions (needs:
  * "dictionary": the heads' ▶ and the position arrows) in the Dictionary.
@@ -132,8 +133,8 @@
  * L1b-1c adds S1-26, decisive, on Gabriel's page at 3840x2045 and 3840x2160: the
  * label of a neck's position is a button that opens a panel over the neck (Mi /
  * La / Ré with Do's fret, a root string changes the shape drawn, reset, Escape)
- * without changing the heads' 100px or moving the keyboard; the warning sign
- * shows in the Studio with the panel closed.
+ * without changing the heads' 100px or moving the keyboard; no warning sign in
+ * the Studio (VMU-201: the necks keep their octave-0 shape).
  *   npm run s1:probe -- --position-panel-only   # S1-26 alone
  * Positive control: hide the button, S1-26 (and S1-20 / S1-21) turn red
  *   S1_PROBE_INJECT_CSS='[data-fn^="jouer.position-panneau-"]{display:none!important}' npm run s1:probe -- --position-panel-only
@@ -604,10 +605,14 @@ function measureInPage() {
   // S1-11 — the centre column the V3 timeline would get. The spec's own
   // formula: (column content width - 262px of track names) / 64 steps, a
   // 2px gap between cells. A projection: V3 does not exist yet.
+  // VMU-202 (slice 3, fix 3): when a scale is shown, the two position rails
+  // (98px each) take 196px from the centre column and the step sequencer gets
+  // narrower. Detected by the neck's class below, never by the scenario name.
   const center = document.querySelector('[data-s1="center"]');
+  const rail = Boolean(document.querySelector(".proto-a__neck--rail"));
   const cw = center ? center.clientWidth : 0;
   const v3Pitch = (cw - 262) / 64;
-  out.s1_11 = { centerWidth: round(cw), pitch: round(v3Pitch), cellWidth: round(v3Pitch - 2) };
+  out.s1_11 = { centerWidth: round(cw), pitch: round(v3Pitch), cellWidth: round(v3Pitch - 2), rail };
 
   // S1-12 — page scroll.
   out.s1_12 = {
@@ -1109,7 +1114,14 @@ function verdicts(m) {
   put("S1-8", p.minWhite >= 52 && p.minBlack >= 30, `white ${p.minWhite}px, black ${p.minBlack}px`);
   put("S1-9", p.whitesVisible >= 29, `${p.whitesVisible}/${p.whiteKeys} white keys visible (${Math.floor((p.whitesVisible - 1) / 7)} octaves)`);
   put("S1-10", p.blackLabelFails.length === 0, p.blackLabels ? `${p.blackLabels - p.blackLabelFails.length}/${p.blackLabels} inside, widest "${p.widestBlack.text}" ${p.widestBlack.w}px in ${p.widestBlack.key}px${p.blackLabelFails.length ? `: ${p.blackLabelFails.slice(0, 3).join(" | ")}` : ""}` : "n/a (no black-key label in this state)");
-  put("S1-11", m.s1_11.pitch >= 39 && m.s1_11.cellWidth >= 36, `centre ${m.s1_11.centerWidth}px -> pitch ${m.s1_11.pitch}px, cell ${m.s1_11.cellWidth}px wide (x 40 high by construction)`);
+  // VMU-202 rail, owner 2026-11-04: when the position rail is rendered (a
+  // scale in the Dictionary draws two 98px rails that take 196px from the
+  // centre column), the narrower step sequencer is accepted — S1-11's relaxed
+  // threshold below still catches any further shrink. Elsewhere unchanged.
+  const railShown = Boolean(m.s1_11.rail);
+  const s1_11_pitchMin = railShown ? 36 : 39;
+  const s1_11_cellMin = railShown ? 34 : 36;
+  put("S1-11", m.s1_11.pitch >= s1_11_pitchMin && m.s1_11.cellWidth >= s1_11_cellMin, `centre ${m.s1_11.centerWidth}px -> pitch ${m.s1_11.pitch}px, cell ${m.s1_11.cellWidth}px wide (x 40 high by construction)${railShown ? " (rail shown: >= 36 / 34, owner 2026-11-04)" : ""}`);
   const sc = m.s1_12;
   put("S1-12", sc.scrollHeight <= sc.innerHeight && sc.scrollWidth <= sc.innerWidth, `scrollHeight ${sc.scrollHeight} / innerHeight ${sc.innerHeight}, scrollWidth ${sc.scrollWidth} / ${sc.innerWidth}`);
   const it = m.s1_13;
@@ -1974,7 +1986,10 @@ async function runHeads(browser, viewport) {
     // The scale: the octave no longer picks the box (C-06 cut in A′).
     await open("cmajscale");
     const t0 = await read();
-    if (!fretSpan(t0.guitar).startsWith("4-")) fails.push(`Do major scale: the guitar's default box is ${fretSpan(t0.guitar)}, the octave 0's (from fret 4) expected`);
+    // VMU-202 / PR #171: the common octave no longer picks a scale box — the
+    // default is the span-4 position nearest the nut, 0-3 for Do major on the
+    // guitar from Do3.
+    if (fretSpan(t0.guitar) !== "0-3") fails.push(`Do major scale: the guitar's default box is ${fretSpan(t0.guitar)}, 0-3 (the span-4 nearest the nut) expected`);
     await click("jouer.octave-piano-suiv");
     const t1 = await read();
     expectEq("scale, piano ›: piano notes (+12)", t1.notes, shifted(t0.notes, 12));
@@ -2778,8 +2793,11 @@ async function reportChordOctave(browser, viewport) {
 // controls are on top, >= 48px, text >= 18px; a root string changes the shape
 // the neck draws (guitar La: 0-3 -> 3-5; bass Mi: 3-5 -> 8-10) and not the other
 // neck's; "Réinitialiser Position" puts a chosen position back; Escape closes it
-// and returns the focus. Studio, chord octave +2 (bench state): the warning sign
-// is on the guitar's label with the panel closed and the label still fits.
+// and returns the focus. Studio, chord octave +2 (bench state): since VMU-201 /
+// PR #162 the necks keep the octave-0 shape whatever "Octave des accords" says,
+// so the guitar stays inside its range there and shows no warning sign (the
+// alert is unit-tested in PrototypePositionPanelUnit.test.jsx); the head stays
+// 100px and the label still fits.
 
 const S1_26 = { head: 100, target: 48, font: 18, frets: [8, 3, 10] };
 
@@ -2869,8 +2887,11 @@ async function reportPositionPanel(browser, viewport) {
     await page.locator('[data-state="studio-oct2"]').click({ timeout: 4000 });
     await page.waitForTimeout(400);
     const s = await page.evaluate(positionPanelMeasure);
-    eq("Studio, chord octave +2: the warning sign on the guitar's label, panel closed", `${s.guitar.mark}/${s.guitar.expanded}`, "true/false");
-    eq("Studio, with the sign: head 100px and the label fits its button", `${Math.round(s.guitar.head)}/${s.guitar.fits}`, `${S1_26.head}/true`);
+    // VMU-201 / PR #162: the Studio necks keep the octave-0 shape whatever
+    // "Octave des accords" says, so the guitar is inside its range here and no
+    // warning sign is drawn (the alert path is unit-tested instead).
+    eq("Studio, chord octave +2: no warning sign on the guitar's label, panel closed", `${s.guitar.mark}/${s.guitar.expanded}`, "false/false");
+    eq("Studio, no sign: head 100px and the label fits its button", `${Math.round(s.guitar.head)}/${s.guitar.fits}`, `${S1_26.head}/true`);
     notes.push(`Studio, octave +2: sign ${s.guitar.mark}, head ${s.guitar.head}px, label fits ${s.guitar.fits}`);
   } catch (err) {
     fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
@@ -2881,7 +2902,7 @@ async function reportPositionPanel(browser, viewport) {
   positionPanelChecks[viewport.label] = { fails, notes };
   if (AS_JSON) return;
   const lead = `${viewport.label} S1-26 (position panel)`;
-  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  the label opens a panel over the neck (heads 100px, keyboard still), strings with Do's fret, a root string changes the shape, reset, Escape; the warning sign in the Studio`);
+  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  the label opens a panel over the neck (heads 100px, keyboard still), strings with Do's fret, a root string changes the shape, reset, Escape; no warning sign in the Studio (VMU-201)`);
   for (const n of notes) console.log(`${lead}   ${n}`);
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
@@ -3265,7 +3286,7 @@ if (AS_JSON) {
   console.log(`  S1-23 ${selectionOk ? "PASS" : "FAIL"} ${selectionPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-185 direct selectors: a second row of the transport block holding the Studio's style / the Dictionary's family, root note and type (none for a note), on top, 48px, one height in every state (block <= ${S1_23.maxBlock}px), no scroll, no cut name, open lists in the window (drawer closed and open), and they drive the keyboard / necks / sequencer against theory.js (FR / EN / PT / ZH)`);
   console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);
   console.log(`  S1-25 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
-  console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; the warning sign shows in the Studio with the panel closed`);
+  console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; no warning sign in the Studio (VMU-201)`);
   console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-A Math & Rythmes window: one title, every text >= ${S1_27.text}px (SVG at its on-screen size), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), slider thumbs >= ${S1_27.thumb}px, grid cells >= ${S1_27.cell}px, the composers' tools folded, seven "?" buttons, "Écouter" on top`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
   console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-27 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);

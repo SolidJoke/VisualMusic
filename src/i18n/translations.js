@@ -434,6 +434,10 @@ export const translations = {
       positionRange: "Plage",
       positionAlerts: "Alertes",
       positionStartPitch: "Octave de départ",
+      positionRail: "Positions de la gamme",
+      positionRailTab: "Position",
+      positionRailGrandEcart: "Grand écart",
+      positionRibbon: "Notes de l'octave",
       // VMU-185: the direct selectors, a second row of the transport block.
       selectionAria: "Choix direct du style, de la note et du type",
       selectionStyle: "Style",
@@ -873,6 +877,10 @@ export const translations = {
       positionRange: "Range",
       positionAlerts: "Alerts",
       positionStartPitch: "Start octave",
+      positionRail: "Scale positions",
+      positionRailTab: "Position",
+      positionRailGrandEcart: "Wide stretch",
+      positionRibbon: "Octave notes",
       // VMU-185: the direct selectors, a second row of the transport block.
       selectionAria: "Direct choice of style, note and type",
       selectionStyle: "Style",
@@ -1251,6 +1259,10 @@ export const translations = {
       positionRange: "Extensão",
       positionAlerts: "Alertas",
       positionStartPitch: "Oitava de partida",
+      positionRail: "Posições da escala",
+      positionRailTab: "Posição",
+      positionRailGrandEcart: "Abertura grande",
+      positionRibbon: "Notas da oitava",
       // VMU-185: the direct selectors, a second row of the transport block.
       selectionAria: "Escolha direta de estilo, nota e tipo",
       selectionStyle: "Estilo",
@@ -1668,6 +1680,10 @@ export const translations = {
       positionRange: "音域",
       positionAlerts: "提示",
       positionStartPitch: "起始八度",
+      positionRail: "音阶位置",
+      positionRailTab: "位置",
+      positionRailGrandEcart: "大跨度",
+      positionRibbon: "八度音",
       // VMU-185: the direct selectors, a second row of the transport block.
       selectionAria: "直接选择风格、音符和类型",
       selectionStyle: "风格",

@@ -872,3 +872,259 @@
   border: 2px solid var(--border-strong);
   border-radius: var(--radius-sm);
 }
+
+/* ── VMU-202 (slice 3): the position rail beside the vertical necks ─────────
+   Design E1, variant B "onglets et fils". Only when the rail is drawn (a scale
+   on the guitar / bass in the Dictionary, PrototypeA.jsx adds
+   proto-a__neck--rail) the neck column grows by 98px (44 tabs + 6 gap + 4
+   lanes x 12) — taken from the centre column, since the necks' columns are
+   min-content — and the fretboard, unchanged, shifts right by that width. The
+   rail is laid over the freed left edge, its origin aligned with the
+   fretboard's top: a tab or a thread reads the same --fbv-* rows (--fbv-head,
+   --fbv-fret, --fbv-rows-h) as Fretboard.jsx. */
+.proto-a__neck {
+  position: relative;
+  --proto-rail-w: 98px;
+  /* The ribbon (a child of the neck, not of the fretboard) needs the same head
+     geometry the fretboard's .fretboard-container--vertical sets for itself. */
+  --fbv-head: 36px;
+  --fbv-gutter: 28px;
+  --fbv-string: 66px;
+}
+
+.proto-a__neck--rail > .fretboard-container--vertical {
+  margin-left: var(--proto-rail-w, 98px);
+  max-width: none;
+}
+
+.proto-a__position-rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--proto-rail-w, 98px);
+  z-index: 2;
+  /* The same fixed lines as Fretboard.css's .fretboard-container--vertical,
+     so the tabs and threads land on the same rows. */
+  --fbv-head: 36px;
+  --fbv-fret: 70px;
+  --fbv-rows-h: calc(var(--fbv-h, calc(2 * 36px + 70px + 22 * 70px)) - 2 * 36px - 70px);
+}
+
+.proto-a__rail-head {
+  position: relative;
+  z-index: 2;
+}
+
+/* "Do3 ▾": the slice-2 panel select, now a 98 x 44 button at the head of the
+   rail. It keeps the same registry name (jouer.position-depart-<id>). */
+.proto-a .proto-a__rail-start {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font: inherit;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.proto-a .proto-a__rail-start[aria-expanded="true"] {
+  background: var(--surface-3);
+  border-color: var(--select);
+}
+
+.proto-a .proto-a__rail-start:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.proto-a__rail-caret {
+  flex: 0 0 auto;
+  line-height: 1;
+  font-size: 0.75em;
+  color: var(--text-secondary);
+}
+
+/* The octave list: one 150 x 44 line per reachable octave. */
+.proto-a__rail-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 150px;
+  z-index: 10;
+  box-sizing: border-box;
+  padding: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.proto-a .proto-a__rail-option {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: var(--fs-label);
+  text-align: left;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.proto-a .proto-a__rail-option[aria-selected="true"] {
+  color: var(--text-on-select);
+  background: var(--surface-3);
+}
+
+.proto-a .proto-a__rail-option:hover {
+  background: var(--surface-2);
+}
+
+/* One tab per position: 44 x 44, its number 1..N bold at 22px, at the row of
+   the position's first fret. Two positions starting at the same fret get
+   different lanes, so their tabs never overlap. */
+.proto-a .proto-a__rail-tab {
+  position: absolute;
+  left: 0;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 22px;
+  font-weight: bold;
+  line-height: 1;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 2px solid var(--border-default);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.proto-a .proto-a__rail-tab.is-active {
+  color: var(--assistant-text);
+  background: linear-gradient(90deg, var(--assistant-from), var(--assistant-to));
+  border-color: var(--assistant-border);
+}
+
+.proto-a .proto-a__rail-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.proto-a .proto-a__rail-warn {
+  font-size: 14px;
+  line-height: 1;
+  margin-left: 1px;
+}
+
+/* The threads. The button is the whole 12px lane (the secondary target); the
+   visible thread is a 4px line centred inside it, 8px and the Assistant's
+   gradient for the chosen position. A "grand écart" (span 5) thread is dotted;
+   a shift position's thread is two buttons with the arrow between them. */
+.proto-a .proto-a__rail-thread {
+  position: absolute;
+  width: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.proto-a .proto-a__rail-thread::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: var(--rail-thread-w, 4px);
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.proto-a .proto-a__rail-thread.is-active::before {
+  background: linear-gradient(180deg, var(--assistant-from), var(--assistant-to));
+}
+
+.proto-a .proto-a__rail-thread.is-grand-ecart::before {
+  background: repeating-linear-gradient(180deg, var(--border-strong) 0 4px, transparent 4px 8px);
+}
+
+.proto-a .proto-a__rail-thread.is-grand-ecart.is-active::before {
+  background: repeating-linear-gradient(180deg, var(--assistant-from) 0 4px, transparent 4px 8px);
+}
+
+.proto-a .proto-a__rail-thread:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* The small arrow where a shift position's hand moves (towards the body). */
+.proto-a__rail-shift {
+  position: absolute;
+  left: 0;
+  width: 44px;
+  transform: translateY(-50%);
+  text-align: center;
+  line-height: 1;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+/* The ribbon: the octave's note names (Do · Ré · Mi · … · Do), in the neck's
+   second head row (the X / O / M row, empty for a scale), over the strings;
+   each lights while ▶ plays that note — the same moment the pastille lights,
+   from the same currentlyPlayingNotes.
+   VMU-202 (slice 3): it takes exactly the board's width (string pitch x the
+   neck's strings, the same left offset as before) and splits it into 8 equal
+   cells, each capped at 46px; the guitar's 6-string board (396px) is wide
+   enough for 8 x 46px, the bass's 4-string board (264px) shrinks them to
+   264 / 8 = 33px. Text stays at --fs-label, never below 15px, and clips
+   inside the cell rather than overflowing the board. */
+.proto-a__ribbon {
+  position: absolute;
+  top: var(--fbv-head, 36px);
+  left: calc(var(--proto-rail-w, 98px) + var(--fbv-gutter, 28px));
+  width: calc(var(--fbv-string, 66px) * var(--proto-strings, 6));
+  height: var(--fbv-head, 36px);
+  display: flex;
+  align-items: center;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.proto-a__ribbon-note {
+  flex: 1 1 0;
+  max-width: var(--proto-cell-max, 46px);
+  min-width: 0;
+  box-sizing: border-box;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: max(var(--fs-label), 15px);
+  color: var(--text-secondary);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.proto-a__ribbon-note.is-playing {
+  color: var(--text-on-select);
+  background: var(--surface-3);
+  border-radius: var(--radius-sm);
+}

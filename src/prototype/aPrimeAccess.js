@@ -96,8 +96,11 @@ export const A_PRIME_ACCESS = [
   // scale's focus), the alerts (guitar), and the instrument's range.
   { fn: "jouer.position-panneau-guitar", where: "instruments", needs: "dictionary" },
   { fn: "jouer.position-panneau-bass", where: "instruments", needs: "dictionary" },
-  { fn: "jouer.position-depart-guitar", where: "instruments", needs: "panel" },
-  { fn: "jouer.position-depart-bass", where: "instruments", needs: "panel" },
+  // VMU-202 (slice 3) — the start octave left the panel for the position rail:
+  // its button sits at the head of the rail, beside the neck, once a scale is
+  // shown. Same registry name as the slice-2 panel select, new "needs".
+  { fn: "jouer.position-depart-guitar", where: "instruments", needs: "dictionary:scale" },
+  { fn: "jouer.position-depart-bass", where: "instruments", needs: "dictionary:scale" },
   { fn: "jouer.position-fondamentale-corde-guitar-5", where: "instruments", needs: "panel" },
   { fn: "jouer.position-fondamentale-corde-guitar-4", where: "instruments", needs: "panel" },
   { fn: "jouer.position-fondamentale-corde-guitar-3", where: "instruments", needs: "panel" },
