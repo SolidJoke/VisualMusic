@@ -646,6 +646,11 @@ function AppDesktop() {
         modalOpen={showMathModal || showAudioModal || showHelp || Boolean(showAbout) || Boolean(showTheory) || Boolean(pendingChange)}
         onOpenMath={() => setShowMathModal(true)}
         onOpenAudio={() => setShowAudioModal(true)}
+        // VMU-195 C: the Math dock reuses the same writers as the classic
+        // window (the dock renders the SAME CompositionPanel).
+        setSuggestedBassTrack={setSuggestedBassTrack}
+        setCustomRhythm={setCustomRhythm}
+        setCustomDrums={setCustomDrums}
         masterVolume={masterVolume}
         setMasterVolume={setMasterVolume}
         txt={txt}

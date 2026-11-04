@@ -1,0 +1,240 @@
+/* src/prototype/MathDock.css
+   VMU-195 C (PR 1): the Math & Rythmes dock, the band at the bottom of A′'s
+   centre column. It reuses CompositionPanel and reflows it into three zones
+   with container queries (container-type: inline-size):
+
+     wide (>= 2200px, the 3840px page)  side by side:
+       left   the wheel, its title, the empty-cases toggle and the strip
+              (the toggle row and the strip go BESIDE the wheel — they cannot
+              fit under it inside the band's height);
+       middle the phrase, "Essayer :" and the footer;
+       right  "Pour aller plus loin": the recipes scroll inside themselves
+              once open, so the band never grows.
+     medium (900-2199px, the 2560/3000px pages)  two rows:
+       row 1  the wheel beside phrase + "Essayer :" + footer;
+       row 2  "Pour aller plus loin" full width, its recipes side by side;
+              the band may grow here (the page already scrolls there).
+     narrow (< 900px, a future column dock)  stacked, one zone under the other.
+
+   The wheel is 440px on screen (its viewBox is 420px); the centre line's
+   font is raised from 17px to 18px here so it stays >= the 18px floor S1-27
+   measures (17px x 440/420 = 17.8px would fall under it). The band's body is
+   exactly the wheel's 440px in the wide layout, the height driver, so the
+   dock adds ~500px and never makes the page scroll at 3840x2045.
+
+   VMU-195 C (PR 1): the zones are grid items that keep CompositionPanel.css's
+   `width: 100%` and `.panel-section`'s 16px padding + 1px border. With the
+   page's default content-box sizing that made each zone 34px wider than its
+   track (the overflow / overlap the coordinator measured); border-box below
+   makes `width: 100%` equal the track, and the three layouts use
+   `minmax(0, …)` / `fr` tracks so the band never overflows its container. */
+
+.math-dock {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  padding: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ONE title and its ✕, 48px high like the other targets. */
+.math-dock__header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--hit-min);
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.math-dock__title {
+  margin: 0;
+  font-size: var(--fs-emph);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.math-dock__close {
+  margin-left: auto;
+  flex: none;
+  width: var(--hit-min);
+  height: var(--hit-min);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: var(--fs-read);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.math-dock__close:hover {
+  background: var(--surface-3);
+  border-color: var(--select);
+}
+.math-dock__close:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+.math-dock__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* The dock IS the window: the panel loses its own bezel. */
+.math-dock .composition-panel {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  overflow: visible;
+  flex-shrink: 1;
+}
+
+/* The zones are grid items that keep `width: 100%` and the panel-section
+   padding/border: border-box keeps them exactly as wide as their track. */
+.math-dock .phrase-body > .panel-section {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* The three zones. The wheel (440px, aspect 1/1) is the height driver; the
+   recipes column scrolls inside itself so the band never grows. The footer
+   sits in the middle zone under "Essayer :". */
+.math-dock .composition-panel .phrase-body {
+  display: grid;
+  grid-template-columns: minmax(452px, 940px) minmax(0, 1.3fr) minmax(0, 0.75fr);
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas:
+    "wheel phrase more"
+    "wheel try    more"
+    "wheel footer more";
+  gap: 12px 16px;
+  height: 440px;
+  align-items: stretch;
+  overflow: hidden;
+}
+.math-dock .phrase-body > .viz-section { grid-area: wheel; }
+.math-dock .phrase-body > .phrase-section { grid-area: phrase; }
+.math-dock .phrase-body > .try-section { grid-area: try; }
+.math-dock .phrase-body > .advanced-section { grid-area: more; }
+.math-dock .phrase-body > .export-section { grid-area: footer; }
+
+/* The left zone: the wheel fills its 440px column; the title, the toggle and
+   the strip share the column beside it (top-packed, the strip right under the
+   toggle). */
+.math-dock .phrase-body > .viz-section {
+  display: grid;
+  grid-template-columns: 440px minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas:
+    "wheel head"
+    "wheel foot"
+    "wheel strip";
+  gap: 8px 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  align-items: start;
+}
+.math-dock .viz-section > .section-head { grid-area: head; }
+.math-dock .viz-section > .circle-container {
+  grid-area: wheel;
+  width: 440px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.math-dock .viz-section > .wheel-foot { grid-area: foot; align-self: start; }
+.math-dock .viz-section > .euclidean-strip { grid-area: strip; align-self: start; }
+
+/* Keep the wheel's centre line over the 18px floor at the dock's size. */
+.math-dock .euclidean-center-formula { font-size: 18px; }
+
+/* The right zone: "Pour aller plus loin" scrolls inside itself; the toggle
+   stays pinned at the top. */
+.math-dock .phrase-body > .advanced-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.math-dock .advanced-section > .section-head { flex: none; }
+.math-dock .advanced-section > .advanced-body {
+  overflow-y: auto;
+  min-height: 0;
+  margin-top: 8px;
+}
+
+/* Medium (900-2199px, the 2560/3000px pages): two rows — wheel | phrase +
+   "Essayer :" + footer on the first, "Pour aller plus loin" full width under
+   them (its recipes may lay out side by side). The band may grow here. */
+@container (min-width: 900px) and (max-width: 2199px) {
+  .math-dock .composition-panel .phrase-body {
+    display: grid;
+    grid-template-columns: minmax(452px, 1.1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      "wheel phrase"
+      "wheel try"
+      "wheel footer"
+      "more  more";
+    gap: 12px 16px;
+    height: auto;
+    align-items: stretch;
+    overflow: visible;
+  }
+  .math-dock .advanced-section > .advanced-body {
+    overflow-y: visible;
+    max-height: none;
+  }
+  .math-dock .advanced-body .recipes {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .math-dock .advanced-body .recipe-btn {
+    max-width: none;
+    flex: 1 1 360px;
+  }
+}
+
+/* Narrow (< 900px, a future column dock): everything stacked. The band may
+   grow here; the no-scroll contract is for the 3840px page (wide). */
+@container (max-width: 899px) {
+  .math-dock .composition-panel .phrase-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: auto;
+    overflow: visible;
+  }
+  .math-dock .phrase-body > .viz-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+  }
+  .math-dock .viz-section > .circle-container {
+    width: 100%;
+    max-width: 440px;
+    align-self: center;
+  }
+  .math-dock .advanced-section > .advanced-body {
+    max-height: 380px;
+  }
+}

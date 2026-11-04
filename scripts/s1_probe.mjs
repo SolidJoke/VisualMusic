@@ -202,7 +202,7 @@ const SELECTION_ONLY = flag("selection-only");
 const CHORD_OCTAVE_ONLY = flag("chord-octave-only");
 // --position-panel-only: S1-26 alone (L1b-1c).
 const POSITION_PANEL_ONLY = flag("position-panel-only");
-// --math-window-only: S1-27 alone (VMU-195-A).
+// --math-window-only: S1-27 alone (VMU-195-C).
 const MATH_WINDOW_ONLY = flag("math-window-only");
 const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY || POSITION_PANEL_ONLY || MATH_WINDOW_ONLY;
 
@@ -1411,7 +1411,7 @@ async function runAccess(browser, viewport) {
   const sel = (id) => `[data-fn="${id}"]`;
   // What a failed step may leave open, closed before the next one: a step
   // must not fail because the previous one left a window over the page.
-  const OVERLAYS = '.modal-overlay, .help-modal-overlay, [data-testid="custom-select-dropdown"], [data-s1="drawer"], input[data-fn="jouer.tempo-saisie"]';
+  const OVERLAYS = '.modal-overlay, .help-modal-overlay, [data-testid="custom-select-dropdown"], [data-s1="drawer"], input[data-fn="jouer.tempo-saisie"], .math-dock';
   const step = async (name, body) => {
     try {
       const note = await body();
@@ -1469,9 +1469,9 @@ async function runAccess(browser, viewport) {
     });
     await step("composer.math-ouvrir", async () => {
       await page.locator(sel("composer.math-ouvrir")).click({ timeout: T });
-      await page.locator(".modal-container #composition-panel .euclidean-svg").waitFor({ state: "visible", timeout: T });
-      await closesOnEscape(".modal-container");
-      return "opens the euclidean circle; Escape closes";
+      await page.locator(".math-dock #composition-panel .euclidean-svg").waitFor({ state: "visible", timeout: T });
+      await closesOnEscape(".math-dock");
+      return "opens the dock's euclidean circle; Escape closes";
     });
     await step("aide.guide", async () => {
       await page.locator(sel("aide.guide")).click({ timeout: T });
@@ -2907,14 +2907,15 @@ async function reportPositionPanel(browser, viewport) {
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
 
-// ─── S1-27 (VMU-195-A): the "Math & Rythmes" window, readable on a 4K screen ──
+// ─── S1-27 (VMU-195-A/C): the "Math & Rythmes" dock, readable on a 4K screen ──
 //
-// Opened from A′ (data-fn="composer.math-ouvrir"), Studio. PR #172 (VMU-195-B)
-// rebuilt the window as a sentence ("5 coups sur 16 cases, départ décalé de 0,
-// joués par …") with − / + steppers, a wheel and a strip of cases; the sliders
-// and the LED grid left the main view and now only appear inside
-// "Pour aller plus loin" when a recipe is on. Phase A, the window as it opens
-// (folded): ONE title (the Modal's; no inner header, no second h3); the smallest
+// VMU-195 C turned the window into a dock: opened from A′ (data-fn=
+// "composer.math-ouvrir"), Studio, as a band in the centre column. PR #172
+// (VMU-195-B) rebuilt the content as a sentence ("5 coups sur 16 cases, départ
+// décalé de 0, joués par …") with − / + steppers, a wheel and a strip of cases;
+// the sliders and the LED grid left the main view and now only appear inside
+// "Pour aller plus loin" when a recipe is on. Phase A, the dock as it opens
+// (folded): ONE title (the dock's; no inner header, no second h3); the smallest
 // rendered text >= 18px (an SVG text counts at its on-screen size: font-size x
 // the viewBox scale); every visible clickable thing >= 32px on both sides, the
 // buttons and the selects >= 48px high; the cases strip [data-testid=comp-grid]
@@ -2932,10 +2933,10 @@ async function reportPositionPanel(browser, viewport) {
 
 const S1_27 = { text: 18, target: 32, button: 48, thumb: 24, cell: 32, stepper: 44, strip: 22 };
 
-/** In page: what S1-27 reads off the open Math & Rythmes window. */
+/** In page: what S1-27 reads off the open Math & Rythmes dock. */
 function mathWindowMeasure() {
-  const modal = document.querySelector(".modal-container");
-  if (!modal) return { open: false };
+  const dock = document.querySelector(".math-dock");
+  if (!dock) return { open: false };
   const r = (el) => el.getBoundingClientRect();
   const shown = (el) => {
     const b = r(el);
@@ -2944,9 +2945,11 @@ function mathWindowMeasure() {
   };
   const shownChain = (el) => shown(el) && el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
   const name = (el) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/)[0] : ""}`;
+  const box = (el) => (el ? el.getBoundingClientRect() : null);
+  const overlaps = (a, b) => a && b && a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
   // smallest rendered text
   const texts = [];
-  const walker = document.createTreeWalker(modal, NodeFilter.SHOW_TEXT);
+  const walker = document.createTreeWalker(dock, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     if (!n.nodeValue.trim()) continue;
     const el = n.parentElement;
@@ -2958,17 +2961,18 @@ function mathWindowMeasure() {
     }
     texts.push({ size, what: `${name(el)} "${n.nodeValue.trim().slice(0, 24)}"` });
   }
-  for (const el of modal.querySelectorAll("select, input[type=text]")) {
+  for (const el of dock.querySelectorAll("select, input[type=text]")) {
     if (shown(el)) texts.push({ size: parseFloat(getComputedStyle(el).fontSize), what: `${name(el)} (control)` });
   }
   texts.sort((a, b) => a.size - b.size);
   // clickable targets: a checkbox is measured through its visible label
   const targets = [];
-  for (const el of modal.querySelectorAll("button, select, input[type=range], input[type=text], a[href], [role=button], label.retro-switch")) {
+  for (const el of dock.querySelectorAll("button, select, input[type=range], input[type=text], a[href], [role=button], label.retro-switch")) {
     if (!shown(el)) continue;
     const b = r(el);
     const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
-    targets.push({ what: name(el), text: (el.textContent || "").trim().slice(0, 20), w: Math.round(b.width * 10) / 10, h: Math.round(b.height * 10) / 10, kind: el.matches("button.retro-btn, select") ? "button" : "other", onTop: Boolean(hit && (hit === el || el.contains(hit) || (el.tagName === "LABEL" && el.control && hit === el.control))), inView: b.bottom > 0 && b.top < innerHeight });
+    const onTop = Boolean(hit && (hit === el || el.contains(hit) || (el.tagName === "LABEL" && el.control && hit === el.control)));
+    targets.push({ what: name(el), text: (el.textContent || "").trim().slice(0, 20), w: Math.round(b.width * 10) / 10, h: Math.round(b.height * 10) / 10, kind: el.matches("button.retro-btn, select") ? "button" : "other", onTop, hitName: onTop ? null : (hit ? name(hit) : "off-viewport"), inView: b.bottom > 0 && b.top < innerHeight });
   }
   // slider thumbs, grid cells
   // A pseudo-element's computed style is not reliable in Chromium (it answered the
@@ -2982,17 +2986,17 @@ function mathWindowMeasure() {
   document.body.appendChild(probe);
   const selectRgb = getComputedStyle(probe).color;
   probe.remove();
-  const sliderBoxes = [...modal.querySelectorAll("input[type=range]")].filter(shown).map((el) => {
+  const sliderBoxes = [...dock.querySelectorAll("input[type=range]")].filter(shown).map((el) => {
     const b = r(el);
     return { x: b.left, y: b.top, w: b.width, h: b.height };
   });
-  const cells = [...modal.querySelectorAll(".grid-led")].filter(shown).map((el) => Math.min(r(el).width, r(el).height));
+  const cells = [...dock.querySelectorAll(".grid-led")].filter(shown).map((el) => Math.min(r(el).width, r(el).height));
   // The cases strip (PR #172's replacement for the LED grid in the folded window):
   // visible, as many .strip-cell as the n stepper shows, each >= 22px high.
-  const stripEl = modal.querySelector('[data-testid="comp-grid"]');
+  const stripEl = dock.querySelector('[data-testid="comp-grid"]');
   const stripCells = stripEl ? [...stripEl.querySelectorAll(".strip-cell")] : [];
   const stripHeights = stripCells.map((el) => r(el).height);
-  const nValueEl = modal.querySelector('[data-testid="comp-n-value"]');
+  const nValueEl = dock.querySelector('[data-testid="comp-n-value"]');
   const nValue = nValueEl ? parseInt(nValueEl.textContent.trim(), 10) : NaN;
   const strip = {
     visible: stripEl ? shown(stripEl) : false,
@@ -3001,21 +3005,64 @@ function mathWindowMeasure() {
     nValue: Number.isFinite(nValue) ? nValue : null,
   };
   // The six − / + buttons of the k / n / r steppers.
-  const steppers = [...modal.querySelectorAll("button.sbtn")].filter(shown).map((el) => ({
+  const steppers = [...dock.querySelectorAll("button.sbtn")].filter(shown).map((el) => ({
     id: el.getAttribute("data-testid") || "",
     w: Math.round(r(el).width * 10) / 10,
     h: Math.round(r(el).height * 10) / 10,
   }));
   // titles: every heading-like element showing "Math"
-  const titles = [...modal.querySelectorAll("h1, h2, h3, h4, .panel__title, .modal-title, [data-testid=comp-title]")].filter(shown).filter((el) => /math/i.test(el.textContent));
-  const toggle = modal.querySelector('[data-testid="comp-advanced-toggle"]');
-  const listen = modal.querySelector('[data-testid="comp-listen"]');
+  const titles = [...dock.querySelectorAll("h1, h2, h3, h4, .panel__title, .modal-title, [data-testid=comp-title]")].filter(shown).filter((el) => /math/i.test(el.textContent));
+  const toggle = dock.querySelector('[data-testid="comp-advanced-toggle"]');
+  const listen = dock.querySelector('[data-testid="comp-listen"]');
   const listenBox = listen && shown(listen) ? r(listen) : null;
   const listenHit = listenBox ? document.elementFromPoint(listenBox.left + listenBox.width / 2, listenBox.top + listenBox.height / 2) : null;
-  const m = r(modal);
+  const m = r(dock);
+  // VMU-195 C (PR 1): the band must not overflow and its zones must not overlap.
+  const body = dock.querySelector(".phrase-body");
+  const zoneEls = {
+    wheel: dock.querySelector(".phrase-body > .viz-section"),
+    phrase: dock.querySelector(".phrase-body > .phrase-section"),
+    try: dock.querySelector(".phrase-body > .try-section"),
+    more: dock.querySelector(".phrase-body > .advanced-section"),
+    footer: dock.querySelector(".phrase-body > .export-section"),
+  };
+  const zones = {};
+  for (const [k, el] of Object.entries(zoneEls)) {
+    const b = el ? el.getBoundingClientRect() : null;
+    zones[k] = b ? { left: b.left, top: b.top, right: b.right, bottom: b.bottom, w: b.width, h: b.height } : null;
+  }
+  let advancedToggleOnTop = null;
+  if (toggle) {
+    const tb = r(toggle);
+    const hit = document.elementFromPoint(tb.left + tb.width / 2, tb.top + tb.height / 2);
+    advancedToggleOnTop = Boolean(hit && (hit === toggle || toggle.contains(hit)));
+  }
+  // VMU-195 C: the dock is a band inside the centre column; it must not make the
+  // page scroll, leave the centre column, or cover the sequencer / instruments.
+  const centreBox = box(document.querySelector('[data-s1="center"]'));
+  const sequencerBox = box(document.querySelector('[data-s1="sequencer"]'));
+  const instrumentBoxes = [...document.querySelectorAll('[data-s1="piano"], [data-s1="guitar"], [data-s1="bass"]')].map(box).filter(Boolean);
+  const insideCentre = centreBox && m &&
+    m.left >= centreBox.left - 0.5 && m.right <= centreBox.right + 0.5 &&
+    m.top >= centreBox.top - 0.5 && m.bottom <= centreBox.bottom + 0.5;
+  const de = document.documentElement;
   return {
     open: true,
-    modal: { w: Math.round(m.width), h: Math.round(m.height), top: Math.round(m.top), bottom: Math.round(m.bottom) },
+    dock: { w: Math.round(m.width), h: Math.round(m.height), left: Math.round(m.left), right: Math.round(m.right), top: Math.round(m.top), bottom: Math.round(m.bottom) },
+    bodyClient: body ? body.clientWidth : null,
+    bodyScroll: body ? body.scrollWidth : null,
+    zones,
+    advancedToggleOnTop,
+    page: {
+      scrollHeight: de.scrollHeight,
+      innerHeight: window.innerHeight,
+      scrollWidth: de.scrollWidth,
+      innerWidth: window.innerWidth,
+      scrolls: de.scrollHeight > window.innerHeight + 0.5 || de.scrollWidth > window.innerWidth + 0.5,
+      insideCentre,
+      coversSequencer: overlaps(m, sequencerBox),
+      overlapsInstruments: instrumentBoxes.filter((b) => overlaps(m, b)).length,
+    },
     titles: titles.map((el) => `${name(el)} "${el.textContent.trim().slice(0, 30)}"`),
     smallestText: texts.slice(0, 3),
     textCount: texts.length,
@@ -3026,10 +3073,10 @@ function mathWindowMeasure() {
     strip,
     steppers,
     toggle: toggle ? toggle.getAttribute("aria-expanded") : null,
-    advancedBody: Boolean(modal.querySelector('[data-testid="comp-advanced"]')),
-    modeButtons: [...modal.querySelectorAll('[data-testid^="comp-mode-"]')].filter(shown).length,
+    advancedBody: Boolean(dock.querySelector('[data-testid="comp-advanced"]')),
+    modeButtons: [...dock.querySelectorAll('[data-testid^="comp-mode-"]')].filter(shown).length,
     listen: listen ? { text: listen.textContent.trim(), onTop: Boolean(listenHit && (listenHit === listen || listen.contains(listenHit))) } : null,
-    helpButtons: modal.querySelectorAll("button.help-btn").length,
+    helpButtons: dock.querySelectorAll("button.help-btn").length,
   };
 }
 
@@ -3072,7 +3119,23 @@ async function advancedMathChecks(page, m, requireGridLed) {
   const small = m.targets.filter((t) => Math.min(t.w, t.h) < S1_27.target);
   if (small.length) fails.push(`[advanced] ${small.length} clickable thing(s) under ${S1_27.target}px: ${small.slice(0, 3).map((t) => `${t.what} ${t.w}x${t.h}`).join(", ")}`);
   const thumbSizes = [];
-  for (const box of m.sliderBoxes) {
+  // The dock's advanced body scrolls inside itself (the band never grows): a
+  // slider can sit below the visible scrollport. Scroll each one to the middle
+  // of its container before reading its thumb on pixels, then re-read its box
+  // (the absolute position changed).
+  for (let i = 0; i < m.sliderBoxes.length; i++) {
+    await page.evaluate((idx) => {
+      const slider = document.querySelectorAll(".math-dock input[type=range]")[idx];
+      if (slider) slider.scrollIntoView({ block: "center" });
+    }, i);
+    await page.waitForTimeout(120);
+    const box = await page.evaluate((idx) => {
+      const slider = document.querySelectorAll(".math-dock input[type=range]")[idx];
+      if (!slider) return null;
+      const b = slider.getBoundingClientRect();
+      return { x: b.left, y: b.top, w: b.width, h: b.height };
+    }, i);
+    if (!box) continue;
     const t = await thumbOnPixels(page, box, m.selectRgb);
     if (t) thumbSizes.push(Math.min(t.w, t.h));
   }
@@ -3086,6 +3149,45 @@ async function advancedMathChecks(page, m, requireGridLed) {
     else if (cellMin < S1_27.cell) fails.push(`[advanced] grid-led cell ${round1(cellMin)}px, >= ${S1_27.cell}px expected`);
   }
   const notes = `${m.sliderBoxes.length} slider(s) (smallest thumb ${thumbMin === null ? "-" : `${thumbMin}px`}), ${m.cells.length} grid-led cell(s) (smallest ${cellMin === null ? "-" : `${round1(cellMin)}px`}); ${m.textCount} texts (smallest ${low ? `${round1(low.size)}px` : "-"}), ${m.targets.length} targets`;
+  return { fails, notes };
+}
+
+/** [overflow] / [overlap] for S1-27 (VMU-195 C, PR 1): the band's phrase-body
+ *  must not overflow its container and its five zones must be disjoint and
+ *  inside the dock's box (+-1px). `phase` names the check in the notes. */
+const S1_27_ZONES = ["wheel", "phrase", "try", "more", "footer"];
+const fmtBox = (b) => (b ? `x${Math.round(b.left)}-${Math.round(b.right)} y${Math.round(b.top)}-${Math.round(b.bottom)}` : "-");
+function dockLayoutChecks(m, phase) {
+  const fails = [];
+  const notes = [];
+  if (m.bodyClient === null || m.bodyScroll === null) {
+    fails.push(`[overflow] ${phase} phrase-body measure missing`);
+  } else if (m.bodyScroll > m.bodyClient + 1) {
+    fails.push(`[overflow] ${phase} phrase-body scrollWidth ${m.bodyScroll}px > clientWidth ${m.bodyClient}px + 1`);
+  }
+  const missing = S1_27_ZONES.filter((k) => !m.zones || !m.zones[k]);
+  if (missing.length) {
+    fails.push(`[overflow] ${phase} zone(s) missing: ${missing.join(", ")}`);
+  } else {
+    const dock = m.dock;
+    const out = S1_27_ZONES.filter((k) => {
+      const z = m.zones[k];
+      return z.left < dock.left - 1 || z.right > dock.right + 1 || z.top < dock.top - 1 || z.bottom > dock.bottom + 1;
+    });
+    if (out.length) fails.push(`[overflow] ${phase} zone(s) outside the dock: ${out.map((k) => `${k} ${fmtBox(m.zones[k])}`).join(", ")} (dock ${fmtBox(dock)})`);
+    const pairs = [];
+    for (let i = 0; i < S1_27_ZONES.length; i++) {
+      for (let j = i + 1; j < S1_27_ZONES.length; j++) {
+        const a = m.zones[S1_27_ZONES[i]];
+        const b = m.zones[S1_27_ZONES[j]];
+        if (a && b && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) {
+          pairs.push(`${S1_27_ZONES[i]}x${S1_27_ZONES[j]}`);
+        }
+      }
+    }
+    if (pairs.length) fails.push(`[overlap] ${phase} zone pair(s) overlap: ${pairs.join(", ")}`);
+  }
+  notes.push(`${phase} layout: body ${m.bodyScroll}/${m.bodyClient}px, dock ${fmtBox(m.dock)}; zones ${S1_27_ZONES.map((k) => `${k} ${fmtBox(m.zones && m.zones[k])}`).join(" | ")}`);
   return { fails, notes };
 }
 
@@ -3106,13 +3208,17 @@ async function reportMathWindow(browser, viewport) {
     if (await studio.count()) await studio.click({ timeout: 4000 });
     await page.waitForTimeout(250);
     await page.locator('[data-fn="composer.math-ouvrir"]').click({ timeout: 4000 });
-    await page.locator(".modal-container").waitFor({ state: "visible", timeout: 5000 });
+    await page.locator(".math-dock").waitFor({ state: "visible", timeout: 5000 });
     await page.waitForTimeout(500);
     m = await page.evaluate(mathWindowMeasure);
-    if (!m.open) throw new Error("the window did not open");
-    const shot = path.join(ROOT, "probe.local", `s1-27-math-window-${viewport.label}.png`);
+    if (!m.open) throw new Error("the dock did not open");
+    if (m.page.scrolls) fails.push(`[page] the page scrolls with the dock open (${m.page.scrollWidth}x${m.page.scrollHeight} in ${m.page.innerWidth}x${m.page.innerHeight})`);
+    if (!m.page.insideCentre) fails.push(`[page] the dock is outside the centre column`);
+    if (m.page.coversSequencer) fails.push(`[page] the dock covers the sequencer`);
+    if (m.page.overlapsInstruments) fails.push(`[page] the dock covers ${m.page.overlapsInstruments} instrument column(s)`);
+    const shot = path.join(ROOT, "probe.local", `s1-27-math-dock-${viewport.label}.png`);
     fs.mkdirSync(path.dirname(shot), { recursive: true });
-    await page.locator(".modal-container").screenshot({ path: shot });
+    await page.locator(".math-dock").screenshot({ path: shot });
     notes.push(`screenshot ${path.relative(ROOT, shot).replace(/\\/g, "/")}`);
 
     if (m.titles.length !== 1) fails.push(`[title] ${m.titles.length} title(s) showing "Math": ${m.titles.join(" / ")}, 1 expected`);
@@ -3123,7 +3229,7 @@ async function reportMathWindow(browser, viewport) {
     const buttons = m.targets.filter((t) => t.kind === "button" && t.h < S1_27.button - 0.5);
     if (buttons.length) fails.push(`[button] ${buttons.length} button/select under ${S1_27.button}px high: ${buttons.slice(0, 3).map((t) => `${t.what} ${t.h}`).join(", ")}`);
     const covered = m.targets.filter((t) => t.inView && !t.onTop);
-    if (covered.length) fails.push(`[foreground] ${covered.length} control(s) covered: ${covered.slice(0, 3).map((t) => t.what).join(", ")}`);
+    if (covered.length) fails.push(`[foreground] ${covered.length} control(s) covered: ${covered.slice(0, 3).map((t) => `${t.what} (by ${t.hitName || "?"})`).join(", ")}`);
     // A slider is no longer part of the folded window; if one is visible, its
     // thumb is still measured on pixels and must reach the same 24px.
     const thumbSizes = [];
@@ -3146,9 +3252,13 @@ async function reportMathWindow(browser, viewport) {
       fails.push(`[stepper] stepper(s) under ${S1_27.stepper}px on a side: ${under}`);
     }
     if (m.toggle !== "false" || m.advancedBody || m.modeButtons !== 0) fails.push(`[folded] "Pour aller plus loin" toggle aria-expanded=${m.toggle}, body ${m.advancedBody ? "shown" : "absent"}, ${m.modeButtons} visible recipe button(s); closed, 0 recipes expected`);
+    if (m.advancedToggleOnTop !== true) fails.push(`[toggle] the "Pour aller plus loin" toggle is not on top (${m.advancedToggleOnTop === null ? "not found" : "covered"})`);
     if (!m.listen || !m.listen.onTop) fails.push(`[listen] ${m.listen ? "the Écouter button is covered" : "no Écouter button in the window"}`);
     if (m.helpButtons < 7) fails.push(`[help] ${m.helpButtons} "?" button(s), 7 expected`);
-    notes.push(`window ${m.modal.w}x${m.modal.h} at y=${m.modal.top}..${m.modal.bottom}; ${m.textCount} texts, smallest ${m.smallestText.map((t) => `${round1(t.size)}px ${t.what}`).join(" | ")}`);
+    const layoutA = dockLayoutChecks(m, "phase A");
+    fails.push(...layoutA.fails);
+    notes.push(...layoutA.notes);
+    notes.push(`dock ${m.dock.w}x${m.dock.h} at y=${m.dock.top}..${m.dock.bottom}; page ${m.page.scrollWidth}x${m.page.scrollHeight} in ${m.page.innerWidth}x${m.page.innerHeight} (${m.page.scrolls ? "scrolls" : "no scroll"}, ${m.page.insideCentre ? "inside centre" : "outside centre"}, ${m.page.coversSequencer ? "covers sequencer" : "clear of sequencer"}, ${m.page.overlapsInstruments} instrument overlap(s)); ${m.textCount} texts, smallest ${m.smallestText.map((t) => `${round1(t.size)}px ${t.what}`).join(" | ")}`);
     notes.push(`${m.targets.length} targets, smallest ${m.targets.length ? Math.min(...m.targets.map((t) => Math.min(t.w, t.h))) : "-"}px; strip ${m.strip.count} cell(s) x ${m.strip.minH === null ? "-" : round1(m.strip.minH)}px (n=${m.strip.nValue}); steppers ${m.steppers.length} (smallest ${m.steppers.length ? Math.min(...m.steppers.map((s) => Math.min(s.w, s.h))) : "-"}px); thumbs ${thumbMin === null ? "-" : `${thumbMin}px`}; titles ${JSON.stringify(m.titles)}; help buttons ${m.helpButtons}; folded: toggle ${m.toggle}, ${m.modeButtons} visible recipe(s); Écouter ${m.listen ? JSON.stringify(m.listen) : "absent"}`);
 
     // Phase B — "Pour aller plus loin": phasing (a slider), then poly (grid-led).
@@ -3159,6 +3269,9 @@ async function reportMathWindow(browser, viewport) {
     const phasing = await advancedMathChecks(page, mPhasing, false);
     fails.push(...phasing.fails);
     notes.push(`phasing: ${phasing.notes}`);
+    const layoutPhasing = dockLayoutChecks(mPhasing, "phasing");
+    fails.push(...layoutPhasing.fails);
+    notes.push(...layoutPhasing.notes);
 
     await page.locator('[data-testid="comp-mode-phasing"]').click({ timeout: 4000 });
     await page.locator('[data-testid="comp-mode-poly"]').click({ timeout: 4000 });
@@ -3167,10 +3280,13 @@ async function reportMathWindow(browser, viewport) {
     const poly = await advancedMathChecks(page, mPoly, true);
     fails.push(...poly.fails);
     notes.push(`poly: ${poly.notes}`);
+    const layoutPoly = dockLayoutChecks(mPoly, "poly");
+    fails.push(...layoutPoly.fails);
+    notes.push(...layoutPoly.notes);
 
-    const advShot = path.join(ROOT, "probe.local", `s1-27-math-window-advanced-${viewport.label}.png`);
+    const advShot = path.join(ROOT, "probe.local", `s1-27-math-dock-advanced-${viewport.label}.png`);
     fs.mkdirSync(path.dirname(advShot), { recursive: true });
-    await page.locator(".modal-container").screenshot({ path: advShot });
+    await page.locator(".math-dock").screenshot({ path: advShot });
     notes.push(`screenshot ${path.relative(ROOT, advShot).replace(/\\/g, "/")}`);
   } catch (err) {
     fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
@@ -3180,7 +3296,7 @@ async function reportMathWindow(browser, viewport) {
   if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
   mathWindowChecks[viewport.label] = { fails, notes };
   if (AS_JSON) return;
-  const lead = `${viewport.label} S1-27 (math window)`;
+  const lead = `${viewport.label} S1-27 (math dock)`;
   console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  phase A: one title, texts >= ${S1_27.text}px, targets >= ${S1_27.target}px (buttons ${S1_27.button}px), strip cells >= ${S1_27.strip}px, 6 steppers >= ${S1_27.stepper}px, tools folded, Écouter on top; phase B: phasing slider thumb >= ${S1_27.thumb}px, poly grid-led >= ${S1_27.cell}px`);
   for (const n of notes) console.log(`${lead}   ${n}`);
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
@@ -3377,7 +3493,7 @@ if (AS_JSON) {
   console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);
   console.log(`  S1-25 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
   console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; no warning sign in the Studio (VMU-201)`);
-  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-A Math & Rythmes window: phase A one title, every text >= ${S1_27.text}px (SVG at its on-screen size), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, the composers' tools folded, seven "?" buttons, "Écouter" on top; phase B phasing slider thumb >= ${S1_27.thumb}px, poly grid-led >= ${S1_27.cell}px`);
+  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text >= ${S1_27.text}px (SVG at its on-screen size), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, the composers' tools folded, seven "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; phase B phasing slider thumb >= ${S1_27.thumb}px, poly grid-led >= ${S1_27.cell}px`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
   console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-27 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");

@@ -28,7 +28,8 @@
  *           "studio": only in the Studio (the style menu);
  *           "dictionary:chord" / "dictionary:scale": only in the Dictionary
  *           with the family Chords / Scales (their type menu; a single note
- *           has none)
+ *           has none);
+ *           "dock": only once the Math & Rythmes dock is open (VMU-195 C)
  *   devOnly only in the development build (import.meta.env.DEV), never clicked
  */
 export const A_PRIME_ACCESS = [
@@ -68,6 +69,8 @@ export const A_PRIME_ACCESS = [
   { fn: "son.visualiseur", where: "centre" },
   { fn: "composer.grilles", where: "centre" },
   { fn: "nav.legende", where: "centre" },
+  // VMU-195 C: the Math & Rythmes dock's close button, only while it is open.
+  { fn: "composer.math-fermer", where: "centre", needs: "dock" },
   // Instruments
   { fn: "jouer.piano", where: "instruments" },
   { fn: "jouer.guitare", where: "instruments" },
