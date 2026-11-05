@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./PrototypeA.css";
+import "./aPrimeType.css";
 import PianoKeyboard from "../components/Instruments/PianoKeyboard";
 import Fretboard from "../components/Instruments/Fretboard";
 import SequencerPanel from "../components/Panels/SequencerPanel";

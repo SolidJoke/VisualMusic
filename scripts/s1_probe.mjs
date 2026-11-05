@@ -102,7 +102,7 @@
  * child of [data-s1="transport"], the top row's controls still in the block
  * above it; each state holds exactly its controls (composer.style / dico.famille
  * + dico.fondamentale + dico.type-accord or dico.type-gamme, none of the others),
- * each once, visible, >= 48px high, text >= 18px, on top at its centre; no name
+ * each once, visible, >= 48px high, text = 12px (+-0.5, VMU-212), on top at its centre; no name
  * cut (the longest name of each menu, measured in the field's font, fits the
  * room the field gives it); the row and the block keep ONE height in every state
  * (+-1px; the block <= 190px, it was 98); the page does not scroll and the
@@ -138,6 +138,20 @@
  *   npm run s1:probe -- --position-panel-only   # S1-26 alone
  * Positive control: hide the button, S1-26 (and S1-20 / S1-21) turn red
  *   S1_PROBE_INJECT_CSS='[data-fn^="jouer.position-panneau-"]{display:none!important}' npm run s1:probe -- --position-panel-only
+ *
+ * VMU-212 (part 1, Gabriel 2026-11-05: "fonts are generally far too big") adds
+ * S1-28, decisive, on Gabriel's page at 3840x2045 and 3840x2160: ONE text size,
+ * 12px — the sequencers' track-name size — for every text of A′, everywhere
+ * except the instruments' frozen drawing (everything inside [data-s1=piano] /
+ * [data-s1=guitar] / [data-s1=bass] below their .proto-a__inst-head heads) and
+ * SVG text, which keeps its drawing with a floor of 12px on screen (font-size x
+ * the viewBox scale). Seven states: Studio on arrival, Studio + Math dock,
+ * Dictionary chord + scale, Assistant drawer open, "Instruments & Audio" open,
+ * and the Guide. Portaled windows / lists / tooltips (Modal, CustomSelect,
+ * InfoTooltip -> document.body) are walked too.
+ *   npm run s1:probe -- --text-size-only   # S1-28 alone
+ * Positive control: one A′ text at 14px must turn S1-28 (and only S1-28) red:
+ *   S1_PROBE_INJECT_CSS='.proto-a .proto-a__title{font-size:14px!important}' npm run s1:probe -- --text-size-only
  *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
@@ -204,7 +218,9 @@ const CHORD_OCTAVE_ONLY = flag("chord-octave-only");
 const POSITION_PANEL_ONLY = flag("position-panel-only");
 // --math-window-only: S1-27 alone (VMU-195-C).
 const MATH_WINDOW_ONLY = flag("math-window-only");
-const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY || POSITION_PANEL_ONLY || MATH_WINDOW_ONLY;
+// --text-size-only: S1-28 alone (VMU-212, one text size).
+const TEXT_SIZE_ONLY = flag("text-size-only");
+const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY || POSITION_PANEL_ONLY || MATH_WINDOW_ONLY || TEXT_SIZE_ONLY;
 
 // Thresholds, spec §2 table. `decides` = counts for the A′ / B decision.
 const CRITERIA = [
@@ -246,7 +262,15 @@ const CRITERIA = [
   // is a beginner). S1-21 is the next slice's (the instrument heads): it will
   // be added there, nothing is renumbered.
   { id: "S1-22", decides: true, what: "piano: all 49 keys named (an unplayed key by its name, a C with its octave, a black key with its flat), each name readable: >= 18px, >= 4.5:1 against what is behind it, inside its key; no two labels overlap" },
+  // VMU-212 (part 1): one text size. `matrix: false`: like S1-20..S1-27 it runs
+  // on Gabriel's page (no bench), not per state of the matrix — listed here so
+  // the decision's "S1-1..S1-28" counts it, and filtered out of the matrix
+  // loops (MATRIX_CRITERIA).
+  { id: "S1-28", decides: true, matrix: false, what: "one text size: every A′ text 12px (+-0.5), the instruments' frozen drawing excepted, SVG text >= 12px on screen" },
 ];
+
+// The per-state matrix criteria (S1-28 is a per-viewport check, see above).
+const MATRIX_CRITERIA = CRITERIA.filter((c) => c.matrix !== false);
 
 // S1-16 thresholds (L1a-fix1 brief E, as amended by the coordinator: 24px
 // everywhere after the UX critique — the centre keeps its 2764px).
@@ -1098,7 +1122,7 @@ function verdicts(m) {
   const v = {};
   const put = (id, pass, value) => (v[id] = { pass, value });
   if (m.missing?.length) {
-    for (const c of CRITERIA) put(c.id, false, `instrument not rendered: ${m.missing.join(", ")}`);
+    for (const c of MATRIX_CRITERIA) put(c.id, false, `instrument not rendered: ${m.missing.join(", ")}`);
     return v;
   }
   put("S1-1", m.s1_1.failCount === 0, `min ${m.s1_1.min}px over ${m.s1_1.n} labels${m.s1_1.failCount ? `; ${m.s1_1.failCount} < 18px: ${m.s1_1.fails.join(" | ")}` : ""}`);
@@ -1694,8 +1718,9 @@ async function runVolume(browser, viewport) {
 
 // S1-21 thresholds (brief L1b-1b): a 100px head (+-1), the same in the three
 // columns, 48px targets, the keyboard's bottom at least 40px above the window's
-// (3840 x 2045: <= 2005), the setting's label at the instruments' label size.
-const S1_21 = { head: 100, headTolerance: 1, target: 48, minMargin: 40, labelFont: 18 };
+// (3840 x 2045: <= 2005), the setting's label at 12px (VMU-212's one text size,
+// checked +-0.5).
+const S1_21 = { head: 100, headTolerance: 1, target: 48, minMargin: 40, labelFont: 12 };
 
 // The piano's label is checked against an ORACLE computed here from what the
 // engine hands the piano (data-s1-notes), never read from the page: the names
@@ -1853,7 +1878,7 @@ function headsFails(where, h, { mode }) {
       if (!c.label.fits) out.push(`${where}: ${id} label "${c.label.text}" ${c.label.textWidth}px does not fit its ${c.label.boxWidth}px`);
       if (!c.label.clearOfArrows) out.push(`${where}: ${id} label "${c.label.text}" runs under an arrow`);
       if (!c.label.insideColumn) out.push(`${where}: ${id} label "${c.label.text}" leaves its column`);
-      if (c.label.text && !(c.label.fontSize >= S1_21.labelFont)) out.push(`${where}: ${id} label at ${c.label.fontSize}px, ${S1_21.labelFont} expected`);
+      if (c.label.text && Math.abs(c.label.fontSize - S1_21.labelFont) > 0.5) out.push(`${where}: ${id} label at ${c.label.fontSize}px, ${S1_21.labelFont}px expected`);
     } else if (id === "piano" && mode === "dictionary") out.push(`${where}: the piano has no setting label`);
   }
   // The controls the mode must show, each once (the list is aPrimeAccess.js's).
@@ -2024,10 +2049,11 @@ async function runHeads(browser, viewport) {
 // module graph) and literal anchors (Do majeur = 60 64 67), never from what the
 // row itself shows.
 
-// Thresholds (brief VMU-185): 48px targets, labels >= 18px (the centre's), the
-// block no taller than 190px (98 before), the row and the block the same height
-// in every state (+-1px), the keyboard's bottom >= 40px above the window's.
-const S1_23 = { target: 48, label: 18, maxBlock: 190, heightTolerance: 1, minMargin: 40 };
+// Thresholds (brief VMU-185): 48px targets, labels at 12px (VMU-212's one text
+// size, checked +-0.5), the block no taller than 190px (98 before), the row and
+// the block the same height in every state (+-1px), the keyboard's bottom >=
+// 40px above the window's.
+const S1_23 = { target: 48, label: 12, maxBlock: 190, heightTolerance: 1, minMargin: 40 };
 const SELECTION_FNS = ["composer.style", "dico.famille", "dico.fondamentale", "dico.type-accord", "dico.type-gamme"];
 // The top row's controls: still in the block, above the new row, untouched.
 const SELECTION_TOP_FNS = [
@@ -2187,7 +2213,7 @@ function selectionFails(where, m, state) {
     for (const t of f.targets) {
       if (!(t.h >= S1_23.target - 0.5)) out.push(`[size] ${where}: ${fn}: a target ${t.w}x${t.h}px, ${S1_23.target}px high expected`);
       if (!t.onTop) out.push(`[foreground] ${where}: ${fn}: a target is covered at its centre`);
-      if (!(t.font >= S1_23.label)) out.push(`[size] ${where}: ${fn}: text ${t.font}px, ${S1_23.label}px expected`);
+      if (Math.abs(t.font - S1_23.label) > 0.5) out.push(`[size] ${where}: ${fn}: text ${t.font}px, ${S1_23.label}px expected`);
     }
     if (f.fit.box !== undefined && f.fit.widest > f.fit.box) out.push(`[fit] ${where}: ${fn}: the longest name "${f.fit.label}" needs ${f.fit.widest}px, the field gives it ${f.fit.box}px`);
     if (f.fit.shownCut) out.push(`[fit] ${where}: ${fn}: the shown name is cut`);
@@ -2197,7 +2223,7 @@ function selectionFails(where, m, state) {
     if (t.count !== 1) out.push(`[presence] ${where}: top row ${t.fn}: ${t.count} element(s), 1 expected`);
     else if (!t.inTransport || !t.outsideRow || !t.above) out.push(`[presence] ${where}: top row ${t.fn} moved (in the block ${t.inTransport}, outside the row ${t.outsideRow}, above it ${t.above})`);
   }
-  for (const l of m.labels) if (!(l.font >= S1_23.label)) out.push(`[size] ${where}: label "${l.text}" ${l.font}px, ${S1_23.label}px expected`);
+  for (const l of m.labels) if (Math.abs(l.font - S1_23.label) > 0.5) out.push(`[size] ${where}: label "${l.text}" ${l.font}px, ${S1_23.label}px expected`);
   if (m.overlaps) out.push(`[fit] ${where}: ${m.overlaps} field(s) overlapping the previous one`);
   if (m.lines !== 1) out.push(`[fit] ${where}: the row runs over ${m.lines} lines, 1 expected`);
   if (m.rowRight !== null && m.rowRight > m.innerRight + 0.5) out.push(`[fit] ${where}: the row ends at x=${m.rowRight}, past the block's inner edge (${m.innerRight})`);
@@ -2790,7 +2816,7 @@ async function reportChordOctave(browser, viewport) {
 // Dictionary, Do majeur: the label of a neck's position is a button; opened, its
 // panel lists Mi / La / Ré with Do's fret (oracle, semitones up from the open
 // string: 8 / 3 / 10), the heads stay 100px and the keyboard does not move, the
-// controls are on top, >= 48px, text >= 18px; a root string changes the shape
+// controls are on top, >= 48px, text = 12px (+-0.5, VMU-212); a root string changes the shape
 // the neck draws (guitar La: 0-3 -> 3-5; bass Mi: 3-5 -> 8-10) and not the other
 // neck's; "Réinitialiser Position" puts a chosen position back; Escape closes it
 // and returns the focus. Studio, chord octave +2 (bench state): since VMU-201 /
@@ -2799,7 +2825,7 @@ async function reportChordOctave(browser, viewport) {
 // alert is unit-tested in PrototypePositionPanelUnit.test.jsx); the head stays
 // 100px and the label still fits.
 
-const S1_26 = { head: 100, target: 48, font: 18, frets: [8, 3, 10] };
+const S1_26 = { head: 100, target: 48, font: 12, frets: [8, 3, 10] };
 
 /** In page: what S1-26 compares before / after opening a panel. */
 function positionPanelMeasure() {
@@ -2867,7 +2893,7 @@ async function reportPositionPanel(browser, viewport) {
       eq(`${id} open: the panel is under the head, in the window`, m1[id].below, true);
       eq(`${id}: the three strings, Do's fret on each (oracle ${S1_26.frets})`, m1[id].root.map((b) => Number((b.text.match(/(\d+)\)$/) || [])[1])).join(" "), S1_26.frets.join(" "));
       for (const b of m1[id].root) {
-        if (!(b.h >= S1_26.target - 0.5 && b.font >= S1_26.font && b.onTop)) fails.push(`${id}: "${b.text}" ${b.h}px high, ${b.font}px text, ${b.onTop ? "on top" : "covered"}`);
+        if (!(b.h >= S1_26.target - 0.5 && Math.abs(b.font - S1_26.font) <= 0.5 && b.onTop)) fails.push(`${id}: "${b.text}" ${b.h}px high, ${b.font}px text, ${b.onTop ? "on top" : "covered"}`);
       }
       await press(`jouer.position-${id}-suiv`);
       eq(`${id}: "Réinitialiser Position" appears once a position is chosen`, (await page.evaluate(positionPanelMeasure))[id].reset, true);
@@ -2915,9 +2941,10 @@ async function reportPositionPanel(browser, viewport) {
 // décalé de 0, joués par …") with − / + steppers, a wheel and a strip of cases;
 // the sliders and the LED grid left the main view and now only appear inside
 // "Pour aller plus loin" when a recipe is on. Phase A, the dock as it opens
-// (folded): ONE title (the dock's; no inner header, no second h3); the smallest
-// rendered text >= 18px (an SVG text counts at its on-screen size: font-size x
-// the viewBox scale); every visible clickable thing >= 32px on both sides, the
+// (folded): ONE title (the dock's; no inner header, no second h3); every rendered
+// HTML text = 12px (+-0.5, VMU-212) and every SVG text >= 12px on screen (an SVG
+// text counts at its on-screen size: font-size x the viewBox scale); every visible
+// clickable thing >= 32px on both sides, the
 // buttons and the selects >= 48px high; the cases strip [data-testid=comp-grid]
 // visible with as many .strip-cell as [data-testid=comp-n-value] shows, each cell
 // >= 22px high; six button.sbtn steppers (comp-k/n/r-minus/plus) each >= 44px on
@@ -2926,12 +2953,12 @@ async function reportPositionPanel(browser, viewport) {
 // no visible comp-mode-* recipe; the "Écouter" button is there and on top. Phase B
 // opens "Pour aller plus loin" and turns on phasing then poly: at least one slider
 // with a >= 24px thumb (pixels), for poly at least one .grid-led >= 32px, and
-// texts >= 18px / targets >= 32px inside the advanced body too. Screenshots go to
+// texts = 12px (+-0.5, SVG >= 12px on screen) / targets >= 32px inside the advanced body too. Screenshots go to
 // probe.local/. Positive control: the same measure on a checkout of origin/main
 // (texts ~11px, three titles, tools unfolded, no Écouter) must fail:
 //   S1_PROBE_PORT=<port of a server on the main checkout> npm run s1:probe -- --math-window-only
 
-const S1_27 = { text: 18, target: 32, button: 48, thumb: 24, cell: 32, stepper: 44, strip: 22 };
+const S1_27 = { text: 12, target: 32, button: 48, thumb: 24, cell: 32, stepper: 44, strip: 22 };
 
 /** In page: what S1-27 reads off the open Math & Rythmes dock. */
 function mathWindowMeasure() {
@@ -2947,22 +2974,23 @@ function mathWindowMeasure() {
   const name = (el) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/)[0] : ""}`;
   const box = (el) => (el ? el.getBoundingClientRect() : null);
   const overlaps = (a, b) => a && b && a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
-  // smallest rendered text
+  // smallest rendered text (VMU-212: HTML = 12px +-0.5, SVG >= 12px on screen)
   const texts = [];
   const walker = document.createTreeWalker(dock, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     if (!n.nodeValue.trim()) continue;
     const el = n.parentElement;
     if (!el || el.closest("option, script, style") || !shownChain(el)) continue;
+    const svg = el instanceof SVGElement;
     let size = parseFloat(getComputedStyle(el).fontSize);
-    if (el instanceof SVGElement && typeof el.getScreenCTM === "function") {
+    if (svg && typeof el.getScreenCTM === "function") {
       const m = el.getScreenCTM();
       if (m) size *= Math.hypot(m.a, m.b);
     }
-    texts.push({ size, what: `${name(el)} "${n.nodeValue.trim().slice(0, 24)}"` });
+    texts.push({ size, svg, what: `${name(el)} "${n.nodeValue.trim().slice(0, 24)}"` });
   }
   for (const el of dock.querySelectorAll("select, input[type=text]")) {
-    if (shown(el)) texts.push({ size: parseFloat(getComputedStyle(el).fontSize), what: `${name(el)} (control)` });
+    if (shown(el)) texts.push({ size: parseFloat(getComputedStyle(el).fontSize), svg: false, what: `${name(el)} (control)` });
   }
   texts.sort((a, b) => a.size - b.size);
   // clickable targets: a checkbox is measured through its visible label
@@ -3065,6 +3093,7 @@ function mathWindowMeasure() {
     },
     titles: titles.map((el) => `${name(el)} "${el.textContent.trim().slice(0, 30)}"`),
     smallestText: texts.slice(0, 3),
+    texts,
     textCount: texts.length,
     targets,
     selectRgb,
@@ -3115,7 +3144,15 @@ async function thumbOnPixels(page, box, selectRgb) {
 async function advancedMathChecks(page, m, requireGridLed) {
   const fails = [];
   const low = m.smallestText[0];
-  if (!low || low.size < S1_27.text) fails.push(`[advanced] smallest text ${low ? `${round1(low.size)}px (${low.what})` : "none"}, >= ${S1_27.text}px expected`);
+  const texts = m.texts || [];
+  const htmlOff = texts.filter((t) => !t.svg && Math.abs(t.size - S1_27.text) > 0.5);
+  const svgOff = texts.filter((t) => t.svg && t.size < S1_27.text - 0.5);
+  if (!texts.length) {
+    fails.push(`[advanced] no text found`);
+  } else {
+    if (htmlOff.length) fails.push(`[advanced] ${htmlOff.length} text(s) off ${S1_27.text}px (+-0.5): ${htmlOff.slice(0, 3).map((t) => `${round1(t.size)}px (${t.what})`).join(" | ")}`);
+    if (svgOff.length) fails.push(`[advanced] ${svgOff.length} SVG text(s) under ${S1_27.text}px on screen: ${svgOff.slice(0, 3).map((t) => `${round1(t.size)}px (${t.what})`).join(" | ")}`);
+  }
   const small = m.targets.filter((t) => Math.min(t.w, t.h) < S1_27.target);
   if (small.length) fails.push(`[advanced] ${small.length} clickable thing(s) under ${S1_27.target}px: ${small.slice(0, 3).map((t) => `${t.what} ${t.w}x${t.h}`).join(", ")}`);
   const thumbSizes = [];
@@ -3222,8 +3259,15 @@ async function reportMathWindow(browser, viewport) {
     notes.push(`screenshot ${path.relative(ROOT, shot).replace(/\\/g, "/")}`);
 
     if (m.titles.length !== 1) fails.push(`[title] ${m.titles.length} title(s) showing "Math": ${m.titles.join(" / ")}, 1 expected`);
-    const low = m.smallestText[0];
-    if (!low || low.size < S1_27.text) fails.push(`[text] smallest text ${low ? `${round1(low.size)}px (${low.what})` : "none"}, >= ${S1_27.text}px expected`);
+    const texts = m.texts || [];
+    const htmlOff = texts.filter((t) => !t.svg && Math.abs(t.size - S1_27.text) > 0.5);
+    const svgOff = texts.filter((t) => t.svg && t.size < S1_27.text - 0.5);
+    if (!texts.length) {
+      fails.push(`[text] no text found`);
+    } else {
+      if (htmlOff.length) fails.push(`[text] ${htmlOff.length} text(s) off ${S1_27.text}px (+-0.5): ${htmlOff.slice(0, 3).map((t) => `${round1(t.size)}px (${t.what})`).join(" | ")}`);
+      if (svgOff.length) fails.push(`[text] ${svgOff.length} SVG text(s) under ${S1_27.text}px on screen: ${svgOff.slice(0, 3).map((t) => `${round1(t.size)}px (${t.what})`).join(" | ")}`);
+    }
     const small = m.targets.filter((t) => Math.min(t.w, t.h) < S1_27.target);
     if (small.length) fails.push(`[target] ${small.length} clickable thing(s) under ${S1_27.target}px: ${small.slice(0, 3).map((t) => `${t.what} ${t.w}x${t.h}`).join(", ")}`);
     const buttons = m.targets.filter((t) => t.kind === "button" && t.h < S1_27.button - 0.5);
@@ -3302,6 +3346,188 @@ async function reportMathWindow(browser, viewport) {
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
 
+// ─── S1-28 (VMU-212, part 1): one text size ────────────────────────────────
+//
+// Gabriel's decision (2026-11-05): "fonts are generally far too big". Every text
+// of A′ is 12px — the size measured on the sequencers' track names — everywhere
+// except the instruments' frozen drawing (everything inside [data-s1=piano] /
+// [data-s1=guitar] / [data-s1=bass] below their .proto-a__inst-head heads) and
+// SVG text, which keeps its drawing with a floor of 12px on screen (font-size x
+// the viewBox scale). Measured on Gabriel's page (no bench) in seven states:
+// Studio on arrival, Studio + Math dock, Dictionary chord + scale, Assistant
+// drawer open, "Instruments & Audio" open, and the Guide (help window) open.
+// Portaled windows / lists / tooltips (Modal, CustomSelect, InfoTooltip render
+// into document.body via createPortal) are walked too. Positive control: set one
+// A′ text to 14px, S1-28 must name it:
+//   S1_PROBE_INJECT_CSS='.proto-a .proto-a__title{font-size:14px!important}' npm run s1:probe -- --text-size-only
+
+const S1_28 = { size: 12, tolerance: 0.5, svgFloor: 12 };
+
+/** In page: every visible A′ text's computed size, outside the frozen drawing. */
+function textSizeMeasure() {
+  const proto = document.querySelector(".proto-a");
+  if (!proto) return { open: false };
+  const pathOf = (el) => {
+    const parts = [];
+    let cur = el;
+    while (cur && cur !== document.body && parts.length < 8) {
+      let s = cur.tagName.toLowerCase();
+      if (cur.id) s += `#${cur.id}`;
+      else if (cur.className && typeof cur.className === "string") s += "." + cur.className.trim().split(/\s+/).slice(0, 2).join(".");
+      parts.unshift(s);
+      cur = cur.parentElement;
+    }
+    return parts.join(" > ");
+  };
+  const shownChain = (el) => {
+    const b = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    if (b.width <= 0 || b.height <= 0) return false;
+    if (cs.visibility === "hidden" || cs.display === "none" || Number(cs.opacity) <= 0) return false;
+    return el.checkVisibility ? el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }) : true;
+  };
+  // .proto-a plus the portaled windows / lists / tooltips (createPortal -> body),
+  // but not an inline modal already inside .proto-a (walked once).
+  const roots = [proto];
+  for (const sel of [".modal-overlay", ".custom-select-body", ".info-tooltip-popin"]) {
+    for (const el of document.querySelectorAll(sel)) if (!proto.contains(el)) roots.push(el);
+  }
+  const offenders = [];
+  const svgOffenders = [];
+  let count = 0;
+  let svgCount = 0;
+  const seen = new Set();
+  for (const root of roots) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (seen.has(n)) continue;
+      seen.add(n);
+      const v = n.nodeValue;
+      if (!v || !v.trim()) continue;
+      const el = n.parentElement;
+      if (!el || el.closest("option, script, style, noscript")) continue;
+      // The frozen drawing: inside an instrument column but below its head.
+      const inInst = el.closest('[data-s1="piano"], [data-s1="guitar"], [data-s1="bass"]');
+      const inHead = el.closest(".proto-a__inst-head");
+      if (inInst && !inHead) continue;
+      const svg = el instanceof SVGElement;
+      if (svg) {
+        if (typeof el.getScreenCTM !== "function" || !shownChain(el)) continue;
+        const m = el.getScreenCTM();
+        if (!m) continue;
+        const size = parseFloat(getComputedStyle(el).fontSize) * Math.hypot(m.a, m.b);
+        svgCount++;
+        // S1-28's values, inlined: this function runs inside the page, where the
+        // Node-side S1_28 const is not in scope.
+        if (size < 12 - 0.5) svgOffenders.push({ path: pathOf(el), text: v.trim().slice(0, 24), size });
+      } else {
+        if (!shownChain(el)) continue;
+        const size = parseFloat(getComputedStyle(el).fontSize);
+        count++;
+        if (Math.abs(size - 12) > 0.5) offenders.push({ path: pathOf(el), text: v.trim().slice(0, 24), size });
+      }
+    }
+  }
+  // Dedupe by path: many offenders share one class; the report lists each class once.
+  const unique = [];
+  const seenPath = new Set();
+  for (const o of offenders) {
+    if (seenPath.has(o.path)) continue;
+    seenPath.add(o.path);
+    unique.push(o);
+  }
+  return {
+    open: true,
+    count,
+    offenders: unique.slice(0, 10),
+    offenderTotal: offenders.length,
+    svgCount,
+    svgOffenders: svgOffenders.slice(0, 10),
+    svgOffenderTotal: svgOffenders.length,
+  };
+}
+
+/** S1-28 on one viewport, on Gabriel's page (no bench). */
+async function reportTextSize(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const notes = [];
+  const T = 4000;
+  const sel = (id) => `[data-fn="${id}"]`;
+  const open = async (query) => {
+    await page.goto(`${ORIGIN}/?prototype=a${query}`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(300);
+  };
+  const states = [];
+  const measure = async (name) => {
+    const m = await page.evaluate(textSizeMeasure);
+    const bad = m.offenderTotal + m.svgOffenderTotal;
+    if (bad) {
+      const parts = [];
+      if (m.offenderTotal) parts.push(`${m.offenderTotal} text(s) off ${S1_28.size}px (+-${S1_28.tolerance}): ${m.offenders.map((o) => `${o.path} "${o.text}" ${o.size}px`).join(" | ")}`);
+      if (m.svgOffenderTotal) parts.push(`${m.svgOffenderTotal} SVG text(s) under ${S1_28.svgFloor}px on screen: ${m.svgOffenders.map((o) => `${o.path} "${o.text}" ${o.size}px`).join(" | ")}`);
+      fails.push(`${name}: ${parts.join("; ")}`);
+    }
+    states.push({ name, count: m.count, offenders: m.offenderTotal, svg: m.svgCount, svgOffenders: m.svgOffenderTotal });
+  };
+  try {
+    // 1. Studio on arrival.
+    await open("");
+    const studio = page.locator(sel("nav.mode-studio"));
+    if (await studio.count()) await studio.click({ timeout: T });
+    await page.waitForTimeout(300);
+    await measure("Studio");
+    // 2. Studio + Math dock (robust to the dock already being open).
+    if ((await page.locator(".math-dock").count()) === 0) {
+      await page.locator(sel("composer.math-ouvrir")).click({ timeout: T });
+      await page.locator(".math-dock").waitFor({ state: "visible", timeout: T });
+    }
+    await page.waitForTimeout(300);
+    await measure("Studio, Math dock open");
+    // 3/4. Dictionary chord then scale.
+    await open("&scenario=cmaj");
+    await measure("Dictionary, chord");
+    await open("&scenario=cmajscale");
+    await measure("Dictionary, scale");
+    // 5. Assistant drawer open.
+    await open("");
+    await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
+    await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
+    await page.waitForTimeout(300);
+    await measure("Assistant drawer open");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(200);
+    // 6. "Instruments & Audio" (portaled Modal).
+    await page.locator(sel("son.ouvrir")).click({ timeout: T });
+    await page.locator(".modal-container").waitFor({ state: "visible", timeout: T });
+    await page.waitForTimeout(300);
+    await measure("Instruments & Audio");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(200);
+    // 7. The Guide (help window, the ❓ button).
+    await page.locator(sel("aide.guide")).click({ timeout: T });
+    await page.locator(".help-modal-overlay").waitFor({ state: "visible", timeout: T });
+    await page.waitForTimeout(300);
+    await measure("Guide (help window)");
+  } catch (err) {
+    fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
+  } finally {
+    await page.close();
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  textSizeChecks[viewport.label] = { fails, notes: states.map((s) => `${s.name}: ${s.count} texts, ${s.offenders} off ${S1_28.size}px, ${s.svg} SVG texts (${s.svgOffenders} under ${S1_28.svgFloor}px)`) };
+  if (AS_JSON) return;
+  const lead = `${viewport.label} S1-28 (one text size)`;
+  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  ${S1_28.size}px for every A′ text, the instruments' frozen drawing excepted, SVG >= ${S1_28.svgFloor}px on screen; Studio / Math dock / Dictionary chord+scale / drawer / Instruments & Audio / Guide`);
+  for (const n of textSizeChecks[viewport.label].notes) console.log(`${lead}   ${n}`);
+  if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
+}
+
 const { chromium } = await import("playwright");
 const dev = await startDevServer();
 if (!AS_JSON) {
@@ -3323,6 +3549,7 @@ const chordOctaveChecks = {};
 const confirmChecks = {};
 const positionPanelChecks = {};
 const mathWindowChecks = {};
+const textSizeChecks = {};
 try {
   for (const viewport of ACCESS_ONLY ? [] : VIEWPORTS) {
     for (const scenario of STATES) {
@@ -3332,7 +3559,7 @@ try {
         const state = `${viewport.label} ${scenario.id.padEnd(14)} ${labels.id.padEnd(7)}`;
         results.push({ viewport: viewport.label, scenario: scenario.id, labels: labels.id, verdicts: v, measures: m, pageErrors });
         if (!AS_JSON) {
-          for (const c of CRITERIA) {
+          for (const c of MATRIX_CRITERIA) {
             console.log(`${state} ${c.id.padEnd(5)} ${v[c.id].pass ? "PASS" : "FAIL"}  ${v[c.id].value}`);
           }
           if (!m.missing?.length) {
@@ -3368,6 +3595,10 @@ try {
     }
     if (MATH_WINDOW_ONLY) {
       await reportMathWindow(browser, viewport);
+      continue;
+    }
+    if (TEXT_SIZE_ONLY) {
+      await reportTextSize(browser, viewport);
       continue;
     }
     if (CONFIRM_ONLY) {
@@ -3428,6 +3659,8 @@ try {
     await reportPositionPanel(browser, viewport);
     // S1-27 (VMU-195-A): the Math & Rythmes window, readable on 4K.
     await reportMathWindow(browser, viewport);
+    // S1-28 (VMU-212): one text size, 12px everywhere except the frozen drawing.
+    await reportTextSize(browser, viewport);
   }
 } finally {
   await browser.close();
@@ -3436,7 +3669,7 @@ try {
 
 // ─── summary and decision ───────────────────────────────────────────────────
 
-const summary = CRITERIA.map((c) => {
+const summary = MATRIX_CRITERIA.map((c) => {
   const states = results.map((r) => r.verdicts[c.id]);
   const failed = results.filter((r) => !r.verdicts[c.id].pass);
   return {
@@ -3473,11 +3706,14 @@ const positionPanelPassCount = Object.values(positionPanelChecks).filter((c) => 
 // S1-27 decides too (brief VMU-195-A: the window must be readable for a beginner on Gabriel's 4K screen).
 const mathWindowOk = Object.values(mathWindowChecks).every((c) => c.fails.length === 0);
 const mathWindowPassCount = Object.values(mathWindowChecks).filter((c) => c.fails.length === 0).length;
-const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk && positionPanelOk && mathWindowOk ? "A′" : "B";
+// S1-28 decides too (VMU-212: one text size for everything but the frozen drawing).
+const textSizeOk = Object.values(textSizeChecks).every((c) => c.fails.length === 0);
+const textSizePassCount = Object.values(textSizeChecks).filter((c) => c.fails.length === 0).length;
+const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk && positionPanelOk && mathWindowOk && textSizeOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, positionPanelChecks, mathWindowChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, positionPanelChecks, mathWindowChecks, textSizeChecks, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
@@ -3493,9 +3729,10 @@ if (AS_JSON) {
   console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);
   console.log(`  S1-25 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
   console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; no warning sign in the Studio (VMU-201)`);
-  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text >= ${S1_27.text}px (SVG at its on-screen size), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, the composers' tools folded, seven "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; phase B phasing slider thumb >= ${S1_27.thumb}px, poly grid-led >= ${S1_27.cell}px`);
+  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text = ${S1_27.text}px (+-0.5; SVG >= ${S1_27.text}px on screen), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, the composers' tools folded, seven "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; phase B phasing slider thumb >= ${S1_27.thumb}px, poly grid-led >= ${S1_27.cell}px`);
+  console.log(`  S1-28 ${textSizeOk ? "PASS" : "FAIL"} ${textSizePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-212 one text size: every A′ text ${S1_28.size}px (+-${S1_28.tolerance}), the instruments' frozen drawing excepted, SVG >= ${S1_28.svgFloor}px on screen; Studio / Math dock / Dictionary chord+scale / Assistant drawer / Instruments & Audio / Guide`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-27 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-28 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

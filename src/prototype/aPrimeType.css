@@ -1,0 +1,139 @@
+/* aPrimeType.css — VMU-212 (part 1): one text size for A′.
+ *
+ * Gabriel's decision (2026-11-05): "fonts are generally far too big". Every
+ * text of A′ is 12px — the size measured on the sequencers' track names —
+ * everywhere EXCEPT the instruments' frozen drawing (everything inside
+ * [data-s1=piano] / [data-s1=guitar] / [data-s1=bass] below their
+ * .proto-a__inst-head heads) and SVG text, which keeps its drawing with a floor
+ * of 12px on screen.
+ *
+ * All eight typographic tokens are redefined to 12px on :root while .proto-a is
+ * mounted — :has(.proto-a) also reaches the windows / lists / tooltips portaled
+ * to document.body (Modal, ConfirmDialog, CustomSelect, InfoTooltip). The
+ * instruments' frozen drawing re-reads the tokens.css values, and the heads put
+ * them back to 12px (the heads DO follow the rule). Literal px sizes in the
+ * shared stylesheets are overridden below, scoped the same way so the classic
+ * page (?layout=classic) and the phone never see them. Targets keep --hit-min /
+ * --hit-comfort: only font sizes (and a few line-heights) move, never a button's
+ * box. Imported by PrototypeA.jsx AFTER PrototypeA.css.
+ */
+
+:root:has(.proto-a) {
+  --fs-label: 12px;
+  --fs-body: 12px;
+  --fs-emph: 12px;
+  --fs-title: 12px;
+  --fs-heading: 12px;
+  --fs-display: 12px;
+  --fs-read: 12px;
+  --fs-read-title: 12px;
+}
+
+/* The frozen drawing keeps the page's real scale (tokens.css): everything in the
+   three instrument columns below the heads re-reads the original values. */
+:root:has(.proto-a) [data-s1="piano"],
+:root:has(.proto-a) [data-s1="guitar"],
+:root:has(.proto-a) [data-s1="bass"] {
+  --fs-label: calc(12px * var(--ui-scale));
+  --fs-body: calc(14px * var(--ui-scale));
+  --fs-emph: calc(16px * var(--ui-scale));
+  --fs-title: calc(20px * var(--ui-scale));
+  --fs-heading: calc(26px * var(--ui-scale));
+  --fs-display: calc(36px * var(--ui-scale));
+  --fs-read: max(18px, var(--fs-emph));
+  --fs-read-title: max(20px, var(--fs-emph));
+}
+
+/* The column heads follow the 12px rule (S1-21 measures their label at 12px). */
+:root:has(.proto-a) [data-s1="piano"] .proto-a__inst-head,
+:root:has(.proto-a) [data-s1="guitar"] .proto-a__inst-head,
+:root:has(.proto-a) [data-s1="bass"] .proto-a__inst-head {
+  --fs-label: 12px;
+  --fs-body: 12px;
+  --fs-emph: 12px;
+  --fs-title: 12px;
+  --fs-heading: 12px;
+  --fs-display: 12px;
+  --fs-read: 12px;
+  --fs-read-title: 12px;
+}
+
+/* ─── Literal / rem / inline sizes that the tokens above cannot reach ──────
+   The shared stylesheets set these in px or rem, and a few A′ components set
+   them inline in JSX. Scoped to :root:has(.proto-a) so the classic page and
+   the phone are untouched; !important because several of them are inline
+   styles and because the shared stylesheets load in an order Vite does not
+   guarantee relative to this file. Only font-size moves — every button's box
+   keeps --hit-min / --hit-comfort. None of these classes exists in the
+   instruments' frozen drawing, so [data-s1] stays on its own scale. */
+
+/* CustomSelect (header field + the open list portaled to document.body). */
+:root:has(.proto-a) .custom-select-header .current-value,
+:root:has(.proto-a) .custom-select-header .arrow,
+:root:has(.proto-a) .custom-select-body .opt-group-label,
+:root:has(.proto-a) .custom-select-body .select-item {
+  font-size: 12px !important;
+}
+
+/* Sequencer: piano-roll controls, the module's MIDI/… buttons, the DAW helper. */
+:root:has(.proto-a) .module-control-btn,
+:root:has(.proto-a) .step-density-btn,
+:root:has(.proto-a) .page-btn,
+:root:has(.proto-a) .page-indicator,
+:root:has(.proto-a) .btn-header-action,
+:root:has(.proto-a) .daw-helper__title,
+:root:has(.proto-a) .daw-helper__chord-degree,
+:root:has(.proto-a) .daw-helper__meta {
+  font-size: 12px !important;
+}
+
+/* Drawer (Explorateur Libre / Dictionary) and the shared form buttons. */
+:root:has(.proto-a) .dict-panel__title,
+:root:has(.proto-a) .field-label,
+:root:has(.proto-a) .btn-segment,
+:root:has(.proto-a) .btn-toggle,
+:root:has(.proto-a) .btn-premium,
+:root:has(.proto-a) .info-tooltip-icon {
+  font-size: 12px !important;
+}
+
+/* The Math & Rythmes dock's phasing voices ("La boucle" / "La copie, décalée
+   de N") read max(18px, var(--fs-emph)) → 18px now the token is 12px. */
+:root:has(.proto-a) .phasing-voice .voice-label {
+  font-size: 12px !important;
+}
+
+/* Portaled windows: the audio/studio modal and the confirm dialog. */
+:root:has(.proto-a) .modal-title,
+:root:has(.proto-a) .modal-close-btn,
+:root:has(.proto-a) .confirm-dialog__title,
+:root:has(.proto-a) .confirm-dialog__body,
+:root:has(.proto-a) .confirm-dialog__btn {
+  font-size: 12px !important;
+}
+
+/* "Instruments & Audio" inline sizes (bare elements carry the style in JSX). */
+:root:has(.proto-a) .section-label,
+:root:has(.proto-a) .control-panel-container span,
+:root:has(.proto-a) .mixer-panel-content h3,
+:root:has(.proto-a) .mixer-panel-content span,
+:root:has(.proto-a) .lcd-display,
+:root:has(.proto-a) .lcd-display div {
+  font-size: 12px !important;
+}
+
+/* The Guide (help window, inline in .proto-a): every tab and step, About too. */
+:root:has(.proto-a) .help-modal-header h2,
+:root:has(.proto-a) .help-modal-close-icon,
+:root:has(.proto-a) .help-tab,
+:root:has(.proto-a) .help-tab-icon,
+:root:has(.proto-a) .help-step-icon,
+:root:has(.proto-a) .help-step-text h3,
+:root:has(.proto-a) .help-step-text p,
+:root:has(.proto-a) .help-about-logo,
+:root:has(.proto-a) .help-about-section h3,
+:root:has(.proto-a) .help-about-version,
+:root:has(.proto-a) .help-about-desc,
+:root:has(.proto-a) .help-modal-close-btn {
+  font-size: 12px !important;
+}
