@@ -4,7 +4,7 @@ import { Midi } from "@tonejs/midi";
 import { exportChords, exportBass, exportDrums, exportTimelineChords, exportTimelineDrums, exportTimelineBass } from "../MidiExporter";
 import { stepEvents } from "../dispatch";
 import { classifyDrumTrack } from "../trackMapping";
-import { buildStudioTimeline, loopSteps, studioSelection } from "../../core/timeline";
+import { buildStudioTimeline, loopSteps, setCell, studioSelection } from "../../core/timeline";
 import bricks from "../../data/bricks.json";
 
 // ---------------------------------------------------------------------------
@@ -282,5 +282,27 @@ describe("bass export uses the played bass track", () => {
       .sort((a, b) => a - b);
 
     expect(onsetSteps).toEqual([0, 3, 6, 9, 12]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5b. VMU-214 — a bass row whose cells name notes with their octave exports
+//     those exact notes, not the chord root of each measure.
+// ---------------------------------------------------------------------------
+describe("bass export plays note names, not the chord root", () => {
+  it("C3, E3, G3, B3 on steps 0, 3, 6, 9 become MIDI 48, 52, 55, 59", () => {
+    let doc = buildStudioTimeline({ brickIndex: 0 });
+    const bass = doc.tracks.find((t) => t.role === "bass");
+    [["C3", 0, 48], ["E3", 3, 52], ["G3", 6, 55], ["B3", 9, 59]].forEach(([pitch, step]) => {
+      doc = setCell(doc, bass.id, step, { vel: "normal", pitch });
+    });
+
+    const midi = parseMidi(exportTimelineBass(doc, 120));
+    const byStep = new Map(midi.tracks[0].notes.map((n) => [Math.round(n.time / stepSeconds(120)), n.midi]));
+
+    expect(byStep.get(0)).toBe(48);
+    expect(byStep.get(3)).toBe(52);
+    expect(byStep.get(6)).toBe(55);
+    expect(byStep.get(9)).toBe(59);
   });
 });
