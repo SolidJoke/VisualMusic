@@ -17,6 +17,7 @@ import {
   isBalanced,
   generateBalancedRhythm,
   lcm,
+  rotate,
 } from "../../core/compositionEngine";
 import "./CompositionPanel.css";
 
@@ -87,6 +88,7 @@ export default function CompositionPanel({
   const [showComplement, setShowComplement] = useState(true);
   const [showPhasing, setShowPhasing] = useState(false);
   const [phasingOffset, setPhasingOffset] = useState(0);
+  const [phasingCopyTarget, setPhasingCopyTarget] = useState("Snare");
   const [showIsorhythm, setShowIsorhythm] = useState(false);
   const [isorhythmPitches, setIsorhythmPitches] = useState("C3, E3, G3, B3");
   const [showRealignment, setShowRealignment] = useState(false);
@@ -205,6 +207,32 @@ export default function CompositionPanel({
     return isSelfComplementary(pattern);
   }, [pattern]);
 
+  // The phrase's instrument ("joués par"): when it moves onto the copy's drum,
+  // the copy moves to the default rule's drum (Snare, or Kick when the phrase
+  // is on Snare), so the two voices never share one drum.
+  const handleExportTargetChange = (e) => {
+    const next = e.target.value;
+    setExportTarget(next);
+    if (phasingCopyTarget === next) {
+      setPhasingCopyTarget(next === "Snare" ? "Kick" : "Snare");
+    }
+  };
+
+  // The copy's drum ("la copie jouée par"): the old drum returns to the style's
+  // rhythm; the new one receives the copy (handleExport follows, via the live
+  // export signature).
+  const handleCopyTargetChange = (e) => {
+    const next = e.target.value;
+    if (next !== phasingCopyTarget) {
+      setCustomDrums((prev) => {
+        const drums = prev ? { ...prev } : {};
+        delete drums[phasingCopyTarget];
+        return drums;
+      });
+      setPhasingCopyTarget(next);
+    }
+  };
+
   // Export to Sequencer Action (now called automatically). VMU-208: the circle
   // is exported WHOLE with its cycle length.
   const handleExport = () => {
@@ -243,6 +271,13 @@ export default function CompositionPanel({
       });
     }
 
+    // VMU-195-E: the phasing copy sounds on its own drum (owner's decision
+    // 2026-11-05) — the same loop shifted by the offset, the second voice the
+    // visualizer draws.
+    const phasingCopySteps = showPhasing
+      ? rotate(pattern, phasingOffset).flatMap((val, idx) => (val === 1 ? [idx] : []))
+      : null;
+
     if (exportTarget === "Bass") {
       setSuggestedBassTrack({
         name: "Bass",
@@ -256,6 +291,19 @@ export default function CompositionPanel({
       setCustomDrums(prev => {
         const drums = prev ? { ...prev } : {};
         drums[exportTarget] = { activeSteps: activeStepsToExport, cycleLength };
+        if (phasingCopySteps) {
+          drums[phasingCopyTarget] = { activeSteps: phasingCopySteps, cycleLength: subdivisions };
+        }
+        return drums;
+      });
+    }
+
+    // The copy is a drum, so it still plays on its own drum when the phrase is
+    // on the bass or the chords.
+    if (phasingCopySteps && (exportTarget === "Bass" || exportTarget === "Chords")) {
+      setCustomDrums(prev => {
+        const drums = prev ? { ...prev } : {};
+        drums[phasingCopyTarget] = { activeSteps: phasingCopySteps, cycleLength: subdivisions };
         return drums;
       });
     }
@@ -271,6 +319,9 @@ export default function CompositionPanel({
     showIsorhythm && isorhythmResult ? isorhythmResult.sequence : null,
     showRealignment && realignedPattern ? realignedPattern : null,
     showPolyrhythm && polyrhythmResult ? polyrhythmResult.pattern : null,
+    showPhasing,
+    phasingOffset,
+    phasingCopyTarget,
   ]);
   const openingSignature = useRef(exportSignature);
   const liveExportArmed = useRef(false);
@@ -307,10 +358,20 @@ export default function CompositionPanel({
   // coexistences (poly with phasing / iso) stay as a possible future recipe,
   // VMU-210. handleExport's precedence can stay: it no longer meets two modes.
   const setMode = (id, on) => {
+    const phasingWasOn = showPhasing;
     setShowPhasing(on && id === "phasing");
     setShowIsorhythm(on && id === "iso");
     setShowRealignment(on && id === "mesh");
     setShowPolyrhythm(on && id === "poly");
+    // Turning phasing off (its own button, or another recipe taking its place)
+    // removes the copy: its drum returns to the style's rhythm.
+    if (phasingWasOn && !(on && id === "phasing")) {
+      setCustomDrums(prev => {
+        const drums = prev ? { ...prev } : {};
+        delete drums[phasingCopyTarget];
+        return drums;
+      });
+    }
   };
 
   const toggleMode = (id) => setMode(id, !modeActive[id]);
@@ -395,7 +456,7 @@ export default function CompositionPanel({
               id="comp-target"
               data-testid="comp-target"
               value={exportTarget}
-              onChange={(e) => setExportTarget(e.target.value)}
+              onChange={handleExportTargetChange}
               className="retro-select phrase-target"
               aria-label={txt.phrasePlayedBy}
             >
@@ -539,10 +600,30 @@ export default function CompositionPanel({
                 <div className="mode-panel phasing-section" data-testid="comp-phasing-section">
                   <p className="mode-say">{txt.recipePhaseSay}</p>
                   {renderSlider({ id: "shift", label: txt.phasingShift, min: 0, max: subdivisions - 1, value: phasingOffset, onChange: (e) => setPhasingOffset(parseInt(e.target.value, 10)) })}
+                  <div className="retro-input-container">
+                    <label className="input-label" htmlFor="comp-phasing-copy-target">{txt.phasingCopyTargetLabel}</label>
+                    <select
+                      id="comp-phasing-copy-target"
+                      data-testid="comp-phasing-copy-target"
+                      aria-label={txt.phasingCopyTargetLabel}
+                      value={phasingCopyTarget}
+                      onChange={handleCopyTargetChange}
+                      className="retro-select"
+                    >
+                      {["Kick", "Snare", "Hat"]
+                        .filter((drum) => drum !== exportTarget)
+                        .map((drum) => (
+                          <option key={drum} value={drum}>
+                            {{ Kick: txt.kick, Snare: txt.snare, Hat: txt.hat }[drum]}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                   <PhasingVisualizer
                     pattern={pattern}
                     currentOffset={phasingOffset}
                     currentStep={activeStep}
+                    txt={txt}
                   />
                 </div>
               )}

@@ -7,7 +7,7 @@ import "./PhasingVisualizer.css";
  * Displays the gradual phase shifting between two identical rhythms
  * as pioneered by Steve Reich (e.g. Clapping Music).
  */
-export function PhasingVisualizer({ pattern, currentOffset = 0, currentStep = -1 }) {
+export function PhasingVisualizer({ pattern, currentOffset = 0, currentStep = -1, txt = {} }) {
   if (!pattern || pattern.length === 0) return null;
 
   const states = generatePhasingStates(pattern);
@@ -21,7 +21,7 @@ export function PhasingVisualizer({ pattern, currentOffset = 0, currentStep = -1
   return (
     <div className="phasing-visualizer">
       <div className="phasing-voice">
-        <span className="voice-label">VOICE 1 (STATIC)</span>
+        <span className="voice-label">{txt.phasingLoop}</span>
         <div className="binary-grid">
           {voice1.map((val, idx) => {
             const isActiveStep = currentStep >= 0 && (idx === currentStep % n);
@@ -39,7 +39,7 @@ export function PhasingVisualizer({ pattern, currentOffset = 0, currentStep = -1
       </div>
 
       <div className="phasing-voice">
-        <span className="voice-label">VOICE 2 (SHIFT: +{currentOffset % n})</span>
+        <span className="voice-label">{txt.phasingCopy} {currentOffset % n}</span>
         <div className="binary-grid">
           {voice2.map((val, idx) => {
             const isActiveStep = currentStep >= 0 && (idx === currentStep % n);
