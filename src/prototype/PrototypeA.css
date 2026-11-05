@@ -567,6 +567,125 @@
   min-width: 0;
 }
 
+/* ─── VMU-213 (part 2): Math & Rythmes always there, recipes to the right ───
+   In the Studio the sequencer, the dock and the recipes column form one grid
+   inside the centre column. At 3840px and wider the sequencer is ~1600px and
+   the recipes column runs beside it for its full height; below that (the
+   centre is too narrow for two columns) the recipes go under the dock, full
+   width. The recipes column holds "Pour aller plus loin", portaled there by
+   the CompositionPanel: it is a frame, never a scroller (S1-27 measures it). */
+.proto-a__studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "seq"
+    "dock"
+    "recipes";
+  gap: 24px;
+  min-width: 0;
+}
+.proto-a__studio > .proto-a__sequencer { grid-area: seq; }
+.proto-a__studio > .math-dock { grid-area: dock; }
+.proto-a__studio > .proto-a__recipes { grid-area: recipes; }
+
+.proto-a__recipes {
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  overflow: visible;
+}
+
+/* The portaled section keeps its own 16px padding, but loses the panel bezel:
+   the column above is its frame (one box, not a box in a box). */
+.proto-a__recipes > .advanced-section {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* In the column (which has the room) all 64 isorhythm cases are visible with
+   no inner scroll: CompositionPanel.css caps the grid at 320px + auto scroll. */
+.proto-a__recipes .isorhythm-steps-grid {
+  max-height: none;
+  overflow-y: visible;
+}
+
+/* The advanced section is portaled OUT of .composition-panel, so CompositionPanel.css's
+   `.composition-panel .retro-slider` rules no longer reach its sliders and App.css's
+   global 4px track / 14px thumb wins. Restore the 32px control and the 28px thumb
+   with its --select border here (S1-27 measures the thumb on pixels). */
+.proto-a__recipes .retro-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  border: 0;
+  box-shadow: none;
+}
+.proto-a__recipes .retro-slider::-webkit-slider-runnable-track {
+  box-sizing: border-box;
+  height: 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+}
+.proto-a__recipes .retro-slider::-moz-range-track {
+  box-sizing: border-box;
+  height: 10px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+}
+.proto-a__recipes .retro-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 3px solid var(--select);
+  cursor: pointer;
+  box-shadow: none;
+}
+.proto-a__recipes .retro-slider::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: 3px solid var(--select);
+  cursor: pointer;
+  box-shadow: none;
+}
+.proto-a__recipes .retro-slider:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+@media (min-width: 3840px) {
+  .proto-a__studio {
+    grid-template-columns: 1600px minmax(0, 1fr);
+    grid-template-areas:
+      "seq recipes"
+      "dock recipes";
+  }
+}
+
 .proto-a__instrument {
   display: flex;
   flex-direction: column;

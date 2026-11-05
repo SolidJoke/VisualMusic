@@ -213,17 +213,18 @@ describe("A′-ACCÈS (b): the classic windows open from A′, with the classic 
     expect(document.querySelector(".modal-container")).toBeNull();
   });
 
-  it("'Math & Rythmes' opens the dock in Studio (the euclidean circle), its warning in Dictionary; Escape closes it", async () => {
+  it("'Math & Rythmes' is always there in Studio (no transport button), and its Dictionary button opens the warning Modal", async () => {
     await renderApp();
     fireEvent.click(fn("nav.mode-studio"));
-    fireEvent.click(fn("composer.math-ouvrir"));
+    // Studio: the dock is there on arrival — no opener, no ✕, nothing to close.
     const dock = document.querySelector(".math-dock");
     expect(dock).not.toBeNull();
     expect(dock.querySelector("#composition-panel")).not.toBeNull();
     expect(dock.querySelector(".euclidean-svg")).not.toBeNull();
-    escape();
-    expect(document.querySelector(".math-dock")).toBeNull();
+    expect(fn("composer.math-ouvrir")).toBeNull();
+    expect(fn("composer.math-fermer")).toBeNull();
 
+    // Dictionary: the transport button stays, and opens the classic Modal with its warning.
     fireEvent.click(fn("nav.mode-dictionnaire"));
     fireEvent.click(fn("composer.math-ouvrir"));
     const modal = document.querySelector(".modal-container");
@@ -233,17 +234,15 @@ describe("A′-ACCÈS (b): the classic windows open from A′, with the classic 
     expect(document.querySelector(".modal-container")).toBeNull();
   });
 
-  it("'Math & Rythmes' (VMU-195-A) carries one title, a Listen button wired to the main playback, and the tools folded", async () => {
+  it("'Math & Rythmes' (VMU-195-A) carries one title and a Listen button wired to the main playback", async () => {
     await renderApp();
     fireEvent.click(fn("nav.mode-studio"));
-    fireEvent.click(fn("composer.math-ouvrir"));
     const dock = document.querySelector(".math-dock");
     // The dock's own title is the only one: no inner header, no second h3.
     expect(dock.querySelectorAll(".math-dock__title")).toHaveLength(1);
     expect(dock.querySelector(".math-dock__title").textContent).toBe(FR.protoA.mathRhythms);
     expect(dock.querySelector("#composition-panel .panel__header")).toBeNull();
     expect(dock.querySelector("#composition-panel h3")).toBeNull();
-    expect(dock.querySelector('[data-testid="comp-advanced-toggle"]').getAttribute("aria-expanded")).toBe("false");
     // "Listen" is offered, and it starts/stops the main loop (its label follows isPlaying).
     const listen = dock.querySelector('[data-testid="comp-listen"]');
     expect(listen).not.toBeNull();
@@ -255,52 +254,35 @@ describe("A′-ACCÈS (b): the classic windows open from A′, with the classic 
     await waitFor(() => expect(dock.querySelector('[data-testid="comp-listen"]').textContent).toBe(FR.comp.listen), { timeout: 5000 });
   });
 
-  describe("A′-ACCÈS (b bis): the Math & Rythmes dock (VMU-195 C)", () => {
-    it("is closed by default, and the transport button toggles it, with aria-expanded following", async () => {
+  describe("A′-ACCÈS (b bis): the recipes column (VMU-213, part 2)", () => {
+    it("is there in the Studio, open by default, holding the advanced section portaled out of the dock", async () => {
       await renderApp();
-      expect(document.querySelector(".math-dock")).toBeNull();
-      expect(fn("composer.math-ouvrir").getAttribute("aria-expanded")).toBe("false");
-      fireEvent.click(fn("composer.math-ouvrir"));
-      expect(document.querySelector(".math-dock")).not.toBeNull();
-      expect(fn("composer.math-ouvrir").getAttribute("aria-expanded")).toBe("true");
-      fireEvent.click(fn("composer.math-ouvrir"));
-      expect(document.querySelector(".math-dock")).toBeNull();
-      expect(fn("composer.math-ouvrir").getAttribute("aria-expanded")).toBe("false");
+      const col = document.querySelector(".proto-a__recipes");
+      expect(col).not.toBeNull();
+      expect(col.getAttribute("data-fn")).toBe("composer.recettes");
+      expect(isVisible(col)).toBe(true);
+      // The advanced section ("Pour aller plus loin") lives IN the column, open
+      // by default, with its four recipes — never inline in the dock. The portal
+      // rides a callback ref, so it settles a render after the column mounts.
+      await waitFor(() => expect(col.querySelector(".advanced-section")).not.toBeNull());
+      await waitFor(() => expect(col.querySelector('[data-testid="comp-advanced-toggle"]').getAttribute("aria-expanded")).toBe("true"));
+      expect(col.querySelector('[data-testid="comp-advanced"]')).not.toBeNull();
+      expect(col.querySelectorAll('[data-testid^="comp-mode-"]')).toHaveLength(4);
+      expect(document.querySelector(".math-dock .advanced-section")).toBeNull();
     });
 
-    it("its ✕ (composer.math-fermer) closes it", async () => {
+    it("leaves the dock without the tools: no advanced section and no comp-mode-* inside it", async () => {
       await renderApp();
-      fireEvent.click(fn("composer.math-ouvrir"));
-      expect(document.querySelector(".math-dock")).not.toBeNull();
-      fireEvent.click(fn("composer.math-fermer"));
-      expect(document.querySelector(".math-dock")).toBeNull();
+      const dock = document.querySelector(".math-dock");
+      expect(dock.querySelector(".advanced-section")).toBeNull();
+      expect(dock.querySelectorAll('[data-testid^="comp-mode-"]')).toHaveLength(0);
     });
 
-    it("Escape closes it, and with a Modal open Escape closes the Modal only", async () => {
+    it("does not appear in the Dictionary (Studio only)", async () => {
       await renderApp();
-      fireEvent.click(fn("composer.math-ouvrir"));
-      expect(document.querySelector(".math-dock")).not.toBeNull();
-      escape();
+      fireEvent.click(fn("nav.mode-dictionnaire"));
+      expect(document.querySelector(".proto-a__recipes")).toBeNull();
       expect(document.querySelector(".math-dock")).toBeNull();
-
-      fireEvent.click(fn("composer.math-ouvrir"));
-      fireEvent.click(fn("son.ouvrir"));
-      expect(document.querySelector(".modal-container")).not.toBeNull();
-      escape();
-      expect(document.querySelector(".modal-container")).toBeNull();
-      expect(document.querySelector(".math-dock")).not.toBeNull();
-    });
-
-    it("carries its close button once the dock is open, and never before", async () => {
-      await renderApp();
-      for (const f of A_PRIME_ACCESS.filter((x) => x.needs === "dock")) {
-        expect(document.querySelectorAll(`[data-fn="${f.fn}"]`).length, f.fn).toBe(0);
-      }
-      fireEvent.click(fn("composer.math-ouvrir"));
-      for (const f of A_PRIME_ACCESS.filter((x) => x.needs === "dock")) {
-        expect(document.querySelectorAll(`[data-fn="${f.fn}"]`).length, f.fn).toBe(1);
-        expect(isVisible(fn(f.fn)), f.fn).toBe(true);
-      }
     });
   });
 

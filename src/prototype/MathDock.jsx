@@ -9,18 +9,20 @@ import "./MathDock.css";
  * Modal exactly as today, and the Dictionary's transport button still opens
  * that Modal with its warning.
  *
- * It renders the SAME CompositionPanel the classic Modal renders — the same
- * props, the same state holders AppDesktop already owns (never a copy of the
- * state) — under its own header: ONE title "📐 Math & Rythmes" and a ✕ that
- * closes the dock. The three zones (wheel / phrase + Essayer + footer /
- * recipes) are laid out by MathDock.css with container queries: side by side
- * when the column is wide, stacked when it is narrow. `hideTitle` is always
- * on, so the window's title is the dock header's, not a second one.
+ * VMU-213 (part 2): the dock is now always there in the Studio (no transport
+ * button, no ✕, no Escape: the dock cannot be closed). It renders the SAME
+ * CompositionPanel the classic Modal renders — the same props, the same state
+ * holders AppDesktop already owns (never a copy of the state) — under its own
+ * header: ONE title "📐 Math & Rythmes". Its three zones (wheel / phrase +
+ * Essayer + footer) are laid out by MathDock.css; "Pour aller plus loin" has
+ * left the dock for A′'s recipes column, which the caller hands as
+ * `advancedContainer` (a DOM node the CompositionPanel portals the section
+ * into, open by default). `hideTitle` is always on, so the window's title is
+ * the dock header's, not a second one.
  */
 export default function MathDock({
   title,
-  closeLabel = "Fermer",
-  onClose,
+  advancedContainer,
   setSuggestedBassTrack,
   setCustomRhythm,
   setCustomDrums,
@@ -33,15 +35,6 @@ export default function MathDock({
     <section className="math-dock" data-s1="math-dock" aria-label={title}>
       <header className="math-dock__header">
         <h2 className="math-dock__title">{title}</h2>
-        <button
-          type="button"
-          className="math-dock__close"
-          data-fn="composer.math-fermer"
-          aria-label={closeLabel}
-          onClick={onClose}
-        >
-          ✕
-        </button>
       </header>
       <div className="math-dock__body">
         <CompositionPanel
@@ -53,6 +46,7 @@ export default function MathDock({
           hideTitle
           isPlaying={isPlaying}
           togglePlayback={togglePlayback}
+          advancedContainer={advancedContainer}
         />
       </div>
     </section>

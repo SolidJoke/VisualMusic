@@ -234,7 +234,7 @@ const CRITERIA = [
   { id: "S1-8", decides: true, what: "white key >= 52px thick, black key >= 30px" },
   { id: "S1-9", decides: true, what: "piano: >= 29 white keys (4 octaves) visible without scroll" },
   { id: "S1-10", decides: true, what: "black-key label inside its key" },
-  { id: "S1-11", decides: true, what: "V3 step pitch in the centre column >= 39px, cell >= 36px wide (projection)" },
+  { id: "S1-11", decides: true, what: "sequencer: 16 step cells per row, each >= 48px wide, the grid never cut" },
   { id: "S1-12", decides: false, what: "no page scroll: scrollHeight <= innerHeight, scrollWidth <= innerWidth" },
   { id: "S1-13", decides: false, what: "no interactive element intercepted (elementFromPoint)" },
   // L1a (coordinator): a layout that drops a note loses a function, so this
@@ -626,17 +626,52 @@ function measureInPage() {
     out.s1_22 = s1_22;
   }
 
-  // S1-11 — the centre column the V3 timeline would get. The spec's own
-  // formula: (column content width - 262px of track names) / 64 steps, a
-  // 2px gap between cells. A projection: V3 does not exist yet.
-  // VMU-202 (slice 3, fix 3): when a scale is shown, the two position rails
-  // (98px each) take 196px from the centre column and the step sequencer gets
-  // narrower. Detected by the neck's class below, never by the scenario name.
-  const center = document.querySelector('[data-s1="center"]');
-  const rail = Boolean(document.querySelector(".proto-a__neck--rail"));
-  const cw = center ? center.clientWidth : 0;
-  const v3Pitch = (cw - 262) / 64;
-  out.s1_11 = { centerWidth: round(cw), pitch: round(v3Pitch), cellWidth: round(v3Pitch - 2), rail };
+  // S1-11 — the REAL sequencer (VMU-213, part 2, replaces the V3 projection):
+  // 16 step cells per track row (the loop's window), each >= 48px wide, and the
+  // grid never cut (no row scrolls horizontally, no cell is clipped by its row).
+  const sequencer = document.querySelector('[data-s1="sequencer"]');
+  const seqRows = sequencer ? [...sequencer.querySelectorAll(".steps-container")] : [];
+  const seqLamps = sequencer ? [...sequencer.querySelectorAll(".step-lamp")] : [];
+  const seqLampW = seqLamps.map((el) => el.getBoundingClientRect().width);
+  const seqRowCounts = seqRows.map((row) => row.querySelectorAll(".step-lamp").length);
+  const seqScrolls = sequencer
+    ? [...sequencer.querySelectorAll(".scrollable-instrument")].filter((el) => el.scrollWidth > el.clientWidth + 1).length
+    : 0;
+  // The "cut" check measures the cell's LAYOUT box against its row. Active cells
+  // carry a `transform: scale(1.05)` glow (PianoRoll.jsx) that getBoundingClientRect
+  // reflects; that is a visual flourish, not a clipped grid (no ancestor scrolls or
+  // hides overflow). Neutralize transform for the geometry comparison — and disable
+  // the cells' `transition: all` so the change applies synchronously.
+  const seqTransforms = seqLamps.map((el) => el.style.getPropertyValue("transform"));
+  seqLamps.forEach((el) => {
+    el.style.setProperty("transition", "none", "important");
+    el.style.setProperty("transform", "none", "important");
+  });
+  if (sequencer) void sequencer.offsetWidth; // flush style before measuring
+  let seqCut = 0;
+  try {
+    for (const el of seqLamps) {
+      const b = el.getBoundingClientRect();
+      const row = el.closest(".steps-container");
+      const rb = row ? row.getBoundingClientRect() : null;
+      if (rb && (b.left < rb.left - 0.5 || b.right > rb.right + 0.5 || b.top < rb.top - 0.5 || b.bottom > rb.bottom + 0.5)) seqCut++;
+    }
+  } finally {
+    seqLamps.forEach((el, i) => {
+      el.style.removeProperty("transform");
+      if (seqTransforms[i]) el.style.setProperty("transform", seqTransforms[i]);
+      el.style.removeProperty("transition");
+    });
+  }
+  out.s1_11 = {
+    sequencer: Boolean(sequencer),
+    rows: seqRows.length,
+    rowCounts: seqRowCounts,
+    cellCount: seqLamps.length,
+    minCellWidth: seqLampW.length ? round(Math.min(...seqLampW)) : null,
+    scrolls: seqScrolls,
+    cut: seqCut,
+  };
 
   // S1-12 — page scroll.
   out.s1_12 = {
@@ -1138,14 +1173,18 @@ function verdicts(m) {
   put("S1-8", p.minWhite >= 52 && p.minBlack >= 30, `white ${p.minWhite}px, black ${p.minBlack}px`);
   put("S1-9", p.whitesVisible >= 29, `${p.whitesVisible}/${p.whiteKeys} white keys visible (${Math.floor((p.whitesVisible - 1) / 7)} octaves)`);
   put("S1-10", p.blackLabelFails.length === 0, p.blackLabels ? `${p.blackLabels - p.blackLabelFails.length}/${p.blackLabels} inside, widest "${p.widestBlack.text}" ${p.widestBlack.w}px in ${p.widestBlack.key}px${p.blackLabelFails.length ? `: ${p.blackLabelFails.slice(0, 3).join(" | ")}` : ""}` : "n/a (no black-key label in this state)");
-  // VMU-202 rail, owner 2026-11-04: when the position rail is rendered (a
-  // scale in the Dictionary draws two 98px rails that take 196px from the
-  // centre column), the narrower step sequencer is accepted — S1-11's relaxed
-  // threshold below still catches any further shrink. Elsewhere unchanged.
-  const railShown = Boolean(m.s1_11.rail);
-  const s1_11_pitchMin = railShown ? 36 : 39;
-  const s1_11_cellMin = railShown ? 34 : 36;
-  put("S1-11", m.s1_11.pitch >= s1_11_pitchMin && m.s1_11.cellWidth >= s1_11_cellMin, `centre ${m.s1_11.centerWidth}px -> pitch ${m.s1_11.pitch}px, cell ${m.s1_11.cellWidth}px wide (x 40 high by construction)${railShown ? " (rail shown: >= 36 / 34, owner 2026-11-04)" : ""}`);
+  // S1-11 (VMU-213, part 2): the real sequencer's step cells — 16 per row, each
+  // >= 48px wide, and the grid never cut (no horizontal scroll, no clipped cell).
+  const s11 = m.s1_11;
+  const s11Ok =
+    s11.sequencer &&
+    s11.rows > 0 &&
+    s11.cellCount > 0 &&
+    s11.rowCounts.every((n) => n === 16) &&
+    s11.minCellWidth >= 48 &&
+    s11.scrolls === 0 &&
+    s11.cut === 0;
+  put("S1-11", s11Ok, `${s11.cellCount} step cells over ${s11.rows} rows (${s11.rowCounts.join(",")} cells each), smallest ${s11.minCellWidth}px wide, ${s11.scrolls} scrolling row(s), ${s11.cut} cut cell(s)${s11.sequencer ? "" : ", no sequencer"}`);
   const sc = m.s1_12;
   put("S1-12", sc.scrollHeight <= sc.innerHeight && sc.scrollWidth <= sc.innerWidth, `scrollHeight ${sc.scrollHeight} / innerHeight ${sc.innerHeight}, scrollWidth ${sc.scrollWidth} / ${sc.innerWidth}`);
   const it = m.s1_13;
@@ -1435,7 +1474,7 @@ async function runAccess(browser, viewport) {
   const sel = (id) => `[data-fn="${id}"]`;
   // What a failed step may leave open, closed before the next one: a step
   // must not fail because the previous one left a window over the page.
-  const OVERLAYS = '.modal-overlay, .help-modal-overlay, [data-testid="custom-select-dropdown"], [data-s1="drawer"], input[data-fn="jouer.tempo-saisie"], .math-dock';
+  const OVERLAYS = '.modal-overlay, .help-modal-overlay, [data-testid="custom-select-dropdown"], [data-s1="drawer"], input[data-fn="jouer.tempo-saisie"]';
   const step = async (name, body) => {
     try {
       const note = await body();
@@ -1490,12 +1529,6 @@ async function runAccess(browser, viewport) {
       await page.locator(".modal-container .modal-close-btn").click({ timeout: T });
       await page.locator(".modal-container").waitFor({ state: "detached", timeout: T });
       return `opens the master volume (1) and ${m.faders} faders with "Kick"; Escape and ✕ close`;
-    });
-    await step("composer.math-ouvrir", async () => {
-      await page.locator(sel("composer.math-ouvrir")).click({ timeout: T });
-      await page.locator(".math-dock #composition-panel .euclidean-svg").waitFor({ state: "visible", timeout: T });
-      await closesOnEscape(".math-dock");
-      return "opens the dock's euclidean circle; Escape closes";
     });
     await step("aide.guide", async () => {
       await page.locator(sel("aide.guide")).click({ timeout: T });
@@ -2064,7 +2097,6 @@ const SELECTION_TOP_FNS = [
   "jouer.tempo-plus",
   "jouer.metronome",
   "son.volume-general",
-  "composer.math-ouvrir",
   "son.ouvrir",
 ];
 // Exactly what each state holds: the names listed, none of the others.
@@ -2939,24 +2971,24 @@ async function reportPositionPanel(browser, viewport) {
 // "composer.math-ouvrir"), Studio, as a band in the centre column. PR #172
 // (VMU-195-B) rebuilt the content as a sentence ("5 coups sur 16 cases, départ
 // décalé de 0, joués par …") with − / + steppers, a wheel and a strip of cases;
-// the sliders and the LED grid left the main view and now only appear inside
-// "Pour aller plus loin" when a recipe is on. Phase A, the dock as it opens
-// (folded): ONE title (the dock's; no inner header, no second h3); every rendered
-// HTML text = 12px (+-0.5, VMU-212) and every SVG text >= 12px on screen (an SVG
-// text counts at its on-screen size: font-size x the viewBox scale); every visible
-// clickable thing >= 32px on both sides, the
-// buttons and the selects >= 48px high; the cases strip [data-testid=comp-grid]
-// visible with as many .strip-cell as [data-testid=comp-n-value] shows, each cell
-// >= 22px high; six button.sbtn steppers (comp-k/n/r-minus/plus) each >= 44px on
-// both sides; a slider, if one is visible, has its thumb >= 24px (pixels); the
-// "Pour aller plus loin" toggle aria-expanded=false with no comp-advanced body and
-// no visible comp-mode-* recipe; the "Écouter" button is there and on top. Phase B
-// opens "Pour aller plus loin" and turns on phasing then poly: at least one slider
-// with a >= 24px thumb (pixels), for poly at least one .grid-led >= 32px, and
-// texts = 12px (+-0.5, SVG >= 12px on screen) / targets >= 32px inside the advanced body too. Screenshots go to
-// probe.local/. Positive control: the same measure on a checkout of origin/main
-// (texts ~11px, three titles, tools unfolded, no Écouter) must fail:
-//   S1_PROBE_PORT=<port of a server on the main checkout> npm run s1:probe -- --math-window-only
+// the sliders and the LED grid left the main view. VMU-213 (part 2): the dock
+// is ALWAYS there in the Studio (no opener, no ✕), and "Pour aller plus loin"
+// left the dock for A′'s recipes column (".proto-a__recipes"), portaled there,
+// open by default. Phase A, the dock on arrival: ONE title (the dock's; no inner
+// header, no second h3); every rendered HTML text = 12px (+-0.5, VMU-212) and
+// every SVG text >= 12px on screen; every visible clickable thing >= 32px on
+// both sides, the buttons and the selects >= 48px high; the cases strip
+// [data-testid=comp-grid] visible with as many .strip-cell as
+// [data-testid=comp-n-value] shows, each cell >= 22px high; six button.sbtn
+// steppers (comp-k/n/r-minus/plus) each >= 44px on both sides; six "?" buttons
+// (the advanced title's moved to the column); the "Écouter" button on top. The
+// recipes column: the toggle aria-expanded=true, the advanced body shown, its
+// four comp-mode-* recipes visible, texts = 12px / targets >= 32px, nothing
+// spilling out of the column, no page scroll, inside the centre column, beside
+// the dock (or stacked under it on a narrow centre). Phase B turns on phasing,
+// then iso, then poly: a slider thumb >= 24px (pixels), the isorhythm grid's
+// 64 cells fully visible, a .grid-led >= 32px. Screenshots go to probe.local/.
+// Positive control: the same measure on a checkout of origin/main must fail.
 
 const S1_27 = { text: 12, target: 32, button: 48, thumb: 24, cell: 32, stepper: 44, strip: 22 };
 
@@ -3040,7 +3072,6 @@ function mathWindowMeasure() {
   }));
   // titles: every heading-like element showing "Math"
   const titles = [...dock.querySelectorAll("h1, h2, h3, h4, .panel__title, .modal-title, [data-testid=comp-title]")].filter(shown).filter((el) => /math/i.test(el.textContent));
-  const toggle = dock.querySelector('[data-testid="comp-advanced-toggle"]');
   const listen = dock.querySelector('[data-testid="comp-listen"]');
   const listenBox = listen && shown(listen) ? r(listen) : null;
   const listenHit = listenBox ? document.elementFromPoint(listenBox.left + listenBox.width / 2, listenBox.top + listenBox.height / 2) : null;
@@ -3051,19 +3082,12 @@ function mathWindowMeasure() {
     wheel: dock.querySelector(".phrase-body > .viz-section"),
     phrase: dock.querySelector(".phrase-body > .phrase-section"),
     try: dock.querySelector(".phrase-body > .try-section"),
-    more: dock.querySelector(".phrase-body > .advanced-section"),
     footer: dock.querySelector(".phrase-body > .export-section"),
   };
   const zones = {};
   for (const [k, el] of Object.entries(zoneEls)) {
     const b = el ? el.getBoundingClientRect() : null;
     zones[k] = b ? { left: b.left, top: b.top, right: b.right, bottom: b.bottom, w: b.width, h: b.height } : null;
-  }
-  let advancedToggleOnTop = null;
-  if (toggle) {
-    const tb = r(toggle);
-    const hit = document.elementFromPoint(tb.left + tb.width / 2, tb.top + tb.height / 2);
-    advancedToggleOnTop = Boolean(hit && (hit === toggle || toggle.contains(hit)));
   }
   // VMU-195 C: the dock is a band inside the centre column; it must not make the
   // page scroll, leave the centre column, or cover the sequencer / instruments.
@@ -3080,7 +3104,6 @@ function mathWindowMeasure() {
     bodyClient: body ? body.clientWidth : null,
     bodyScroll: body ? body.scrollWidth : null,
     zones,
-    advancedToggleOnTop,
     page: {
       scrollHeight: de.scrollHeight,
       innerHeight: window.innerHeight,
@@ -3101,11 +3124,127 @@ function mathWindowMeasure() {
     cells,
     strip,
     steppers,
-    toggle: toggle ? toggle.getAttribute("aria-expanded") : null,
-    advancedBody: Boolean(dock.querySelector('[data-testid="comp-advanced"]')),
-    modeButtons: [...dock.querySelectorAll('[data-testid^="comp-mode-"]')].filter(shown).length,
     listen: listen ? { text: listen.textContent.trim(), onTop: Boolean(listenHit && (listenHit === listen || listen.contains(listenHit))) } : null,
     helpButtons: dock.querySelectorAll("button.help-btn").length,
+  };
+}
+
+/** In page: what S1-27 reads off A′'s recipes column (".proto-a__recipes"), the
+ *  "Pour aller plus loin" section the CompositionPanel portals there. Open by
+ *  default: the toggle is on, the four recipes and their texts are there. */
+function recipesMeasure() {
+  const col = document.querySelector(".proto-a__recipes");
+  if (!col) return { open: false };
+  const r = (el) => el.getBoundingClientRect();
+  const shown = (el) => {
+    const b = r(el);
+    const cs = getComputedStyle(el);
+    return b.width > 0 && b.height > 0 && cs.visibility !== "hidden" && cs.display !== "none" && Number(cs.opacity) > 0;
+  };
+  const shownChain = (el) => shown(el) && el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+  const name = (el) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/)[0] : ""}`;
+  const box = (el) => (el ? el.getBoundingClientRect() : null);
+  const overlaps = (a, b) => a && b && a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
+  // texts / targets / sliders / grid-led: the same reading as the dock's, on the
+  // column instead (the advanced body lives there now).
+  const texts = [];
+  const walker = document.createTreeWalker(col, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.nodeValue.trim()) continue;
+    const el = n.parentElement;
+    if (!el || el.closest("option, script, style") || !shownChain(el)) continue;
+    const svg = el instanceof SVGElement;
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    if (svg && typeof el.getScreenCTM === "function") {
+      const m = el.getScreenCTM();
+      if (m) size *= Math.hypot(m.a, m.b);
+    }
+    texts.push({ size, svg, what: `${name(el)} "${n.nodeValue.trim().slice(0, 24)}"` });
+  }
+  for (const el of col.querySelectorAll("select, input[type=text]")) {
+    if (shown(el)) texts.push({ size: parseFloat(getComputedStyle(el).fontSize), svg: false, what: `${name(el)} (control)` });
+  }
+  texts.sort((a, b) => a.size - b.size);
+  const targets = [];
+  for (const el of col.querySelectorAll("button, select, input[type=range], input[type=text], a[href], [role=button], label.retro-switch")) {
+    if (!shown(el)) continue;
+    const b = r(el);
+    const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+    const onTop = Boolean(hit && (hit === el || el.contains(hit) || (el.tagName === "LABEL" && el.control && hit === el.control)));
+    targets.push({ what: name(el), text: (el.textContent || "").trim().slice(0, 20), w: Math.round(b.width * 10) / 10, h: Math.round(b.height * 10) / 10, kind: el.matches("button.retro-btn, select") ? "button" : "other", onTop, hitName: onTop ? null : (hit ? name(hit) : "off-viewport"), inView: b.bottom > 0 && b.top < innerHeight });
+  }
+  const probe = document.createElement("span");
+  probe.style.color = "var(--select)";
+  document.body.appendChild(probe);
+  const selectRgb = getComputedStyle(probe).color;
+  probe.remove();
+  const sliderBoxes = [...col.querySelectorAll("input[type=range]")].filter(shown).map((el) => {
+    const b = r(el);
+    return { x: b.left, y: b.top, w: b.width, h: b.height };
+  });
+  const cells = [...col.querySelectorAll(".grid-led")].filter(shown).map((el) => Math.min(r(el).width, r(el).height));
+  // The isorhythm grid: 5 coups / 4 pitches / 16 cases -> 64 cells, all of them
+  // fully visible inside the column (the 320px cap is overridden in the column).
+  const isoGrid = col.querySelector(".isorhythm-steps-grid");
+  const isoCells = isoGrid ? [...isoGrid.querySelectorAll(".isorhythm-step-cell")] : [];
+  const iso = isoGrid
+    ? {
+        count: isoCells.length,
+        minSide: isoCells.length ? Math.min(...isoCells.map((el) => Math.min(r(el).width, r(el).height))) : null,
+        scrolls: isoGrid.scrollHeight > isoGrid.clientHeight + 0.5 || isoGrid.scrollWidth > isoGrid.clientWidth + 0.5,
+        lastBottom: isoCells.length ? Math.max(...isoCells.map((el) => r(el).bottom)) : null,
+      }
+    : null;
+  const toggle = col.querySelector('[data-testid="comp-advanced-toggle"]');
+  const toggleBox = toggle && shown(toggle) ? r(toggle) : null;
+  const toggleHit = toggleBox ? document.elementFromPoint(toggleBox.left + toggleBox.width / 2, toggleBox.top + toggleBox.height / 2) : null;
+  const c = r(col);
+  const centreBox = box(document.querySelector('[data-s1="center"]'));
+  const dockBox = box(document.querySelector(".math-dock"));
+  const sequencerBox = box(document.querySelector('[data-s1="sequencer"]'));
+  const instrumentBoxes = [...document.querySelectorAll('[data-s1="piano"], [data-s1="guitar"], [data-s1="bass"]')].map(box).filter(Boolean);
+  const insideCentre = centreBox && c &&
+    c.left >= centreBox.left - 0.5 && c.right <= centreBox.right + 0.5 &&
+    c.top >= centreBox.top - 0.5 && c.bottom <= centreBox.bottom + 0.5;
+  // A descendant (or the section itself) sticks out of the column by more than a
+  // few pixels. Tolerance 6px: the active cell's transform scale(1.08) widens
+  // its painted box by ~2.5px without being an overflow.
+  const spills = (b) => b.width > 0 && b.height > 0 && (b.left < c.left - 6 || b.right > c.right + 6 || b.top < c.top - 6 || b.bottom > c.bottom + 6);
+  const advanced = col.querySelector(".advanced-section");
+  let spilled = 0;
+  if (advanced && spills(r(advanced))) spilled++;
+  if (advanced) for (const el of advanced.querySelectorAll("*")) if (spills(r(el))) spilled++;
+  const besideDock = dockBox && c && c.left >= dockBox.right - 1 && !overlaps(c, dockBox);
+  const de = document.documentElement;
+  return {
+    open: true,
+    column: { w: Math.round(c.width), h: Math.round(c.height), left: Math.round(c.left), right: Math.round(c.right), top: Math.round(c.top), bottom: Math.round(c.bottom) },
+    toggle: toggle ? toggle.getAttribute("aria-expanded") : null,
+    toggleOnTop: Boolean(toggleHit && toggleHit === toggle),
+    advancedBody: Boolean(col.querySelector('[data-testid="comp-advanced"]')),
+    modeButtons: [...col.querySelectorAll('[data-testid^="comp-mode-"]')].filter(shown).length,
+    helpButtons: col.querySelectorAll("button.help-btn").length,
+    texts,
+    textCount: texts.length,
+    smallestText: texts.slice(0, 3),
+    targets,
+    selectRgb,
+    sliderBoxes,
+    cells,
+    iso,
+    page: {
+      scrollHeight: de.scrollHeight,
+      innerHeight: window.innerHeight,
+      scrollWidth: de.scrollWidth,
+      innerWidth: window.innerWidth,
+      scrolls: de.scrollHeight > window.innerHeight + 0.5 || de.scrollWidth > window.innerWidth + 0.5,
+      insideCentre,
+      besideDock,
+      coversDock: overlaps(c, dockBox),
+      coversSequencer: overlaps(c, sequencerBox),
+      overlapsInstruments: instrumentBoxes.filter((b) => overlaps(c, b)).length,
+      spilled,
+    },
   };
 }
 
@@ -3162,12 +3301,12 @@ async function advancedMathChecks(page, m, requireGridLed) {
   // (the absolute position changed).
   for (let i = 0; i < m.sliderBoxes.length; i++) {
     await page.evaluate((idx) => {
-      const slider = document.querySelectorAll(".math-dock input[type=range]")[idx];
+      const slider = document.querySelectorAll(".proto-a__recipes input[type=range]")[idx];
       if (slider) slider.scrollIntoView({ block: "center" });
     }, i);
     await page.waitForTimeout(120);
     const box = await page.evaluate((idx) => {
-      const slider = document.querySelectorAll(".math-dock input[type=range]")[idx];
+      const slider = document.querySelectorAll(".proto-a__recipes input[type=range]")[idx];
       if (!slider) return null;
       const b = slider.getBoundingClientRect();
       return { x: b.left, y: b.top, w: b.width, h: b.height };
@@ -3189,10 +3328,25 @@ async function advancedMathChecks(page, m, requireGridLed) {
   return { fails, notes };
 }
 
+/** The isorhythm check inside the recipes column: 64 cells, all fully visible. */
+function isoMathChecks(m) {
+  const fails = [];
+  const notes = [];
+  if (!m.iso) {
+    fails.push(`[iso] no isorhythm grid in the recipes column`);
+  } else {
+    if (m.iso.count !== 64) fails.push(`[iso] ${m.iso.count} isorhythm cell(s), 64 expected`);
+    if (m.iso.scrolls) fails.push(`[iso] the isorhythm grid scrolls/clips inside itself`);
+    if (m.iso.lastBottom !== null && m.column && m.iso.lastBottom > m.column.bottom + 6) fails.push(`[iso] the grid runs past the column's bottom (last cell y=${Math.round(m.iso.lastBottom)}, column bottom y=${m.column.bottom})`);
+  }
+  notes.push(`iso: ${m.iso ? `${m.iso.count} cells (smallest ${m.iso.minSide === null ? "-" : `${round1(m.iso.minSide)}px`}), ${m.iso.scrolls ? "scrolls" : "no scroll"}, last y=${m.iso && m.iso.lastBottom !== null ? Math.round(m.iso.lastBottom) : "-"}` : "absent"}`);
+  return { fails, notes };
+}
+
 /** [overflow] / [overlap] for S1-27 (VMU-195 C, PR 1): the band's phrase-body
- *  must not overflow its container and its five zones must be disjoint and
+ *  must not overflow its container and its four zones must be disjoint and
  *  inside the dock's box (+-1px). `phase` names the check in the notes. */
-const S1_27_ZONES = ["wheel", "phrase", "try", "more", "footer"];
+const S1_27_ZONES = ["wheel", "phrase", "try", "footer"];
 const fmtBox = (b) => (b ? `x${Math.round(b.left)}-${Math.round(b.right)} y${Math.round(b.top)}-${Math.round(b.bottom)}` : "-");
 function dockLayoutChecks(m, phase) {
   const fails = [];
@@ -3236,6 +3390,7 @@ async function reportMathWindow(browser, viewport) {
   const fails = [];
   const notes = [];
   let m = null;
+  let r0 = null;
   try {
     await page.goto(`${ORIGIN}/?prototype=a`, { waitUntil: "domcontentloaded" });
     await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
@@ -3244,11 +3399,15 @@ async function reportMathWindow(browser, viewport) {
     const studio = page.locator('[data-fn="nav.mode-studio"]');
     if (await studio.count()) await studio.click({ timeout: 4000 });
     await page.waitForTimeout(250);
-    await page.locator('[data-fn="composer.math-ouvrir"]').click({ timeout: 4000 });
+    // VMU-213: the dock is always there on arrival in the Studio, and the
+    // recipes column is open by default — no opener button, nothing to fold.
     await page.locator(".math-dock").waitFor({ state: "visible", timeout: 5000 });
+    await page.locator(".proto-a__recipes").waitFor({ state: "visible", timeout: 5000 });
     await page.waitForTimeout(500);
     m = await page.evaluate(mathWindowMeasure);
+    r0 = await page.evaluate(recipesMeasure);
     if (!m.open) throw new Error("the dock did not open");
+    if (!r0.open) throw new Error("the recipes column did not open");
     if (m.page.scrolls) fails.push(`[page] the page scrolls with the dock open (${m.page.scrollWidth}x${m.page.scrollHeight} in ${m.page.innerWidth}x${m.page.innerHeight})`);
     if (!m.page.insideCentre) fails.push(`[page] the dock is outside the centre column`);
     if (m.page.coversSequencer) fails.push(`[page] the dock covers the sequencer`);
@@ -3295,42 +3454,73 @@ async function reportMathWindow(browser, viewport) {
       const under = m.steppers.filter((s) => s.w < S1_27.stepper - 0.5 || s.h < S1_27.stepper - 0.5).map((s) => `${s.id} ${s.w}x${s.h}`).join(", ");
       fails.push(`[stepper] stepper(s) under ${S1_27.stepper}px on a side: ${under}`);
     }
-    if (m.toggle !== "false" || m.advancedBody || m.modeButtons !== 0) fails.push(`[folded] "Pour aller plus loin" toggle aria-expanded=${m.toggle}, body ${m.advancedBody ? "shown" : "absent"}, ${m.modeButtons} visible recipe button(s); closed, 0 recipes expected`);
-    if (m.advancedToggleOnTop !== true) fails.push(`[toggle] the "Pour aller plus loin" toggle is not on top (${m.advancedToggleOnTop === null ? "not found" : "covered"})`);
     if (!m.listen || !m.listen.onTop) fails.push(`[listen] ${m.listen ? "the Écouter button is covered" : "no Écouter button in the window"}`);
-    if (m.helpButtons < 7) fails.push(`[help] ${m.helpButtons} "?" button(s), 7 expected`);
+    if (m.helpButtons !== 6) fails.push(`[help] ${m.helpButtons} "?" button(s) in the dock, 6 expected`);
     const layoutA = dockLayoutChecks(m, "phase A");
     fails.push(...layoutA.fails);
     notes.push(...layoutA.notes);
-    notes.push(`dock ${m.dock.w}x${m.dock.h} at y=${m.dock.top}..${m.dock.bottom}; page ${m.page.scrollWidth}x${m.page.scrollHeight} in ${m.page.innerWidth}x${m.page.innerHeight} (${m.page.scrolls ? "scrolls" : "no scroll"}, ${m.page.insideCentre ? "inside centre" : "outside centre"}, ${m.page.coversSequencer ? "covers sequencer" : "clear of sequencer"}, ${m.page.overlapsInstruments} instrument overlap(s)); ${m.textCount} texts, smallest ${m.smallestText.map((t) => `${round1(t.size)}px ${t.what}`).join(" | ")}`);
-    notes.push(`${m.targets.length} targets, smallest ${m.targets.length ? Math.min(...m.targets.map((t) => Math.min(t.w, t.h))) : "-"}px; strip ${m.strip.count} cell(s) x ${m.strip.minH === null ? "-" : round1(m.strip.minH)}px (n=${m.strip.nValue}); steppers ${m.steppers.length} (smallest ${m.steppers.length ? Math.min(...m.steppers.map((s) => Math.min(s.w, s.h))) : "-"}px); thumbs ${thumbMin === null ? "-" : `${thumbMin}px`}; titles ${JSON.stringify(m.titles)}; help buttons ${m.helpButtons}; folded: toggle ${m.toggle}, ${m.modeButtons} visible recipe(s); Écouter ${m.listen ? JSON.stringify(m.listen) : "absent"}`);
 
-    // Phase B — "Pour aller plus loin": phasing (a slider), then poly (grid-led).
-    await page.locator('[data-testid="comp-advanced-toggle"]').click({ timeout: 4000 });
+    // ── Phase A: the recipes column, open by default ──
+    if (r0.toggle !== "true") fails.push(`[recipes] "Pour aller plus loin" toggle aria-expanded=${r0.toggle}, open by default expected`);
+    if (r0.toggleOnTop !== true) fails.push(`[recipes] the "Pour aller plus loin" toggle is not on top (${r0.toggleOnTop === null ? "not found" : "covered"})`);
+    if (!r0.advancedBody) fails.push(`[recipes] the advanced body is not shown`);
+    if (r0.modeButtons !== 4) fails.push(`[recipes] ${r0.modeButtons} visible recipe button(s), 4 expected`);
+    if (r0.helpButtons !== 1) fails.push(`[recipes] ${r0.helpButtons} "?" button(s) in the column, 1 expected`);
+    if (r0.page.scrolls) fails.push(`[recipes] the page scrolls with the recipes column (${r0.page.scrollWidth}x${r0.page.scrollHeight} in ${r0.page.innerWidth}x${r0.page.innerHeight})`);
+    if (!r0.page.insideCentre) fails.push(`[recipes] the recipes column is outside the centre column`);
+    if (r0.page.coversDock) fails.push(`[recipes] the recipes column covers the dock`);
+    if (r0.page.coversSequencer) fails.push(`[recipes] the recipes column covers the sequencer`);
+    if (r0.page.overlapsInstruments) fails.push(`[recipes] the recipes column covers ${r0.page.overlapsInstruments} instrument column(s)`);
+    if (r0.page.spilled) fails.push(`[recipes] ${r0.page.spilled} descendant(s) stick out of the column`);
+    const rTexts = r0.texts || [];
+    const rHtmlOff = rTexts.filter((t) => !t.svg && Math.abs(t.size - S1_27.text) > 0.5);
+    const rSvgOff = rTexts.filter((t) => t.svg && t.size < S1_27.text - 0.5);
+    if (rHtmlOff.length) fails.push(`[recipes] ${rHtmlOff.length} text(s) off ${S1_27.text}px (+-0.5): ${rHtmlOff.slice(0, 3).map((t) => `${round1(t.size)}px (${t.what})`).join(" | ")}`);
+    if (rSvgOff.length) fails.push(`[recipes] ${rSvgOff.length} SVG text(s) under ${S1_27.text}px on screen: ${rSvgOff.slice(0, 3).map((t) => `${round1(t.size)}px (${t.what})`).join(" | ")}`);
+    const rSmall = r0.targets.filter((t) => Math.min(t.w, t.h) < S1_27.target);
+    if (rSmall.length) fails.push(`[recipes] ${rSmall.length} clickable thing(s) under ${S1_27.target}px: ${rSmall.slice(0, 3).map((t) => `${t.what} ${t.w}x${t.h}`).join(", ")}`);
+    const rCovered = r0.targets.filter((t) => t.inView && !t.onTop);
+    if (rCovered.length) fails.push(`[recipes] ${rCovered.length} control(s) covered: ${rCovered.slice(0, 3).map((t) => `${t.what} (by ${t.hitName || "?"})`).join(", ")}`);
+    const shotR = path.join(ROOT, "probe.local", `s1-27-recipes-${viewport.label}.png`);
+    await page.locator(".proto-a__recipes").screenshot({ path: shotR });
+    notes.push(`screenshot ${path.relative(ROOT, shotR).replace(/\\/g, "/")}`);
+    notes.push(`dock ${m.dock.w}x${m.dock.h} at y=${m.dock.top}..${m.dock.bottom}; page ${m.page.scrollWidth}x${m.page.scrollHeight} in ${m.page.innerWidth}x${m.page.innerHeight} (${m.page.scrolls ? "scrolls" : "no scroll"}, ${m.page.insideCentre ? "inside centre" : "outside centre"}, ${m.page.coversSequencer ? "covers sequencer" : "clear of sequencer"}, ${m.page.overlapsInstruments} instrument overlap(s)); ${m.textCount} texts, smallest ${m.smallestText.map((t) => `${round1(t.size)}px ${t.what}`).join(" | ")}`);
+    notes.push(`dock: ${m.targets.length} targets, smallest ${m.targets.length ? Math.min(...m.targets.map((t) => Math.min(t.w, t.h))) : "-"}px; strip ${m.strip.count} cell(s) x ${m.strip.minH === null ? "-" : round1(m.strip.minH)}px (n=${m.strip.nValue}); steppers ${m.steppers.length}; thumbs ${thumbMin === null ? "none" : `${thumbMin}px`}; titles ${JSON.stringify(m.titles)}; help buttons ${m.helpButtons}; Écouter ${m.listen ? JSON.stringify(m.listen) : "absent"}`);
+    notes.push(`recipes ${r0.column.w}x${r0.column.h} at x=${r0.column.left}..${r0.column.right}, y=${r0.column.top}..${r0.column.bottom} (${r0.page.insideCentre ? "inside centre" : "outside centre"}, ${r0.page.besideDock ? "beside the dock" : r0.page.coversDock ? "covers the dock" : "stacked under the dock"}, ${r0.page.overlapsInstruments} instrument overlap(s), ${r0.page.spilled} spilled); toggle ${r0.toggle}, ${r0.modeButtons} recipes, ${r0.helpButtons} "?"; ${r0.textCount} texts, ${r0.targets.length} targets`);
+
+    // ── Phase B — one recipe at a time, in the column ──
     await page.locator('[data-testid="comp-mode-phasing"]').click({ timeout: 4000 });
     await page.waitForTimeout(300);
-    const mPhasing = await page.evaluate(mathWindowMeasure);
-    const phasing = await advancedMathChecks(page, mPhasing, false);
+    const rPhasing = await page.evaluate(recipesMeasure);
+    const phasing = await advancedMathChecks(page, rPhasing, false);
     fails.push(...phasing.fails);
     notes.push(`phasing: ${phasing.notes}`);
-    const layoutPhasing = dockLayoutChecks(mPhasing, "phasing");
-    fails.push(...layoutPhasing.fails);
-    notes.push(...layoutPhasing.notes);
+    if (rPhasing.page.spilled) fails.push(`[recipes] phasing: ${rPhasing.page.spilled} descendant(s) stick out of the column`);
+    if (rPhasing.page.scrolls) fails.push(`[recipes] phasing: the page scrolls`);
 
     await page.locator('[data-testid="comp-mode-phasing"]').click({ timeout: 4000 });
+    await page.locator('[data-testid="comp-mode-iso"]').click({ timeout: 4000 });
+    await page.waitForTimeout(300);
+    const rIso = await page.evaluate(recipesMeasure);
+    const iso = isoMathChecks(rIso);
+    fails.push(...iso.fails);
+    notes.push(iso.notes);
+    if (rIso.page.spilled) fails.push(`[recipes] iso: ${rIso.page.spilled} descendant(s) stick out of the column`);
+    if (rIso.page.scrolls) fails.push(`[recipes] iso: the page scrolls`);
+
+    await page.locator('[data-testid="comp-mode-iso"]').click({ timeout: 4000 });
     await page.locator('[data-testid="comp-mode-poly"]').click({ timeout: 4000 });
     await page.waitForTimeout(300);
-    const mPoly = await page.evaluate(mathWindowMeasure);
-    const poly = await advancedMathChecks(page, mPoly, true);
+    const rPoly = await page.evaluate(recipesMeasure);
+    const poly = await advancedMathChecks(page, rPoly, true);
     fails.push(...poly.fails);
     notes.push(`poly: ${poly.notes}`);
-    const layoutPoly = dockLayoutChecks(mPoly, "poly");
-    fails.push(...layoutPoly.fails);
-    notes.push(...layoutPoly.notes);
+    if (rPoly.page.spilled) fails.push(`[recipes] poly: ${rPoly.page.spilled} descendant(s) stick out of the column`);
+    if (rPoly.page.scrolls) fails.push(`[recipes] poly: the page scrolls`);
 
-    const advShot = path.join(ROOT, "probe.local", `s1-27-math-dock-advanced-${viewport.label}.png`);
+    const advShot = path.join(ROOT, "probe.local", `s1-27-recipes-advanced-${viewport.label}.png`);
     fs.mkdirSync(path.dirname(advShot), { recursive: true });
-    await page.locator(".math-dock").screenshot({ path: advShot });
+    await page.locator(".proto-a__recipes").screenshot({ path: advShot });
     notes.push(`screenshot ${path.relative(ROOT, advShot).replace(/\\/g, "/")}`);
   } catch (err) {
     fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
@@ -3341,7 +3531,7 @@ async function reportMathWindow(browser, viewport) {
   mathWindowChecks[viewport.label] = { fails, notes };
   if (AS_JSON) return;
   const lead = `${viewport.label} S1-27 (math dock)`;
-  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  phase A: one title, texts >= ${S1_27.text}px, targets >= ${S1_27.target}px (buttons ${S1_27.button}px), strip cells >= ${S1_27.strip}px, 6 steppers >= ${S1_27.stepper}px, tools folded, Écouter on top; phase B: phasing slider thumb >= ${S1_27.thumb}px, poly grid-led >= ${S1_27.cell}px`);
+  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  phase A: one title, texts >= ${S1_27.text}px, targets >= ${S1_27.target}px (buttons ${S1_27.button}px), strip cells >= ${S1_27.strip}px, 6 steppers >= ${S1_27.stepper}px, Écouter on top, recipes column open by default beside the dock; phase B: phasing slider thumb >= ${S1_27.thumb}px, iso 64 cells fully visible, poly grid-led >= ${S1_27.cell}px`);
   for (const n of notes) console.log(`${lead}   ${n}`);
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
@@ -3729,7 +3919,7 @@ if (AS_JSON) {
   console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);
   console.log(`  S1-25 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
   console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; no warning sign in the Studio (VMU-201)`);
-  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text = ${S1_27.text}px (+-0.5; SVG >= ${S1_27.text}px on screen), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, the composers' tools folded, seven "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; phase B phasing slider thumb >= ${S1_27.thumb}px, poly grid-led >= ${S1_27.cell}px`);
+  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text = ${S1_27.text}px (+-0.5; SVG >= ${S1_27.text}px on screen), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, six "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; the recipes column beside the dock (or stacked under it), open by default (toggle on, 4 recipes, texts 12px, targets >= 32px, nothing spills out); phase B phasing slider thumb >= ${S1_27.thumb}px, iso 64 cells fully visible, poly grid-led >= ${S1_27.cell}px`);
   console.log(`  S1-28 ${textSizeOk ? "PASS" : "FAIL"} ${textSizePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-212 one text size: every A′ text ${S1_28.size}px (+-${S1_28.tolerance}), the instruments' frozen drawing excepted, SVG >= ${S1_28.svgFloor}px on screen; Studio / Math dock / Dictionary chord+scale / Assistant drawer / Instruments & Audio / Guide`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
   console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-28 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);

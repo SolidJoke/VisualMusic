@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { EuclideanCircle } from "./EuclideanCircle";
 import { PhasingVisualizer } from "./PhasingVisualizer";
 import PolyrhythmAlgebraPanel from "./PolyrhythmAlgebraPanel";
@@ -73,7 +74,12 @@ export default function CompositionPanel({
   txt: txtProp = {},
   hideTitle = false,
   isPlaying = false,
-  togglePlayback
+  togglePlayback,
+  // VMU-213 (part 2): a DOM node to render "Pour aller plus loin" into (A′'s
+  // recipes column). When set, the section is portaled there and open by
+  // default; when absent (the classic Modal and every existing test), nothing
+  // changes: the section stays inline, folded by default.
+  advancedContainer = null,
 }) {
   // A language that lacks a word falls back on the English table.
   const txt = { ...translations.en.comp, ...txtProp };
@@ -113,6 +119,14 @@ export default function CompositionPanel({
       setRotation(0);
     }
   }, [subdivisions]);
+
+  // VMU-213 (part 2): portaled into the A′ recipes column, the recipes are open
+  // by default (the toggle stays so they can be folded). The container arrives
+  // a render after the mount (a callback ref into the parent's state), so the
+  // effect opens them once it is there.
+  useEffect(() => {
+    if (advancedContainer) setAdvancedOpen(true);
+  }, [advancedContainer]);
 
   // The phrase's − / + : one number each, clamped, and a manual change leaves
   // the "Essayer" pills (back to "mon rythme").
@@ -420,145 +434,11 @@ export default function CompositionPanel({
     </div>
   );
 
-  return (
-    <div className="composition-panel panel" id="composition-panel">
-      {!hideTitle && (
-        <div className="panel-header">
-          <div className="panel-led-indicator pulse-slow"></div>
-          <h3 data-testid="comp-title">{txt.title}</h3>
-          <div className="eurorack-screw top-left"></div>
-          <div className="eurorack-screw top-right"></div>
-        </div>
-      )}
-
-      <div className="panel-body phrase-body">
-        {/* The phrase: "5 coups sur 16 cases, départ décalé de 0, joués par …". */}
-        <div className="panel-section phrase-section">
-          <div className="phrase-sentence" data-testid="comp-phrase">
-            <Stepper id="k" label={txt.pulses} help={txt.helpPulses} value={pulses} min={1} max={subdivisions} onStep={stepK} />
-            <span className="phrase-word">{txt.hitsUnit}</span>
-            <HelpButton id="pulses" name={txt.pulses} help={txt.helpPulses} helpLabel={txt.help} />
-            <span className="phrase-word">{txt.phraseOver}</span>
-            <Stepper id="n" label={txt.subdivisions} help={txt.helpSubdivisions} value={subdivisions} min={2} max={32} onStep={stepN} />
-            <span className="phrase-word">{txt.phraseSteps}</span>
-            <span className="phrase-unit">
-              <HelpButton id="subdivisions" name={txt.subdivisions} help={txt.helpSubdivisions} helpLabel={txt.help} />
-              <span className="phrase-word">,</span>
-            </span>
-            <span className="phrase-word">{txt.phraseStart}</span>
-            <Stepper id="r" label={txt.rotation} help={txt.helpRotation} value={rotation} min={0} max={subdivisions - 1} onStep={stepR} />
-            <span className="phrase-unit">
-              <HelpButton id="rotation" name={txt.rotation} help={txt.helpRotation} helpLabel={txt.help} />
-              <span className="phrase-word">,</span>
-            </span>
-            <span className="phrase-word">{txt.phrasePlayedBy}</span>
-            <select
-              id="comp-target"
-              data-testid="comp-target"
-              value={exportTarget}
-              onChange={handleExportTargetChange}
-              className="retro-select phrase-target"
-              aria-label={txt.phrasePlayedBy}
-            >
-              <option value="Kick">{txt.kick}</option>
-              <option value="Snare">{txt.snare}</option>
-              <option value="Hat">{txt.hat}</option>
-              <option value="Bass">{txt.bass}</option>
-              <option value="Chords">{txt.chordsOut}</option>
-            </select>
-          </div>
-        </div>
-
-        {/* The wheel under a fixed marker, its strip, the empty-cases toggle. */}
-        <div className="panel-section viz-section">
-          <SectionTitle id="circle" name={txt.circle} Tag="span" title={txt.helpCircle} help={txt.helpCircle} helpLabel={txt.help}>
-            {txt.circle}
-          </SectionTitle>
-          <div className="circle-container">
-            <EuclideanCircle
-              pattern={displayPattern}
-              n={displayPattern.length}
-              currentStep={activeStep}
-              showEmpty={showComplement && !showPolyrhythm}
-              color={targetToken}
-              extraPolygons={extraPolygons}
-              balanceInfo={showPolyrhythm ? balanceInfo : null}
-              balanceWord={showPolyrhythm ? balanceWord : null}
-              sur={txt.sur}
-              hitsUnit={txt.hitsUnit}
-            />
-          </div>
-
-          <div className="wheel-foot">
-            <button
-              type="button"
-              className="retro-btn empty-toggle"
-              data-testid="comp-show-empty"
-              aria-pressed={showComplement}
-              onClick={() => setShowComplement((v) => !v)}
-            >
-              {showComplement ? (txt.hideComp || txt.showComp) : txt.showComp}
-            </button>
-            <span className="badge-sym" data-testid="comp-symmetry">
-              {!showPolyrhythm && isSelfComp ? txt.symSame : !showPolyrhythm ? `${txt.symmetry} ${txt.asym}` : ""}
-            </span>
-          </div>
-
-          <div
-            className="euclidean-strip"
-            data-testid="comp-grid"
-            style={{ gridTemplateColumns: `repeat(${displayPattern.length}, 1fr)` }}
-          >
-            {displayPattern.map((val, idx) => {
-              const isCurrent = activeStep >= 0 && idx === ((activeStep % displayPattern.length) + displayPattern.length) % displayPattern.length;
-              return (
-                <i
-                  key={idx}
-                  className={`strip-cell${val ? ' hit' : ''}${isCurrent ? ' now' : ''}`}
-                  style={val ? { '--c': targetToken } : undefined}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* "Essayer :" — the world rhythms, and "mon rythme" when none is pressed. */}
-        <div className="panel-section try-section">
-          <SectionTitle id="presets" name={txt.tryLabel} Tag="span" title={txt.helpPresets} help={txt.helpPresets} helpLabel={txt.help}>
-            {txt.tryLabel}
-          </SectionTitle>
-          <div className="trychips">
-            <button
-              type="button"
-              className="trychip"
-              data-testid="comp-preset-my"
-              aria-pressed={selectedPreset === ""}
-              title={txt.customGeo}
-              onClick={() => handlePresetChange("")}
-            >
-              {txt.customGeo}
-            </button>
-            {Object.entries(EUCLIDEAN_PRESETS).map(([key, value]) => {
-              const origin = txt.origins?.[key] || value.genre;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className="trychip"
-                  data-testid={`comp-preset-${key}`}
-                  aria-pressed={selectedPreset === key}
-                  title={`${origin} — E(${value.k},${value.n})`}
-                  onClick={() => handlePresetChange(key)}
-                >
-                  <MiniCircle n={value.n} k={value.k} />
-                  {value.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* The recipes, folded under "Pour aller plus loin". */}
+  // "Pour aller plus loin" — the composers' tools. VMU-213 (part 2): when A′
+  // hands a container (the recipes column), this whole section is portaled
+  // there and open by default; without one (the classic Modal and every
+  // existing test) it stays inline, folded by default.
+  const advancedSection = (
         <div className="panel-section advanced-section">
           <SectionTitle id="advanced" name={txt.advanced} Tag="div" className="advanced-title" title={txt.helpAdvanced} help={txt.helpAdvanced} helpLabel={txt.help}>
             <button
@@ -740,6 +620,147 @@ export default function CompositionPanel({
             </div>
           )}
         </div>
+  );
+
+  return (
+    <div className="composition-panel panel" id="composition-panel">
+      {!hideTitle && (
+        <div className="panel-header">
+          <div className="panel-led-indicator pulse-slow"></div>
+          <h3 data-testid="comp-title">{txt.title}</h3>
+          <div className="eurorack-screw top-left"></div>
+          <div className="eurorack-screw top-right"></div>
+        </div>
+      )}
+
+      <div className="panel-body phrase-body">
+        {/* The phrase: "5 coups sur 16 cases, départ décalé de 0, joués par …". */}
+        <div className="panel-section phrase-section">
+          <div className="phrase-sentence" data-testid="comp-phrase">
+            <Stepper id="k" label={txt.pulses} help={txt.helpPulses} value={pulses} min={1} max={subdivisions} onStep={stepK} />
+            <span className="phrase-word">{txt.hitsUnit}</span>
+            <HelpButton id="pulses" name={txt.pulses} help={txt.helpPulses} helpLabel={txt.help} />
+            <span className="phrase-word">{txt.phraseOver}</span>
+            <Stepper id="n" label={txt.subdivisions} help={txt.helpSubdivisions} value={subdivisions} min={2} max={32} onStep={stepN} />
+            <span className="phrase-word">{txt.phraseSteps}</span>
+            <span className="phrase-unit">
+              <HelpButton id="subdivisions" name={txt.subdivisions} help={txt.helpSubdivisions} helpLabel={txt.help} />
+              <span className="phrase-word">,</span>
+            </span>
+            <span className="phrase-word">{txt.phraseStart}</span>
+            <Stepper id="r" label={txt.rotation} help={txt.helpRotation} value={rotation} min={0} max={subdivisions - 1} onStep={stepR} />
+            <span className="phrase-unit">
+              <HelpButton id="rotation" name={txt.rotation} help={txt.helpRotation} helpLabel={txt.help} />
+              <span className="phrase-word">,</span>
+            </span>
+            <span className="phrase-word">{txt.phrasePlayedBy}</span>
+            <select
+              id="comp-target"
+              data-testid="comp-target"
+              value={exportTarget}
+              onChange={handleExportTargetChange}
+              className="retro-select phrase-target"
+              aria-label={txt.phrasePlayedBy}
+            >
+              <option value="Kick">{txt.kick}</option>
+              <option value="Snare">{txt.snare}</option>
+              <option value="Hat">{txt.hat}</option>
+              <option value="Bass">{txt.bass}</option>
+              <option value="Chords">{txt.chordsOut}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* The wheel under a fixed marker, its strip, the empty-cases toggle. */}
+        <div className="panel-section viz-section">
+          <SectionTitle id="circle" name={txt.circle} Tag="span" title={txt.helpCircle} help={txt.helpCircle} helpLabel={txt.help}>
+            {txt.circle}
+          </SectionTitle>
+          <div className="circle-container">
+            <EuclideanCircle
+              pattern={displayPattern}
+              n={displayPattern.length}
+              currentStep={activeStep}
+              showEmpty={showComplement && !showPolyrhythm}
+              color={targetToken}
+              extraPolygons={extraPolygons}
+              balanceInfo={showPolyrhythm ? balanceInfo : null}
+              balanceWord={showPolyrhythm ? balanceWord : null}
+              sur={txt.sur}
+              hitsUnit={txt.hitsUnit}
+            />
+          </div>
+
+          <div className="wheel-foot">
+            <button
+              type="button"
+              className="retro-btn empty-toggle"
+              data-testid="comp-show-empty"
+              aria-pressed={showComplement}
+              onClick={() => setShowComplement((v) => !v)}
+            >
+              {showComplement ? (txt.hideComp || txt.showComp) : txt.showComp}
+            </button>
+            <span className="badge-sym" data-testid="comp-symmetry">
+              {!showPolyrhythm && isSelfComp ? txt.symSame : !showPolyrhythm ? `${txt.symmetry} ${txt.asym}` : ""}
+            </span>
+          </div>
+
+          <div
+            className="euclidean-strip"
+            data-testid="comp-grid"
+            style={{ gridTemplateColumns: `repeat(${displayPattern.length}, 1fr)` }}
+          >
+            {displayPattern.map((val, idx) => {
+              const isCurrent = activeStep >= 0 && idx === ((activeStep % displayPattern.length) + displayPattern.length) % displayPattern.length;
+              return (
+                <i
+                  key={idx}
+                  className={`strip-cell${val ? ' hit' : ''}${isCurrent ? ' now' : ''}`}
+                  style={val ? { '--c': targetToken } : undefined}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* "Essayer :" — the world rhythms, and "mon rythme" when none is pressed. */}
+        <div className="panel-section try-section">
+          <SectionTitle id="presets" name={txt.tryLabel} Tag="span" title={txt.helpPresets} help={txt.helpPresets} helpLabel={txt.help}>
+            {txt.tryLabel}
+          </SectionTitle>
+          <div className="trychips">
+            <button
+              type="button"
+              className="trychip"
+              data-testid="comp-preset-my"
+              aria-pressed={selectedPreset === ""}
+              title={txt.customGeo}
+              onClick={() => handlePresetChange("")}
+            >
+              {txt.customGeo}
+            </button>
+            {Object.entries(EUCLIDEAN_PRESETS).map(([key, value]) => {
+              const origin = txt.origins?.[key] || value.genre;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className="trychip"
+                  data-testid={`comp-preset-${key}`}
+                  aria-pressed={selectedPreset === key}
+                  title={`${origin} — E(${value.k},${value.n})`}
+                  onClick={() => handlePresetChange(key)}
+                >
+                  <MiniCircle n={value.n} k={value.k} />
+                  {value.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {advancedContainer ? createPortal(advancedSection, advancedContainer) : advancedSection}
 
         {/* Footer: "● en direct sur …", "Envoyer maintenant", listen, reset. */}
         <ExportTargetPanel
