@@ -35,6 +35,7 @@
 import { getBassNote, getLeadingTone, resolveChordSemitones } from "../core/theory";
 import { realizeChord, realizeNote } from "../core/noteEngine";
 import { chordAt, DRUM_ROLES, MELODIC_ROLES, STEPS_PER_MEASURE } from "../core/timeline";
+import { noteNameToMidi } from "./measure/signalMetrics";
 
 /** 16 sixteenth-note steps per measure. The loop's length is the document's (core/timeline.js `loopSteps`). */
 export { STEPS_PER_MEASURE };
@@ -127,11 +128,33 @@ function chordsChange(doc) {
   return doc.chords.some((chord) => chord.rootPc !== first.rootPc || chord.type !== first.type);
 }
 
+/** Matches a note name with its octave: A-G, an optional "#" or "b", octave digits. */
+const NOTE_NAME_RE = /^[A-G](?:#|b)?\d+$/;
+
 /**
- * The note of a bass row's cell on a step a chord covers: the leading tone
- * into the chord that follows in the document (the first one after the
- * last) on the chord's last step, when the chords ever change; otherwise the
- * cell's interval (`pitch`, the root by default) above the chord's root.
+ * A `pitch` that names a note with its octave — a letter A-G, an optional
+ * "#" or "b", an octave digit, e.g. "C3", "F#2", "Bb3" — is the note itself,
+ * not an interval. Math & Rythmes's isorhythm writes the melody's note names
+ * in `pitch`; the styles' bass lines (bricks.json) write interval labels
+ * ("R", "5", "8va", "b2", "b3"…). The check is deliberately stricter than
+ * noteNameToMidi's own parse: "b2" starts with a lowercase b, so it is an
+ * interval label (a flat second), never the note name B2.
+ *
+ * @param {string|undefined} pitch
+ * @returns {number|null} MIDI (C4 = 60), or null when `pitch` is not a note name.
+ */
+function noteNameToMidiOrNull(pitch) {
+  if (!pitch || !NOTE_NAME_RE.test(String(pitch).trim())) return null;
+  return noteNameToMidi(String(pitch).trim());
+}
+
+/**
+ * The note of a bass row's cell on a step a chord covers: a `pitch` that
+ * names a note with its octave plays exactly that note (the isorhythm's
+ * melody), even on the chord's last step; otherwise the leading tone into the
+ * chord that follows in the document (the first one after the last) on the
+ * chord's last step, when the chords ever change; otherwise the cell's
+ * interval (`pitch`, the root by default) above the chord's root.
  *
  * "The chord that follows in the document" is what the pre-T3 loop led into
  * as well — the next degree of the progression, even on the loop's last
@@ -141,6 +164,8 @@ function chordsChange(doc) {
  * @returns {number} MIDI
  */
 function bassNote(doc, cell, step, span, octave) {
+  const named = noteNameToMidiOrNull(cell.pitch);
+  if (named !== null) return named;
   if (step === span.endStep - 1 && chordsChange(doc)) {
     const next = doc.chords[span.index + 1] || doc.chords[0];
     return getLeadingTone(next.rootPc, octave).midi;

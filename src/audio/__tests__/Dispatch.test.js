@@ -254,3 +254,45 @@ describe("T3 — the bass leads into the chord that follows in the document", ()
     expect(bassAt(doc, 15)).toEqual([36]);
   });
 });
+
+describe("VMU-214 — a bass cell naming a note with its octave plays that note", () => {
+  beforeAll(async () => {
+    ({ stepEvents } = await import("../dispatch"));
+  });
+
+  const bassAt = (doc, step) => stepEvents(doc, step, { rootValue: 0 }).find((e) => e.track === "Bass")?.midi;
+  const withBassPitch = (step, pitch) => {
+    let doc = buildStudioTimeline({ brickIndex: 0 });
+    const bass = doc.tracks.find((t) => t.role === "bass");
+    return setCell(doc, bass.id, step, { vel: "normal", pitch });
+  };
+
+  it("C3, E3, F#2 and Bb3 play their own MIDI, not the chord root", () => {
+    const cases = [["C3", 48], ["E3", 52], ["F#2", 42], ["Bb3", 58]];
+    for (const [pitch, midi] of cases) {
+      expect(bassAt(withBassPitch(0, pitch), 0), pitch).toEqual([midi]);
+    }
+  });
+
+  it("a note name on the chord's last step plays the note, not the leading tone", () => {
+    // Step 15 is the last step of measure 1 (C major) in I-V-vi-IV; the
+    // leading tone into the following G major would be F#2 = 42.
+    const doc = withBassPitch(15, "C3");
+    expect(bassAt(doc, 15)).toEqual([48]);
+    expect(bassAt(withBassPitch(15, "R"), 15)).toEqual([42]);
+  });
+
+  it("interval labels keep their behaviour: R, 5 and 8va", () => {
+    expect(bassAt(withBassPitch(0, "R"), 0)).toEqual([36]);
+    expect(bassAt(withBassPitch(0, "5"), 0)).toEqual([43]);
+    expect(bassAt(withBassPitch(0, "8va"), 0)).toEqual([48]);
+  });
+
+  it("the leading tone still applies to interval labels on the last step", () => {
+    expect(bassAt(withBassPitch(15, "5"), 15)).toEqual([42]);
+  });
+
+  it("an unknown string plays the root, as today", () => {
+    expect(bassAt(withBassPitch(0, "??"), 0)).toEqual([36]);
+  });
+});
