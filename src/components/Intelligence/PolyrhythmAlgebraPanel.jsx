@@ -69,11 +69,10 @@ export default function PolyrhythmAlgebraPanel({
             <div key={idx} className="poly-op-row">
               <span className="poly-op-vname" title={`${txt.rhythmWord || 'Rythme'} ${idx + 1}`}>
                 <MiniPolygon k={op.k} dash={dash} />
-                <span>{txt.rhythmWord || 'Rythme'} {idx + 1}</span>
+                <span>{txt.rhythmWord || 'Rythme'} {idx + 1} · {op.k} {txt.hitsUnit || 'coups'}</span>
               </span>
 
               <div className="poly-op-field">
-                <span className="poly-field-label">k</span>
                 <input
                   type="range"
                   min="1"
@@ -85,13 +84,12 @@ export default function PolyrhythmAlgebraPanel({
                     setPolyOps(newOps);
                   }}
                   className="retro-slider poly-slider"
+                  aria-label={`${txt.rhythmWord || 'Rythme'} ${idx + 1} : ${txt.hitsUnit || 'coups'}`}
                 />
-                <span className="lcd-value">{op.k}</span>
-                <span className="poly-hits-unit">{txt.hitsUnit || 'coups'}</span>
               </div>
 
               <div className="poly-op-field">
-                <span className="poly-field-label">⊕</span>
+                <span className="poly-field-label">{txt.phraseStart}</span>
                 <input
                   type="range"
                   min="0"
@@ -103,6 +101,7 @@ export default function PolyrhythmAlgebraPanel({
                     setPolyOps(newOps);
                   }}
                   className="retro-slider poly-slider"
+                  aria-label={txt.phraseStart}
                 />
                 <span className="lcd-value">{op.offset}</span>
               </div>
