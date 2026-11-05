@@ -74,7 +74,7 @@ describe("the phrase and its plain words (VMU-195-B)", () => {
   it("shows the French phrase, the pills, the recipes after unfolding", () => {
     setup({ txt: fr, togglePlayback: vi.fn(), isPlaying: false });
 
-    for (const key of ["phraseHits", "phraseSteps", "phraseStart", "phrasePlayedBy", "tryLabel", "hideComp", "resetAll", "liveOn", "advanced", "kick"]) {
+    for (const key of ["hitsUnit", "phraseOver", "phraseSteps", "phraseStart", "phrasePlayedBy", "tryLabel", "hideComp", "resetAll", "liveOn", "advanced", "kick"]) {
       expect(screen.getAllByText(fr[key], { exact: false }).length, key).toBeGreaterThan(0);
     }
     expect(screen.getByText(fr.customGeo)).toBeTruthy();
@@ -91,7 +91,7 @@ describe("the phrase and its plain words (VMU-195-B)", () => {
   it("shows the English phrase and recipes", () => {
     setup({ txt: en, togglePlayback: vi.fn(), isPlaying: false });
 
-    for (const key of ["phraseHits", "phraseSteps", "phraseStart", "phrasePlayedBy", "tryLabel", "hideComp", "resetAll", "liveOn", "advanced"]) {
+    for (const key of ["hitsUnit", "phraseOver", "phraseSteps", "phraseStart", "phrasePlayedBy", "tryLabel", "hideComp", "resetAll", "liveOn", "advanced"]) {
       expect(screen.getAllByText(en[key], { exact: false }).length, key).toBeGreaterThan(0);
     }
     expect(en.phraseHits).toBe("hits over");

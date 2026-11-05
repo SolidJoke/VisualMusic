@@ -859,6 +859,14 @@
   font-size: var(--fs-emph);
   color: var(--text-primary);
 }
+.phrase-unit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+.phrase-unit .phrase-word {
+  margin-left: 0;
+}
 .stp-grp {
   display: inline-flex;
   align-items: center;

@@ -302,24 +302,15 @@ export default function CompositionPanel({
 
   const modeActive = { phasing: showPhasing, iso: showIsorhythm, mesh: showRealignment, poly: showPolyrhythm };
 
-  // The advanced-mode rule as it stands today (VMU-195-B restores the HEAD
-  // behaviour): "Deux copies qui glissent" (phasing) and "La mélodie en roue
-  // libre" (iso) leave "Empiler des rythmes" (poly) untouched, so poly turned
-  // on first can coexist with either; the other pair is fully exclusive.
+  // One recipe at a time (owner's decision, 2026-11-05): turning any recipe on
+  // turns every other recipe off; turning one off leaves none on. The former
+  // coexistences (poly with phasing / iso) stay as a possible future recipe,
+  // VMU-210. handleExport's precedence can stay: it no longer meets two modes.
   const setMode = (id, on) => {
-    if (id === "phasing") {
-      setShowPhasing(on);
-      if (on) { setShowIsorhythm(false); setShowRealignment(false); }
-    } else if (id === "iso") {
-      setShowIsorhythm(on);
-      if (on) { setShowPhasing(false); setShowRealignment(false); }
-    } else if (id === "mesh") {
-      setShowRealignment(on);
-      if (on) { setShowPhasing(false); setShowIsorhythm(false); setShowPolyrhythm(false); }
-    } else if (id === "poly") {
-      setShowPolyrhythm(on);
-      if (on) { setShowPhasing(false); setShowIsorhythm(false); setShowRealignment(false); }
-    }
+    setShowPhasing(on && id === "phasing");
+    setShowIsorhythm(on && id === "iso");
+    setShowRealignment(on && id === "mesh");
+    setShowPolyrhythm(on && id === "poly");
   };
 
   const toggleMode = (id) => setMode(id, !modeActive[id]);
@@ -384,15 +375,22 @@ export default function CompositionPanel({
         <div className="panel-section phrase-section">
           <div className="phrase-sentence" data-testid="comp-phrase">
             <Stepper id="k" label={txt.pulses} help={txt.helpPulses} value={pulses} min={1} max={subdivisions} onStep={stepK} />
+            <span className="phrase-word">{txt.hitsUnit}</span>
             <HelpButton id="pulses" name={txt.pulses} help={txt.helpPulses} helpLabel={txt.help} />
-            <span className="phrase-word">{txt.phraseHits}</span>
+            <span className="phrase-word">{txt.phraseOver}</span>
             <Stepper id="n" label={txt.subdivisions} help={txt.helpSubdivisions} value={subdivisions} min={2} max={32} onStep={stepN} />
-            <HelpButton id="subdivisions" name={txt.subdivisions} help={txt.helpSubdivisions} helpLabel={txt.help} />
-            <span className="phrase-word">{txt.phraseSteps},</span>
+            <span className="phrase-word">{txt.phraseSteps}</span>
+            <span className="phrase-unit">
+              <HelpButton id="subdivisions" name={txt.subdivisions} help={txt.helpSubdivisions} helpLabel={txt.help} />
+              <span className="phrase-word">,</span>
+            </span>
             <span className="phrase-word">{txt.phraseStart}</span>
             <Stepper id="r" label={txt.rotation} help={txt.helpRotation} value={rotation} min={0} max={subdivisions - 1} onStep={stepR} />
-            <HelpButton id="rotation" name={txt.rotation} help={txt.helpRotation} helpLabel={txt.help} />
-            <span className="phrase-word">, {txt.phrasePlayedBy}</span>
+            <span className="phrase-unit">
+              <HelpButton id="rotation" name={txt.rotation} help={txt.helpRotation} helpLabel={txt.help} />
+              <span className="phrase-word">,</span>
+            </span>
+            <span className="phrase-word">{txt.phrasePlayedBy}</span>
             <select
               id="comp-target"
               data-testid="comp-target"

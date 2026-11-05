@@ -346,6 +346,7 @@ export const translations = {
       hitsUnit: "coups",
       // VMU-195-B — the phrase (variant B), the recipes, the balance word.
       phraseHits: "coups sur",
+      phraseOver: "sur",
       phraseSteps: "cases",
       phraseStart: "départ décalé de",
       phrasePlayedBy: "joués par",
@@ -820,6 +821,7 @@ export const translations = {
       hitsUnit: "hits",
       // VMU-195-B — the phrase (variant B), the recipes, the balance word.
       phraseHits: "hits over",
+      phraseOver: "over",
       phraseSteps: "steps",
       phraseStart: "start moved by",
       phrasePlayedBy: "played by",
@@ -1230,6 +1232,7 @@ export const translations = {
       hitsUnit: "batidas",
       // VMU-195-B — the phrase (variant B), the recipes, the balance word.
       phraseHits: "batidas em",
+      phraseOver: "em",
       phraseSteps: "passos",
       phraseStart: "início deslocado em",
       phrasePlayedBy: "tocados por",
@@ -1679,6 +1682,7 @@ export const translations = {
       hitsUnit: "击打",
       // VMU-195-B — the phrase (variant B), the recipes, the balance word.
       phraseHits: "击打在",
+      phraseOver: "在",
       phraseSteps: "格",
       phraseStart: "起点移动",
       phrasePlayedBy: "由",

@@ -114,7 +114,7 @@ describe("CompositionPanel Component", () => {
     expect(setCustomDrums).toHaveBeenCalledWith(null);
   });
 
-  it("handles each recipe and its exact exclusion of the others (four-row rule)", () => {
+  it("handles each recipe and its exact exclusion of the others (one recipe at a time)", () => {
     // The marker each recipe leaves visible when it is switched on: its own
     // section for the first three, the polyrhythm editor for "Empiler des
     // rythmes" (which has no comp-*-section test id).
@@ -124,37 +124,34 @@ describe("CompositionPanel Component", () => {
       mesh: "comp-realign-section",
       poly: "comp-poly-add",
     };
-    // Turning a recipe on switches off every other recipe except the ones
-    // listed here — the HEAD rule restored for VMU-195-B: phasing and iso
-    // leave poly on, mesh and poly switch everything else off.
-    const leavesOn = {
-      phasing: ["poly"],
-      iso: ["poly"],
-      mesh: [],
-      poly: [],
-    };
+    // VMU-195-D (owner's decision, 2026-11-05): turning any recipe on turns
+    // every other recipe off; turning one off leaves none on. The former
+    // coexistences (poly with phasing / iso) stay as a possible future recipe,
+    // VMU-210.
+    const recipes = Object.keys(section);
 
-    for (const [target, kept] of Object.entries(leavesOn)) {
-      for (const other of Object.keys(section)) {
+    for (const target of recipes) {
+      for (const other of recipes) {
         if (other === target) continue;
 
         const { unmount } = render(<CompositionPanel {...defaultProps} />);
         // The recipes are folded by default: unfold them first.
         fireEvent.click(screen.getByTestId("comp-advanced-toggle"));
 
-        // Switch the other recipe on first, so the target must either keep it
-        // on or switch it off.
+        // Switch the other recipe on first, so the target must switch it off.
         fireEvent.click(screen.getByTestId(`comp-mode-${other}`));
         expect(screen.getByTestId(section[other])).toBeTruthy();
 
         fireEvent.click(screen.getByTestId(`comp-mode-${target}`));
         expect(screen.getByTestId(section[target])).toBeTruthy();
+        expect(screen.getByTestId(`comp-mode-${target}`).getAttribute("aria-pressed")).toBe("true");
+        // Only the target stays on: the other recipe's marker is gone.
+        expect(screen.queryByTestId(section[other])).toBeNull();
 
-        if (kept.includes(other)) {
-          expect(screen.getByTestId(section[other])).toBeTruthy();
-        } else {
-          expect(screen.queryByTestId(section[other])).toBeNull();
-        }
+        // Turning the target off leaves none on.
+        fireEvent.click(screen.getByTestId(`comp-mode-${target}`));
+        expect(screen.queryByTestId(section[target])).toBeNull();
+        expect(screen.getByTestId(`comp-mode-${target}`).getAttribute("aria-pressed")).toBe("false");
         unmount();
       }
     }
