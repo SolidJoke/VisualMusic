@@ -284,6 +284,25 @@ describe("A′-ACCÈS (b): the classic windows open from A′, with the classic 
       expect(document.querySelector(".proto-a__recipes")).toBeNull();
       expect(document.querySelector(".math-dock")).toBeNull();
     });
+
+    it("Escape does not remove the dock nor the column", async () => {
+      await renderApp();
+      fireEvent.click(fn("nav.mode-studio"));
+      await waitFor(() => expect(document.querySelector(".proto-a__recipes .advanced-section")).not.toBeNull());
+      expect(document.querySelector(".math-dock")).not.toBeNull();
+
+      escape();
+      escape();
+      expect(document.querySelector(".math-dock")).not.toBeNull();
+      expect(document.querySelector(".proto-a__recipes .advanced-section")).not.toBeNull();
+
+      fireEvent.click(fn("son.ouvrir"));
+      expect(document.querySelector(".modal-container")).not.toBeNull();
+      escape();
+      expect(document.querySelector(".modal-container")).toBeNull();
+      expect(document.querySelector(".math-dock")).not.toBeNull();
+      expect(document.querySelector(".proto-a__recipes .advanced-section")).not.toBeNull();
+    });
   });
 
   it("the Guide opens and Escape closes it", async () => {

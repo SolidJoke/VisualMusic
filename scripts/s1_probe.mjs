@@ -673,13 +673,32 @@ function measureInPage() {
     cut: seqCut,
   };
 
-  // S1-12 — page scroll.
-  out.s1_12 = {
+  // S1-12 — page scroll. The probe loads every state with bench=1, which draws
+  // the bench's two fixture panels above the sequencer ([data-s1="scenarios"] and
+  // [data-s1="states"], only when bench is set) and pushes the Studio past its
+  // window. Gabriel never sees them — S1-19 proves there are 0 fixtures without
+  // bench=1 — so scrollHeight / scrollWidth are read with the fixtures hidden
+  // (inline display:none, saved and restored right after the reading, so no
+  // other check sees the change).
+  const benchFixtureEls = ["scenarios", "states"]
+    .map((id) => document.querySelector(`[data-s1="${id}"]`))
+    .filter(Boolean);
+  const benchFixtureDisplays = benchFixtureEls.map((el) => el.style.getPropertyValue("display"));
+  const benchFixturesHeight = benchFixtureEls.reduce((sum, el) => sum + r(el).height, 0);
+  benchFixtureEls.forEach((el) => el.style.setProperty("display", "none", "important"));
+  void document.documentElement.offsetHeight; // flush style before measuring
+  const s1_12 = {
     scrollHeight: document.documentElement.scrollHeight,
     innerHeight: vh,
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: vw,
+    benchFixturesHeight: round(benchFixturesHeight),
   };
+  benchFixtureEls.forEach((el, i) => {
+    if (benchFixtureDisplays[i]) el.style.setProperty("display", benchFixtureDisplays[i]);
+    else el.style.removeProperty("display");
+  });
+  out.s1_12 = s1_12;
 
   // S1-13 — every interactive element whose centre is on screen answers
   // elementFromPoint with itself (or a descendant).
@@ -1186,7 +1205,7 @@ function verdicts(m) {
     s11.cut === 0;
   put("S1-11", s11Ok, `${s11.cellCount} step cells over ${s11.rows} rows (${s11.rowCounts.join(",")} cells each), smallest ${s11.minCellWidth}px wide, ${s11.scrolls} scrolling row(s), ${s11.cut} cut cell(s)${s11.sequencer ? "" : ", no sequencer"}`);
   const sc = m.s1_12;
-  put("S1-12", sc.scrollHeight <= sc.innerHeight && sc.scrollWidth <= sc.innerWidth, `scrollHeight ${sc.scrollHeight} / innerHeight ${sc.innerHeight}, scrollWidth ${sc.scrollWidth} / ${sc.innerWidth}`);
+  put("S1-12", sc.scrollHeight <= sc.innerHeight && sc.scrollWidth <= sc.innerWidth, `scrollHeight ${sc.scrollHeight} / innerHeight ${sc.innerHeight}, scrollWidth ${sc.scrollWidth} / ${sc.innerWidth}${sc.benchFixturesHeight ? ` (bench fixtures ${sc.benchFixturesHeight}px excluded)` : ""}`);
   const it = m.s1_13;
   put("S1-13", it.intercepted.length === 0, `${it.intercepted.length} intercepted of ${it.checked} on screen (${it.offscreen} off screen)${it.intercepted.length ? `: ${it.intercepted.slice(0, 3).join(" | ")}` : ""}`);
   const a = m.s1_15;
