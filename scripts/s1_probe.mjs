@@ -102,7 +102,7 @@
  * child of [data-s1="transport"], the top row's controls still in the block
  * above it; each state holds exactly its controls (composer.style / dico.famille
  * + dico.fondamentale + dico.type-accord or dico.type-gamme, none of the others),
- * each once, visible, >= 48px high, text = 12px (+-0.5, VMU-212), on top at its centre; no name
+ * each once, visible, >= 48px high, text = 14px (+-0.5, VMU-212), on top at its centre; no name
  * cut (the longest name of each menu, measured in the field's font, fits the
  * room the field gives it); the row and the block keep ONE height in every state
  * (+-1px; the block <= 190px, it was 98); the page does not scroll and the
@@ -141,17 +141,18 @@
  *
  * VMU-212 (part 1, Gabriel 2026-11-05: "fonts are generally far too big") adds
  * S1-28, decisive, on Gabriel's page at 3840x2045 and 3840x2160: ONE text size,
- * 12px — the sequencers' track-name size — for every text of A′, everywhere
+ * 14px — the sequencers' track-name size — for every text of A′, everywhere
  * except the instruments' frozen drawing (everything inside [data-s1=piano] /
  * [data-s1=guitar] / [data-s1=bass] below their .proto-a__inst-head heads) and
- * SVG text, which keeps its drawing with a floor of 12px on screen (font-size x
+ * SVG text, which keeps its drawing with a floor of 14px on screen (font-size x
  * the viewBox scale). Seven states: Studio on arrival, Studio + Math dock,
  * Dictionary chord + scale, Assistant drawer open, "Instruments & Audio" open,
  * and the Guide. Portaled windows / lists / tooltips (Modal, CustomSelect,
  * InfoTooltip -> document.body) are walked too.
  *   npm run s1:probe -- --text-size-only   # S1-28 alone
- * Positive control: one A′ text at 14px must turn S1-28 (and only S1-28) red:
- *   S1_PROBE_INJECT_CSS='.proto-a .proto-a__title{font-size:14px!important}' npm run s1:probe -- --text-size-only
+ * Positive control: forcing --a-prime-fs back to 12px must turn S1-28 (and only
+ * S1-28) red:
+ *   S1_PROBE_INJECT_CSS=':root:has(.proto-a){--a-prime-fs:12px}' npm run s1:probe -- --text-size-only
  *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
@@ -222,6 +223,12 @@ const MATH_WINDOW_ONLY = flag("math-window-only");
 const TEXT_SIZE_ONLY = flag("text-size-only");
 const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY || POSITION_PANEL_ONLY || MATH_WINDOW_ONLY || TEXT_SIZE_ONLY;
 
+// VMU-212 follow-up (C-99d, Gabriel 2026-11-05: "Augmente la taille des polices
+// de 2 points"): A′'s single text size, 12px -> 14px. One place for every
+// threshold that encodes it: S1-21.labelFont, S1-23.label, S1-26.font,
+// S1-27.text and S1-28.size / S1-28.svgFloor.
+const A_PRIME_FS = 14;
+
 // Thresholds, spec §2 table. `decides` = counts for the A′ / B decision.
 const CRITERIA = [
   { id: "S1-1", decides: true, what: "label font-size >= 18px" },
@@ -266,7 +273,7 @@ const CRITERIA = [
   // on Gabriel's page (no bench), not per state of the matrix — listed here so
   // the decision's "S1-1..S1-28" counts it, and filtered out of the matrix
   // loops (MATRIX_CRITERIA).
-  { id: "S1-28", decides: true, matrix: false, what: "one text size: every A′ text 12px (+-0.5), the instruments' frozen drawing excepted, SVG text >= 12px on screen" },
+  { id: "S1-28", decides: true, matrix: false, what: "one text size: every A′ text 14px (+-0.5), the instruments' frozen drawing excepted, SVG text >= 14px on screen" },
 ];
 
 // The per-state matrix criteria (S1-28 is a per-viewport check, see above).
@@ -1770,9 +1777,9 @@ async function runVolume(browser, viewport) {
 
 // S1-21 thresholds (brief L1b-1b): a 100px head (+-1), the same in the three
 // columns, 48px targets, the keyboard's bottom at least 40px above the window's
-// (3840 x 2045: <= 2005), the setting's label at 12px (VMU-212's one text size,
+// (3840 x 2045: <= 2005), the setting's label at 14px (VMU-212's one text size,
 // checked +-0.5).
-const S1_21 = { head: 100, headTolerance: 1, target: 48, minMargin: 40, labelFont: 12 };
+const S1_21 = { head: 100, headTolerance: 1, target: 48, minMargin: 40, labelFont: A_PRIME_FS };
 
 // The piano's label is checked against an ORACLE computed here from what the
 // engine hands the piano (data-s1-notes), never read from the page: the names
@@ -2101,11 +2108,11 @@ async function runHeads(browser, viewport) {
 // module graph) and literal anchors (Do majeur = 60 64 67), never from what the
 // row itself shows.
 
-// Thresholds (brief VMU-185): 48px targets, labels at 12px (VMU-212's one text
+// Thresholds (brief VMU-185): 48px targets, labels at 14px (VMU-212's one text
 // size, checked +-0.5), the block no taller than 190px (98 before), the row and
 // the block the same height in every state (+-1px), the keyboard's bottom >=
 // 40px above the window's.
-const S1_23 = { target: 48, label: 12, maxBlock: 190, heightTolerance: 1, minMargin: 40 };
+const S1_23 = { target: 48, label: A_PRIME_FS, maxBlock: 190, heightTolerance: 1, minMargin: 40 };
 const SELECTION_FNS = ["composer.style", "dico.famille", "dico.fondamentale", "dico.type-accord", "dico.type-gamme"];
 // The top row's controls: still in the block, above the new row, untouched.
 const SELECTION_TOP_FNS = [
@@ -2867,7 +2874,7 @@ async function reportChordOctave(browser, viewport) {
 // Dictionary, Do majeur: the label of a neck's position is a button; opened, its
 // panel lists Mi / La / Ré with Do's fret (oracle, semitones up from the open
 // string: 8 / 3 / 10), the heads stay 100px and the keyboard does not move, the
-// controls are on top, >= 48px, text = 12px (+-0.5, VMU-212); a root string changes the shape
+// controls are on top, >= 48px, text = 14px (+-0.5, VMU-212); a root string changes the shape
 // the neck draws (guitar La: 0-3 -> 3-5; bass Mi: 3-5 -> 8-10) and not the other
 // neck's; "Réinitialiser Position" puts a chosen position back; Escape closes it
 // and returns the focus. Studio, chord octave +2 (bench state): since VMU-201 /
@@ -2876,7 +2883,7 @@ async function reportChordOctave(browser, viewport) {
 // alert is unit-tested in PrototypePositionPanelUnit.test.jsx); the head stays
 // 100px and the label still fits.
 
-const S1_26 = { head: 100, target: 48, font: 12, frets: [8, 3, 10] };
+const S1_26 = { head: 100, target: 48, font: A_PRIME_FS, frets: [8, 3, 10] };
 
 /** In page: what S1-26 compares before / after opening a panel. */
 function positionPanelMeasure() {
@@ -2994,22 +3001,22 @@ async function reportPositionPanel(browser, viewport) {
 // is ALWAYS there in the Studio (no opener, no ✕), and "Pour aller plus loin"
 // left the dock for A′'s recipes column (".proto-a__recipes"), portaled there,
 // open by default. Phase A, the dock on arrival: ONE title (the dock's; no inner
-// header, no second h3); every rendered HTML text = 12px (+-0.5, VMU-212) and
-// every SVG text >= 12px on screen; every visible clickable thing >= 32px on
+// header, no second h3); every rendered HTML text = 14px (+-0.5, VMU-212) and
+// every SVG text >= 14px on screen; every visible clickable thing >= 32px on
 // both sides, the buttons and the selects >= 48px high; the cases strip
 // [data-testid=comp-grid] visible with as many .strip-cell as
 // [data-testid=comp-n-value] shows, each cell >= 22px high; six button.sbtn
 // steppers (comp-k/n/r-minus/plus) each >= 44px on both sides; six "?" buttons
 // (the advanced title's moved to the column); the "Écouter" button on top. The
 // recipes column: the toggle aria-expanded=true, the advanced body shown, its
-// four comp-mode-* recipes visible, texts = 12px / targets >= 32px, nothing
+// four comp-mode-* recipes visible, texts = 14px / targets >= 32px, nothing
 // spilling out of the column, no page scroll, inside the centre column, beside
 // the dock (or stacked under it on a narrow centre). Phase B turns on phasing,
 // then iso, then poly: a slider thumb >= 24px (pixels), the isorhythm grid's
 // 64 cells fully visible, a .grid-led >= 32px. Screenshots go to probe.local/.
 // Positive control: the same measure on a checkout of origin/main must fail.
 
-const S1_27 = { text: 12, target: 32, button: 48, thumb: 24, cell: 32, stepper: 44, strip: 22 };
+const S1_27 = { text: A_PRIME_FS, target: 32, button: 48, thumb: 24, cell: 32, stepper: 44, strip: 22 };
 
 /** In page: what S1-27 reads off the open Math & Rythmes dock. */
 function mathWindowMeasure() {
@@ -3025,7 +3032,7 @@ function mathWindowMeasure() {
   const name = (el) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/)[0] : ""}`;
   const box = (el) => (el ? el.getBoundingClientRect() : null);
   const overlaps = (a, b) => a && b && a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
-  // smallest rendered text (VMU-212: HTML = 12px +-0.5, SVG >= 12px on screen)
+  // smallest rendered text (VMU-212: HTML = 14px +-0.5, SVG >= 14px on screen)
   const texts = [];
   const walker = document.createTreeWalker(dock, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -3555,25 +3562,26 @@ async function reportMathWindow(browser, viewport) {
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
 
-// ─── S1-28 (VMU-212, part 1): one text size ────────────────────────────────
+// ─── S1-28 (VMU-212 follow-up, C-99d): one text size ───────────────────────
 //
-// Gabriel's decision (2026-11-05): "fonts are generally far too big". Every text
-// of A′ is 12px — the size measured on the sequencers' track names — everywhere
-// except the instruments' frozen drawing (everything inside [data-s1=piano] /
-// [data-s1=guitar] / [data-s1=bass] below their .proto-a__inst-head heads) and
-// SVG text, which keeps its drawing with a floor of 12px on screen (font-size x
-// the viewBox scale). Measured on Gabriel's page (no bench) in seven states:
-// Studio on arrival, Studio + Math dock, Dictionary chord + scale, Assistant
-// drawer open, "Instruments & Audio" open, and the Guide (help window) open.
-// Portaled windows / lists / tooltips (Modal, CustomSelect, InfoTooltip render
-// into document.body via createPortal) are walked too. Positive control: set one
-// A′ text to 14px, S1-28 must name it:
-//   S1_PROBE_INJECT_CSS='.proto-a .proto-a__title{font-size:14px!important}' npm run s1:probe -- --text-size-only
+// Gabriel's decision (2026-11-05): "Augmente la taille des polices de 2 points
+// (exemple passer de 10 à 12)". Every text of A′ is 14px — the size measured on
+// the sequencers' track names — everywhere except the instruments' frozen
+// drawing (everything inside [data-s1=piano] / [data-s1=guitar] / [data-s1=bass]
+// below their .proto-a__inst-head heads) and SVG text, which keeps its drawing
+// with a floor of 14px on screen (font-size x the viewBox scale). Measured on
+// Gabriel's page (no bench) in seven states: Studio on arrival, Studio + Math
+// dock, Dictionary chord + scale, Assistant drawer open, "Instruments & Audio"
+// open, and the Guide (help window) open. Portaled windows / lists / tooltips
+// (Modal, CustomSelect, InfoTooltip render into document.body via createPortal)
+// are walked too. Positive control: forcing --a-prime-fs back to 12px, S1-28
+// must name it:
+//   S1_PROBE_INJECT_CSS=':root:has(.proto-a){--a-prime-fs:12px}' npm run s1:probe -- --text-size-only
 
-const S1_28 = { size: 12, tolerance: 0.5, svgFloor: 12 };
+const S1_28 = { size: A_PRIME_FS, tolerance: 0.5, svgFloor: A_PRIME_FS };
 
 /** In page: every visible A′ text's computed size, outside the frozen drawing. */
-function textSizeMeasure() {
+function textSizeMeasure(FS) {
   const proto = document.querySelector(".proto-a");
   if (!proto) return { open: false };
   const pathOf = (el) => {
@@ -3626,14 +3634,14 @@ function textSizeMeasure() {
         if (!m) continue;
         const size = parseFloat(getComputedStyle(el).fontSize) * Math.hypot(m.a, m.b);
         svgCount++;
-        // S1-28's values, inlined: this function runs inside the page, where the
-        // Node-side S1_28 const is not in scope.
-        if (size < 12 - 0.5) svgOffenders.push({ path: pathOf(el), text: v.trim().slice(0, 24), size });
+        // S1-28's size, passed in: this function runs inside the page, where the
+        // Node-side A_PRIME_FS / S1_28 consts are not in scope.
+        if (size < FS - 0.5) svgOffenders.push({ path: pathOf(el), text: v.trim().slice(0, 24), size });
       } else {
         if (!shownChain(el)) continue;
         const size = parseFloat(getComputedStyle(el).fontSize);
         count++;
-        if (Math.abs(size - 12) > 0.5) offenders.push({ path: pathOf(el), text: v.trim().slice(0, 24), size });
+        if (Math.abs(size - FS) > 0.5) offenders.push({ path: pathOf(el), text: v.trim().slice(0, 24), size });
       }
     }
   }
@@ -3674,7 +3682,7 @@ async function reportTextSize(browser, viewport) {
   };
   const states = [];
   const measure = async (name) => {
-    const m = await page.evaluate(textSizeMeasure);
+    const m = await page.evaluate(textSizeMeasure, A_PRIME_FS);
     const bad = m.offenderTotal + m.svgOffenderTotal;
     if (bad) {
       const parts = [];
@@ -3868,7 +3876,7 @@ try {
     await reportPositionPanel(browser, viewport);
     // S1-27 (VMU-195-A): the Math & Rythmes window, readable on 4K.
     await reportMathWindow(browser, viewport);
-    // S1-28 (VMU-212): one text size, 12px everywhere except the frozen drawing.
+    // S1-28 (VMU-212): one text size, 14px everywhere except the frozen drawing.
     await reportTextSize(browser, viewport);
   }
 } finally {
@@ -3938,7 +3946,7 @@ if (AS_JSON) {
   console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);
   console.log(`  S1-25 ${confirmOk ? "PASS" : "FAIL"} ${confirmPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-126 / VMU-050: the box opens only with an edit (row, drawer menu, header tabs; never for a scenario), Garder keeps, Changer applies; the last selection survives a reload, a fresh context opens on the defaults, a damaged memory opens without error`);
   console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; no warning sign in the Studio (VMU-201)`);
-  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text = ${S1_27.text}px (+-0.5; SVG >= ${S1_27.text}px on screen), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, six "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; the recipes column beside the dock (or stacked under it), open by default (toggle on, 4 recipes, texts 12px, targets >= 32px, nothing spills out); phase B phasing slider thumb >= ${S1_27.thumb}px, iso 64 cells fully visible, poly grid-led >= ${S1_27.cell}px`);
+  console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text = ${S1_27.text}px (+-0.5; SVG >= ${S1_27.text}px on screen), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, six "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; the recipes column beside the dock (or stacked under it), open by default (toggle on, 4 recipes, texts ${S1_27.text}px, targets >= 32px, nothing spills out); phase B phasing slider thumb >= ${S1_27.thumb}px, iso 64 cells fully visible, poly grid-led >= ${S1_27.cell}px`);
   console.log(`  S1-28 ${textSizeOk ? "PASS" : "FAIL"} ${textSizePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-212 one text size: every A′ text ${S1_28.size}px (+-${S1_28.tolerance}), the instruments' frozen drawing excepted, SVG >= ${S1_28.svgFloor}px on screen; Studio / Math dock / Dictionary chord+scale / Assistant drawer / Instruments & Audio / Guide`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
   console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-28 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
