@@ -71,6 +71,7 @@ import { AppProvider } from "../../context/AppContext";
 import AppDesktop from "../../AppDesktop";
 import PositionRail from "../PositionRail";
 import { translations } from "../../i18n/translations";
+import { verticalFretShare, verticalFretRowTopShare } from "../../components/Instruments/verticalNeckGeometry";
 
 const LAZY_LOAD_TIMEOUT = 10_000;
 vi.setConfig({ testTimeout: LAZY_LOAD_TIMEOUT + 5_000 });
@@ -296,5 +297,70 @@ describe("VMU-202 — the position rail (unit: PositionRail alone)", () => {
     expect(onSelectPosition).toHaveBeenLastCalledWith(1);
     fireEvent.click(document.querySelector('[data-rail-thread="1"]'));
     expect(onSelectPosition).toHaveBeenLastCalledWith(0);
+  });
+
+  it("C-103 Step 3a: a fretWindow hides every lane whose span lies outside it", () => {
+    renderRail({ fretWindow: { firstFret: 5, lastFret: 8 } });
+    // Position 3 spans 2..9 (into the window); positions 1 (0..3) and 2 (0..4)
+    // end above it, so only their lanes disappear. Position 3's tab sits at
+    // fret 2 (outside the window), so the lane keeps its clipped thread but no
+    // tab (C-103b).
+    expect([...document.querySelectorAll("[data-rail-tab]")]).toHaveLength(0);
+    expect(document.querySelector('[data-rail-tab="1"]')).toBeNull();
+    expect(document.querySelector('[data-rail-tab="2"]')).toBeNull();
+    expect(document.querySelector('[data-rail-tab="3"]')).toBeNull();
+    expect(document.querySelector('[data-rail-thread="3"]')).not.toBeNull();
+  });
+
+  it("C-103 Step 3a: a fretWindow above every lane draws no rail at all", () => {
+    renderRail({ fretWindow: { firstFret: 12, lastFret: 22 } });
+    expect(document.querySelector(".proto-a__position-rail")).toBeNull();
+    expect(document.querySelector(".proto-a__ribbon")).toBeNull();
+    expect(document.querySelector("[data-rail-tab]")).toBeNull();
+  });
+
+  // The same expression rowCentreCss uses, so the test and the component agree
+  // to the last digit of the calc() share (floating point never drifts).
+  const CENTRE = (fret, firstFret) =>
+    verticalFretRowTopShare(fret, 22) + verticalFretShare(fret, 22) / 2 - verticalFretRowTopShare(firstFret, 22);
+
+  it("C-103 follow-up: a row is counted from the window's first fret, not the nut", () => {
+    renderRail({
+      fretWindow: { firstFret: 6, lastFret: 14 },
+      placements: [
+        { index: 0, id: "p0", label: "1", rail: { minFret: 7, maxFret: 10, span: 4, warning: null, shift: null, lane: 0 } },
+      ],
+    });
+    const thread = document.querySelector('[data-rail-thread="1"]');
+    expect(thread.style.top).toContain(`* ${CENTRE(7, 6)}`);
+    // Not the nut-based centre (topShare(7) + share(7)/2, no -topShare(6)).
+    expect(thread.style.top).not.toContain(`* ${verticalFretRowTopShare(7, 22) + verticalFretShare(7, 22) / 2}`);
+  });
+
+  it("C-103 follow-up: a lane only partly inside the window has its thread clipped to it", () => {
+    renderRail({
+      fretWindow: { firstFret: 6, lastFret: 14 },
+      placements: [
+        { index: 0, id: "p0", label: "1", rail: { minFret: 3, maxFret: 8, span: 6, warning: null, shift: null, lane: 0 } },
+      ],
+    });
+    const thread = document.querySelector('[data-rail-thread="1"]');
+    expect(thread).not.toBeNull();
+    // The low end is the window's first fret (row 6), not fret 3.
+    expect(thread.style.top).toContain(`* ${CENTRE(6, 6)}`);
+    // The high end is still fret 8 (inside the window), counted from row 6.
+    expect(thread.style.height).toContain(`* ${CENTRE(8, 6)}`);
+  });
+
+  it("C-103 follow-up: a lane entirely above the window is not drawn", () => {
+    renderRail({
+      fretWindow: { firstFret: 6, lastFret: 14 },
+      placements: [
+        { index: 0, id: "p0", label: "1", rail: { minFret: 15, maxFret: 18, span: 4, warning: null, shift: null, lane: 0 } },
+      ],
+    });
+    expect(document.querySelector(".proto-a__position-rail")).toBeNull();
+    expect(document.querySelector("[data-rail-tab]")).toBeNull();
+    expect(document.querySelector("[data-rail-thread]")).toBeNull();
   });
 });

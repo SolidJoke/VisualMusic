@@ -36,28 +36,40 @@ const RIBBON_CELL_MAX = 46; // a ribbon cell never wider than this (the board sp
 /** The two head rows and the open-string row, the fixed part above --fbv-rows-h. */
 const HEAD_OFFSET = "calc(2 * var(--fbv-head, 36px) + var(--fbv-fret, 70px))";
 
-/** The top of a fret's row, as a CSS length (fret 0 is the fixed open row). */
-function rowTopCss(fret) {
+/**
+ * The top of a fret's row, as a CSS length (fret 0 is the fixed open row).
+ * A fret >= firstFret is counted from the window's first fret, not from the
+ * nut: `topShare(fret) - topShare(firstFret)` (firstFret 1 -> from the nut,
+ * exactly as before C-103b).
+ */
+function rowTopCss(fret, firstFret = 1) {
   if (fret === 0) return "calc(2 * var(--fbv-head, 36px))";
-  return `calc(${HEAD_OFFSET} + var(--fbv-rows-h, 1540px) * ${verticalFretRowTopShare(fret, NUM_FRETS)})`;
+  return `calc(${HEAD_OFFSET} + var(--fbv-rows-h, 1540px) * ${verticalFretRowTopShare(fret, NUM_FRETS) - verticalFretRowTopShare(firstFret, NUM_FRETS)})`;
 }
 
-/** The height of a fret's row. */
+/** The height of a fret's row (full-neck height, independent of the window). */
 function rowHeightCss(fret) {
   if (fret === 0) return "var(--fbv-fret, 70px)";
   return `calc(var(--fbv-rows-h, 1540px) * ${verticalFretShare(fret, NUM_FRETS)})`;
 }
 
-/** The centre of a fret's row — the tab's and the thread's anchor. */
-function rowCentreCss(fret) {
+/**
+ * The centre of a fret's row — the tab's and the thread's anchor. One function
+ * for every anchor (tab, thread, shift arrow) so they cannot drift apart; the
+ * window's first fret is subtracted the same way as in rowTopCss.
+ */
+function rowCentreCss(fret, firstFret = 1) {
   if (fret === 0) return "calc(2 * var(--fbv-head, 36px) + var(--fbv-fret, 70px) / 2)";
-  const share = verticalFretRowTopShare(fret, NUM_FRETS) + verticalFretShare(fret, NUM_FRETS) / 2;
+  const share =
+    verticalFretRowTopShare(fret, NUM_FRETS) +
+    verticalFretShare(fret, NUM_FRETS) / 2 -
+    verticalFretRowTopShare(firstFret, NUM_FRETS);
   return `calc(${HEAD_OFFSET} + var(--fbv-rows-h, 1540px) * ${share})`;
 }
 
 /** A thread (or one shift segment) from fret `lo` to fret `hi`, top + height. */
-function threadCss(lo, hi) {
-  return { top: rowCentreCss(lo), height: `calc(${rowCentreCss(hi)} - ${rowCentreCss(lo)})` };
+function threadCss(lo, hi, firstFret = 1) {
+  return { top: rowCentreCss(lo, firstFret), height: `calc(${rowCentreCss(hi, firstFret)} - ${rowCentreCss(lo, firstFret)})` };
 }
 
 /** The octave's note names for the ribbon: N+1 cells, and the pitch each lights on. */
@@ -84,11 +96,39 @@ export default function PositionRail({
   onSelectStartPitch,
   T,
   strings = 6,
+  // C-103 (Step 3a): the neck's fret window ({ firstFret, lastFret }); a lane
+  // whose span lies entirely outside it is not drawn, so the rail lines up
+  // with the frets the neck actually shows. Absent: every lane, as before.
+  fretWindow = null,
 }) {
   const [listOpen, setListOpen] = useState(false);
   const listId = useId();
 
-  const railPlacements = placements.filter((p) => p?.rail);
+  // The window the neck actually shows, clamped to the frets this rail models
+  // (1..NUM_FRETS); null means the full neck, as before C-103b.
+  const window =
+    fretWindow && Number.isFinite(fretWindow.firstFret) && Number.isFinite(fretWindow.lastFret)
+      ? { firstFret: Math.max(1, fretWindow.firstFret), lastFret: Math.min(NUM_FRETS, fretWindow.lastFret) }
+      : null;
+  const firstFret = window ? window.firstFret : 1;
+  // The open-string row (fret 0) is always drawn above the nut, whatever the
+  // window, so it is always "in window".
+  const inWindow = (fret) => fret === 0 || !window || (fret >= window.firstFret && fret <= window.lastFret);
+  // A thread's clipped span: max(lo, firstFret)..min(hi, lastFret), or null
+  // when the two ends cross (a segment entirely outside the window). Fret 0
+  // (the always-drawn open row) stays 0, so an open position keeps its thread
+  // exactly as before when the window starts at 1.
+  const clipSpan = (lo, hi) => {
+    if (!window) return { lo, hi };
+    const a = lo === 0 ? 0 : Math.max(lo, window.firstFret);
+    const b = Math.min(hi, window.lastFret);
+    return a <= b ? { lo: a, hi: b } : null;
+  };
+
+  const railPlacements = placements.filter((p) => p?.rail).filter((p) => {
+    if (!window) return true;
+    return p.rail.minFret <= window.lastFret && p.rail.maxFret >= window.firstFret;
+  });
   if (railPlacements.length === 0) return null;
 
   const isPlaying = (pitch) => (currentlyPlayingNotes || []).some((n) => playingPitch(n) === pitch);
@@ -146,7 +186,8 @@ export default function PositionRail({
           // is defensive — the design asks for it regardless.
           const sameStart = railPlacements.slice(0, i).filter((q) => q.rail.minFret === rail.minFret).length;
           const tabFret = rail.minFret + sameStart;
-          const tabTop = `calc(${rowTopCss(tabFret)} + (${rowHeightCss(tabFret)} - ${TAB}px) / 2)`;
+          const showTab = inWindow(tabFret);
+          const tabTop = `calc(${rowTopCss(tabFret, firstFret)} + (${rowHeightCss(tabFret)} - ${TAB}px) / 2)`;
           const threadWidth = chosen ? THREAD_CHOSEN : THREAD;
           const threadLeft = `calc(${LANE_X}px + ${rail.lane} * ${LANE_W}px)`;
           const threadClass = [
@@ -167,63 +208,78 @@ export default function PositionRail({
             height: seg.height,
             "--rail-thread-w": `${threadWidth}px`,
           });
+          const thread = (span) => (
+            <button
+              type="button"
+              className={threadClass}
+              style={threadStyle(threadCss(span.lo, span.hi, firstFret))}
+              data-rail-thread={p.label}
+              data-rail-lane={rail.lane}
+              aria-label={`${T.positionRailTab} ${p.label}`}
+              aria-pressed={chosen}
+              onClick={choose}
+            />
+          );
+          const shift = rail.shift;
+          const fromSpan = shift ? clipSpan(shift.from.lo, shift.from.hi) : null;
+          const toSpan = shift ? clipSpan(shift.to.lo, shift.to.hi) : null;
+          const wholeSpan = shift ? null : clipSpan(rail.minFret, rail.maxFret);
 
           return (
             <React.Fragment key={p.id}>
-              {rail.shift ? (
+              {shift ? (
                 <>
-                  <button
-                    type="button"
-                    className={`${threadClass} is-shift`}
-                    style={threadStyle(threadCss(rail.shift.from.lo, rail.shift.from.hi))}
-                    data-rail-thread={p.label}
-                    data-rail-lane={rail.lane}
-                    data-rail-segment="1"
-                    aria-label={`${T.positionRailTab} ${p.label}`}
-                    aria-pressed={chosen}
-                    onClick={choose}
-                  />
-                  <span className="proto-a__rail-shift" style={{ top: rowCentreCss(rail.shift.from.hi) }} aria-hidden="true">↓</span>
-                  <button
-                    type="button"
-                    className={`${threadClass} is-shift`}
-                    style={threadStyle(threadCss(rail.shift.to.lo, rail.shift.to.hi))}
-                    data-rail-thread={p.label}
-                    data-rail-lane={rail.lane}
-                    data-rail-segment="2"
-                    aria-label={`${T.positionRailTab} ${p.label}`}
-                    aria-pressed={chosen}
-                    onClick={choose}
-                  />
+                  {fromSpan && (
+                    <button
+                      type="button"
+                      className={`${threadClass} is-shift`}
+                      style={threadStyle(threadCss(fromSpan.lo, fromSpan.hi, firstFret))}
+                      data-rail-thread={p.label}
+                      data-rail-lane={rail.lane}
+                      data-rail-segment="1"
+                      aria-label={`${T.positionRailTab} ${p.label}`}
+                      aria-pressed={chosen}
+                      onClick={choose}
+                    />
+                  )}
+                  {inWindow(shift.from.hi) && (
+                    <span className="proto-a__rail-shift" style={{ top: rowCentreCss(shift.from.hi, firstFret) }} aria-hidden="true">↓</span>
+                  )}
+                  {toSpan && (
+                    <button
+                      type="button"
+                      className={`${threadClass} is-shift`}
+                      style={threadStyle(threadCss(toSpan.lo, toSpan.hi, firstFret))}
+                      data-rail-thread={p.label}
+                      data-rail-lane={rail.lane}
+                      data-rail-segment="2"
+                      aria-label={`${T.positionRailTab} ${p.label}`}
+                      aria-pressed={chosen}
+                      onClick={choose}
+                    />
+                  )}
                 </>
               ) : (
+                wholeSpan && thread(wholeSpan)
+              )}
+              {showTab && (
                 <button
                   type="button"
-                  className={threadClass}
-                  style={threadStyle(threadCss(rail.minFret, rail.maxFret))}
-                  data-rail-thread={p.label}
-                  data-rail-lane={rail.lane}
+                  className={tabClass}
+                  style={{ top: tabTop }}
+                  data-fn={tabFn}
+                  data-rail-tab={p.label}
+                  data-rail-fret={rail.minFret}
                   aria-label={`${T.positionRailTab} ${p.label}`}
                   aria-pressed={chosen}
                   onClick={choose}
-                />
+                >
+                  {p.label}
+                  {grandEcart && (
+                    <span className="proto-a__rail-warn" title={T.positionRailGrandEcart} aria-label={T.positionRailGrandEcart}>⚠</span>
+                  )}
+                </button>
               )}
-              <button
-                type="button"
-                className={tabClass}
-                style={{ top: tabTop }}
-                data-fn={tabFn}
-                data-rail-tab={p.label}
-                data-rail-fret={rail.minFret}
-                aria-label={`${T.positionRailTab} ${p.label}`}
-                aria-pressed={chosen}
-                onClick={choose}
-              >
-                {p.label}
-                {grandEcart && (
-                  <span className="proto-a__rail-warn" title={T.positionRailGrandEcart} aria-label={T.positionRailGrandEcart}>⚠</span>
-                )}
-              </button>
             </React.Fragment>
           );
         })}

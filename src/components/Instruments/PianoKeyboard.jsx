@@ -34,7 +34,7 @@ const FLAT_EQUIVALENTS = {
  *   the text: high notes at the top, black keys on the left, C2 to C6
  *   (29 white keys), one label per key laid out horizontally.
  */
-function PianoKeyboard({ orientation = "horizontal" } = {}) {
+function PianoKeyboard({ orientation = "horizontal", windowOctaves = VERTICAL_OCTAVES } = {}) {
   const {
     realizationsByInstrument,
     currentRootValue: rootValue = 0,
@@ -298,23 +298,27 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
   };
 
   if (orientation === "vertical") {
-    // Which 4 octaves (L1a, VMU-031): the note engine picks, among the 7 the
-    // horizontal keyboard has, the window that holds the active notes —
-    // C2..C6 whenever that one does. Notes without an absolute pitch keep
-    // their legacy place (describeKey) and do not move the window.
+    // Which octaves to show (L1a, VMU-031; C-103 Step 3a makes the count follow
+    // the height): the note engine picks, among the 7 the horizontal keyboard
+    // has, the window that holds the active notes — C2..C6 whenever that one
+    // does. `windowOctaves` is the count chosen by the page (core/instrumentWindow.js
+    // chooseKeyboardOctaves); it defaults to VERTICAL_OCTAVES so a caller that
+    // does not pass it keeps the full 4-octave keyboard. Notes without an
+    // absolute pitch keep their legacy place (describeKey) and do not move the
+    // window.
     const pianoWindow = chooseKeyboardWindow(
       activeNotes.map((n) => n.absoluteValue).filter(Number.isFinite),
-      { lowestOctave: LOWEST_OCTAVE, octaveCount: numOctaves, windowOctaves: VERTICAL_OCTAVES },
+      { lowestOctave: LOWEST_OCTAVE, octaveCount: numOctaves, windowOctaves },
       Number(rootValue) % 12,
     );
     const first = pianoWindow.startOctave - LOWEST_OCTAVE; // describeKey's octave index
-    // 4 octaves plus the closing C: 29 white keys (spec S1-9), in ascending
-    // order here, laid out high-at-top by the index below.
+    // windowOctaves octaves plus the closing C: 7*windowOctaves + 1 white keys,
+    // in ascending order here, laid out high-at-top by the index below.
     const vertical = [];
-    for (let octave = first; octave < first + VERTICAL_OCTAVES; octave++) {
+    for (let octave = first; octave < first + windowOctaves; octave++) {
       for (let i = 0; i < 12; i++) vertical.push({ octave, i, ...describeKey(octave, i) });
     }
-    vertical.push({ octave: first + VERTICAL_OCTAVES, i: 0, ...describeKey(first + VERTICAL_OCTAVES, 0) });
+    vertical.push({ octave: first + windowOctaves, i: 0, ...describeKey(first + windowOctaves, 0) });
 
     const whites = vertical.filter((k) => !k.isBlack).reverse(); // high at top
     const whiteIndex = new Map(whites.map((k, idx) => [k.absoluteValue, idx]));
@@ -359,6 +363,7 @@ function PianoKeyboard({ orientation = "horizontal" } = {}) {
         data-orientation="vertical"
         data-window-start={pianoWindow.startOctave}
         data-window-holds-all={String(pianoWindow.holdsAll)}
+        data-window-octaves={windowOctaves}
       >
         <div className="piano-vertical" style={{ "--piano-v-count": whites.length }}>
           {whites.map((k, idx) => renderVerticalKey(k, `calc(var(--piano-v-key, 62px) * ${idx})`))}
