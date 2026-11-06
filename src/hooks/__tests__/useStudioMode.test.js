@@ -47,4 +47,33 @@ describe('useStudioMode', () => {
     expect(result.current.activeTracks.rhythm).toEqual([0, 6, 10]);
     expect(result.current.activeTracks.progression).toEqual(['1', '5', '6-', '4']);
   });
+
+  // VMU-214: the loop window follows the longest active cycle.
+  it('keeps 4 measures when no override carries a cycle', () => {
+    const { result } = renderHook(() => useStudioMode());
+    expect(result.current.timeline.lengthMeasures).toBe(4);
+
+    act(() => {
+      result.current.setCustomRhythm([0, 6, 10]);
+    });
+    expect(result.current.timeline.lengthMeasures).toBe(4);
+  });
+
+  it('grows to 8 measures for a 112-step cycle, whose cells 64..111 are the cycle steps', () => {
+    const { result } = renderHook(() => useStudioMode());
+    act(() => {
+      result.current.setSuggestedBassTrack({
+        name: 'Bass',
+        activeSteps: [64, 100, 111],
+        pitchSteps: { 64: 'R', 100: '5', 111: '3' },
+        cycleLength: 112,
+      });
+    });
+
+    expect(result.current.timeline.lengthMeasures).toBe(8);
+    const bass = result.current.timeline.tracks.find((t) => t.role === 'bass');
+    const activeInWindow = bass.steps.slice(64, 112).flatMap((cell, step) => (cell ? [64 + step] : []));
+    expect(activeInWindow).toEqual([64, 100, 111]);
+    expect(bass.steps[100].pitch).toBe('5');
+  });
 });

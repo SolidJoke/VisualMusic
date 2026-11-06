@@ -20,6 +20,7 @@ import {
   lcm,
   rotate,
 } from "../../core/compositionEngine";
+import { MAX_STEPS } from "../../core/timeline";
 import "./CompositionPanel.css";
 
 /* Grey stacked rhythms are told apart by their stroke, never by track colours. */
@@ -80,6 +81,8 @@ export default function CompositionPanel({
   // default; when absent (the classic Modal and every existing test), nothing
   // changes: the section stays inline, folded by default.
   advancedContainer = null,
+  // VMU-214: called after a send so the sequencers show the whole loop.
+  onSendView,
 }) {
   // A language that lacks a word falls back on the English table.
   const txt = { ...translations.en.comp, ...txtProp };
@@ -191,6 +194,16 @@ export default function CompositionPanel({
     });
   }, [balanceInfo, txt]);
 
+  // The active mode's whole cycle, in steps: what handleExport sends and what
+  // the loop window is derived from (VMU-214). Without a mode, the phrase's own
+  // circle (one measure) is the cycle.
+  const currentCycleLength = useMemo(() => {
+    if (showIsorhythm && isorhythmResult) return isorhythmResult.sequence.length;
+    if (showRealignment && realignedPattern) return realignedPattern.length;
+    if (showPolyrhythm && polyrhythmResult) return polyrhythmResult.pattern.length;
+    return subdivisions;
+  }, [showIsorhythm, isorhythmResult, showRealignment, realignedPattern, showPolyrhythm, polyrhythmResult, subdivisions]);
+
   // The melody laid on the rhythm returns to its start after this many turns
   // of the rhythm: LCM(hits, notes) / hits.
   const isoTurns = useMemo(() => {
@@ -252,10 +265,9 @@ export default function CompositionPanel({
   const handleExport = () => {
     let activeStepsToExport = [];
     let pitchStepsToExport = {};
-    let cycleLength = subdivisions;
+    const cycleLength = currentCycleLength;
 
     if (showIsorhythm && isorhythmResult) {
-      cycleLength = isorhythmResult.sequence.length;
       isorhythmResult.sequence.forEach((note, idx) => {
         if (note) {
           activeStepsToExport.push(idx);
@@ -263,7 +275,6 @@ export default function CompositionPanel({
         }
       });
     } else if (showRealignment && realignedPattern) {
-      cycleLength = realignedPattern.length;
       realignedPattern.forEach((val, idx) => {
         if (val === 1) {
           activeStepsToExport.push(idx);
@@ -271,7 +282,6 @@ export default function CompositionPanel({
         }
       });
     } else if (showPolyrhythm && polyrhythmResult) {
-      cycleLength = polyrhythmResult.pattern.length;
       polyrhythmResult.pattern.forEach((val, idx) => {
         if (val === 1) {
           activeStepsToExport.push(idx);
@@ -323,6 +333,8 @@ export default function CompositionPanel({
     }
 
     setShowExportSuccess(true);
+    // VMU-214: a send re-applies the sequencer view (whole loop, page 1).
+    onSendView?.();
     setTimeout(() => setShowExportSuccess(false), 2000);
   };
 
@@ -475,6 +487,15 @@ export default function CompositionPanel({
                   </button>
                 ))}
               </div>
+
+              {/* VMU-214: the cycle is longer than the loop's 8 measures. */}
+              {currentCycleLength > MAX_STEPS && (
+                <p className="cycle-cut-note" data-testid="comp-cycle-cut" role="status">
+                  {typeof txt.cycleCut === "string"
+                    ? txt.cycleCut.replace("{cycle}", currentCycleLength).replace("{loop}", MAX_STEPS)
+                    : txt.cycleCut}
+                </p>
+              )}
 
               {showPhasing && (
                 <div className="mode-panel phasing-section" data-testid="comp-phasing-section">

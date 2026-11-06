@@ -161,6 +161,8 @@ export default function PrototypeA({
   currentStep,
   activeBrick,
   chordOctaveOffset,
+  viewRequest = 0,
+  onSendView,
   musicEngineContextValue,
   playbackContextValue,
   drawerPanel,
@@ -498,6 +500,7 @@ export default function PrototypeA({
         currentBpm={currentBpm}
         activeBrick={activeBrick}
         chordOctaveOffset={chordOctaveOffset}
+        viewRequest={viewRequest}
       />
     </section>
   );
@@ -748,6 +751,7 @@ export default function PrototypeA({
                     txt={txt && txt.comp ? txt.comp : undefined}
                     isPlaying={isPlaying}
                     togglePlayback={togglePlayback}
+                    onSendView={onSendView}
                   />
                   {/* The recipes column: "Pour aller plus loin", portaled here by
                       the CompositionPanel through MathDock. */}

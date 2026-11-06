@@ -5,6 +5,7 @@ import { exportChords, exportBass, exportDrums, exportTimelineChords, exportTime
 import { stepEvents } from "../dispatch";
 import { classifyDrumTrack } from "../trackMapping";
 import { buildStudioTimeline, loopSteps, setCell, studioSelection } from "../../core/timeline";
+import { loopLengthForCycle } from "../../core/loopWindow";
 import bricks from "../../data/bricks.json";
 
 // ---------------------------------------------------------------------------
@@ -304,5 +305,34 @@ describe("bass export plays note names, not the chord root", () => {
     expect(byStep.get(3)).toBe(52);
     expect(byStep.get(6)).toBe(55);
     expect(byStep.get(9)).toBe(59);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5c. VMU-214 — a 112-step cycle derives an 8-measure window, so the export
+//     reaches notes beyond step 64 (the old 4-measure window's end).
+// ---------------------------------------------------------------------------
+describe("MIDI export covers the derived cycle window", () => {
+  it("a 112-step bass cycle exports a note beyond step 64", () => {
+    const { lengthMeasures } = loopLengthForCycle(112);
+    expect(lengthMeasures).toBe(8);
+
+    const doc = buildStudioTimeline({
+      brickIndex: 0,
+      overrides: {
+        suggestedBassTrack: {
+          name: "Bass",
+          activeSteps: [0, 65],
+          pitchSteps: { 0: "R", 65: "5" },
+          cycleLength: 112,
+        },
+      },
+      lengthMeasures,
+    });
+    expect(loopSteps(doc)).toBe(128);
+
+    const midi = parseMidi(exportTimelineBass(doc, 120));
+    const steps = midi.tracks[0].notes.map((n) => Math.round(n.time / stepSeconds(120)));
+    expect(steps).toContain(65);
   });
 });

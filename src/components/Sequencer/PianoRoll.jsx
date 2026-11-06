@@ -1,5 +1,6 @@
 import React from 'react';
 import './PianoRoll.css';
+import { sequencerViewSize } from '../../core/loopWindow';
 
 /**
  * PianoRoll — Step sequencer display with velocity & pitch indicators
@@ -11,11 +12,25 @@ import './PianoRoll.css';
  *   own cells, not measure 1's again
  * - totalSteps: number (default 16) — the document's window
  * - currentStep: number (-1 = none)
+ * - viewRequest: number — a send's request; when it changes, the roll shows
+ *   the whole loop (VMU-214)
  */
-export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1 }) {
+export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1, viewRequest = 0 }) {
     const [isZoomed, setIsZoomed] = React.useState(false);
     const [pageSize, setPageSize] = React.useState(16); // 16, 32, or 64 steps visible
     const [currentPage, setCurrentPage] = React.useState(0); // 0-indexed page
+
+    // VMU-214: after a send, show the whole loop — the smallest of 16/32/64
+    // that fits it, else 64, page 1. The user's own density choice holds until
+    // the next send; a re-send re-applies the view. The initial mount is not a
+    // send, so the default density stays.
+    const lastViewRequest = React.useRef(viewRequest);
+    React.useEffect(() => {
+        if (viewRequest === lastViewRequest.current) return;
+        lastViewRequest.current = viewRequest;
+        setPageSize(sequencerViewSize(totalSteps));
+        setCurrentPage(0);
+    }, [viewRequest, totalSteps]);
 
     // Auto-advance page during playback
     React.useEffect(() => {

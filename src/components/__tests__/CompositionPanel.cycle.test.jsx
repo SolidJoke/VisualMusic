@@ -108,3 +108,30 @@ describe("CompositionPanel — exports the whole pattern with its cycle length (
     expect(activeSteps.some((step) => step >= 16)).toBe(true);
   });
 });
+
+describe("CompositionPanel — the cycle-cut message (VMU-214)", () => {
+  it("is absent while the cycle fits the loop's 128 steps", () => {
+    render(<CompositionPanel {...props()} />);
+
+    unfold();
+    fireEvent.click(screen.getByTestId("comp-mode-iso"));
+
+    // 4 notes over 5 hits = 64 steps, inside the window.
+    expect(screen.queryByTestId("comp-cycle-cut")).toBeNull();
+  });
+
+  it("shows the cycle and the loop sizes when the cycle is longer than 128 steps", () => {
+    render(<CompositionPanel {...props()} />);
+
+    unfold();
+    fireEvent.click(screen.getByTestId("comp-mode-iso"));
+    // 9 notes over 5 hits = 144 steps, past the window.
+    fireEvent.change(screen.getByTestId("comp-iso-pitches"), {
+      target: { value: "C3, E3, G3, B3, D4, F4, A4, C4, E4" },
+    });
+
+    const message = screen.getByTestId("comp-cycle-cut");
+    expect(message.textContent).toContain("144");
+    expect(message.textContent).toContain("128");
+  });
+});
