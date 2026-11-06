@@ -29,7 +29,6 @@
  *           "dictionary:chord" / "dictionary:scale": only in the Dictionary
  *           with the family Chords / Scales (their type menu; a single note
  *           has none);
- *           "dock": only once the Math & Rythmes dock is open (VMU-195 C)
  *   devOnly only in the development build (import.meta.env.DEV), never clicked
  */
 export const A_PRIME_ACCESS = [
@@ -53,7 +52,10 @@ export const A_PRIME_ACCESS = [
   { fn: "jouer.tempo-plus", where: "transport" },
   { fn: "jouer.metronome", where: "transport" },
   { fn: "son.volume-general", where: "transport" },
-  { fn: "composer.math-ouvrir", where: "transport", opens: "math" },
+  // VMU-213 (part 2): "Math & Rythmes" is always there in the Studio (the
+  // dock); its transport button stays in the Dictionary only, where it still
+  // opens the classic Modal with its warning.
+  { fn: "composer.math-ouvrir", where: "transport", opens: "math", needs: "dictionary" },
   { fn: "son.ouvrir", where: "transport", opens: "audio" },
   // VMU-185 — the direct selectors: a second row of the transport block (the
   // Assistant drawer holds the same controls and hides the necks). Registry
@@ -69,8 +71,8 @@ export const A_PRIME_ACCESS = [
   { fn: "son.visualiseur", where: "centre" },
   { fn: "composer.grilles", where: "centre" },
   { fn: "nav.legende", where: "centre" },
-  // VMU-195 C: the Math & Rythmes dock's close button, only while it is open.
-  { fn: "composer.math-fermer", where: "centre", needs: "dock" },
+  // VMU-213 (part 2): the recipes column, right of the sequencers, Studio only.
+  { fn: "composer.recettes", where: "centre", needs: "studio" },
   // Instruments
   { fn: "jouer.piano", where: "instruments" },
   { fn: "jouer.guitare", where: "instruments" },

@@ -137,7 +137,7 @@ describe("VMU-185 (a): Studio - the style menu, in the transport block", () => {
     const page = renderPage({ appMode: "studio" });
     const strip = row(page);
     const transport = page.querySelector('[data-s1="transport"]');
-    for (const id of ["jouer.lecture", "jouer.tempo", "jouer.metronome", "son.volume-general", "composer.math-ouvrir", "son.ouvrir"]) {
+    for (const id of ["jouer.lecture", "jouer.tempo", "jouer.metronome", "son.volume-general", "son.ouvrir"]) {
       const el = fnIn(transport, id);
       expect(el, id).not.toBeNull();
       expect(strip.contains(el), `${id} must stay out of the row`).toBe(false);

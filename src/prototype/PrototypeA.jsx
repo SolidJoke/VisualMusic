@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./PrototypeA.css";
+import "./aPrimeType.css";
 import PianoKeyboard from "../components/Instruments/PianoKeyboard";
 import Fretboard from "../components/Instruments/Fretboard";
 import SequencerPanel from "../components/Panels/SequencerPanel";
@@ -196,10 +197,11 @@ export default function PrototypeA({
   // caller hands no translations (the unit tests render with txt={}).
   const T = txt && txt.protoA ? txt.protoA : translations.fr.protoA;
   const [drawerOpen, setDrawerOpen] = useState(() => readParams().drawer === "open");
-  // VMU-195 C: the Math & Rythmes dock is closed by default; the transport's
-  // "Math & Rythmes" button toggles it (Studio only — the Dictionary keeps the
-  // classic Modal with its warning).
-  const [mathDockOpen, setMathDockOpen] = useState(false);
+  // VMU-213 (part 2): the recipes column ("Pour aller plus loin", right of the
+  // sequencers) — an empty <aside> whose node the CompositionPanel portals its
+  // advanced section into. A callback ref into state, so the portaled section
+  // re-renders once the node exists.
+  const [recipesNode, setRecipesNode] = useState(null);
   const bpmEditor = useBpmEditor({ currentBpm, onCommit: handleBpmChange });
 
   // Escape closes the drawer, like the classic windows — but not when it
@@ -222,19 +224,6 @@ export default function PrototypeA({
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [drawerOpen, modalOpen]);
 
-  // Escape closes the Math dock, like the classic window it replaces — but not
-  // when a Modal is open over it (that closes alone) and not while a "?" help
-  // is open: HelpButton / SectionTitle take Escape in the capture phase and
-  // stop propagation, so this bubble-phase handler only fires on the NEXT
-  // press, exactly like Modal.jsx.
-  useEffect(() => {
-    if (!mathDockOpen || modalOpen) return undefined;
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") setMathDockOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [mathDockOpen, modalOpen]);
   // The probe's fixture buttons: read once, like the other URL parameters.
   const [bench] = useState(() => readParams().bench);
   // A Studio state's chord is clicked once the base octave it needs is in
@@ -498,6 +487,21 @@ export default function PrototypeA({
     );
   };
 
+  // The sequencer, rendered once: it sits alone in the Dictionary's centre
+  // column, and inside the Studio's layout grid (with the dock under it and
+  // the recipes column to its right).
+  const sequencer = (
+    <section className="proto-a__sequencer" data-s1="sequencer" data-fn="composer.grilles">
+      <SequencerPanel
+        timeline={timeline}
+        currentStep={currentStep}
+        currentBpm={currentBpm}
+        activeBrick={activeBrick}
+        chordOctaveOffset={chordOctaveOffset}
+      />
+    </section>
+  );
+
   return (
     <MusicEngineProvider value={musicEngineContextValue}>
       <PlaybackProvider value={playbackContextValue}>
@@ -646,18 +650,21 @@ export default function PrototypeA({
                   </output>
                 </label>
                 <div className="proto-a__spacer" />
-                {/* Math & Rythmes: in the Studio it toggles the dock (closed by
-                    default); in the Dictionary it still opens the classic Modal
-                    with its warning (AppDesktop's mathRhythmsModal). */}
-                <button
-                  type="button"
-                  className="proto-a__btn"
-                  data-fn="composer.math-ouvrir"
-                  aria-expanded={isDictionary ? undefined : mathDockOpen}
-                  onClick={isDictionary ? onOpenMath : () => setMathDockOpen((v) => !v)}
-                >
-                  {T.mathRhythms}
-                </button>
+                {/* VMU-213 (part 2): "Math & Rythmes" is always there in the
+                    Studio (the dock under the sequencer), so its transport
+                    button stays in the Dictionary only, where it still opens
+                    the classic Modal with its warning (AppDesktop's
+                    mathRhythmsModal). */}
+                {isDictionary && (
+                  <button
+                    type="button"
+                    className="proto-a__btn"
+                    data-fn="composer.math-ouvrir"
+                    onClick={onOpenMath}
+                  >
+                    {T.mathRhythms}
+                  </button>
+                )}
                 <button type="button" className="proto-a__btn" data-fn="son.ouvrir" onClick={onOpenAudio}>
                   {T.instrumentsAudio}
                 </button>
@@ -725,29 +732,35 @@ export default function PrototypeA({
                 </section>
               )}
 
-              <section className="proto-a__sequencer" data-s1="sequencer" data-fn="composer.grilles">
-                <SequencerPanel
-                  timeline={timeline}
-                  currentStep={currentStep}
-                  currentBpm={currentBpm}
-                  activeBrick={activeBrick}
-                  chordOctaveOffset={chordOctaveOffset}
-                />
-              </section>
-
-              {appMode === "studio" && mathDockOpen && (
-                <MathDock
-                  title={T.mathRhythms}
-                  closeLabel={T.close}
-                  onClose={() => setMathDockOpen(false)}
-                  setSuggestedBassTrack={setSuggestedBassTrack}
-                  setCustomRhythm={setCustomRhythm}
-                  setCustomDrums={setCustomDrums}
-                  currentStep={currentStep}
-                  txt={txt && txt.comp ? txt.comp : undefined}
-                  isPlaying={isPlaying}
-                  togglePlayback={togglePlayback}
-                />
+              {appMode === "studio" ? (
+                <div className="proto-a__studio">
+                  {sequencer}
+                  {/* VMU-213 (part 2): the dock is always there — no transport
+                      button, no ✕, no Escape closes it — and the recipes leave
+                      the band for the column to its right. */}
+                  <MathDock
+                    title={T.mathRhythms}
+                    advancedContainer={recipesNode}
+                    setSuggestedBassTrack={setSuggestedBassTrack}
+                    setCustomRhythm={setCustomRhythm}
+                    setCustomDrums={setCustomDrums}
+                    currentStep={currentStep}
+                    txt={txt && txt.comp ? txt.comp : undefined}
+                    isPlaying={isPlaying}
+                    togglePlayback={togglePlayback}
+                  />
+                  {/* The recipes column: "Pour aller plus loin", portaled here by
+                      the CompositionPanel through MathDock. */}
+                  <aside
+                    className="proto-a__recipes"
+                    data-s1="math-recipes"
+                    data-fn="composer.recettes"
+                    aria-label={T.mathRhythms}
+                    ref={setRecipesNode}
+                  />
+                </div>
+              ) : (
+                sequencer
               )}
 
               <section className="proto-a__legend" data-s1="legend" data-fn="nav.legende">
