@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./PrototypeA.css";
 import "./aPrimeType.css";
 import PianoKeyboard from "../components/Instruments/PianoKeyboard";
@@ -12,6 +12,8 @@ import { PlaybackProvider } from "../context/PlaybackContext";
 import { generateChordsFromNNS, formatPitchRange, midiToDisplayName } from "../core/theory";
 import { realizationRange } from "../core/realization";
 import { placementLabel, stepPlacement } from "../components/Instruments/placementLabel";
+import { verticalFretShare } from "../components/Instruments/verticalNeckGeometry";
+import { chooseKeyboardOctaves, chooseFretWindow } from "../core/instrumentWindow";
 import { translations } from "../i18n/translations";
 import { useBpmEditor } from "../hooks/useBpmEditor";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
@@ -135,6 +137,19 @@ function fingeringPositions(fingering) {
     .join(" ");
 }
 
+/** The frets (>= 1) a fingering occupies — what a neck actually draws. */
+function fingeringFrets(fingering) {
+  if (!fingering) return [];
+  if (Array.isArray(fingering.scaleFrets)) {
+    return fingering.scaleFrets.map((p) => Number(p.fret)).filter((f) => Number.isFinite(f) && f > 0);
+  }
+  const map = fingering.fingeringMap || {};
+  return Object.entries(map)
+    .filter(([, s]) => s && (s.status === "played" || s.status === "open") && Number.isFinite(Number(s.fret)))
+    .map(([, s]) => Number(s.fret))
+    .filter((f) => f > 0);
+}
+
 export default function PrototypeA({
   txt,
   notation,
@@ -205,6 +220,28 @@ export default function PrototypeA({
   // re-renders once the node exists.
   const [recipesNode, setRecipesNode] = useState(null);
   const bpmEditor = useBpmEditor({ currentBpm, onCommit: handleBpmChange });
+
+  // C-103 (Step 3a) — measure the room the instruments have: the window's
+  // height minus the instruments' top and a 40px bottom margin, re-measured on
+  // resize. In jsdom there is no layout (the keyboard's box is 0px tall), so
+  // the measure stays 0 and the fit below keeps the full instruments.
+  const protoRef = useRef(null);
+  const [availableHeight, setAvailableHeight] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const root = protoRef.current;
+      const piano = root?.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
+      const rect = piano?.getBoundingClientRect();
+      if (!rect || rect.height <= 0) {
+        setAvailableHeight(0);
+        return;
+      }
+      setAvailableHeight(Math.max(0, window.innerHeight - rect.top - 40));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   // Escape closes the drawer, like the classic windows — but not when it
   // belongs to something on top of it: a window open over the drawer (it
@@ -324,7 +361,54 @@ export default function PrototypeA({
   };
 
   // ─── L1b-1b: the column heads (see the header comment) ───────────────────
-  const engine = musicEngineContextValue || {};
+  // C-103 (Step 3a): memoized so `instrumentFit`'s [availableHeight, engine]
+  // deps are stable (the raw `|| {}` made a fresh object every render when the
+  // context value is not yet there, re-running the memo needlessly).
+  const engine = useMemo(() => musicEngineContextValue || {}, [musicEngineContextValue]);
+
+  // C-103 (Step 3a) — how many octaves and frets fit in the measured height,
+  // and which fret window each neck shows. Every size is read from the page's
+  // own CSS (--proto-key, --proto-piano-chrome, --proto-keys, --fbv-head,
+  // --fbv-fret, --fbv-n) so no number is written twice; the fallbacks are the
+  // same values, used only where the CSS cannot be read (jsdom, which measures
+  // 0 and keeps the full instruments anyway). The two pure rules live in
+  // core/instrumentWindow.js and receive all of these as parameters.
+  const instrumentFit = useMemo(() => {
+    const root = protoRef.current;
+    const readPx = (css, name, fallback) => {
+      const n = parseFloat(css.getPropertyValue(name));
+      return Number.isFinite(n) ? n : fallback;
+    };
+    const cs = root ? getComputedStyle(root) : { getPropertyValue: () => "" };
+    const keyPx = readPx(cs, "--proto-key", 61);
+    const chromePx = readPx(cs, "--proto-piano-chrome", 18);
+    const fullKeys = parseInt(cs.getPropertyValue("--proto-keys"), 10) || 29;
+    const maxOctaves = Math.max(1, Math.round((fullKeys - 1) / 7));
+    const fullKeyboardHeight = fullKeys * keyPx + chromePx;
+    const neckEl = root?.querySelector(".fretboard-container--vertical");
+    const ncs = neckEl ? getComputedStyle(neckEl) : cs;
+    const fixedRows = 2 * readPx(ncs, "--fbv-head", 36) + readPx(ncs, "--fbv-fret", 70);
+    const numFrets = parseInt(ncs.getPropertyValue("--fbv-n"), 10) || 22;
+    const fullRowsHeight = fullKeyboardHeight - fixedRows;
+
+    const keyboard = chooseKeyboardOctaves(availableHeight > 0 ? availableHeight : Infinity, { keyPx, chromePx, maxOctaves });
+
+    const windowFor = (id) => {
+      const fingering = id === "guitar" ? engine.guitarFingering : engine.bassFingering;
+      const activeFrets = fingeringFrets(fingering);
+      const notes = (engine.realizationsByInstrument?.[id] || []).filter((n) => Number.isFinite(n?.fret) && n.fret > 0);
+      const rootPc = (((engine.currentRootValue ?? 0) % 12) + 12) % 12;
+      const rootFrets = notes
+        .filter((n) => (((n.value ?? n.absoluteValue ?? 0) % 12 + 12) % 12) === rootPc)
+        .map((n) => n.fret);
+      const anchorFret = rootFrets.length ? Math.min(...rootFrets) : (activeFrets.length ? Math.min(...activeFrets) : 1);
+      return chooseFretWindow(activeFrets, {
+        keyboardHeight: keyboard.height, fixedRows, fullRowsHeight, numFrets, share: verticalFretShare, anchorFret,
+      });
+    };
+
+    return { keyboard, guitar: windowFor("guitar"), bass: windowFor("bass") };
+  }, [availableHeight, engine]);
   const isDictionary = appMode === "dictionary";
   // The classic words of a position (voicingOf, shapeLabel, positionDefault...)
   // live in the page's main table; the French one when `txt` has none.
@@ -471,6 +555,7 @@ export default function PrototypeA({
         onSelectPosition={(index) => engine.setPlacementIndex && engine.setPlacementIndex(id, index)}
         onSelectStartPitch={(pitch) => engine.setStartPitch && engine.setStartPitch(id, pitch)}
         strings={id === "bass" ? 4 : 6}
+        fretWindow={instrumentFit[id]}
         T={T}
       />
     );
@@ -484,7 +569,7 @@ export default function PrototypeA({
     return (
       <div className={`proto-a__neck${rail ? " proto-a__neck--rail" : ""}`}>
         {rail}
-        <Fretboard instrument={id} orientation="vertical" />
+        <Fretboard instrument={id} orientation="vertical" fretWindow={instrumentFit[id]} />
       </div>
     );
   };
@@ -508,7 +593,13 @@ export default function PrototypeA({
   return (
     <MusicEngineProvider value={musicEngineContextValue}>
       <PlaybackProvider value={playbackContextValue}>
-        <div className="proto-a" data-prototype="a">
+        <div
+          className="proto-a"
+          data-prototype="a"
+          ref={protoRef}
+          data-fit-octaves={instrumentFit.keyboard.octaves}
+          data-fit-keys={instrumentFit.keyboard.keys}
+        >
           <header className="proto-a__header">
             <div className="proto-a__title">{T.title}</div>
             {/* The mode switch (it was the left rail): two tabs, right after the title. */}
@@ -783,7 +874,7 @@ export default function PrototypeA({
               title={T.pianoCaption}
             >
               {head("piano", T.piano, pianoSetting)}
-              <PianoKeyboard orientation="vertical" />
+              <PianoKeyboard orientation="vertical" windowOctaves={instrumentFit.keyboard.octaves} />
             </section>
 
             <section

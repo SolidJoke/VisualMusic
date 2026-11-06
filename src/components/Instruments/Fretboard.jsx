@@ -24,6 +24,11 @@ const STRING_HEIGHT = 36;
 function Fretboard({
   instrument = "guitar",
   orientation = "horizontal",
+  // C-103 (Step 3a): the fret window the page chose (core/instrumentWindow.js
+  // chooseFretWindow). { firstFret, lastFret } over 1..numFrets; the open-string
+  // row (fret 0) is always drawn above the nut. Absent (or not two finite
+  // numbers) the full neck 0..numFrets is drawn, as before this ticket.
+  fretWindow = null,
 }) {
   const {
     strings,
@@ -262,7 +267,14 @@ function Fretboard({
     const columns = strings.map((raw, stringIndex) => ({ raw, stringIndex })).reverse();
     const outOfRange = fingering?.isOutOfRange || isOutOfRange;
     const barre = barreData[0];
-    const frets = Array.from({ length: numFrets + 1 }, (_, fret) => fret);
+    // C-103 (Step 3a): the fret rows this neck draws — fret 0 (the open-string
+    // row) plus the window's frets, in order. Each row keeps its full-neck
+    // height (verticalFretPitchCss below uses `numFrets`, unchanged), so the
+    // drawing of a fret never shrinks; the neck simply shows fewer of them.
+    const windowFirst = Number.isFinite(fretWindow?.firstFret) ? Math.max(1, fretWindow.firstFret) : 1;
+    const windowLast = Number.isFinite(fretWindow?.lastFret) ? Math.min(numFrets, fretWindow.lastFret) : numFrets;
+    const frets = [0];
+    for (let f = windowFirst; f <= windowLast; f++) frets.push(f);
 
     const metaFor = (stringIndex, fret, openStringAbsValue) =>
       computeFretMetadata({
@@ -278,6 +290,7 @@ function Fretboard({
       <div
         className={`fretboard-container fretboard-container--vertical instrument-${instrument} ${outOfRange ? "is-out-of-range" : ""} ${isLoopRunning ? "is-running" : ""}`}
         data-orientation="vertical"
+        data-fret-window={`${windowFirst}-${windowLast}`}
         style={{ "--fbv-strings": columns.length, "--fbv-n": numFrets }}
         title={fingering?.isOutOfRange ? "⚠️ Accord hors tessiture instrument" : ""}
       >

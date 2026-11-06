@@ -155,6 +155,20 @@
  * S1-28) red:
  *   S1_PROBE_INJECT_CSS=':root:has(.proto-a){--a-prime-fs:12px}' npm run s1:probe -- --text-size-only
  *
+ * C-103 (Step 3a, Gabriel 2026-11-06) adds S1-29, decisive, at 3840x2045,
+ * 2560x1440 and 2560x1283: below 2045px of height the instruments keep their
+ * drawing (a white key stays 61px, a fret row its full-neck height) and show
+ * fewer of them — the keyboard the largest whole octave count that fits
+ * ((7k+1)*61+18 = 1787 / 1360 / 933 / 506), each neck the most frets whose
+ * full-neck rows fit the keyboard's length (its bottom at/above the keyboard's
+ * by less than one row); at 3840x2045 the result is identical to today
+ * (4 octaves, frets 1-22). The window follows the music: the piano through
+ * chooseKeyboardWindow, the necks through chooseFretWindow (core/instrumentWindow.js).
+ *   npm run s1:probe -- --height-fit-only   # S1-29 alone
+ * Positive control: forcing the keyboard to always show 4 octaves must turn
+ * S1-29 red at the two 2560 heights (and only there):
+ *   (temporarily make chooseKeyboardOctaves return 4 octaves)
+ *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
@@ -222,7 +236,18 @@ const POSITION_PANEL_ONLY = flag("position-panel-only");
 const MATH_WINDOW_ONLY = flag("math-window-only");
 // --text-size-only: S1-28 alone (VMU-212, one text size).
 const TEXT_SIZE_ONLY = flag("text-size-only");
-const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY || POSITION_PANEL_ONLY || MATH_WINDOW_ONLY || TEXT_SIZE_ONLY;
+// --height-fit-only: S1-29 alone (C-103 Step 3a, fewer octaves/frets below 2045px).
+const HEIGHT_FIT_ONLY = flag("height-fit-only");
+const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY || POSITION_PANEL_ONLY || MATH_WINDOW_ONLY || TEXT_SIZE_ONLY || HEIGHT_FIT_ONLY;
+
+// S1-29 (C-103 Step 3a): the window below Gabriel's 2045px is measured at the
+// full height and at two shorter ones (a 2560 wide page, 1440 = a typical
+// laptop, 1283 = the page where the instruments must first start giving way).
+const HEIGHT_FIT_VIEWPORTS = [
+  { w: 3840, h: 2045, label: "3840x2045" },
+  { w: 2560, h: 1440, label: "2560x1440" },
+  { w: 2560, h: 1283, label: "2560x1283" },
+];
 
 // VMU-212 follow-up (C-99d, Gabriel 2026-11-05: "Augmente la taille des polices
 // de 2 points"): A′'s single text size, 12px -> 14px. One place for every
@@ -294,6 +319,9 @@ const CRITERIA = [
   // the decision's "S1-1..S1-28" counts it, and filtered out of the matrix
   // loops (MATRIX_CRITERIA).
   { id: "S1-28", decides: true, matrix: false, what: "one text size: every A′ text 14px (+-0.5), the instruments' frozen drawing excepted, SVG text >= 14px on screen" },
+  // C-103 (Step 3a): below 2045px the instruments keep their drawing and show
+  // fewer octaves / frets. Also matrix:false (per viewport, on Gabriel's page).
+  { id: "S1-29", decides: true, matrix: false, what: "height fit: below 2045px the white key stays 61px and the fret rows their full-neck heights; the keyboard shows the largest whole octave count that fits ((7k+1)*61+18 <= available), the necks the most frets whose full-neck rows fit the keyboard's length, their bottom at/above the keyboard's by less than one row; 3840x2045 identical to today (4 octaves, frets 1-22)" },
 ];
 
 // The per-state matrix criteria (S1-28 is a per-viewport check, see above).
@@ -3818,6 +3846,208 @@ async function reportTextSize(browser, viewport) {
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
 
+// ─── S1-29 (C-103 Step 3a): height fit, fewer octaves / frets below 2045px ──
+//
+// Gabriel's rule (2026-11-06): below 2045px of height the instruments keep
+// their drawing — a white key stays 61px, a fret row its full-neck height —
+// and show fewer of them. The keyboard shows the largest whole number of
+// octaves whose keys plus the closing C plus the 18px chrome fit
+// ((7k+1)*61+18 = 1787 / 1360 / 933 / 506); each neck shows the most frets
+// whose full-neck rows fit the keyboard's length, its bottom at/above the
+// keyboard's by less than one row. Measured at 3840x2045 (full: 4 octaves,
+// frets 1-22, identical to today), 2560x1440 and 2560x1283, on Gabriel's page
+// (Studio, no bench: no active notes, so the fret window sits at the nut).
+// The probe recomputes the expected counts from the sizes it measures in the
+// page — it does not call the page's chooseKeyboardOctaves / chooseFretWindow
+// (the page must not grade itself).
+
+/** The neck's row-height share, recomputed here from the documented 1.5 ratio. */
+function fretShareFor(fret, numFrets) {
+  const t = numFrets > 1 ? (numFrets - fret) / (numFrets - 1) : 0;
+  const weight = 1 + (1.5 - 1) * t;
+  const totalWeight = numFrets * (1 + (1.5 - 1) / 2);
+  return weight / totalWeight;
+}
+
+/** In page: the raw sizes S1-29 needs, plus what the page actually chose. */
+function heightFitMeasure() {
+  const proto = document.querySelector(".proto-a");
+  const piano = document.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
+  if (!proto || !piano) return { open: false };
+  const css = (el, name) => parseFloat(getComputedStyle(el).getPropertyValue(name));
+  const keyPx = css(proto, "--proto-key");
+  const chromePx = css(proto, "--proto-piano-chrome");
+  const fullKeys = parseInt(getComputedStyle(proto).getPropertyValue("--proto-keys"), 10) || 29;
+  const pianoRect = piano.getBoundingClientRect();
+  const available = Math.max(0, window.innerHeight - pianoRect.top - 40);
+  const whiteKey = piano.querySelector(".piano-key.white-key");
+  const whiteKeyHeight = whiteKey ? whiteKey.getBoundingClientRect().height : 0;
+  const neckEl = document.querySelector('[data-s1="guitar"] .fretboard-container--vertical');
+  const ncs = getComputedStyle(neckEl || proto);
+  const headPx = css(neckEl || proto, "--fbv-head");
+  const fretPx = css(neckEl || proto, "--fbv-fret");
+  const numFrets = parseInt(ncs.getPropertyValue("--fbv-n"), 10) || 22;
+  const fixedRows = 2 * headPx + fretPx;
+  const fullRowsHeight = fullKeys * keyPx + chromePx - fixedRows;
+  const neck = (id) => {
+    const el = document.querySelector(`[data-s1="${id}"] .fretboard-container--vertical`);
+    const win = (el?.getAttribute("data-fret-window") || "").split("-").map(Number);
+    const rect = el ? el.getBoundingClientRect() : { top: 0, bottom: 0, height: 0 };
+    const rows = el ? [...el.querySelectorAll('.fbv-fret-row[data-fret]:not([data-fret="0"])')] : [];
+    const last = rows[rows.length - 1];
+    return {
+      firstFret: Number.isFinite(win[0]) ? win[0] : 0,
+      lastFret: Number.isFinite(win[1]) ? win[1] : 0,
+      height: rect.height,
+      bottom: rect.bottom,
+      lastRowHeight: last ? last.getBoundingClientRect().height : 0,
+    };
+  };
+  return {
+    open: true,
+    keyPx, chromePx, fullKeys, available,
+    fitOctaves: Number(proto.getAttribute("data-fit-octaves")),
+    fitKeys: Number(proto.getAttribute("data-fit-keys")),
+    windowOctaves: Number(piano.getAttribute("data-window-octaves")),
+    whiteKeyHeight,
+    fixedRows, fullRowsHeight, numFrets,
+    keyboardBottom: pianoRect.bottom,
+    guitar: neck("guitar"),
+    bass: neck("bass"),
+  };
+}
+
+/**
+ * In page (C-103b): after a high guitar position is chosen, the rail's chosen
+ * thread(s) must sit on the centres of the rendered fret rows and nothing in
+ * the rail may hang below the neck. The row centre is the row's border-box
+ * centre, which is exactly what rowCentreCss computes.
+ */
+function railAlignmentMeasure() {
+  const root = document.querySelector('[data-s1="guitar"]');
+  const neckEl = root && root.querySelector(".fretboard-container--vertical");
+  const rail = root && root.querySelector(".proto-a__position-rail");
+  if (!neckEl || !rail) return { open: false };
+  const win = (neckEl.getAttribute("data-fret-window") || "").split("-").map(Number);
+  const firstFret = Number.isFinite(win[0]) ? win[0] : 0;
+  const lastFret = Number.isFinite(win[1]) ? win[1] : 0;
+  const rows = [...neckEl.querySelectorAll('.fbv-fret-row[data-fret]')]
+    .map((row) => ({ fret: Number(row.getAttribute("data-fret")), rect: row.getBoundingClientRect() }))
+    .filter((r) => r.fret >= firstFret && r.fret <= lastFret);
+  const centres = rows.map((r) => ({ fret: r.fret, y: (r.rect.top + r.rect.bottom) / 2 }));
+  const threads = [...rail.querySelectorAll(".proto-a__rail-thread.is-active")];
+  const threadFails = [];
+  const ends = [];
+  for (const t of threads) {
+    const b = t.getBoundingClientRect();
+    for (const [kind, y] of [["top", b.top], ["bottom", b.bottom]]) {
+      const near = centres.reduce((best, r) => (Math.abs(r.y - y) < Math.abs(best.y - y) ? r : best), centres[0]);
+      if (!near || Math.abs(near.y - y) > 1) {
+        threadFails.push(`chosen thread ${kind} at ${y.toFixed(1)}px, nearest row centre ${near ? `${near.y.toFixed(1)}px (fret ${near.fret})` : "none"}`);
+      } else {
+        ends.push(`${kind}=fret${near.fret}`);
+      }
+    }
+  }
+  const neckBottom = neckEl.getBoundingClientRect().bottom;
+  const overflow = [...rail.querySelectorAll("*")]
+    .filter((el) => el.getBoundingClientRect().bottom > neckBottom + 1)
+    .map((el) => `${el.className || el.tagName} bottom ${el.getBoundingClientRect().bottom.toFixed(1)}px > neck ${neckBottom.toFixed(1)}px`)
+    .slice(0, 5);
+  return { open: true, firstFret, lastFret, threadCount: threads.length, threadFails, ends, overflow };
+}
+
+/** S1-29 on one viewport, on Gabriel's page (Studio, no bench). */
+async function reportHeightFit(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const notes = [];
+  try {
+    await page.goto(`${ORIGIN}/?prototype=a`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
+    // Studio: no active notes, so each neck's window sits at the nut (1..N).
+    const studio = page.locator('[data-fn="nav.mode-studio"]');
+    if (await studio.count()) await studio.click();
+    await page.waitForTimeout(300);
+    const m = await page.evaluate(heightFitMeasure);
+    if (!m.open) {
+      fails.push("the A′ prototype / vertical piano did not open");
+    } else {
+      // The keyboard: largest k with (7k+1)*keyPx + chromePx <= available, min 1.
+      let expectedOctaves = 1;
+      for (let k = 4; k >= 1; k--) {
+        if ((7 * k + 1) * m.keyPx + m.chromePx <= m.available) { expectedOctaves = k; break; }
+      }
+      const expectedKeys = 7 * expectedOctaves + 1;
+      const keyboardHeight = expectedKeys * m.keyPx + m.chromePx;
+      if (m.fitOctaves !== expectedOctaves) fails.push(`octaves: page chose ${m.fitOctaves}, expected ${expectedOctaves} (available ${m.available.toFixed(1)}px)`);
+      if (m.fitKeys !== expectedKeys) fails.push(`keys: page chose ${m.fitKeys}, expected ${expectedKeys}`);
+      if (m.windowOctaves !== expectedOctaves) fails.push(`piano window: ${m.windowOctaves} octave(s), expected ${expectedOctaves}`);
+      if (m.whiteKeyHeight < m.keyPx - 1) fails.push(`white key ${m.whiteKeyHeight.toFixed(1)}px thick, --proto-key is ${m.keyPx}px (the drawing shrank)`);
+      // The necks: the most frets whose full-neck rows fit the keyboard's length.
+      let expectedFretCount = 1;
+      for (let n = m.numFrets; n >= 1; n--) {
+        let s = 0;
+        for (let f = 1; f <= n; f++) s += fretShareFor(f, m.numFrets);
+        if (m.fixedRows + m.fullRowsHeight * s <= keyboardHeight + 1e-6) { expectedFretCount = n; break; }
+      }
+      const neckOk = (id, n) => {
+        if (!Number.isFinite(n.firstFret) || !Number.isFinite(n.lastFret)) { fails.push(`${id}: no fret window drawn`); return; }
+        const count = n.lastFret - n.firstFret + 1;
+        if (count !== expectedFretCount) fails.push(`${id}: ${count} fret(s) (${n.firstFret}-${n.lastFret}), expected ${expectedFretCount}`);
+        if (n.bottom > m.keyboardBottom + 2) fails.push(`${id}: neck bottom ${n.bottom.toFixed(1)}px, keyboard bottom ${m.keyboardBottom.toFixed(1)}px (the neck overflows)`);
+        const shortfall = m.keyboardBottom - n.bottom;
+        if (shortfall >= n.lastRowHeight + 2) fails.push(`${id}: neck ends ${shortfall.toFixed(1)}px above the keyboard, a full row (${n.lastRowHeight.toFixed(1)}px) or more`);
+      };
+      neckOk("guitar", m.guitar);
+      neckOk("bass", m.bass);
+      notes.push(`${m.available.toFixed(1)}px available -> ${m.fitOctaves} octave(s) / ${m.fitKeys} keys (key ${m.whiteKeyHeight.toFixed(1)}px), guitar ${m.guitar.firstFret}-${m.guitar.lastFret}, bass ${m.bass.firstFret}-${m.bass.lastFret}`);
+    }
+    // C-103b: on the 2560x1283 page the rail must line up with a window that
+    // no longer starts at fret 1. Choose the guitar's highest position (the
+    // tab with the largest data-rail-fret), then check the window moved, the
+    // chosen thread's ends sit on their rows, and nothing overflows the neck.
+    if (viewport.label === "2560x1283") {
+      await page.goto(`${ORIGIN}/?prototype=a&scenario=cmajscale`, { waitUntil: "domcontentloaded" });
+      await page.locator('[data-s1="guitar"] [data-rail-tab]').first().waitFor({ state: "visible", timeout: 20_000 });
+      const chosen = await page.evaluate(() => {
+        const tabs = [...document.querySelectorAll('[data-s1="guitar"] [data-rail-tab]')];
+        if (!tabs.length) return null;
+        tabs.sort((a, b) => Number(b.getAttribute("data-rail-fret")) - Number(a.getAttribute("data-rail-fret")));
+        const tab = tabs[0];
+        tab.click();
+        return { label: tab.getAttribute("data-rail-tab"), fret: tab.getAttribute("data-rail-fret") };
+      });
+      await page.waitForTimeout(400);
+      const a = await page.evaluate(railAlignmentMeasure);
+      if (!chosen) {
+        fails.push("rail: no guitar position tab on the cmajscale page");
+      } else if (!a.open) {
+        fails.push("rail: the guitar rail / neck did not open");
+      } else {
+        if (!(a.firstFret > 1)) fails.push(`rail: window starts at fret ${a.firstFret}, above 1 expected (chosen position ${chosen.label}, first fret ${chosen.fret})`);
+        if (a.threadCount === 0) fails.push("rail: no chosen thread drawn");
+        fails.push(...a.threadFails);
+        if (a.overflow.length) fails.push(`rail overflows the neck: ${a.overflow.join(" | ")}`);
+        notes.push(`rail @2560x1283: window ${a.firstFret}-${a.lastFret}, chosen position ${chosen.label} (fret ${chosen.fret}), ${a.threadCount} chosen thread segment(s), ends ${a.ends.join(", ") || "none"}`);
+      }
+    }
+  } catch (err) {
+    fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
+  } finally {
+    await page.close();
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  heightFitChecks[viewport.label] = { fails, notes };
+  if (AS_JSON) return;
+  const lead = `${viewport.label} S1-29 (height fit)`;
+  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  ${notes[0] || ""}`);
+  for (const extra of notes.slice(1)) console.log(`${lead}   ${extra}`);
+  if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
+}
+
 const { chromium } = await import("playwright");
 const dev = await startDevServer();
 if (!AS_JSON) {
@@ -3840,6 +4070,7 @@ const confirmChecks = {};
 const positionPanelChecks = {};
 const mathWindowChecks = {};
 const textSizeChecks = {};
+const heightFitChecks = {};
 try {
   for (const viewport of ACCESS_ONLY ? [] : VIEWPORTS) {
     for (const scenario of STATES) {
@@ -3873,8 +4104,9 @@ try {
         : `${viewport.label} drawer (info, P0-3) ${d.overlapPx2 === 0 ? "PASS" : "FAIL"}  drawer x=${d.drawerLeft}..${d.drawerLeft + d.drawerWidth} (${d.drawerWidth}px), centre ends at x=${d.centreRight}, overlap ${d.overlapPx2}px², covers: ${d.covered.join(", ") || "nothing"}`);
     }
   }
-  // S1-20 (A′-ACCÈS): Gabriel's page, at its own two heights.
-  for (const viewport of ACCESS_VIEWPORTS) {
+  // S1-20 (A′-ACCÈS): Gabriel's page, at its own two heights (skipped by
+  // --height-fit-only, which runs S1-29 below on its own three sizes).
+  for (const viewport of HEIGHT_FIT_ONLY ? [] : ACCESS_VIEWPORTS) {
     if (CHORD_OCTAVE_ONLY) {
       await reportChordOctave(browser, viewport);
       continue;
@@ -3952,6 +4184,14 @@ try {
     // S1-28 (VMU-212): one text size, 14px everywhere except the frozen drawing.
     await reportTextSize(browser, viewport);
   }
+  // S1-29 (C-103 Step 3a): the height fit, on its own three sizes — alone on
+  // --height-fit-only, and as part of the full run (not of the other --*-only
+  // flags).
+  if (HEIGHT_FIT_ONLY || !ACCESS_ONLY) {
+    for (const viewport of HEIGHT_FIT_VIEWPORTS) {
+      await reportHeightFit(browser, viewport);
+    }
+  }
 } finally {
   await browser.close();
   if (dev.server) await dev.server.close();
@@ -3999,11 +4239,15 @@ const mathWindowPassCount = Object.values(mathWindowChecks).filter((c) => c.fail
 // S1-28 decides too (VMU-212: one text size for everything but the frozen drawing).
 const textSizeOk = Object.values(textSizeChecks).every((c) => c.fails.length === 0);
 const textSizePassCount = Object.values(textSizeChecks).filter((c) => c.fails.length === 0).length;
-const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk && positionPanelOk && mathWindowOk && textSizeOk ? "A′" : "B";
+// S1-29 decides too (C-103 Step 3a: below 2045px the instruments keep their
+// drawing and show fewer octaves / frets).
+const heightFitOk = Object.values(heightFitChecks).every((c) => c.fails.length === 0);
+const heightFitPassCount = Object.values(heightFitChecks).filter((c) => c.fails.length === 0).length;
+const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk && positionPanelOk && mathWindowOk && textSizeOk && heightFitOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, positionPanelChecks, mathWindowChecks, textSizeChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, positionPanelChecks, mathWindowChecks, textSizeChecks, heightFitChecks, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
@@ -4021,8 +4265,9 @@ if (AS_JSON) {
   console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; no warning sign in the Studio (VMU-201)`);
   console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text = ${S1_27.text}px (+-0.5; SVG >= ${S1_27.text}px on screen), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, six "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; the recipes column beside the dock (or stacked under it), open by default (toggle on, 4 recipes, texts ${S1_27.text}px, targets >= 32px, nothing spills out); phase B phasing slider thumb >= ${S1_27.thumb}px, iso 64 cells fully visible, poly grid-led >= ${S1_27.cell}px`);
   console.log(`  S1-28 ${textSizeOk ? "PASS" : "FAIL"} ${textSizePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-212 one text size: every A′ text ${S1_28.size}px (+-${S1_28.tolerance}), the instruments' frozen drawing excepted, SVG >= ${S1_28.svgFloor}px on screen; Studio / Math dock / Dictionary chord+scale / Assistant drawer / Instruments & Audio / Guide`);
+  console.log(`  S1-29 ${heightFitOk ? "PASS" : "FAIL"} ${heightFitPassCount}/${HEIGHT_FIT_VIEWPORTS.length} viewport(s)  C-103 Step 3a height fit: below 2045px the white key stays 61px and the fret rows their full-neck heights; the keyboard shows the largest whole octave count that fits ((7k+1)*61+18 <= available), the necks the most frets whose full-neck rows fit the keyboard's length, their bottom at/above the keyboard's by less than one row; 3840x2045 identical to today (4 octaves, frets 1-22)`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-28 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-29 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 
