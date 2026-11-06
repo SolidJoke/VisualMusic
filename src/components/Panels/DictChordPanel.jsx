@@ -16,7 +16,10 @@ export default function DictChordPanel({
   descriptionText,
   moodProfile,
   recommendedScales,
-  applySubstitution
+  applySubstitution,
+  // VMU-216: A′ reaches the chord type directly (SelectionRow.jsx), so its
+  // drawer omits this duplicate. The classic page still shows it (default false).
+  omitDirect = false
 }) {
   const { lang, txt, notation } = useAppContext();
 
@@ -54,11 +57,14 @@ export default function DictChordPanel({
 
   return (
     <div className="select-group">
-      <CustomSelect
-        value={dictType}
-        onChange={(val) => setDictType(val)}
-        options={chordOptions(groupedChords, txt)}
-      />
+      {!omitDirect && (
+        <CustomSelect
+          value={dictType}
+          onChange={(val) => setDictType(val)}
+          options={chordOptions(groupedChords, txt)}
+          data-testid="select-chord-type"
+        />
+      )}
 
       {/* Emotion/description card for chords */}
       {emotionText && (

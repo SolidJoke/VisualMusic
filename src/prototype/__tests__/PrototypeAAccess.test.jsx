@@ -12,15 +12,16 @@
 // What is asserted:
 //   (a) every data-fn of the shared list (src/prototype/aPrimeAccess.js) is in
 //       the page once, visible (jsdom: no hidden / display none);
-//   (b) "Instruments & Audio" opens a window holding the master volume
-//       (-40..0 dB) and the six mixer faders; "Math & Rythmes" opens
+//   (b) "Instruments & Audio" opens a window holding the six mixer faders (the
+//       master volume and the played instrument are the transport's and the
+//       heads', VMU-216); "Math & Rythmes" opens
 //       CompositionPanel (Studio) or its Dictionary warning; the Guide, the
 //       Theory and About (with the CC BY credit of the piano samples) open;
 //       Escape and the close button close each;
 //   (c) the tempo can be typed: a click on the number opens a 60-200 field,
 //       Enter commits, Escape cancels, 60 and 200 are accepted, 59 and 201 not;
-//   (d) the transport's volume and the Audio window's are ONE state, and it
-//       reaches the engine (Tone.Destination's ramp, mocked here);
+//   (d) the transport's volume reaches the engine (Tone.Destination's ramp,
+//       mocked here; the window's duplicate slider is gone, VMU-216);
 //   (f) Escape closes the Assistant drawer, but with a window open over it,
 //       Escape closes the window only;
 //   the audio visualizer is a 60px band right under the transport;
@@ -192,14 +193,17 @@ describe("A′-ACCÈS (a): every function of the list is in the page, once, visi
 });
 
 describe("A′-ACCÈS (b): the classic windows open from A′, with the classic content, and close", () => {
-  it("'Instruments & Audio' opens the master volume and the six mixer faders; Escape and ✕ close it", async () => {
+  it("'Instruments & Audio' opens the six mixer faders without the duplicated controls; Escape and ✕ close it", async () => {
     await renderApp();
     fireEvent.click(fn("son.ouvrir"));
     const modal = document.querySelector(".modal-container");
     expect(modal).not.toBeNull();
     expect(modal.querySelector(".modal-title").textContent).toContain("Instruments & Audio");
-    const master = modal.querySelectorAll('input[type="range"][min="-40"][max="0"]');
-    expect(master).toHaveLength(1);
+    // VMU-216: the master volume and the played-instrument choice are the
+    // transport's and the heads' now — the window keeps only the six faders.
+    expect(modal.querySelectorAll('input[type="range"][min="-40"][max="0"]')).toHaveLength(0);
+    expect(modal.querySelector('[data-testid="select-master-volume"]')).toBeNull();
+    expect(modal.querySelector('[data-testid="select-instrument"]')).toBeNull();
     expect(modal.querySelectorAll('input[type="range"][orient="vertical"]')).toHaveLength(6);
     for (const name of ["Kick", "Snare/Clap", "Hi-Hat", "Bass Synth", "Piano", "Guitar"]) {
       expect(modal.textContent, name).toContain(name);
@@ -367,8 +371,8 @@ describe("A′-ACCÈS (c): the tempo can be typed (VMU-181), like the classic ba
   });
 });
 
-describe("A′-ACCÈS (d): the transport's volume and the Audio window's are the same state", () => {
-  it("moves together both ways, and reaches the engine", async () => {
+describe("A′-ACCÈS (d): the transport's volume reaches the engine", () => {
+  it("the slider drives Tone.Destination's ramp (the window's duplicate is gone, VMU-216)", async () => {
     await renderApp();
     const slider = fn("son.volume-general");
     expect(slider.tagName).toBe("INPUT");
@@ -382,15 +386,6 @@ describe("A′-ACCÈS (d): the transport's volume and the Audio window's are the
     expect(document.querySelector('[data-s1="transport"]').textContent).toContain("-20 dB");
     const ramp = Tone.Destination.volume.rampTo;
     expect(Number(ramp.mock.calls.at(-1)[0])).toBe(-20);
-
-    fireEvent.click(fn("son.ouvrir"));
-    const modalMaster = document.querySelector('.modal-container input[type="range"][min="-40"][max="0"]');
-    expect(modalMaster.value).toBe("-20");
-    fireEvent.change(modalMaster, { target: { value: "-30" } });
-    escape();
-    expect(fn("son.volume-general").value).toBe("-30");
-    expect(document.querySelector('[data-s1="transport"]').textContent).toContain("-30 dB");
-    expect(Number(ramp.mock.calls.at(-1)[0])).toBe(-30);
   });
 });
 
