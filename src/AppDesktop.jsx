@@ -530,6 +530,7 @@ function AppDesktop() {
       setCustomRhythm={setCustomRhythm}
       targetNotesPreset={targetNotesPreset}
       setTargetNotesPreset={setTargetNotesPreset}
+      omitDirect={IS_PROTOTYPE_A}
     />
   ) : (
     <DictionaryPanel
@@ -550,6 +551,7 @@ function AppDesktop() {
       setPlacementIndex={setPlacementIndex}
       targetNotesPreset={targetNotesPreset}
       setTargetNotesPreset={setTargetNotesPreset}
+      omitDirect={IS_PROTOTYPE_A}
     />
   );
 
@@ -590,6 +592,7 @@ function AppDesktop() {
         appMode={appMode}
         useShellVoicings={useShellVoicings}
         setUseShellVoicings={setUseShellVoicings}
+        omitDirect={IS_PROTOTYPE_A}
       />
       <PlaybackPanel
         appMode={appMode}
@@ -604,6 +607,7 @@ function AppDesktop() {
         fretboardZone={fretboardZone}
         setFretboardZone={setFretboardZone}
         txt={txt}
+        omitDirect={IS_PROTOTYPE_A}
       />
     </Modal>
   );

@@ -4,9 +4,9 @@
 //
 // Gabriel, 2026-10-10: "le but est de pouvoir changer de style, note ou
 // structure sans quitter le clavier ou les manches" - the Assistant drawer
-// hides the necks and adds a step. Today these controls exist only in the
-// drawer (StudioPanel / DictionaryPanel / DictChordPanel); the drawer keeps
-// them, unchanged.
+// hides the necks and adds a step. These controls exist in the drawer
+// (StudioPanel / DictionaryPanel / DictChordPanel) on the classic page; A′
+// omits them there (VMU-216, omitDirect) and keeps only the row's direct access.
 //
 // What is asserted (PrototypeA rendered with its heavy children stubbed; the
 // drawer's own panels rendered beside it for the "one owner" checks):
@@ -110,7 +110,6 @@ const fnIn = (scope, id) => scope.querySelector(`[data-fn="${id}"]`);
 const nativeOf = (el) => el.querySelector("select");
 const valuesOf = (select) => [...select.querySelectorAll("option")].map((o) => o.value);
 const headerText = (el) => el.querySelector(".custom-select-header .current-value").textContent.trim();
-const sorted = (list) => [...list].sort();
 
 afterEach(() => {
   cleanup();
@@ -294,7 +293,7 @@ describe("VMU-185 (e): choosing a style", () => {
   });
 });
 
-describe("VMU-185 (f): one owner of the lists - the row offers what the drawer offers", () => {
+describe("VMU-185 (f): one owner of the lists - the row is the only one (the drawer omits them)", () => {
   const drawerStudio = () =>
     render(
       <AppProvider>
@@ -319,6 +318,7 @@ describe("VMU-185 (f): one owner of the lists - the row offers what the drawer o
           setCustomRhythm={vi.fn()}
           targetNotesPreset="majorMinor"
           setTargetNotesPreset={vi.fn()}
+          omitDirect
         />
       </AppProvider>
     ).container;
@@ -340,25 +340,22 @@ describe("VMU-185 (f): one owner of the lists - the row offers what the drawer o
           setDictOctave={vi.fn()}
           targetNotesPreset="majorMinor"
           setTargetNotesPreset={vi.fn()}
+          omitDirect
         />
       </AppProvider>
     ).container;
-  /** The drawer's select that holds `marker` among its options. */
-  const selectWith = (scope, marker) => [...scope.querySelectorAll("select")].find((s) => valuesOf(s).includes(marker));
 
-  it("styles: as many as the data holds (BRICKS), and exactly the drawer's", () => {
+  it("styles: as many as the data holds (BRICKS), and the drawer no longer holds one", () => {
     const band = renderPage({ appMode: "studio" });
     const bandValues = valuesOf(nativeOf(fnIn(row(band), "composer.style")));
     expect(bandValues).toHaveLength(BRICKS.length);
     expect(new Set(bandValues).size).toBe(BRICKS.length);
     cleanup();
     const drawer = drawerStudio();
-    const drawerValues = valuesOf(selectWith(drawer, "0"));
-    expect(drawerValues).toHaveLength(BRICKS.length);
-    expect(sorted(bandValues)).toEqual(sorted(drawerValues));
+    expect(drawer.querySelector('[data-testid="studio-style"]'), "the drawer's style select is gone (VMU-216)").toBeNull();
   });
 
-  it("styles: the row names each one the way the drawer does, in the page's language", () => {
+  it("styles: the row names each one in the page's language", () => {
     const band = renderPage({ appMode: "studio", lang: "pt" });
     for (const [i, brick] of BRICKS.entries()) {
       const option = nativeOf(fnIn(row(band), "composer.style")).querySelector(`option[value="${i}"]`);
@@ -366,32 +363,32 @@ describe("VMU-185 (f): one owner of the lists - the row offers what the drawer o
     }
   });
 
-  it("root notes: the twelve of NOTES, the drawer's own", () => {
+  it("root notes: the twelve of NOTES, the drawer's control gone", () => {
     const band = renderPage({ appMode: "dictionary" });
     const bandValues = valuesOf(nativeOf(fnIn(row(band), "dico.fondamentale")));
     expect(bandValues).toHaveLength(12);
     expect(bandValues).toEqual(NOTES.map((n) => String(n.value)));
     cleanup();
     const drawer = drawerDictionary("chord_major");
-    expect(valuesOf(drawer.querySelector('[data-testid="select-root-note"]'))).toEqual(bandValues);
+    expect(drawer.querySelector('[data-testid="select-root-note"]'), "the drawer's root-note select is gone (VMU-216)").toBeNull();
   });
 
-  it("chord types: every chord of CHORDS, the drawer's own", () => {
+  it("chord types: every chord of CHORDS, the drawer's control gone", () => {
     const band = renderPage({ appMode: "dictionary", dictType: "chord_major" });
     const bandValues = valuesOf(nativeOf(fnIn(row(band), "dico.type-accord")));
     expect(bandValues).toHaveLength(Object.keys(CHORDS).length);
     cleanup();
     const drawer = drawerDictionary("chord_major");
-    expect(sorted(valuesOf(selectWith(drawer, "chord_major")))).toEqual(sorted(bandValues));
+    expect(drawer.querySelector('[data-testid="select-chord-type"]'), "the drawer's chord-type select is gone (VMU-216)").toBeNull();
   });
 
-  it("scale types: every scale of SCALES, the drawer's own", () => {
+  it("scale types: every scale of SCALES, the drawer's control gone", () => {
     const band = renderPage({ appMode: "dictionary", dictType: "scale_major" });
     const bandValues = valuesOf(nativeOf(fnIn(row(band), "dico.type-gamme")));
     expect(bandValues).toHaveLength(Object.keys(SCALES).length);
     cleanup();
     const drawer = drawerDictionary("scale_major");
-    expect(sorted(valuesOf(selectWith(drawer, "scale_major")))).toEqual(sorted(bandValues));
+    expect(drawer.querySelector('[data-testid="select-scale-type"]'), "the drawer's scale-type select is gone (VMU-216)").toBeNull();
   });
 
   it("the chord type and the scale type are not each other's lists", () => {

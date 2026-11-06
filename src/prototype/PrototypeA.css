@@ -1,5 +1,5 @@
 /* S1 prototype — layout A′ (?prototype=a). Every rule is scoped to .proto-a.
-   Columns: centre (the rest) · piano · guitar · bass; header 72 (title, then
+   Columns: centre (the rest) · piano · guitar · bass; header 56 (title, then
    the two mode tabs); assistant drawer 896 over the instruments.
    L1a (VMU-164): the guitar and bass columns are as wide as the vertical
    necks (Fretboard.css --fbv-gutter and --fbv-string).
@@ -25,6 +25,10 @@
   /* L1b-1b: one head = two 48px rows (name + ▶, then ‹ setting ›) and a 4px
      gap, the same in the three columns (UX critique § 2: 100px). */
   --proto-head-h: 100px;
+  /* VMU-216: the header's height is ONE value — 56px — read by the grid's
+     first row below and by the drawer's top (its 48px controls keep --hit-min,
+     the text keeps 14px). */
+  --a-prime-header: 56px;
 
   /* The instruments' length (L1a-fix2, Gabriel: the two necks as long as the
      keyboard). ONE value, derived from the keyboard: its white keys (the
@@ -48,7 +52,7 @@
   position: relative;
   min-height: 100vh;
   display: grid;
-  grid-template-rows: 72px auto;
+  grid-template-rows: var(--a-prime-header, 56px) auto;
   background: var(--bg);
   color: var(--text-primary);
   font-family: var(--font-body);
@@ -106,7 +110,7 @@
 
 /* The label modes ("Sur les notes"): ONE control with three segments, on the
    right of the header, before the drawer button. 48px high targets inside the
-   header's 72px: it adds no height. (They used to sit in the centre column
+   header's 56px: it adds no height. (They used to sit in the centre column
    with the bench's fixtures; they are a real function, not a fixture.) */
 .proto-a__segmented {
   display: flex;
@@ -454,7 +458,7 @@
 }
 
 /* The classic header's Guide / Theory / language / About (HeaderActions),
-   at A′'s sizes: 48px targets inside the 72px header, the body font size. */
+   at A′'s sizes: 48px targets inside the 56px header, the body font size. */
 .proto-a__header-actions {
   display: flex;
   align-items: center;
@@ -829,7 +833,7 @@
 .proto-a__drawer {
   position: absolute;
   right: 0;
-  top: 72px;
+  top: var(--a-prime-header, 56px);
   bottom: 0;
   width: 896px;
   box-sizing: border-box;

@@ -15,7 +15,11 @@ const PlaybackPanel = ({
   setDisplayMode,
   fretboardZone,
   setFretboardZone,
-  txt
+  txt,
+  // VMU-216: A′ reaches the master volume directly (the transport's
+  // son.volume-general), so its Instruments & Audio window omits this
+  // duplicate. The classic page still shows it (default false).
+  omitDirect = false
 }) => {
   return (
     <div className="layout-col layout-right playback-panel-container">
@@ -23,7 +27,8 @@ const PlaybackPanel = ({
 
       <div className={`module-body playback-controls${isPlaying ? " is-playing" : ""}`}>
 
-        <div className="sliders-group">
+        {!omitDirect && (
+        <div className="sliders-group" data-testid="select-master-volume">
           <div className="slider-item">
             <LcdScreen title={`${txt.masterVol} (dB)`}>
               {masterVolume}
@@ -42,6 +47,7 @@ const PlaybackPanel = ({
             />
           </div>
         </div>
+        )}
       </div>
 
       <MixerPanel

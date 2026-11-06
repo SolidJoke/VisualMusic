@@ -47,13 +47,14 @@
  * bench=1), at 3840x2045 (his window) and 3840x2160: every data-fn of
  * src/prototype/aPrimeAccess.js is there once, visible, on screen and on top
  * (elementFromPoint); each opener opens what it must (a content marker the
- * probe knows on its own: the master-volume slider and the six faders, the
- * euclidean circle, the CC BY credit...) and Escape closes it; the tempo is
- * typed (90 + Enter, Escape cancels, 59 / 201 refused, 60 / 200 accepted); the
- * page does not scroll in FR, EN, PT and ZH; and the master volume reaches the
- * engine — the gain Tone.Destination really renders, read through a tap like
- * scripts/tempo_probe.mjs reads the mixer, follows the transport's slider and
- * the "Instruments & Audio" window's, which show one same value (runVolume).
+ * probe knows on its own: the six faders (the window's master-volume slider is
+ * gone, VMU-216), the euclidean circle, the CC BY credit...) and Escape closes
+ * it; the tempo is typed (90 + Enter, Escape cancels, 59 / 201 refused, 60 /
+ * 200 accepted); the page does not scroll in FR, EN, PT and ZH; none of the nine
+ * duplicated controls survives in the drawer or Instruments & Audio (VMU-216);
+ * and the master volume reaches the engine — the gain Tone.Destination really
+ * renders, read through a tap like scripts/tempo_probe.mjs reads the mixer, and
+ * follows the transport's slider (runVolume; the window's copy is gone).
  *   npm run s1:probe -- --access-only   # S1-20 alone, without the 60 states
  * Positive control: hide one button, S1-20 (and only S1-20) must turn red:
  *   S1_PROBE_INJECT_CSS='[data-fn="son.ouvrir"]{visibility:hidden!important}' npm run s1:probe
@@ -229,6 +230,25 @@ const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY |
 // S1-27.text and S1-28.size / S1-28.svgFloor.
 const A_PRIME_FS = 14;
 
+// VMU-216: A′'s header height, 72px -> 56px. One place for the checks that
+// encode it (S1-19's labelModesVerdict, S1-20's layoutFails).
+const A_PRIME_HEADER = 56;
+
+// VMU-216: the nine controls A′ omits (each is a duplicate of a direct access
+// that stays). Each is tagged with a data-testid on the panel; in A′ the opened
+// drawer (both modes) and Instruments & Audio must show none of them.
+const A_PRIME_OMITTED = [
+  "studio-style",
+  "studio-octave",
+  "select-root-note",
+  "select-family",
+  "select-octave",
+  "select-chord-type",
+  "select-scale-type",
+  "select-instrument",
+  "select-master-volume",
+];
+
 // Thresholds, spec §2 table. `decides` = counts for the A′ / B decision.
 const CRITERIA = [
   { id: "S1-1", decides: true, what: "label font-size >= 18px" },
@@ -261,10 +281,10 @@ const CRITERIA = [
   { id: "S1-17", decides: true, what: "neck: its bottom is the keyboard's bottom (+-1px) and starts where it starts, fret pitch linear and strictly decreasing with first : last = 1.5 (>= 52 everywhere), 12px markers on 3 5 7 9 12x2 15 17 19 21 (those the neck has): a single one between the two middle strings, the two on 12 spread over the width (guitar 2-3 and 4-5, bass 1-2 and 3-4), under the pastilles; numbers and pastilles on their row's middle" },
   // Coordinator's amendment: the left rail is gone, its two mode buttons are
   // tabs in the header after the title.
-  { id: "S1-18", decides: true, what: "mode tabs: 'Mode Studio' / 'Mode Dictionnaire' in the header after the title, >= 48px high; no left rail (the page starts at <= 24px)" },
+  { id: "S1-18", decides: true, what: "mode tabs: 'Mode Studio' / 'Mode Dictionnaire' in the 56px header after the title, >= 48px high; no left rail (the page starts at <= 24px)" },
   // Coordinator, after her QA: the label modes are a function, not a fixture.
   // (Their behaviour without bench=1 is checked per viewport, see runNoBench.)
-  { id: "S1-19", decides: true, what: "label modes: one 'Sur les notes' group of 3 segments (data-fn nav.noms-notes-eu / -us / nav.etiquettes-doigts) in the header, right of the tabs, >= 48px high, header still 72px, each button once, none in the centre column" },
+  { id: "S1-19", decides: true, what: "label modes: one 'Sur les notes' group of 3 segments (data-fn nav.noms-notes-eu / -us / nav.etiquettes-doigts) in the header, right of the tabs, >= 48px high, header still 56px, each button once, none in the centre column" },
   // L1b-1a (Gabriel: "le nom des notes ... sur toutes les touches du piano"; he
   // is a beginner). S1-21 is the next slice's (the instrument heads): it will
   // be added there, nothing is renumbered.
@@ -855,7 +875,7 @@ function measureInPage() {
   // S1-19 (coordinator, after her QA) — the label modes ("Noms Do Ré Mi" /
   // "Noms C D E" / "Doigts") are a real function, in the header on the right:
   // one control with three segments titled "Sur les notes", >= 48px high, the
-  // header keeping its 72px, each button once (the probe waits on
+  // header keeping its 56px (VMU-216), each button once (the probe waits on
   // [data-labels]) and none left in the centre column.
   {
     const FNS = ["nav.noms-notes-eu", "nav.noms-notes-us", "nav.etiquettes-doigts"];
@@ -1078,7 +1098,7 @@ function labelModesVerdict(t) {
   }
   if (!t.afterTabs) fails.push("the control is not to the right of the mode tabs");
   if (!t.beforeDrawer) fails.push("the control is not to the left of the drawer button");
-  if (!(t.headerHeight <= 72.5)) fails.push(`the header is ${t.headerHeight}px high, 72px expected (no height added)`);
+  if (!(Math.abs(t.headerHeight - A_PRIME_HEADER) <= 0.5)) fails.push(`the header is ${t.headerHeight}px high, ${A_PRIME_HEADER}px expected (no height added)`);
   if (t.labelButtons !== 3) fails.push(`${t.labelButtons} [data-labels] buttons in the page, 3 expected (each once)`);
   if (t.inCentre !== 0) fails.push(`${t.inCentre} label button(s) left in the centre column`);
   const value =
@@ -1478,7 +1498,7 @@ function locatedFails(row) {
 function layoutFails(where, l) {
   const out = [];
   if (l.scrollHeight > l.innerHeight || l.scrollWidth > l.innerWidth) out.push(`${where}: the page scrolls (${l.scrollWidth}x${l.scrollHeight} in ${l.innerWidth}x${l.innerHeight})`);
-  if (!(l.headerHeight <= 72.5)) out.push(`${where}: header ${l.headerHeight}px high, 72 expected`);
+  if (!(Math.abs(l.headerHeight - A_PRIME_HEADER) <= 0.5)) out.push(`${where}: header ${l.headerHeight}px high, ${A_PRIME_HEADER} expected`);
   if (l.headerOverlaps) out.push(`${where}: ${l.headerOverlaps} header item(s) overlapping the previous one`);
   if (l.headerRight > l.innerWidth - 24 + 0.5) out.push(`${where}: header items end at x=${l.headerRight}, past the 24px right margin`);
   if (l.headLines.some((n) => n !== 1)) out.push(`${where}: an instrument head runs over ${l.headLines.join(" / ")} lines`);
@@ -1542,6 +1562,8 @@ async function runAccess(browser, viewport) {
       const m = await page.evaluate(() => {
         const modal = document.querySelector(".modal-container");
         return {
+          // VMU-216: the master volume is gone from the window (the transport
+          // owns it) — the six mixer faders stay.
           master: modal.querySelectorAll('input[type="range"][min="-40"][max="0"]').length,
           faders: modal.querySelectorAll('input[type="range"][orient="vertical"]').length,
           // An element whose own text is "Kick" (the textContent of the whole
@@ -1549,12 +1571,17 @@ async function runAccess(browser, viewport) {
           kick: [...modal.querySelectorAll("*")].some((el) => el.children.length === 0 && el.textContent.trim() === "Kick"),
         };
       });
-      if (m.master !== 1 || m.faders !== 6 || !m.kick) throw new Error(`window content: master volume ${m.master}, faders ${m.faders}, "Kick" ${m.kick}`);
+      if (m.master !== 0 || m.faders !== 6 || !m.kick) throw new Error(`window content: master volume ${m.master} (0 expected, the transport owns it), faders ${m.faders}, "Kick" ${m.kick}`);
+      const omitted = await page.evaluate((ids) => {
+        const modal = document.querySelector(".modal-container");
+        return ids.filter((id) => modal.querySelector(`[data-testid="${id}"]`));
+      }, A_PRIME_OMITTED);
+      if (omitted.length) throw new Error(`Instruments & Audio still shows omitted control(s): ${omitted.join(", ")}`);
       await closesOnEscape(".modal-container");
       await page.locator(sel("son.ouvrir")).click({ timeout: T });
       await page.locator(".modal-container .modal-close-btn").click({ timeout: T });
       await page.locator(".modal-container").waitFor({ state: "detached", timeout: T });
-      return `opens the master volume (1) and ${m.faders} faders with "Kick"; Escape and ✕ close`;
+      return `opens ${m.faders} faders with "Kick" (no master volume — the transport owns it); Escape and ✕ close`;
     });
     await step("aide.guide", async () => {
       await page.locator(sel("aide.guide")).click({ timeout: T });
@@ -1610,6 +1637,32 @@ async function runAccess(browser, viewport) {
       await page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
       await page.locator('[data-s1="drawer"]').waitFor({ state: "detached", timeout: T });
       return "opens the drawer with its Fermer on top; Escape and Fermer close it";
+    });
+    await step("omitted controls", async () => {
+      // VMU-216: none of the nine duplicated controls survives in A′. The
+      // drawer (Studio then Dictionary) and Instruments & Audio show none.
+      const absent = async (container) => {
+        const found = await page.evaluate(({ container, ids }) => {
+          const root = document.querySelector(container);
+          return root ? ids.filter((id) => root.querySelector(`[data-testid="${id}"]`)) : ids;
+        }, { container, ids: A_PRIME_OMITTED });
+        if (found.length) throw new Error(`${container} still shows omitted control(s): ${found.join(", ")}`);
+      };
+      await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
+      await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
+      await absent('[data-s1="drawer"]');
+      await page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
+      await page.locator('[data-s1="drawer"]').waitFor({ state: "detached", timeout: T });
+      // The Dictionary's drawer (the mode tab is kept).
+      await page.locator(sel("nav.mode-dictionnaire")).click({ timeout: T });
+      await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
+      await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
+      await absent('[data-s1="drawer"]');
+      await page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
+      await page.locator('[data-s1="drawer"]').waitFor({ state: "detached", timeout: T });
+      // Back to the Studio for the checks that follow.
+      await page.locator(sel("nav.mode-studio")).click({ timeout: T });
+      return "Studio and Dictionary drawers show none of the 9 controls";
     });
     await step("jouer.tempo-saisie", async () => {
       const button = page.locator(`button${sel("jouer.tempo-saisie")}`);
@@ -1732,7 +1785,6 @@ async function runVolume(browser, viewport) {
     if (read.renderedDb == null || Math.abs(read.renderedDb - want) > TOL) fails.push(`${name}: rendered ${read.renderedDb} dB, ${want} expected`);
   };
   const TRANSPORT = '[data-fn="son.volume-general"]';
-  const WINDOW = '.modal-container input[type="range"][min="-40"][max="0"]';
   try {
     await page.goto(`${ORIGIN}/?prototype=a&scenario=cmaj`, { waitUntil: "domcontentloaded" });
     await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
@@ -1751,19 +1803,9 @@ async function runVolume(browser, viewport) {
     const shown = (await page.locator('[data-s1="transport"]').textContent()) || "";
     if (!/-30 dB/.test(shown)) fails.push(`the transport does not show -30 dB`);
 
-    await page.locator('[data-fn="son.ouvrir"]').click({ timeout: T });
-    await page.locator(WINDOW).waitFor({ state: "visible", timeout: T });
-    const inWindow = await page.locator(WINDOW).inputValue();
-    steps.push(`the window's slider shows ${inWindow}`);
-    if (inWindow !== "-30") fails.push(`the window's slider shows ${inWindow}, -30 expected (one state)`);
-    await setRange(WINDOW, -6);
-    await page.waitForTimeout(300);
-    await page.keyboard.press("Escape");
-    await page.locator(".modal-container").waitFor({ state: "detached", timeout: T });
-    const inTransport = await page.locator(TRANSPORT).inputValue();
-    steps.push(`window slider -6 -> the transport's shows ${inTransport}`);
-    if (inTransport !== "-6") fails.push(`after the window's -6 the transport's slider shows ${inTransport}`);
-    expectDb("window slider -6", await page.evaluate(readDestinationTap), -6);
+    // VMU-216: the window's master slider is gone, so there is no window-vs-
+    // transport pair to keep in sync. What still matters — and is still
+    // checked here — is that the transport's slider reaches the engine.
   } catch (err) {
     fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
   } finally {
@@ -2551,18 +2593,17 @@ async function runSelection(browser, viewport) {
     await family(1);
     expectEq("Accords again: the family's first type, Do majeur", (await read()).notes, "60 64 67");
 
-    // The row and the drawer are ONE state: a root chosen in the row is the
-    // drawer's, and the other way round.
+    // VMU-216: the drawer no longer holds a root-note control — A′ reaches it
+    // directly in the selection row — so there is no drawer↔row pair left to
+    // keep in sync. What the old check proved (the row's fundamental is the
+    // ONE state) still holds through `choose` above, and the drawer's missing
+    // control is asserted here: open the drawer, confirm the control is gone,
+    // close it.
     await choose("dico.fondamentale", 7);
     await page.locator(sel("nav.studio-harmonie")).click({ timeout: T });
     await page.locator('[data-s1="drawer"]').waitFor({ state: "visible", timeout: T });
-    const drawerRoot = await page.evaluate(() => document.querySelector('[data-s1="drawer"] [data-testid="select-root-note"]').value);
-    expectEq("row -> drawer: the drawer's root note", drawerRoot, "7");
-    await page.locator('[data-s1="drawer"] .custom-select-container:has([data-testid="select-root-note"]) .custom-select-header').click({ timeout: T });
-    await page.locator('[data-testid="custom-select-dropdown"] .select-item').filter({ hasText: /^\s*Mi\s*$/ }).first().click({ timeout: T });
-    await page.waitForTimeout(250);
-    expectEq("drawer -> row: the row's root note", await shown("dico.fondamentale"), "Mi");
-    notes.push(`row <-> drawer: root Sol in the row = "7" in the drawer; Mi chosen in the drawer = "${await shown("dico.fondamentale")}" in the row`);
+    expectEq("drawer: the root-note control is gone (the row owns it)", await page.locator('[data-s1="drawer"] [data-testid="select-root-note"]').count(), 0);
+    notes.push(`row <-> drawer: root "${await shown("dico.fondamentale")}" chosen in the row still drives it; the drawer's root-note control is absent (VMU-216)`);
     await page.locator(sel("nav.fermer-fenetres")).click({ timeout: T });
     await page.locator('[data-s1="drawer"]').waitFor({ state: "detached", timeout: T });
 
@@ -2700,13 +2741,13 @@ async function runConfirm(browser, viewport) {
     const afterChange = await state();
     if (afterChange === withEdit || (await boxes())) fails.push("[function] Changer de style did not apply the style");
     notes.push(`row: [${withEdit}] -> box -> Garder [${withEdit}] -> box -> Changer de style [${afterChange}]`);
-    await edit();                                           // by the DRAWER, with an edit
+    await edit();                                           // an edit IN the drawer (its edit buttons are kept)
     const inDrawer = await state();
-    await pick('[data-s1="drawer"] .custom-select-container', await styleName(0));
-    eq("edit + drawer menu: the box opens", await boxes(), 1);
+    await closeDrawer();                                    // VMU-216: the drawer's style menu is gone — the row drives the style now
+    await pick(sel("composer.style"), await styleName(0));
+    eq("edit (in the drawer) + the row's style menu: the box opens", await boxes(), 1);
     await answer("Garder mes modifications");
-    eq("edit + drawer + Garder: nothing changed", await state(), inDrawer);
-    await closeDrawer();
+    eq("edit + row + Garder: nothing changed", await state(), inDrawer);
     await page.locator(sel("nav.mode-dictionnaire")).click({ timeout: T }); // mode by the header
     eq("edit + header tab: the mode box opens", [await boxes(), await page.getByRole("alertdialog").textContent()].map(String).join("|").includes("Changer de mode ?"), true);
     await answer("Garder mes modifications");
@@ -2716,7 +2757,7 @@ async function runConfirm(browser, viewport) {
     eq("edit + header tab + Changer de mode: Dictionary", await mode(), "dictionary");
     await page.locator(sel("nav.mode-studio")).click({ timeout: T });
     eq("back in the Studio: no box, the edit is gone", [await boxes(), (await chords()) === inDrawer.split(" | ")[1]], [0, false]);
-    notes.push(`drawer menu + header tab: Garder kept [${inDrawer}], Changer de mode left the Studio and the edit with it`);
+    notes.push(`row style menu + header tab: Garder kept [${inDrawer}], Changer de mode left the Studio and the edit with it`);
 
     await page.goto(`${ORIGIN}/?prototype=a&bench=1`, { waitUntil: "domcontentloaded" }); // a scenario never asks
     await page.locator('[data-s1="piano"] .piano-vertical').waitFor({ state: "visible", timeout: 20_000 });
@@ -3940,7 +3981,7 @@ if (AS_JSON) {
   }
   console.log("  S1-14 not measured: Gabriel's reading test (10 labels per instrument, names then degrees).");
   console.log(`  S1-19 no-bench behaviour: ${noBenchOk ? "PASS" : "FAIL"} in ${Object.keys(noBenchChecks).length}/${ACCESS_ONLY ? 0 : VIEWPORTS.length} viewport(s)`);
-  console.log(`  S1-20 ${accessOk ? "PASS" : "FAIL"} ${accessPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  A′-ACCÈS: every function of src/prototype/aPrimeAccess.js on Gabriel's page, on top; openers open and Escape closes; tempo typed; no scroll in FR / EN / PT / ZH; the master volume reaches the engine`);
+  console.log(`  S1-20 ${accessOk ? "PASS" : "FAIL"} ${accessPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  A′-ACCÈS: every function of src/prototype/aPrimeAccess.js on Gabriel's page, on top; openers open and Escape closes; tempo typed; no scroll in FR / EN / PT / ZH; none of the 9 duplicated controls; the transport's master volume reaches the engine`);
   console.log(`  S1-21 ${headsOk ? "PASS" : "FAIL"} ${headsPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1b heads: 100 +-1px x3, one line per row, 48px targets on top, labels fitting, keyboard >= ${S1_21.minMargin}px above the window's bottom, no scroll (FR / EN / PT / ZH x Dictionary / Studio); › on the guitar moves the guitar only, › on the piano shifts its notes by 12 and leaves the necks`);
   console.log(`  S1-23 ${selectionOk ? "PASS" : "FAIL"} ${selectionPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-185 direct selectors: a second row of the transport block holding the Studio's style / the Dictionary's family, root note and type (none for a note), on top, 48px, one height in every state (block <= ${S1_23.maxBlock}px), no scroll, no cut name, open lists in the window (drawer closed and open), and they drive the keyboard / necks / sequencer against theory.js (FR / EN / PT / ZH)`);
   console.log(`  S1-24 ${chordOctaveOk ? "PASS" : "FAIL"} ${chordOctavePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-186 chord octave: Studio - no arrow on the piano head, "Octave des accords" in the selection row (48px, on top, tooltip says the loop and the MIDI export, › changes the label, EU / US); Dictionary - the pair stays on the piano head, nothing in the row`);

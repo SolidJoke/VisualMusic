@@ -37,7 +37,11 @@ export default function DictionaryPanel({
   placementByInstrument,
   setPlacementIndex,
   targetNotesPreset,
-  setTargetNotesPreset
+  setTargetNotesPreset,
+  // VMU-216: A′ reaches the root, the family, the octave and the type directly
+  // (the selection row, the piano head), so its drawer omits the four
+  // duplicates here. The classic page still shows them (default false).
+  omitDirect = false
 }) {
   const { lang, txt, notation } = useAppContext();
   // Derive family from dictType
@@ -118,6 +122,7 @@ export default function DictionaryPanel({
       <div className="dict-panel__controls">
 
         {/* Root note selector */}
+        {!omitDirect && (
         <div className="select-group">
           <label className="field-label">{txt.rootNote}</label>
           <CustomSelect
@@ -130,6 +135,7 @@ export default function DictionaryPanel({
             data-testid="select-root-note"
           />
         </div>
+        )}
 
         {/* VMU-134: the US/EU notation switch used to live here. It is now
             a single global control in HeaderActions (src/components/Layout/AppHeader.jsx),
@@ -138,9 +144,10 @@ export default function DictionaryPanel({
             it just no longer owns the toggle. */}
 
         {/* Family selector (Note / Chord / Scale) */}
+        {!omitDirect && (
         <div className="select-group">
           <label className="field-label">{txt.structType}</label>
-          <div className="btn-segment-group">
+          <div className="btn-segment-group" data-testid="select-family">
             {familyOptions(txt).map((f) => (
               <button
                 key={f.key}
@@ -152,6 +159,7 @@ export default function DictionaryPanel({
             ))}
           </div>
         </div>
+        )}
         
         {/* VMU-123 — replaces the "Aide Impro" button (FLASH-12), which had
             no effect here: the old targetValue was only ever computed in
@@ -178,10 +186,11 @@ export default function DictionaryPanel({
         </div>
 
         {/* Octave selector */}
+        {!omitDirect && (
         <div className="select-group">
           <label className="field-label">{txt.octave || "Octave"}</label>
-          <div className="btn-segment-group">
-            {(family === "note" 
+          <div className="btn-segment-group" data-testid="select-octave">
+            {(family === "note"
               ? [
                   { value: -3, label: "1" },
                   { value: -2, label: "2" },
@@ -211,6 +220,7 @@ export default function DictionaryPanel({
             ))}
           </div>
         </div>
+        )}
 
         {/* Sub-selector: Chord type */}
         {family === "chord" && (
@@ -225,17 +235,21 @@ export default function DictionaryPanel({
             moodProfile={moodProfile}
             recommendedScales={recommendedScales}
             applySubstitution={applySubstitution}
+            omitDirect={omitDirect}
           />
         )}
 
         {/* Sub-selector: Scale type with optgroups */}
         {family === "scale" && (
           <div className="select-group">
-            <CustomSelect
-              value={dictType}
-              onChange={(val) => setDictType(val)}
-              options={scaleOptions(groupedScales, txt)}
-            />
+            {!omitDirect && (
+              <CustomSelect
+                value={dictType}
+                onChange={(val) => setDictType(val)}
+                options={scaleOptions(groupedScales, txt)}
+                data-testid="select-scale-type"
+              />
+            )}
 
             {/* Emotion/description card for scales */}
             {emotionText && (

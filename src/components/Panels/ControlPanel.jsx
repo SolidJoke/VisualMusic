@@ -12,7 +12,11 @@ const ControlPanel = ({
   setPlaybackInstrument,
   appMode,
   useShellVoicings,
-  setUseShellVoicings
+  setUseShellVoicings,
+  // VMU-216: A′ reaches the played instrument directly (the heads' names), so
+  // its Instruments & Audio window omits this duplicate. The classic page
+  // still shows it (default false).
+  omitDirect = false
 }) => {
   const { txt } = useAppContext();
   return (
@@ -21,8 +25,8 @@ const ControlPanel = ({
         {/* In the Dictionary, the instrument bar above the keyboard owns this
             choice (VMU-101); a second control for the same state, buried in a
             modal, would only disagree with it. The Studio keeps it here. */}
-        {appMode !== "dictionary" && (
-          <div className="controls-group" style={{ flexDirection: "column", gap: "10px", alignItems: "center" }}>
+        {!omitDirect && appMode !== "dictionary" && (
+          <div className="controls-group" style={{ flexDirection: "column", gap: "10px", alignItems: "center" }} data-testid="select-instrument">
             <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "bold" }}>Audio :</span>
             <div style={{ display: "flex", gap: "8px" }}>
               {[

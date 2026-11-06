@@ -40,7 +40,11 @@ const StudioPanel = ({
   customRhythm,
   setCustomRhythm,
   targetNotesPreset,
-  setTargetNotesPreset
+  setTargetNotesPreset,
+  // VMU-216: A′ reaches the style and the base octave directly (the selection
+  // row, SelectionRow.jsx), so its drawer omits the two duplicates here. The
+  // classic page still shows them (default false).
+  omitDirect = false
 }) => {
   const RHYTHM_PATTERNS = [
     { id: 'default', name: 'Original', steps: null },
@@ -133,15 +137,18 @@ const StudioPanel = ({
       <div style={{ marginTop: "15px" }}>
         <StudioInfoBlock txt={txt} lang={lang} />
 
+        {!omitDirect && (
         <div style={{ margin: "15px 0", position: "relative", zIndex: 30 }}>
           <LcdScreen title={txt.styleSelection}>
             <CustomSelect
               value={currentBrickIndex}
               onChange={(val) => setCurrentBrickIndex(Number(val))}
               options={styleOptions(lang)}
+              data-testid="studio-style"
             />
           </LcdScreen>
         </div>
+        )}
 
         <div style={{ marginTop: "15px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px" }}>
           <span className="info-badge" style={{ background: 'var(--surface-2)', border: '1px solid var(--border-default)' }}>
@@ -271,6 +278,7 @@ const StudioPanel = ({
            </div>
         </div>
 
+        {!omitDirect && (
         <div
           style={{
             display: "flex",
@@ -306,8 +314,10 @@ const StudioPanel = ({
               { value: 3, label: "+3 Oct." },
             ]}
             theme="modern"
+            data-testid="studio-octave"
           />
         </div>
+        )}
 
         <div
           style={{

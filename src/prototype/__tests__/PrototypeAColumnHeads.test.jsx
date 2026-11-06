@@ -357,10 +357,10 @@ describe("L1b-1b (d): ‹ Octave › in the Dictionary sets the piano alone", ()
     expect(fn("jouer.octave-piano-prec").disabled).toBe(true);
   });
 
-  it("the drawer's own octave segment is the same setting: +1 there leaves the necks too", async () => {
+  it("the drawer's octave segment is gone (VMU-216); the piano head's ‹ Octave › is the setting, and +1 leaves the necks too", async () => {
     await renderApp("?prototype=a&scenario=cmaj&drawer=open");
-    const plusOne = [...document.querySelectorAll(".proto-a__drawer-body .btn-segment")].find((b) => b.textContent.trim() === "+1");
-    await press(plusOne);
+    expect(document.querySelector('[data-s1="drawer"] [data-testid="select-octave"]'), "the drawer's octave segment is gone").toBeNull();
+    await press(fn("jouer.octave-piano-suiv"));
     // Necks first: on main this is what fails (the guitar's default turns to
     // the A shape, 3-5), not only the missing head.
     expect(pianoNotes()).toEqual([72, 76, 79]);
