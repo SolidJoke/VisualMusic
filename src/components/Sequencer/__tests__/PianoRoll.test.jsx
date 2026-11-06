@@ -114,4 +114,32 @@ describe("PianoRoll", () => {
     expect(active).toEqual([0, 8, 19, 24]);
     expect(lamps[19].classList.contains("step--ghost")).toBe(true);
   });
+
+  it("VMU-214 — a send shows the whole loop, the user's 16 holds until the next send", () => {
+    const tracks = rows([{ name: "Kick", activeSteps: [0, 4, 8, 12] }]);
+    const { container, getByText, rerender } = render(
+      <PianoRoll tracks={tracks} totalSteps={64} viewRequest={0} />,
+    );
+
+    // The send: viewRequest 0 -> 1.
+    rerender(<PianoRoll tracks={tracks} totalSteps={64} viewRequest={1} />);
+
+    let lamps = container.querySelectorAll(".step-lamp");
+    expect(lamps).toHaveLength(64);
+    expect(container.querySelector(".step-density-btn.active").textContent).toBe("64");
+    expect(container.querySelector(".page-indicator")).toBeNull(); // the whole loop on one page
+
+    // The user picks 16; their choice holds until the next send.
+    fireEvent.click(getByText("16"));
+    lamps = container.querySelectorAll(".step-lamp");
+    expect(lamps).toHaveLength(16);
+    expect(container.querySelector(".step-density-btn.active").textContent).toBe("16");
+    expect(container.querySelector(".page-indicator").textContent).toBe("PAGE 1/4");
+
+    // The next send re-applies the whole-loop view.
+    rerender(<PianoRoll tracks={tracks} totalSteps={64} viewRequest={2} />);
+    lamps = container.querySelectorAll(".step-lamp");
+    expect(lamps).toHaveLength(64);
+    expect(container.querySelector(".step-density-btn.active").textContent).toBe("64");
+  });
 });

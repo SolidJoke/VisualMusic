@@ -1,8 +1,9 @@
 // @ts-check
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { BRICKS } from "../core/bricks";
-import { buildStudioTimeline, studioSelection, STUDIO_LENGTH_MEASURES } from "../core/timeline";
+import { buildStudioTimeline, studioSelection } from "../core/timeline";
 import { loadPersisted, brickIndexOf } from "../utils/persistedState";
+import { loopLengthForCycle, maxCycleLength } from "../core/loopWindow";
 
 export function useStudioMode() {
   // VMU-050: the style the last visit left, found by its stable name (never by
@@ -33,6 +34,21 @@ export function useStudioMode() {
     [customDrums, customRhythm, customProgression, suggestedBassTrack],
   );
 
+  // VMU-214: the loop grows to hold the longest active cycle (Math & Rythmes
+  // whole-circle overrides), never shorter than today's 4 measures, never past
+  // the document's 8.
+  const { lengthMeasures } = useMemo(
+    () => loopLengthForCycle(maxCycleLength(overrides)),
+    [overrides],
+  );
+
+  // VMU-214: a send re-applies the sequencer view (whole loop, page 1). The
+  // counter, not the value, is what the piano rolls watch: the same view twice
+  // in a row must still re-apply, and the user's own density choice must hold
+  // between sends.
+  const [viewRequest, setViewRequest] = useState(0);
+  const requestSequencerView = useCallback(() => setViewRequest((n) => n + 1), []);
+
   // What the panels show and edit: the style's tracks and progression, the
   // overrides above applied (core/timeline.js studioSelection — the rules
   // this memo used to hold).
@@ -43,17 +59,17 @@ export function useStudioMode() {
 
   // T3: what plays — the timeline document the same style, theme and
   // overrides fill. The playback loop, the MIDI export, the piano rolls and
-  // the DAW helper read it. Its length stays at 4 measures until the
-  // timeline screen (V3) offers 4 / 8; the document already holds 8.
+  // the DAW helper read it. Its window is the longest active cycle's, derived
+  // above (VMU-214); the document already holds all 8 measures.
   const timeline = useMemo(
     () =>
       buildStudioTimeline({
         brickIndex: currentBrickIndex,
         theme: currentTheme,
         overrides,
-        lengthMeasures: STUDIO_LENGTH_MEASURES,
+        lengthMeasures,
       }),
-    [currentBrickIndex, currentTheme, overrides],
+    [currentBrickIndex, currentTheme, overrides, lengthMeasures],
   );
 
   return {
@@ -73,6 +89,8 @@ export function useStudioMode() {
     customDrums, setCustomDrums,
     activeBrick,
     activeTracks,
-    timeline
+    timeline,
+    viewRequest,
+    requestSequencerView
   };
 }

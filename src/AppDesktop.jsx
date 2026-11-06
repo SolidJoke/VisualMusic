@@ -116,7 +116,9 @@ function AppDesktop() {
     customDrums, setCustomDrums,
     activeBrick,
     activeTracks,
-    timeline
+    timeline,
+    viewRequest,
+    requestSequencerView
   } = useStudioMode();
 
   // VMU-126: changing the style or the mode clears what the user built on top
@@ -412,6 +414,7 @@ function AppDesktop() {
     appMode,
     displayMode,
     timeline,
+    viewRequest,
     activeBrick,
     chordOctaveOffset,
     dictType,
@@ -465,6 +468,7 @@ function AppDesktop() {
     appMode,
     displayMode,
     timeline,
+    viewRequest,
     activeBrick,
     chordOctaveOffset,
     dictType,
@@ -571,6 +575,7 @@ function AppDesktop() {
           hideTitle
           isPlaying={isPlaying}
           togglePlayback={togglePlayback}
+          onSendView={requestSequencerView}
         />
       ) : (
         <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem", padding: "20px", textAlign: "center" }}>
@@ -685,6 +690,8 @@ function AppDesktop() {
         setDictRoot={setDictRoot}
         setDictType={setDictType}
         timeline={timeline}
+        viewRequest={viewRequest}
+        onSendView={requestSequencerView}
         currentStep={currentStep}
         activeBrick={activeBrick}
         chordOctaveOffset={chordOctaveOffset}

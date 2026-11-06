@@ -3575,6 +3575,38 @@ async function reportMathWindow(browser, viewport) {
     if (rIso.page.spilled) fails.push(`[recipes] iso: ${rIso.page.spilled} descendant(s) stick out of the column`);
     if (rIso.page.scrolls) fails.push(`[recipes] iso: the page scrolls`);
 
+    // VMU-214: sending the iso recipe with 7 notes (a 112-step cycle) grows
+    // the loop to 8 measures (128 steps); the sequencers switch to 64 steps on
+    // two pages, and the page does not scroll (S1-12).
+    await page.locator('[data-testid="comp-iso-pitches"]').fill("C3, E3, G3, B3, D4, F4, A4");
+    await page.waitForTimeout(300);
+    const sequencerView = await page.evaluate(() => {
+      const rolls = Array.from(document.querySelectorAll(".piano-roll"));
+      const density = rolls.map((r) => (r.querySelector(".step-density-btn.active")?.textContent || "").trim());
+      const pageButtons = rolls.map((r) => r.querySelectorAll(".page-btn").length);
+      const pageIndicator = rolls.map((r) => (r.querySelector(".page-indicator")?.textContent || "").trim());
+      const de = document.documentElement;
+      return {
+        rolls: rolls.length,
+        density,
+        pageButtons,
+        pageIndicator,
+        scrolls: de.scrollHeight > window.innerHeight + 0.5 || de.scrollWidth > window.innerWidth + 0.5,
+        scrollWidth: de.scrollWidth,
+        scrollHeight: de.scrollHeight,
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+      };
+    });
+    const sequencerOk =
+      sequencerView.rolls === 3 &&
+      sequencerView.density.every((d) => d === "64") &&
+      sequencerView.pageButtons.every((n) => n === 2) &&
+      sequencerView.pageIndicator.every((p) => p === "PAGE 1/2") &&
+      !sequencerView.scrolls;
+    if (!sequencerOk) fails.push(`[sequencer] after the iso send (112 steps): ${JSON.stringify(sequencerView)}`);
+    notes.push(`sequencer view after the iso send: ${JSON.stringify(sequencerView)}`);
+
     await page.locator('[data-testid="comp-mode-iso"]').click({ timeout: 4000 });
     await page.locator('[data-testid="comp-mode-poly"]').click({ timeout: 4000 });
     await page.waitForTimeout(300);

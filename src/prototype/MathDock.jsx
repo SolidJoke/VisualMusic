@@ -30,6 +30,7 @@ export default function MathDock({
   txt,
   isPlaying,
   togglePlayback,
+  onSendView,
 }) {
   return (
     <section className="math-dock" data-s1="math-dock" aria-label={title}>
@@ -47,6 +48,7 @@ export default function MathDock({
           isPlaying={isPlaying}
           togglePlayback={togglePlayback}
           advancedContainer={advancedContainer}
+          onSendView={onSendView}
         />
       </div>
     </section>

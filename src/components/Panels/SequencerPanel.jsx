@@ -18,6 +18,7 @@ const SequencerPanel = ({
   currentBpm,
   activeBrick,
   chordOctaveOffset,
+  viewRequest = 0,
 }) => {
   const { lang, txt, notation } = useAppContext();
   const { isPlaying, togglePlayback, handleBpmChange } = usePlaybackContext();
@@ -74,6 +75,7 @@ const SequencerPanel = ({
           tracks={drumRows}
           totalSteps={totalSteps}
           currentStep={currentStep}
+          viewRequest={viewRequest}
         />
       </div>
 
@@ -89,6 +91,7 @@ const SequencerPanel = ({
           tracks={chordRows}
           totalSteps={totalSteps}
           currentStep={currentStep}
+          viewRequest={viewRequest}
         />
       </div>
 
@@ -104,6 +107,7 @@ const SequencerPanel = ({
           tracks={melodicRows}
           totalSteps={totalSteps}
           currentStep={currentStep}
+          viewRequest={viewRequest}
         />
       </div>
       {/* The DAW helper still describes each row one measure at a time: the

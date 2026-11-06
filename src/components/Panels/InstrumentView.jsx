@@ -27,6 +27,7 @@ const InstrumentView = memo(function InstrumentView() {
     toggleSection = () => {},
     appMode,
     timeline,
+    viewRequest,
     activeBrick,
     chordOctaveOffset,
     dictType,
@@ -105,6 +106,7 @@ const InstrumentView = memo(function InstrumentView() {
             currentBpm={currentBpm}
             activeBrick={activeBrick}
             chordOctaveOffset={chordOctaveOffset}
+            viewRequest={viewRequest}
           />
         </FoldSection>
       )}
