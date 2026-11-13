@@ -1,5 +1,5 @@
-// C-104 (Step 3b, part 1) — A′ from 1600 to 2559 px: ONE instrument column.
-// From 1600 the page is A′ (src/layout.js, A_PRIME_MIN_WIDTH) but the three
+// C-104 (Step 3b, part 1) — A′ from 1648 to 2559 px: ONE instrument column.
+// From 1648 the page is A′ (src/layout.js, A_PRIME_MIN_WIDTH) but the three
 // instrument columns only exist from 2560 (DESKTOP_QUERY, read live by
 // PrototypeA.jsx). Below 2560 the page shows the CHOSEN instrument's column,
 // its head's row 1 a segmented control of the three names — each segment keeps
@@ -133,7 +133,7 @@ afterEach(() => {
   window.history.replaceState({}, "", "/?prototype=a");
 });
 
-describe("C-104: from 1600 to 2559 px, ONE instrument column", () => {
+describe("C-104: from 1648 to 2559 px, ONE instrument column", () => {
   it("renders one column, the piano by default, and three segment buttons pressed for it", async () => {
     await renderApp("?prototype=a&scenario=cmaj");
     const inst = columns();

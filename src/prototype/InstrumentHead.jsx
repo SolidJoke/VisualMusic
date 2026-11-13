@@ -25,7 +25,7 @@ import { PlayGlyph } from "../components/Instruments/InstrumentBar";
  * PrototypeA (translations.js protoA, VMU-182). Each control carries its name in
  * the parity registry (data-fn, src/prototype/aPrimeAccess.js).
  *
- * C-104 (Step 3b): from 1600 to 2559 px A′ shows ONE instrument column, so row 1
+ * C-104 (Step 3b): from 1648 to 2559 px A′ shows ONE instrument column, so row 1
  * becomes a segmented control of the three names ("Piano · Guitare · Basse") when
  * `choices` is given: each segment keeps the registry name of the head toggle it
  * replaces (jouer.instrument-tuile-<id>), is pressed for the chosen instrument and

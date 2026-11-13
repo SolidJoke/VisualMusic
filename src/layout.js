@@ -7,19 +7,22 @@
 //   ?layout=classic             -> the classic page (escape hatch and comparison;
 //                                  not linked from the interface)
 //   ?prototype=a                -> A′ (alias kept: bookmarks, the S1 probe, A′ tests)
-//   no parameter, >= 1600 px    -> A′ (C-104: 1600..2559 shows ONE instrument
+//   no parameter, >= 1648 px    -> A′ (C-104: 1648..2559 shows ONE instrument
 //                                  column, 2560 and wider all three)
-//   no parameter, <  1600 px    -> the classic page (tablet and phone unchanged)
+//   no parameter, <  1648 px    -> the classic page (tablet and phone unchanged)
 //
 // ?layout=classic wins over ?prototype=a when both are present.
 //
 // C-104 (Step 3b): A_PRIME_MIN_WIDTH is the page's threshold, ONE named constant
-// the probe may move later. DESKTOP_QUERY keeps its meaning — "three instrument
+// the probe may move later. C-107 (Step 3b, part 4) moved it from 1600 to 1648:
+// at 1600 the guitar's position rail left the sequencer's step cells 45.9px
+// wide, under S1-11's 48px minimum; 1648 is the first multiple of 16 where the
+// rule holds (~48.9px). DESKTOP_QUERY keeps its meaning — "three instrument
 // columns" — and is read live by PrototypeA.jsx (it follows a resize); it is no
 // longer the page's threshold. A_PRIME_QUERY is the page's, here only.
 
-/** The width from which A′ is served (C-104; adjustable by the probe). */
-export const A_PRIME_MIN_WIDTH = 1600;
+/** The width from which A′ is served (C-104; moved to 1648 by C-107). */
+export const A_PRIME_MIN_WIDTH = 1648;
 
 /** The page's query: A′ from A_PRIME_MIN_WIDTH. */
 export const A_PRIME_QUERY = `(min-width: ${A_PRIME_MIN_WIDTH}px)`;

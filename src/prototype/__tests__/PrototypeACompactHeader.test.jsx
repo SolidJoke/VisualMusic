@@ -1,5 +1,5 @@
 // C-106 (Step 3b, part 2) — below 2560 px, A′'s header is compact.
-// From 1600 to 2559 px the page has one instrument column (C-104); its header
+// From 1648 to 2559 px the page has one instrument column (C-104); its header
 // no longer fits the fixed 251px mode tabs plus the four classic controls, so:
 //   - the tabs take the width of their text (same height, look and data-fn);
 //   - Guide d'utilisation, Guide & Théorie, the language and À propos (Debug in

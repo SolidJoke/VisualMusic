@@ -84,7 +84,7 @@ vi.mock("../../components/Instruments/Fretboard", () => ({ default: () => <div d
 vi.mock("../../components/Panels/SequencerPanel", () => ({ default: () => <div data-testid="sequencer-stub" /> }));
 
 import React, { Suspense } from "react";
-import { render, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { render, cleanup, fireEvent, waitFor, act } from "@testing-library/react";
 import * as Tone from "tone";
 import { AppProvider } from "../../context/AppContext";
 import AppDesktop from "../../AppDesktop";
@@ -157,7 +157,9 @@ afterEach(() => {
 describe("A′-ACCÈS (a): every function of the list is in the page, once, visible", () => {
   it("carries every data-fn of the shared list (the drawer's own once the drawer is open)", async () => {
     await renderApp();
-    const expected = A_PRIME_ACCESS.filter((f) => !f.needs && (!f.devOnly || import.meta.env.DEV));
+    // compactOnly: the compact page's own (the help menu button), never at the
+    // default mock's 2560px and wider; the compact describe below walks it.
+    const expected = A_PRIME_ACCESS.filter((f) => !f.compactOnly && !f.needs && (!f.devOnly || import.meta.env.DEV));
     expect(expected.length).toBeGreaterThan(20);
     for (const f of expected) {
       const els = document.querySelectorAll(`[data-fn="${f.fn}"]`);
@@ -461,5 +463,115 @@ describe("A′ header: the internal subtitle is gone (VMU-188)", () => {
     for (const table of Object.values(translations)) {
       expect(table.protoA).not.toHaveProperty("subtitle");
     }
+  });
+});
+
+// C-107 (Step 3b, part 4) — the shared list read BELOW 2560 px. There A′ shows
+// ONE instrument column (C-104) and the compact header (C-106), so an entry
+// carrying `compactNeeds` exists only once its extra state is set: the "Aide et
+// réglages" menu open, or its own instrument chosen. `compactOnly` is the
+// mirror image: the menu button exists only here (the other tests of this file
+// run wide and skip it). window.matchMedia is mocked so the 2560 query does NOT
+// match; the setup file's default mock is restored after each test.
+const defaultMatchMedia = window.matchMedia;
+
+function mockCompactViewport() {
+  window.matchMedia = vi.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+}
+
+const settle = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
+const countFn = (id) => document.querySelectorAll(`[data-fn="${id}"]`).length;
+
+async function renderCompact(search) {
+  mockCompactViewport();
+  await renderApp(search);
+  await settle();
+}
+
+async function press(id) {
+  const el = fn(id);
+  expect(el, id).not.toBeNull();
+  await act(async () => {
+    fireEvent.click(el);
+  });
+  await settle();
+}
+
+describe("C-107 (Step 3b, part 4): below 2560 px, the list follows the one column and the help menu", () => {
+  afterEach(() => {
+    window.matchMedia = defaultMatchMedia;
+  });
+
+  const studioEntries = A_PRIME_ACCESS.filter((f) => !f.devOnly && (!f.needs || f.needs === "studio"));
+  const dictionaryEntries = A_PRIME_ACCESS.filter((f) => !f.devOnly && f.needs === "dictionary");
+  const withNeeds = (entries, needs) => entries.filter((f) => f.compactNeeds === needs);
+
+  function expectPresent(entries) {
+    for (const f of entries) {
+      expect(countFn(f.fn), f.fn).toBe(1);
+      expect(isVisible(fn(f.fn)), f.fn).toBe(true);
+    }
+  }
+  function expectAbsent(entries) {
+    for (const f of entries) expect(countFn(f.fn), f.fn).toBe(0);
+  }
+
+  it("Studio: the plain entries are there; the menu and instrument ones wait for their state", async () => {
+    await renderCompact("?prototype=a");
+    // The list really carries the states this test walks: a filter typo, or a
+    // compactNeeds dropped from the list, must fail right here.
+    expect(A_PRIME_ACCESS.filter((f) => f.compactOnly).map((f) => f.fn)).toEqual(["nav.aide-reglages"]);
+    // Four: the fifth menu control is the dev-only Debug, which this test skips.
+    expect(withNeeds(studioEntries, "menu").length).toBe(4);
+    expect(withNeeds(studioEntries, "instrument:piano").length).toBeGreaterThan(0);
+    expect(withNeeds(studioEntries, "instrument:guitar").length).toBeGreaterThan(0);
+    expect(withNeeds(studioEntries, "instrument:bass").length).toBeGreaterThan(0);
+
+    expectPresent(studioEntries.filter((f) => !f.compactNeeds));
+    // The piano is the Studio's default instrument: its own entries are there.
+    expectPresent(withNeeds(studioEntries, "instrument:piano"));
+    expectAbsent(withNeeds(studioEntries, "menu"));
+    expectAbsent(withNeeds(studioEntries, "instrument:guitar"));
+    expectAbsent(withNeeds(studioEntries, "instrument:bass"));
+
+    await press("nav.aide-reglages");
+    expectPresent(withNeeds(studioEntries, "menu"));
+
+    await press("jouer.instrument-tuile-guitar");
+    expectPresent(withNeeds(studioEntries, "instrument:guitar"));
+    await press("jouer.instrument-tuile-bass");
+    expectPresent(withNeeds(studioEntries, "instrument:bass"));
+  });
+
+  it("Dictionary: the same, for the entries that only exist there", async () => {
+    await renderCompact("?prototype=a&scenario=cmaj");
+    expect(withNeeds(dictionaryEntries, "instrument:piano").length).toBeGreaterThan(0);
+    expect(withNeeds(dictionaryEntries, "instrument:guitar").length).toBeGreaterThan(0);
+    expect(withNeeds(dictionaryEntries, "instrument:bass").length).toBeGreaterThan(0);
+
+    expectPresent(dictionaryEntries.filter((f) => !f.compactNeeds));
+    expectPresent(withNeeds(dictionaryEntries, "instrument:piano"));
+    expectAbsent(withNeeds(dictionaryEntries, "instrument:guitar"));
+    expectAbsent(withNeeds(dictionaryEntries, "instrument:bass"));
+
+    // The piano's column is the one the guitar replaces: its own entries leave
+    // with it. (The Studio keeps the octave arrows in the selection row, whatever
+    // instrument is chosen, so only the Dictionary can say that of them.)
+    await press("jouer.instrument-tuile-guitar");
+    expectPresent(withNeeds(dictionaryEntries, "instrument:guitar"));
+    expectAbsent(withNeeds(dictionaryEntries, "instrument:piano"));
+
+    await press("jouer.instrument-tuile-bass");
+    expectPresent(withNeeds(dictionaryEntries, "instrument:bass"));
+    expectAbsent(withNeeds(dictionaryEntries, "instrument:guitar"));
   });
 });

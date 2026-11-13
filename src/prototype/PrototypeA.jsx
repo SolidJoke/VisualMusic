@@ -115,7 +115,7 @@ const LABEL_MODE_FN = {
 
 /**
  * C-104 (Step 3b) — does A′ show its THREE instrument columns? Live: it follows
- * a resize, on DESKTOP_QUERY (2560px, src/layout.js). From 1600 to 2559 the page
+ * a resize, on DESKTOP_QUERY (2560px, src/layout.js). From 1648 to 2559 the page
  * shows the single chosen column instead (layout.js A_PRIME_MIN_WIDTH is the
  * page's own threshold, not this one). Without window.matchMedia (SSR, or a
  * test that removed it) the answer is true — all three columns — the same
@@ -431,7 +431,7 @@ export default function PrototypeA({
   const engine = useMemo(() => musicEngineContextValue || {}, [musicEngineContextValue]);
 
   // C-104 (Step 3b): three columns at 2560px and wider, ONE (the chosen
-  // instrument) from 1600 to 2559 — live, it follows a resize. Read before the
+  // instrument) from 1648 to 2559 — live, it follows a resize. Read before the
   // fit below: C-105 lets the single-column page shrink the key.
   const threeColumns = useThreeColumns();
 
@@ -1037,7 +1037,7 @@ export default function PrototypeA({
 
             {/* L1b-1b: the captions left the heads for the columns' tooltip
                 and accessible name; the heads carry the name, ▶ and the setting.
-                C-104: from 1600 to 2559px, ONE column — the chosen instrument,
+                C-104: from 1648 to 2559px, ONE column — the chosen instrument,
                 its head's row 1 a segmented control; at 2560+, the three. */}
             {threeColumns ? (
               <>

@@ -1,14 +1,14 @@
 // VMU-188 — which page the app shows. src/layout.js owns the choice (see its
-// header): A′ by default from 1600 px (C-104; 1600..2559 shows one instrument
+// header): A′ by default from 1648 px (C-104; 1648..2559 shows one instrument
 // column, 2560 and wider three), the classic page with ?layout=classic, A′
-// still under ?prototype=a, the classic page below 1600 px. AppDesktop reads the
+// still under ?prototype=a, the classic page below 1648 px. AppDesktop reads the
 // choice once, when its module loads, so each case here sets the URL and the
 // viewport, then loads a fresh copy of the app.
 //
 //   (a) no parameter, 3840 px -> A′ (its root, data-s1="center")
 //   (b) ?layout=classic -> the classic page
-//   (c) ?prototype=a -> A′, even on a window narrower than 1600 px
-//   (d) no parameter, 1600 to 2559 px -> A′; below 1600 px -> the classic page
+//   (c) ?prototype=a -> A′, even on a window narrower than 1648 px
+//   (d) no parameter, 1648 to 2559 px -> A′; below 1648 px -> the classic page
 //   (e) ?layout=classic&prototype=a -> the classic page
 //   (f) pianoOwnsOctave follows the same choice (A′ => true, classic => false),
 //       and there is one owner: no source file but src/layout.js reads the
@@ -144,18 +144,18 @@ describe("VMU-188: which page the app shows", () => {
     expect(document.querySelector('[data-s1="center"]')).toBeNull();
   });
 
-  it("(c) ?prototype=a shows A′, also on a window narrower than 1600 px", async () => {
-    const { page } = await openApp("?prototype=a", 1599);
+  it("(c) ?prototype=a shows A′, also on a window narrower than 1648 px", async () => {
+    const { page } = await openApp("?prototype=a", 1647);
     expect(page).toBe("a");
   });
 
-  it("(d1) no parameter from 1600 to 2559 px shows A′", async () => {
-    expect((await openApp("", 1600)).page).toBe("a");
+  it("(d1) no parameter from 1648 to 2559 px shows A′", async () => {
+    expect((await openApp("", 1648)).page).toBe("a");
     expect((await openApp("", 2559)).page).toBe("a");
   });
 
-  it("(d2) no parameter below 1600 px shows the classic page", async () => {
-    expect((await openApp("", 1599)).page).toBe("classic");
+  it("(d2) no parameter below 1648 px shows the classic page", async () => {
+    expect((await openApp("", 1647)).page).toBe("classic");
   });
 
   it("(e) ?layout=classic wins over ?prototype=a", async () => {
@@ -206,20 +206,21 @@ describe("VMU-188: which page the app shows", () => {
   });
 });
 
-// C-104 (Step 3b): the page's threshold is one constant, 1600 px. The pure rule
-// answers the same at the boundary; DESKTOP_QUERY keeps meaning three columns.
-describe("C-104: choosePage at the 1600 px threshold", () => {
-  it("1599 px -> classic; 1600 and 2559 px -> A′ (2560 keeps A′ too)", () => {
+// C-104 (Step 3b): the page's threshold is one constant, 1648 px (C-107). The
+// pure rule answers the same at the boundary; DESKTOP_QUERY keeps meaning three
+// columns.
+describe("C-104: choosePage at the 1648 px threshold", () => {
+  it("1647 px -> classic; 1648 and 2559 px -> A′ (2560 keeps A′ too)", () => {
     const at = (width) => choosePage("", width >= A_PRIME_MIN_WIDTH);
-    expect(at(1599)).toBe("classic");
-    expect(at(1600)).toBe("a");
+    expect(at(1647)).toBe("classic");
+    expect(at(1648)).toBe("a");
     expect(at(2559)).toBe("a");
     expect(at(2560)).toBe("a");
   });
 
-  it("keeps the constants: the page at 1600, three columns at 2560", () => {
-    expect(A_PRIME_MIN_WIDTH).toBe(1600);
-    expect(A_PRIME_QUERY).toBe("(min-width: 1600px)");
+  it("keeps the constants: the page at 1648, three columns at 2560", () => {
+    expect(A_PRIME_MIN_WIDTH).toBe(1648);
+    expect(A_PRIME_QUERY).toBe("(min-width: 1648px)");
     expect(DESKTOP_QUERY).toBe("(min-width: 2560px)");
   });
 });

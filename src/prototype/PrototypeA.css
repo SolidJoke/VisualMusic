@@ -21,7 +21,7 @@
   --proto-gap: 24px;           /* between two columns */
   --proto-piano-col: 248px;    /* the piano's column: its inset + its keyboard */
   --proto-piano-inset: 10px;   /* the keyboard's left inset inside that column */
-  /* C-104 (Step 3b): the single instrument column (1600..2559px) is as wide as
+  /* C-104 (Step 3b): the single instrument column (1648..2559px) is as wide as
      the guitar's, so the page does not jump when the instrument changes. */
   --proto-single-col: 424px;
   --proto-head-pad: 16px;      /* the three instrument heads' left padding (aligned) */
@@ -187,7 +187,7 @@
   min-height: 0;
 }
 
-/* C-104 (Step 3b): from 1600 to 2559px A′ shows ONE instrument column, as wide
+/* C-104 (Step 3b): from 1648 to 2559px A′ shows ONE instrument column, as wide
    as the guitar's. The track may grow past that width for the guitar's position
    rail (max-content: 98px more), so a scale's rail is never clipped; the piano
    and the bass keep the 424px track (their max-content is narrower). */
