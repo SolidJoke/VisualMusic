@@ -21,6 +21,9 @@
   --proto-gap: 24px;           /* between two columns */
   --proto-piano-col: 248px;    /* the piano's column: its inset + its keyboard */
   --proto-piano-inset: 10px;   /* the keyboard's left inset inside that column */
+  /* C-104 (Step 3b): the single instrument column (1600..2559px) is as wide as
+     the guitar's, so the page does not jump when the instrument changes. */
+  --proto-single-col: 424px;
   --proto-head-pad: 16px;      /* the three instrument heads' left padding (aligned) */
   /* L1b-1b: one head = two 48px rows (name + ▶, then ‹ setting ›) and a 4px
      gap, the same in the three columns (UX critique § 2: 100px). */
@@ -52,6 +55,11 @@
   position: relative;
   min-height: 100vh;
   display: grid;
+  /* C-104: the page is sized on its content otherwise (the centre keeps its
+     2764px S1-11 asks for, and the single-column page stayed 2018px wide even
+     at 1600). minmax(0, 1fr) lets the centre shrink to the window; nothing in
+     it overflows at 1100px. At 2560+ the row is the same width as the window. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: var(--a-prime-header, 56px) auto;
   background: var(--bg);
   color: var(--text-primary);
@@ -165,6 +173,14 @@
   column-gap: var(--proto-gap, 24px);
   padding: 0 var(--proto-margin-right, 24px) 0 var(--proto-margin-left, 16px);
   min-height: 0;
+}
+
+/* C-104 (Step 3b): from 1600 to 2559px A′ shows ONE instrument column, as wide
+   as the guitar's. The track may grow past that width for the guitar's position
+   rail (max-content: 98px more), so a scale's rail is never clipped; the piano
+   and the bass keep the 424px track (their max-content is narrower). */
+.proto-a__grid--single {
+  grid-template-columns: minmax(0, 1fr) minmax(var(--proto-single-col, 424px), max-content);
 }
 
 .proto-a__center {
@@ -723,6 +739,15 @@
   --piano-v-key: var(--proto-key, 61px);
 }
 
+/* C-104 (Step 3b): in the single 424px column the piano is centred
+   horizontally. Its block keeps its usual width — the 10px inset and the
+   238px keyboard (--proto-piano-col minus the inset). */
+.proto-a__grid--single .proto-a__instrument[data-s1="piano"] .piano-wrapper--vertical {
+  width: calc(var(--proto-piano-col, 248px) - var(--proto-piano-inset, 10px));
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* One head, the same in the three columns (L1b-1b, InstrumentHead.jsx): a
    fixed height, two rows of one line each, padded alike so the names align.
    (The bass's caption once wrapped to two lines and pushed its neck 14px
@@ -774,6 +799,20 @@
   background: var(--surface-3);
   color: var(--text-on-select);
   border-color: var(--select);
+}
+
+/* C-104 (Step 3b): the single column's row 1 — the three names as one
+   segmented control, the header's own look (.proto-a__segments /
+   .proto-a__segment, above). Inside a head row the segments take the row's
+   height (--hit-min, never below it) and the row keeps its one line. */
+.proto-a__head-segments {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.proto-a .proto-a__head-segments .proto-a__segment {
+  height: var(--hit-min);
+  padding: 0 12px;
 }
 
 /* ▶ and the arrows: square 48px targets. */

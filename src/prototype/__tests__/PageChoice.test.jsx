@@ -1,13 +1,14 @@
 // VMU-188 — which page the app shows. src/layout.js owns the choice (see its
-// header): A′ by default on a desktop (>= 2560 px), the classic page with
-// ?layout=classic, A′ still under ?prototype=a, the classic page on a narrower
-// window. AppDesktop reads the choice once, when its module loads, so each case
-// here sets the URL and the viewport, then loads a fresh copy of the app.
+// header): A′ by default from 1600 px (C-104; 1600..2559 shows one instrument
+// column, 2560 and wider three), the classic page with ?layout=classic, A′
+// still under ?prototype=a, the classic page below 1600 px. AppDesktop reads the
+// choice once, when its module loads, so each case here sets the URL and the
+// viewport, then loads a fresh copy of the app.
 //
-//   (a) no parameter, desktop -> A′ (its root, data-s1="center")
+//   (a) no parameter, 3840 px -> A′ (its root, data-s1="center")
 //   (b) ?layout=classic -> the classic page
-//   (c) ?prototype=a -> A′, even on a window narrower than 2560 px
-//   (d) no parameter, narrower than 2560 px -> the classic page
+//   (c) ?prototype=a -> A′, even on a window narrower than 1600 px
+//   (d) no parameter, 1600 to 2559 px -> A′; below 1600 px -> the classic page
 //   (e) ?layout=classic&prototype=a -> the classic page
 //   (f) pianoOwnsOctave follows the same choice (A′ => true, classic => false),
 //       and there is one owner: no source file but src/layout.js reads the
@@ -78,25 +79,34 @@ vi.mock("../../components/Panels/SequencerPanel", () => ({ default: () => <div d
 import React, { Suspense } from "react";
 import { render, cleanup, waitFor, fireEvent } from "@testing-library/react";
 import { translations } from "../../i18n/translations";
+import { choosePage, A_PRIME_MIN_WIDTH, A_PRIME_QUERY, DESKTOP_QUERY } from "../../layout";
 
 const FR = translations.fr;
 
 // Each case loads the whole app (lazy A′ chunk included): generous limits.
 vi.setConfig({ testTimeout: 60_000 });
 const LOAD_TIMEOUT = 20_000;
-const DESKTOP_QUERY = "(min-width: 2560px)";
 
-/** Sets the URL and the viewport, loads a fresh copy of the app, and reports
- * which page it shows (A′ root [data-prototype="a"], else the classic root). */
-async function openApp(search, desktop) {
+/** matchMedia at a viewport `width`: "(min-width: Npx)" matches when width >= N. */
+function viewport(width) {
+  return vi.fn().mockImplementation((query) => {
+    const min = /^\(min-width:\s*(\d+)px\)$/.exec(query);
+    return {
+      matches: min ? width >= Number(min[1]) : false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+  });
+}
+
+/** Sets the URL and the viewport width, loads a fresh copy of the app, and
+ * reports which page it shows (A′ root [data-prototype="a"], else the classic
+ * root). */
+async function openApp(search, width = 3840) {
   cleanup();
   window.history.replaceState({}, "", `/${search}`);
-  window.matchMedia = vi.fn().mockImplementation((query) => ({
-    matches: query === DESKTOP_QUERY ? desktop : false,
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  }));
+  window.matchMedia = viewport(width);
   dictionary.calls.length = 0;
   vi.resetModules();
   const { AppProvider } = await import("../../context/AppContext");
@@ -122,40 +132,44 @@ async function openApp(search, desktop) {
 afterEach(() => cleanup());
 
 describe("VMU-188: which page the app shows", () => {
-  it("(a) no parameter on a desktop shows A′", async () => {
-    const { page } = await openApp("", true);
+  it("(a) no parameter at 3840 px shows A′", async () => {
+    const { page } = await openApp("", 3840);
     expect(page).toBe("a");
     expect(document.querySelector('[data-s1="center"]')).not.toBeNull();
   });
 
   it("(b) ?layout=classic shows the classic page", async () => {
-    const { page } = await openApp("?layout=classic", true);
+    const { page } = await openApp("?layout=classic", 3840);
     expect(page).toBe("classic");
     expect(document.querySelector('[data-s1="center"]')).toBeNull();
   });
 
-  it("(c) ?prototype=a shows A′, also on a window narrower than 2560 px", async () => {
-    const { page } = await openApp("?prototype=a", false);
+  it("(c) ?prototype=a shows A′, also on a window narrower than 1600 px", async () => {
+    const { page } = await openApp("?prototype=a", 1599);
     expect(page).toBe("a");
   });
 
-  it("(d) no parameter below 2560 px shows the classic page", async () => {
-    const { page } = await openApp("", false);
-    expect(page).toBe("classic");
+  it("(d1) no parameter from 1600 to 2559 px shows A′", async () => {
+    expect((await openApp("", 1600)).page).toBe("a");
+    expect((await openApp("", 2559)).page).toBe("a");
+  });
+
+  it("(d2) no parameter below 1600 px shows the classic page", async () => {
+    expect((await openApp("", 1599)).page).toBe("classic");
   });
 
   it("(e) ?layout=classic wins over ?prototype=a", async () => {
-    const { page } = await openApp("?layout=classic&prototype=a", true);
+    const { page } = await openApp("?layout=classic&prototype=a", 3840);
     expect(page).toBe("classic");
   });
 
   it("(f) pianoOwnsOctave follows the choice: true on A′, false on the classic page", async () => {
-    expect((await openApp("", true)).pianoOwnsOctave).toBe(true);
-    expect((await openApp("?layout=classic", true)).pianoOwnsOctave).toBe(false);
+    expect((await openApp("", 3840)).pianoOwnsOctave).toBe(true);
+    expect((await openApp("?layout=classic", 3840)).pianoOwnsOctave).toBe(false);
   });
 
   it("(g) the classic page keeps the Math & Rythmes Modal and never shows the A′ dock", async () => {
-    await openApp("?layout=classic", true);
+    await openApp("?layout=classic", 3840);
     expect(document.querySelector(".math-dock")).toBeNull();
     const mathButton = [...document.querySelectorAll(".sidebar-cta-btn")].find(
       (b) => b.textContent === FR.mathRhythms
@@ -189,5 +203,23 @@ describe("VMU-188: which page the app shows", () => {
     };
     walk(srcDir);
     expect(readers).toEqual(["layout.js"]);
+  });
+});
+
+// C-104 (Step 3b): the page's threshold is one constant, 1600 px. The pure rule
+// answers the same at the boundary; DESKTOP_QUERY keeps meaning three columns.
+describe("C-104: choosePage at the 1600 px threshold", () => {
+  it("1599 px -> classic; 1600 and 2559 px -> A′ (2560 keeps A′ too)", () => {
+    const at = (width) => choosePage("", width >= A_PRIME_MIN_WIDTH);
+    expect(at(1599)).toBe("classic");
+    expect(at(1600)).toBe("a");
+    expect(at(2559)).toBe("a");
+    expect(at(2560)).toBe("a");
+  });
+
+  it("keeps the constants: the page at 1600, three columns at 2560", () => {
+    expect(A_PRIME_MIN_WIDTH).toBe(1600);
+    expect(A_PRIME_QUERY).toBe("(min-width: 1600px)");
+    expect(DESKTOP_QUERY).toBe("(min-width: 2560px)");
   });
 });

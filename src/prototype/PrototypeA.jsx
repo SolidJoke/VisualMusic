@@ -15,6 +15,7 @@ import { placementLabel, stepPlacement } from "../components/Instruments/placeme
 import { verticalFretShare } from "../components/Instruments/verticalNeckGeometry";
 import { chooseKeyboardOctaves, chooseFretWindow } from "../core/instrumentWindow";
 import { translations } from "../i18n/translations";
+import { DESKTOP_QUERY } from "../layout";
 import { useBpmEditor } from "../hooks/useBpmEditor";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
 import InstrumentHead from "./InstrumentHead";
@@ -111,6 +112,28 @@ const LABEL_MODE_FN = {
   us: "nav.noms-notes-us",
   fingers: "nav.etiquettes-doigts",
 };
+
+/**
+ * C-104 (Step 3b) — does A′ show its THREE instrument columns? Live: it follows
+ * a resize, on DESKTOP_QUERY (2560px, src/layout.js). From 1600 to 2559 the page
+ * shows the single chosen column instead (layout.js A_PRIME_MIN_WIDTH is the
+ * page's own threshold, not this one). Without window.matchMedia (SSR, or a
+ * test that removed it) the answer is true — all three columns — the same
+ * answer useBreakpoint gives; hooks/useMediaQuery.js itself calls matchMedia
+ * unguarded, so it is not reused here.
+ */
+function useThreeColumns() {
+  const supported = typeof window !== "undefined" && typeof window.matchMedia === "function";
+  const [matches, setMatches] = useState(() => (supported ? window.matchMedia(DESKTOP_QUERY).matches : true));
+  useEffect(() => {
+    if (!supported) return undefined;
+    const mql = window.matchMedia(DESKTOP_QUERY);
+    const onChange = (e) => setMatches(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [supported]);
+  return supported ? matches : true;
+}
 
 function readParams() {
   if (typeof window === "undefined") return {};
@@ -516,13 +539,25 @@ export default function PrototypeA({
     };
   };
   const chosenInstrument = engine.playbackInstrument || "piano";
-  const head = (id, name, setting) => (
+  // C-104 (Step 3b): three columns at 2560px and wider, ONE (the chosen
+  // instrument) from 1600 to 2559 — live, it follows a resize.
+  const threeColumns = useThreeColumns();
+  const selectInstrument = (id) => engine.setPlaybackInstrument && engine.setPlaybackInstrument(id);
+  // The single column's row 1: the three names as one segmented control, each
+  // keeping its head toggle's registry name (InstrumentHead's `choices`).
+  const instrumentChoices = [
+    { id: "piano", name: T.piano, selected: chosenInstrument === "piano", onSelect: () => selectInstrument("piano") },
+    { id: "guitar", name: T.guitar, selected: chosenInstrument === "guitar", onSelect: () => selectInstrument("guitar") },
+    { id: "bass", name: T.bass, selected: chosenInstrument === "bass", onSelect: () => selectInstrument("bass") },
+  ];
+  const head = (id, name, setting, choices = null) => (
     <InstrumentHead
       id={id}
       name={name}
       chooseTitle={T.chooseInstrument}
       selected={chosenInstrument === id}
-      onSelect={() => engine.setPlaybackInstrument && engine.setPlaybackInstrument(id)}
+      onSelect={() => selectInstrument(id)}
+      choices={choices}
       play={isDictionary ? { label: `${T.play} — ${name}`, onPlay: () => engine.playInstrument && engine.playInstrument(id) } : null}
       setting={setting}
     />
@@ -573,6 +608,56 @@ export default function PrototypeA({
       </div>
     );
   };
+
+  // C-104 — one instrument column, its content unchanged: same data-s1, same
+  // data-fn, same head and body. The single-column page renders only the chosen
+  // instrument's; at 2560px and wider the three are the same elements as before.
+  const instrumentView = {
+    piano: {
+      fn: "jouer.piano",
+      name: T.piano,
+      caption: T.pianoCaption,
+      attrs: { "data-s1-notes": s1Notes },
+      setting: pianoSetting,
+      body: <PianoKeyboard orientation="vertical" windowOctaves={instrumentFit.keyboard.octaves} />,
+    },
+    guitar: {
+      fn: "jouer.guitare",
+      name: T.guitar,
+      caption: T.neckCaption,
+      attrs: { "data-s1-positions": s1GuitarPositions },
+      setting: neckSetting("guitar"),
+      body: neckFor("guitar"),
+    },
+    bass: {
+      fn: "jouer.basse",
+      name: T.bass,
+      caption: T.neckCaption,
+      attrs: { "data-s1-positions": s1BassPositions },
+      setting: neckSetting("bass"),
+      body: neckFor("bass"),
+    },
+  };
+  const instrumentColumn = (id, choices = null) => {
+    const v = instrumentView[id];
+    return (
+      <section
+        key={id}
+        className="proto-a__instrument"
+        data-s1={id}
+        {...v.attrs}
+        data-fn={v.fn}
+        aria-label={`${v.name} — ${v.caption}`}
+        title={v.caption}
+      >
+        {head(id, v.name, v.setting, choices)}
+        {v.body}
+      </section>
+    );
+  };
+  // A playback instrument this page does not draw (never set by its setters)
+  // falls back to the piano, so the single column is always one of the three.
+  const singleInstrument = instrumentView[chosenInstrument] ? chosenInstrument : "piano";
 
   // The sequencer, rendered once: it sits alone in the Dictionary's centre
   // column, and inside the Studio's layout grid (with the dock under it and
@@ -671,7 +756,7 @@ export default function PrototypeA({
             </button>
           </header>
 
-          <div className="proto-a__grid">
+          <div className={`proto-a__grid${threeColumns ? "" : " proto-a__grid--single"}`}>
             <main className="proto-a__center" data-s1="center">
               <section className="proto-a__panel proto-a__transport" data-s1="transport">
                 <button type="button" className={`proto-a__btn proto-a__btn--primary ${isPlaying ? "is-playing" : ""}`} data-fn="jouer.lecture" onClick={handlePlay}>
@@ -864,42 +949,18 @@ export default function PrototypeA({
             </main>
 
             {/* L1b-1b: the captions left the heads for the columns' tooltip
-                and accessible name; the heads carry the name, ▶ and the setting. */}
-            <section
-              className="proto-a__instrument"
-              data-s1="piano"
-              data-s1-notes={s1Notes}
-              data-fn="jouer.piano"
-              aria-label={`${T.piano} — ${T.pianoCaption}`}
-              title={T.pianoCaption}
-            >
-              {head("piano", T.piano, pianoSetting)}
-              <PianoKeyboard orientation="vertical" windowOctaves={instrumentFit.keyboard.octaves} />
-            </section>
-
-            <section
-              className="proto-a__instrument"
-              data-s1="guitar"
-              data-s1-positions={s1GuitarPositions}
-              data-fn="jouer.guitare"
-              aria-label={`${T.guitar} — ${T.neckCaption}`}
-              title={T.neckCaption}
-            >
-              {head("guitar", T.guitar, neckSetting("guitar"))}
-              {neckFor("guitar")}
-            </section>
-
-            <section
-              className="proto-a__instrument"
-              data-s1="bass"
-              data-s1-positions={s1BassPositions}
-              data-fn="jouer.basse"
-              aria-label={`${T.bass} — ${T.neckCaption}`}
-              title={T.neckCaption}
-            >
-              {head("bass", T.bass, neckSetting("bass"))}
-              {neckFor("bass")}
-            </section>
+                and accessible name; the heads carry the name, ▶ and the setting.
+                C-104: from 1600 to 2559px, ONE column — the chosen instrument,
+                its head's row 1 a segmented control; at 2560+, the three. */}
+            {threeColumns ? (
+              <>
+                {instrumentColumn("piano")}
+                {instrumentColumn("guitar")}
+                {instrumentColumn("bass")}
+              </>
+            ) : (
+              instrumentColumn(singleInstrument, instrumentChoices)
+            )}
           </div>
 
           {drawerOpen && (
