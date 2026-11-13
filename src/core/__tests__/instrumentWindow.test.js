@@ -4,8 +4,31 @@
 // 1645px full-neck rows, 22 frets) and the real share function
 // (verticalFretShare) to prove the module itself hard-codes none of them.
 import { describe, it, expect } from "vitest";
-import { chooseKeyboardOctaves, chooseFretWindow } from "../instrumentWindow";
+import { chooseKeySize, chooseKeyboardOctaves, chooseFretWindow } from "../instrumentWindow";
 import { verticalFretShare } from "../../components/Instruments/verticalNeckGeometry";
+
+describe("chooseKeySize (C-105: full 61px, floor 44px, 18px chrome, 2 octaves)", () => {
+  const opts = { fullKeyPx: 61, minKeyPx: 44, chromePx: 18, targetOctaves: 2 };
+
+  it.each([
+    [738, 48], // 1920x970: (738 - 18) / 15 = 48
+    [820, 53], // 2048x1052: floor(802 / 15) = 53
+    [933, 61], // 2 octaves fit at the full key
+    [2000, 61], // never above the full key
+    [678, 44], // exactly the floor
+    [498, 44], // 1536x730: the floor wins over 32
+    [Infinity, 61], // jsdom / "everything fits"
+  ])("available %spx -> %ipx key", (available, key) => {
+    expect(chooseKeySize(available, opts)).toBe(key);
+  });
+
+  it("feeds the octave rule with the shrunk key (2 octaves at 48px, 1 at the floor)", () => {
+    // 2 octaves at 48px: 15 * 48 + 18 = 738, exactly the available height.
+    expect(chooseKeyboardOctaves(738, { keyPx: chooseKeySize(738, opts), chromePx: 18, maxOctaves: 4 }).octaves).toBe(2);
+    // 1536x730 shrinks to the 44px floor, and only 1 octave (8 * 44 + 18 = 370) fits.
+    expect(chooseKeyboardOctaves(498, { keyPx: chooseKeySize(498, opts), chromePx: 18, maxOctaves: 4 }).octaves).toBe(1);
+  });
+});
 
 describe("chooseKeyboardOctaves (61px keys, 18px chrome, max 4 octaves)", () => {
   const opts = { keyPx: 61, chromePx: 18, maxOctaves: 4 };

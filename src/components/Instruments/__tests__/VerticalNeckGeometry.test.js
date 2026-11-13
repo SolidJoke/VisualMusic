@@ -42,10 +42,21 @@ const NECKS = { guitar: 22, bass: 22 }; // useFretboard.js getNumFrets
 const read = (p) => fs.readFileSync(path.resolve(p), "utf8");
 const neckCss = read("src/components/Instruments/Fretboard.css");
 const pageCss = read("src/prototype/PrototypeA.css");
-const cssNumber = (css, name) => {
-  const m = css.match(new RegExp(`${name}:\\s*(\\d+(?:\\.\\d+)?)(?:px)?\\s*;`));
+const cssNumber = (css, name, depth = 0) => {
+  const m = css.match(new RegExp(`${name}:\\s*([^;]+);`));
   if (!m) throw new Error(`${name} not found`);
-  return Number(m[1]);
+  const raw = m[1].trim();
+  // C-105 (Step 3b): --proto-key is now an alias of --proto-key-full (the page
+  // overrides --proto-key inline in the single column). Follow one or more
+  // var() aliases so this premise still reads the full key's thickness.
+  const alias = raw.match(/^var\(\s*(--[a-zA-Z0-9-]+)/);
+  if (alias) {
+    if (depth > 5) throw new Error(`${name} resolves cyclically`);
+    return cssNumber(css, alias[1], depth + 1);
+  }
+  const n = parseFloat(raw);
+  if (!Number.isFinite(n)) throw new Error(`${name} is not a number: ${raw}`);
+  return n;
 };
 
 // The keyboard's height, as the page defines it: white keys x key thickness +

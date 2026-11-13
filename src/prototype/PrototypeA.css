@@ -46,7 +46,11 @@
      head alone would leave 21px). S1-8 (>= 52px) and S1-5 (>= 64px up to
      fret 12) still hold. The other lever, the column's 24px top padding, was
      kept: it aligns the heads with the transport's top (y 96). */
-  --proto-key: 61px;
+  /* C-105 (Step 3b): the full key stays readable once the single column
+     overrides --proto-key inline (the page writes the shrunk key on the root).
+     Everything derived (--proto-inst-h, --fbv-h) follows whichever value wins. */
+  --proto-key-full: 61px;
+  --proto-key: var(--proto-key-full, 61px);
   --proto-keys: 29;
   --proto-piano-chrome: 18px;
   --proto-inst-h: calc(var(--proto-keys, 29) * var(--proto-key, 61px) + var(--proto-piano-chrome, 18px));

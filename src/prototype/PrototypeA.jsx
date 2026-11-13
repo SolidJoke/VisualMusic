@@ -13,7 +13,7 @@ import { generateChordsFromNNS, formatPitchRange, midiToDisplayName } from "../c
 import { realizationRange } from "../core/realization";
 import { placementLabel, stepPlacement } from "../components/Instruments/placementLabel";
 import { verticalFretShare } from "../components/Instruments/verticalNeckGeometry";
-import { chooseKeyboardOctaves, chooseFretWindow } from "../core/instrumentWindow";
+import { chooseKeySize, chooseKeyboardOctaves, chooseFretWindow } from "../core/instrumentWindow";
 import { translations } from "../i18n/translations";
 import { DESKTOP_QUERY } from "../layout";
 import { useBpmEditor } from "../hooks/useBpmEditor";
@@ -430,13 +430,19 @@ export default function PrototypeA({
   // context value is not yet there, re-running the memo needlessly).
   const engine = useMemo(() => musicEngineContextValue || {}, [musicEngineContextValue]);
 
+  // C-104 (Step 3b): three columns at 2560px and wider, ONE (the chosen
+  // instrument) from 1600 to 2559 — live, it follows a resize. Read before the
+  // fit below: C-105 lets the single-column page shrink the key.
+  const threeColumns = useThreeColumns();
+
   // C-103 (Step 3a) — how many octaves and frets fit in the measured height,
   // and which fret window each neck shows. Every size is read from the page's
-  // own CSS (--proto-key, --proto-piano-chrome, --proto-keys, --fbv-head,
-  // --fbv-fret, --fbv-n) so no number is written twice; the fallbacks are the
-  // same values, used only where the CSS cannot be read (jsdom, which measures
-  // 0 and keeps the full instruments anyway). The two pure rules live in
-  // core/instrumentWindow.js and receive all of these as parameters.
+  // own CSS (--proto-key-full, --hit-min, --proto-piano-chrome, --proto-keys,
+  // --fbv-head, --fbv-fret, --fbv-n) so no number is written twice; the
+  // fallbacks are the same values, used only where the CSS cannot be read
+  // (jsdom, which measures 0 and keeps the full instruments anyway). The three
+  // pure rules live in core/instrumentWindow.js and receive all of these as
+  // parameters.
   const instrumentFit = useMemo(() => {
     const root = protoRef.current;
     const readPx = (css, name, fallback) => {
@@ -444,8 +450,21 @@ export default function PrototypeA({
       return Number.isFinite(n) ? n : fallback;
     };
     const cs = root ? getComputedStyle(root) : { getPropertyValue: () => "" };
-    const keyPx = readPx(cs, "--proto-key", 61);
+    // C-105: the CSS default is read from --proto-key-full, never from
+    // --proto-key — the single column writes the shrunk key there:
+    //   key = min(full, max(--hit-min, floor((available - chrome) / 15)))
+    // so the keyboard keeps 2 octaves; the whole page then uses that key.
+    const fullKeyPx = readPx(cs, "--proto-key-full", 61);
+    const minKeyPx = readPx(cs, "--hit-min", 44);
     const chromePx = readPx(cs, "--proto-piano-chrome", 18);
+    const keyPx = threeColumns
+      ? fullKeyPx
+      : chooseKeySize(availableHeight > 0 ? availableHeight : Infinity, {
+          fullKeyPx,
+          minKeyPx,
+          chromePx,
+          targetOctaves: 2,
+        });
     const fullKeys = parseInt(cs.getPropertyValue("--proto-keys"), 10) || 29;
     const maxOctaves = Math.max(1, Math.round((fullKeys - 1) / 7));
     const fullKeyboardHeight = fullKeys * keyPx + chromePx;
@@ -471,8 +490,8 @@ export default function PrototypeA({
       });
     };
 
-    return { keyboard, guitar: windowFor("guitar"), bass: windowFor("bass") };
-  }, [availableHeight, engine]);
+    return { keyboard, keyPx, guitar: windowFor("guitar"), bass: windowFor("bass") };
+  }, [availableHeight, engine, threeColumns]);
   const isDictionary = appMode === "dictionary";
   // The classic words of a position (voicingOf, shapeLabel, positionDefault...)
   // live in the page's main table; the French one when `txt` has none.
@@ -580,9 +599,6 @@ export default function PrototypeA({
     };
   };
   const chosenInstrument = engine.playbackInstrument || "piano";
-  // C-104 (Step 3b): three columns at 2560px and wider, ONE (the chosen
-  // instrument) from 1600 to 2559 — live, it follows a resize.
-  const threeColumns = useThreeColumns();
   const selectInstrument = (id) => engine.setPlaybackInstrument && engine.setPlaybackInstrument(id);
   // The single column's row 1: the three names as one segmented control, each
   // keeping its head toggle's registry name (InstrumentHead's `choices`).
@@ -719,10 +735,14 @@ export default function PrototypeA({
   return (
     <MusicEngineProvider value={musicEngineContextValue}>
       <PlaybackProvider value={playbackContextValue}>
+        {/* C-105: below 2560px the key shrinks to keep 2 octaves; at 2560+
+            --proto-key keeps its CSS value (the full key), so no inline style. */}
         <div
           className={`proto-a${threeColumns ? "" : " proto-a--compact"}`}
           data-prototype="a"
           ref={protoRef}
+          style={threeColumns ? undefined : { "--proto-key": `${instrumentFit.keyPx}px` }}
+          data-fit-key={instrumentFit.keyPx}
           data-fit-octaves={instrumentFit.keyboard.octaves}
           data-fit-keys={instrumentFit.keyboard.keys}
         >

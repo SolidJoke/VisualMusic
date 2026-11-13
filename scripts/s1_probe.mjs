@@ -165,9 +165,14 @@
  * (4 octaves, frets 1-22). The window follows the music: the piano through
  * chooseKeyboardWindow, the necks through chooseFretWindow (core/instrumentWindow.js).
  *   npm run s1:probe -- --height-fit-only   # S1-29 alone
- * Positive control: forcing the keyboard to always show 4 octaves must turn
- * S1-29 red at the two 2560 heights (and only there):
- *   (temporarily make chooseKeyboardOctaves return 4 octaves)
+ * C-105 (Step 3b) adds 1920x970 and 2048x1052: below 2560px wide A′ is one
+ * column and the key itself shrinks to keep 2 octaves —
+ * key = min(61, max(--hit-min, floor((available - 18) / 15))) — so the key,
+ * the octave count and the necks' full-neck rows all follow that key. The
+ * piano is measured first, then the guitar is chosen for the neck readings.
+ * Positive control: making chooseKeySize always return the full key must turn
+ * S1-29 red at those two sizes (and only there); it does.
+ *   (temporarily make chooseKeySize return fullKeyPx)
  *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
@@ -243,10 +248,16 @@ const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY |
 // S1-29 (C-103 Step 3a): the window below Gabriel's 2045px is measured at the
 // full height and at two shorter ones (a 2560 wide page, 1440 = a typical
 // laptop, 1283 = the page where the instruments must first start giving way).
+// C-105 (Step 3b) adds two single-column laptops (1920x970, 2048x1052): below
+// 2560px wide the key itself shrinks to keep 2 octaves, floor 44px.
 const HEIGHT_FIT_VIEWPORTS = [
   { w: 3840, h: 2045, label: "3840x2045" },
   { w: 2560, h: 1440, label: "2560x1440" },
   { w: 2560, h: 1283, label: "2560x1283" },
+  // C-105 (Step 3b): below 2560px the single column shrinks the white key so
+  // the keyboard keeps 2 octaves (never under --hit-min, 44px).
+  { w: 1920, h: 970, label: "1920x970" },
+  { w: 2048, h: 1052, label: "2048x1052" },
 ];
 
 // VMU-212 follow-up (C-99d, Gabriel 2026-11-05: "Augmente la taille des polices
@@ -321,7 +332,7 @@ const CRITERIA = [
   { id: "S1-28", decides: true, matrix: false, what: "one text size: every A′ text 14px (+-0.5), the instruments' frozen drawing excepted, SVG text >= 14px on screen" },
   // C-103 (Step 3a): below 2045px the instruments keep their drawing and show
   // fewer octaves / frets. Also matrix:false (per viewport, on Gabriel's page).
-  { id: "S1-29", decides: true, matrix: false, what: "height fit: below 2045px the white key stays 61px and the fret rows their full-neck heights; the keyboard shows the largest whole octave count that fits ((7k+1)*61+18 <= available), the necks the most frets whose full-neck rows fit the keyboard's length, their bottom at/above the keyboard's by less than one row; 3840x2045 identical to today (4 octaves, frets 1-22)" },
+  { id: "S1-29", decides: true, matrix: false, what: "height fit: below 2045px the instruments show fewer octaves/frets; at 2560+ the white key stays 61px, below 2560px (single column, C-105) it shrinks to keep 2 octaves, floor --hit-min; the fret rows keep their full-neck height at that key, their bottom at/above the keyboard's by less than one row; 3840x2045 identical to today (4 octaves, frets 1-22)" },
 ];
 
 // The per-state matrix criteria (S1-28 is a per-viewport check, see above).
@@ -3870,48 +3881,100 @@ function fretShareFor(fret, numFrets) {
 }
 
 /** In page: the raw sizes S1-29 needs, plus what the page actually chose. */
-function heightFitMeasure() {
+function heightFitMeasure(withKeyboard = true) {
   const proto = document.querySelector(".proto-a");
   const piano = document.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
-  if (!proto || !piano) return { open: false };
+  // Below 2560px the page shows ONE instrument: the keyboard readings need the
+  // piano chosen, the neck readings the guitar. The same function serves both.
+  if (!proto || (withKeyboard && !piano)) return { open: false };
+  const width = window.innerWidth;
+  const scroll = { height: document.documentElement.scrollHeight, viewport: window.innerHeight };
   const css = (el, name) => parseFloat(getComputedStyle(el).getPropertyValue(name));
   const keyPx = css(proto, "--proto-key");
   const chromePx = css(proto, "--proto-piano-chrome");
   const fullKeys = parseInt(getComputedStyle(proto).getPropertyValue("--proto-keys"), 10) || 29;
-  const pianoRect = piano.getBoundingClientRect();
-  const available = Math.max(0, window.innerHeight - pianoRect.top - 40);
-  const whiteKey = piano.querySelector(".piano-key.white-key");
+  const pianoRect = piano ? piano.getBoundingClientRect() : { top: 0, bottom: 0 };
+  const available = piano ? Math.max(0, window.innerHeight - pianoRect.top - 40) : 0;
+  const whiteKey = piano ? piano.querySelector(".piano-key.white-key") : null;
   const whiteKeyHeight = whiteKey ? whiteKey.getBoundingClientRect().height : 0;
   const neckEl = document.querySelector('[data-s1="guitar"] .fretboard-container--vertical');
   const ncs = getComputedStyle(neckEl || proto);
-  const headPx = css(neckEl || proto, "--fbv-head");
-  const fretPx = css(neckEl || proto, "--fbv-fret");
+  // Single column (< 2560px): no neck is rendered while the keyboard is
+  // measured, so the neck's fixed rows come from the same documented defaults
+  // the page uses when the CSS is out of reach (36px heads + 70px open row).
+  const headPx = css(neckEl || proto, "--fbv-head") || 36;
+  const fretPx = css(neckEl || proto, "--fbv-fret") || 70;
   const numFrets = parseInt(ncs.getPropertyValue("--fbv-n"), 10) || 22;
   const fixedRows = 2 * headPx + fretPx;
   const fullRowsHeight = fullKeys * keyPx + chromePx - fixedRows;
+  // S1-4, recomputed on the neck the height fit shows: pastilles, fret
+  // numbers, open-string names, status symbols, inlay dots and warnings, with
+  // the outlines / hard rings S1-4 counts as drawn. Two objects overlap when
+  // their drawn areas intersect (an ancestor pair is one object, not two).
+  const area = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  const drawnRect = (el) => {
+    const b = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    let grow = 0;
+    if (cs.outlineStyle !== "none") grow = Math.max(grow, parseFloat(cs.outlineOffset) + parseFloat(cs.outlineWidth));
+    if (cs.boxShadow && cs.boxShadow !== "none") {
+      for (const shadow of cs.boxShadow.split(/,(?![^(]*\))/)) {
+        if (/inset/.test(shadow)) continue;
+        const nums = shadow.replace(/rgba?\([^)]*\)/g, "").trim().split(/\s+/).map(parseFloat).filter(Number.isFinite);
+        if (nums.length >= 4 && nums[2] === 0) grow = Math.max(grow, nums[3] + Math.max(Math.abs(nums[0]), Math.abs(nums[1])));
+      }
+    }
+    return { left: b.left - grow, right: b.right + grow, top: b.top - grow, bottom: b.bottom + grow };
+  };
+  const overLap = (el) => {
+    if (!el) return { n: 0, pairs: 0, examples: [] };
+    const els = [...el.querySelectorAll(".note-marker, .fbv-fret-number, .open-string-name, .string-status-symbol, .fretboard-dot, .range-warning")]
+      .filter((e) => e.getClientRects().length > 0);
+    const rects = els.map(drawnRect);
+    const examples = [];
+    let pairs = 0;
+    for (let i = 0; i < els.length; i++) {
+      for (let j = i + 1; j < els.length; j++) {
+        if (els[i].contains(els[j]) || els[j].contains(els[i])) continue;
+        if (area(rects[i], rects[j]) > 0.01) {
+          pairs++;
+          if (examples.length < 3) examples.push(`${els[i].className || els[i].tagName} x ${els[j].className || els[j].tagName}`);
+        }
+      }
+    }
+    return { n: els.length, pairs, examples };
+  };
   const neck = (id) => {
     const el = document.querySelector(`[data-s1="${id}"] .fretboard-container--vertical`);
     const win = (el?.getAttribute("data-fret-window") || "").split("-").map(Number);
     const rect = el ? el.getBoundingClientRect() : { top: 0, bottom: 0, height: 0 };
     const rows = el ? [...el.querySelectorAll('.fbv-fret-row[data-fret]:not([data-fret="0"])')] : [];
     const last = rows[rows.length - 1];
+    const rowHeights = rows.map((row) => ({
+      fret: Number(row.getAttribute("data-fret")),
+      height: row.getBoundingClientRect().height,
+    }));
     return {
       firstFret: Number.isFinite(win[0]) ? win[0] : 0,
       lastFret: Number.isFinite(win[1]) ? win[1] : 0,
       height: rect.height,
       bottom: rect.bottom,
       lastRowHeight: last ? last.getBoundingClientRect().height : 0,
+      rowHeights,
+      smallestRow: rowHeights.length ? Math.min(...rowHeights.map((r) => r.height)) : 0,
+      overlap: overLap(el),
     };
   };
   return {
     open: true,
-    keyPx, chromePx, fullKeys, available,
+    width, keyPx, chromePx, fullKeys, available, scroll,
+    fitKey: Number(proto.getAttribute("data-fit-key")),
     fitOctaves: Number(proto.getAttribute("data-fit-octaves")),
     fitKeys: Number(proto.getAttribute("data-fit-keys")),
-    windowOctaves: Number(piano.getAttribute("data-window-octaves")),
+    windowOctaves: piano ? Number(piano.getAttribute("data-window-octaves")) : null,
     whiteKeyHeight,
     fixedRows, fullRowsHeight, numFrets,
-    keyboardBottom: pianoRect.bottom,
+    keyboardBottom: piano ? pianoRect.bottom : 0,
     guitar: neck("guitar"),
     bass: neck("bass"),
   };
@@ -3975,23 +4038,50 @@ async function reportHeightFit(browser, viewport) {
     if (!m.open) {
       fails.push("the A′ prototype / vertical piano did not open");
     } else {
-      // The keyboard: largest k with (7k+1)*keyPx + chromePx <= available, min 1.
+      // C-105: below 2560px wide the key shrinks to keep 2 octaves:
+      //   key = min(61, max(44, floor((available - chrome) / 15))).
+      // At 2560 and wider nothing changes: the full 61px key.
+      const expectedKey = m.width >= 2560
+        ? 61
+        : Math.min(61, Math.max(44, Math.floor((m.available - m.chromePx) / 15)));
+      if (m.fitKey !== expectedKey) fails.push(`key: page chose ${m.fitKey}px, expected ${expectedKey}px (width ${m.width}px, available ${m.available.toFixed(1)}px)`);
+      if (Math.abs(m.keyPx - expectedKey) > 1) fails.push(`--proto-key is ${m.keyPx}px, expected ${expectedKey}px`);
+      // The keyboard: largest k with (7k+1)*key + chrome <= available, min 1.
       let expectedOctaves = 1;
       for (let k = 4; k >= 1; k--) {
-        if ((7 * k + 1) * m.keyPx + m.chromePx <= m.available) { expectedOctaves = k; break; }
+        if ((7 * k + 1) * expectedKey + m.chromePx <= m.available) { expectedOctaves = k; break; }
       }
       const expectedKeys = 7 * expectedOctaves + 1;
-      const keyboardHeight = expectedKeys * m.keyPx + m.chromePx;
+      const keyboardHeight = expectedKeys * expectedKey + m.chromePx;
       if (m.fitOctaves !== expectedOctaves) fails.push(`octaves: page chose ${m.fitOctaves}, expected ${expectedOctaves} (available ${m.available.toFixed(1)}px)`);
       if (m.fitKeys !== expectedKeys) fails.push(`keys: page chose ${m.fitKeys}, expected ${expectedKeys}`);
       if (m.windowOctaves !== expectedOctaves) fails.push(`piano window: ${m.windowOctaves} octave(s), expected ${expectedOctaves}`);
-      if (m.whiteKeyHeight < m.keyPx - 1) fails.push(`white key ${m.whiteKeyHeight.toFixed(1)}px thick, --proto-key is ${m.keyPx}px (the drawing shrank)`);
-      // The necks: the most frets whose full-neck rows fit the keyboard's length.
+      if (Math.abs(m.whiteKeyHeight - expectedKey) > 1) fails.push(`white key ${m.whiteKeyHeight.toFixed(1)}px thick, expected ${expectedKey}px`);
+      // The necks: the most frets whose full-neck rows (at that key) fit the
+      // keyboard's length; every row keeps its full-neck height.
+      const fullRowsHeight = m.fullKeys * expectedKey + m.chromePx - m.fixedRows;
       let expectedFretCount = 1;
       for (let n = m.numFrets; n >= 1; n--) {
         let s = 0;
         for (let f = 1; f <= n; f++) s += fretShareFor(f, m.numFrets);
-        if (m.fixedRows + m.fullRowsHeight * s <= keyboardHeight + 1e-6) { expectedFretCount = n; break; }
+        if (m.fixedRows + fullRowsHeight * s <= keyboardHeight + 1e-6) { expectedFretCount = n; break; }
+      }
+      // Below 2560px the page shows one instrument: the piano readings above,
+      // then the guitar's neck (the S1-4 "neck shown"). The key stays the one
+      // the page computed from the measured height — switching instruments
+      // does not re-measure.
+      let mn = m;
+      if (m.width < 2560) {
+        const guitarTab = page.locator('[data-fn="jouer.instrument-tuile-guitar"]');
+        if (!(await guitarTab.count())) {
+          fails.push("single column: the guitar instrument segment is missing");
+        } else {
+          await guitarTab.click();
+          await page.locator('[data-s1="guitar"] .fretboard-container--vertical').waitFor({ state: "visible", timeout: 10_000 });
+          await page.waitForTimeout(200);
+          mn = await page.evaluate(heightFitMeasure, false);
+          if (!mn.open) fails.push("single column: the guitar neck did not render");
+        }
       }
       const neckOk = (id, n) => {
         if (!Number.isFinite(n.firstFret) || !Number.isFinite(n.lastFret)) { fails.push(`${id}: no fret window drawn`); return; }
@@ -4000,10 +4090,29 @@ async function reportHeightFit(browser, viewport) {
         if (n.bottom > m.keyboardBottom + 2) fails.push(`${id}: neck bottom ${n.bottom.toFixed(1)}px, keyboard bottom ${m.keyboardBottom.toFixed(1)}px (the neck overflows)`);
         const shortfall = m.keyboardBottom - n.bottom;
         if (shortfall >= n.lastRowHeight + 2) fails.push(`${id}: neck ends ${shortfall.toFixed(1)}px above the keyboard, a full row (${n.lastRowHeight.toFixed(1)}px) or more`);
+        for (const row of n.rowHeights) {
+          const expectedRow = fullRowsHeight * fretShareFor(row.fret, m.numFrets);
+          if (Math.abs(row.height - expectedRow) > 1) fails.push(`${id}: fret ${row.fret} row ${row.height.toFixed(1)}px, full-neck height at key ${expectedKey}px is ${expectedRow.toFixed(1)}px`);
+        }
+        // S1-4: no two drawn objects (pastilles included) may overlap.
+        if (n.overlap.pairs > 0) fails.push(`${id}: S1-4 ${n.overlap.pairs} overlapping pair(s) among ${n.overlap.n} object(s): ${n.overlap.examples.join(" | ")}`);
       };
-      neckOk("guitar", m.guitar);
-      neckOk("bass", m.bass);
-      notes.push(`${m.available.toFixed(1)}px available -> ${m.fitOctaves} octave(s) / ${m.fitKeys} keys (key ${m.whiteKeyHeight.toFixed(1)}px), guitar ${m.guitar.firstFret}-${m.guitar.lastFret}, bass ${m.bass.firstFret}-${m.bass.lastFret}`);
+      if (mn.open) {
+        neckOk("guitar", mn.guitar);
+        if (mn.bass.firstFret > 0) neckOk("bass", mn.bass);
+        const shownNecks = [mn.guitar, mn.bass].filter((n) => n.rowHeights.length);
+        const smallestRow = shownNecks.length ? Math.min(...shownNecks.map((n) => n.smallestRow)) : Infinity;
+        const bassNote = mn.bass.firstFret > 0 ? `, bass ${mn.bass.firstFret}-${mn.bass.lastFret}` : "";
+        notes.push(`${m.available.toFixed(1)}px available -> key ${expectedKey}px, ${m.fitOctaves} octave(s) / ${m.fitKeys} keys (drawn key ${m.whiteKeyHeight.toFixed(1)}px), guitar ${mn.guitar.firstFret}-${mn.guitar.lastFret}${bassNote}, smallest row ${Number.isFinite(smallestRow) ? smallestRow.toFixed(1) : "n/a"}px`);
+      }
+      // C-105: the instruments must stay inside the window — no scroll for
+      // them. (The centre column scrolls at these window heights on the
+      // untouched page too: it is 2355px tall at 2560x1440, so the page's own
+      // scrollHeight is not this criterion's subject; the keyboard's bottom is.)
+      if (m.keyboardBottom > m.scroll.viewport) {
+        fails.push(`instruments: keyboard bottom ${m.keyboardBottom.toFixed(1)}px, below the ${m.scroll.viewport}px window`);
+      }
+      notes.push(`instruments end at ${m.keyboardBottom.toFixed(1)}px in the ${m.scroll.viewport}px window (page scrollHeight ${m.scroll.height}px, the centre column)`);
     }
     // C-103b: on the 2560x1283 page the rail must line up with a window that
     // no longer starts at fret 1. Choose the guitar's highest position (the
@@ -4265,7 +4374,7 @@ if (AS_JSON) {
   console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; no warning sign in the Studio (VMU-201)`);
   console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text = ${S1_27.text}px (+-0.5; SVG >= ${S1_27.text}px on screen), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, six "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; the recipes column beside the dock (or stacked under it), open by default (toggle on, 4 recipes, texts ${S1_27.text}px, targets >= 32px, nothing spills out); phase B phasing slider thumb >= ${S1_27.thumb}px, iso 64 cells fully visible, poly grid-led >= ${S1_27.cell}px`);
   console.log(`  S1-28 ${textSizeOk ? "PASS" : "FAIL"} ${textSizePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-212 one text size: every A′ text ${S1_28.size}px (+-${S1_28.tolerance}), the instruments' frozen drawing excepted, SVG >= ${S1_28.svgFloor}px on screen; Studio / Math dock / Dictionary chord+scale / Assistant drawer / Instruments & Audio / Guide`);
-  console.log(`  S1-29 ${heightFitOk ? "PASS" : "FAIL"} ${heightFitPassCount}/${HEIGHT_FIT_VIEWPORTS.length} viewport(s)  C-103 Step 3a height fit: below 2045px the white key stays 61px and the fret rows their full-neck heights; the keyboard shows the largest whole octave count that fits ((7k+1)*61+18 <= available), the necks the most frets whose full-neck rows fit the keyboard's length, their bottom at/above the keyboard's by less than one row; 3840x2045 identical to today (4 octaves, frets 1-22)`);
+  console.log(`  S1-29 ${heightFitOk ? "PASS" : "FAIL"} ${heightFitPassCount}/${HEIGHT_FIT_VIEWPORTS.length} viewport(s)  C-103 Step 3a / C-105 Step 3b height fit: at 2560+ the white key stays 61px; below 2560px it shrinks to min(61, max(--hit-min, floor((available-18)/15))) so the keyboard keeps 2 octaves. The keyboard shows the largest whole octave count that fits ((7k+1)*key+18 <= available), the necks the most frets whose full-neck rows (at that key) fit the keyboard's length, every row at its full-neck height, their bottom at/above the keyboard's by less than one row; no S1-4 overlap; the instruments end inside the window. 3840x2045 identical to today (4 octaves, frets 1-22)`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
   console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-29 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
