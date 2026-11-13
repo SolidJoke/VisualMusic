@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./PrototypeA.css";
 import "./aPrimeType.css";
 import PianoKeyboard from "../components/Instruments/PianoKeyboard";
@@ -243,6 +243,47 @@ export default function PrototypeA({
   // re-renders once the node exists.
   const [recipesNode, setRecipesNode] = useState(null);
   const bpmEditor = useBpmEditor({ currentBpm, onCommit: handleBpmChange });
+
+  // C-106 (Step 3b, part 2) — below 2560px the header is compact: the mode tabs
+  // take the width of their text, and the Guide / Theory / language / About
+  // (and Debug, in the development build) move into one "Aide et réglages"
+  // menu. The panel renders the SAME HeaderActions, so every control keeps its
+  // data-fn and each name exists once in the page. Escape closes it and gives
+  // the focus back; a press outside it (the language's list is portaled to the
+  // body, so a press inside .custom-select-body counts as inside) closes it; a
+  // Guide / Theory / About click closes it and leaves the window it opened.
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpRef = useRef(null);
+  const helpButtonRef = useRef(null);
+  const helpPanelId = useId();
+  useEffect(() => {
+    if (!helpOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      setHelpOpen(false);
+      if (helpButtonRef.current) helpButtonRef.current.focus();
+    };
+    const onPointerDown = (e) => {
+      const target = e.target;
+      if (helpRef.current && helpRef.current.contains(target)) return;
+      // The language CustomSelect portals its option list to document.body.
+      if (target instanceof Element && target.closest(".custom-select-body")) return;
+      setHelpOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [helpOpen]);
+  // The three controls that open a window close the menu first; the language
+  // change leaves it open (CustomSelect's onChange is not one of these fns).
+  const onHelpPanelClick = (e) => {
+    const el = e.target instanceof Element ? e.target.closest("[data-fn]") : null;
+    const name = el && el.getAttribute("data-fn");
+    if (name === "aide.guide" || name === "aide.theorie" || name === "aide.a-propos") setHelpOpen(false);
+  };
 
   // C-103 (Step 3a) — measure the room the instruments have: the window's
   // height minus the instruments' top and a 40px bottom margin, re-measured on
@@ -679,7 +720,7 @@ export default function PrototypeA({
     <MusicEngineProvider value={musicEngineContextValue}>
       <PlaybackProvider value={playbackContextValue}>
         <div
-          className="proto-a"
+          className={`proto-a${threeColumns ? "" : " proto-a--compact"}`}
           data-prototype="a"
           ref={protoRef}
           data-fit-octaves={instrumentFit.keyboard.octaves}
@@ -735,11 +776,37 @@ export default function PrototypeA({
             </div>
             {/* A′-ACCÈS: Guide, Theory, language, About — the classic header's
                 own controls (HeaderActions), without its note-name toggle:
-                "Sur les notes" above is that function here. Provisional place,
-                until the header's "Aide / Réglages" (L1b-1). */}
-            {headerProps && (
+                "Sur les notes" above is that function here.
+                C-106: at 2560px and wider they stay in the header, unchanged.
+                Below, the header is compact and they live in one "Aide et
+                réglages" menu, its button in their place (L1b-1). */}
+            {headerProps && threeColumns && (
               <div className="proto-a__header-actions">
                 <HeaderActions {...headerProps} showNotation={false} />
+              </div>
+            )}
+            {headerProps && !threeColumns && (
+              <div className="proto-a__help" ref={helpRef}>
+                <button
+                  ref={helpButtonRef}
+                  type="button"
+                  className={`proto-a__btn proto-a__help-btn ${helpOpen ? "is-active" : ""}`}
+                  data-fn="nav.aide-reglages"
+                  aria-expanded={helpOpen}
+                  aria-controls={helpOpen ? helpPanelId : undefined}
+                  onClick={() => setHelpOpen((o) => !o)}
+                >
+                  {T.helpSettings}
+                </button>
+                {helpOpen && (
+                  <div
+                    id={helpPanelId}
+                    className="proto-a__header-actions proto-a__help-panel"
+                    onClick={onHelpPanelClick}
+                  >
+                    <HeaderActions {...headerProps} showNotation={false} />
+                  </div>
+                )}
               </div>
             )}
             {/* VMU-184: put forward (mauve -> black gradient, tokens.css) until

@@ -55,10 +55,10 @@
   position: relative;
   min-height: 100vh;
   display: grid;
-  /* C-104: the page is sized on its content otherwise (the centre keeps its
-     2764px S1-11 asks for, and the single-column page stayed 2018px wide even
-     at 1600). minmax(0, 1fr) lets the centre shrink to the window; nothing in
-     it overflows at 1100px. At 2560+ the row is the same width as the window. */
+  /* C-104: the page is sized on its content otherwise. Sized on its content,
+     the page stayed 2018px wide at 1600 with one column. minmax(0, 1fr) lets
+     the centre shrink to the window; nothing in it overflows at 1100px. At
+     2560+ the row is the same width as the window. */
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: var(--a-prime-header, 56px) auto;
   background: var(--bg);
@@ -114,6 +114,14 @@
   background: var(--surface-3);
   color: var(--text-on-select);
   border-color: var(--select);
+}
+
+/* C-106 (Step 3b, part 2): below 2560px the header is compact. The mode tabs
+   take the width of their text (same 48px height, look and data-fn) instead of
+   the fixed 251px, which the narrower header cannot fit. */
+.proto-a.proto-a--compact .proto-a__tab {
+  width: auto;
+  padding: 0 20px;
 }
 
 /* The label modes ("Sur les notes"): ONE control with three segments, on the
@@ -498,6 +506,45 @@
 
 .proto-a .proto-a__header-actions .header-lang-select .custom-select-header {
   min-height: var(--hit-min) !important;
+}
+
+/* C-106 (Step 3b, part 2): below 2560px, the "Aide et réglages" button and its
+   menu. The button takes the place the header actions had, before the
+   Assistant button; the panel opens under it, its right edge on the button's,
+   out of the flow (the header keeps its 56px) and above the page. It renders
+   the same HeaderActions, in a column, each control full width and at least
+   --hit-min high. */
+.proto-a__help {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.proto-a .proto-a__help-btn {
+  white-space: nowrap;
+}
+
+.proto-a .proto-a__help-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 240px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--lg-shadow);
+}
+
+.proto-a .proto-a__help-panel .btn-header-action,
+.proto-a .proto-a__help-panel .header-lang-select {
+  width: 100% !important;
+  min-width: 0;
+  min-height: var(--hit-min);
 }
 
 /* VMU-184 (Gabriel, 2026-10-09): the Assistant button put forward, a mauve ->
