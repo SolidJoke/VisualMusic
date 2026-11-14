@@ -198,6 +198,15 @@
  * .proto-a__tab{width:251px!important}' turns S1-30 red at the tightest
  * viewport (header).
  *
+ * C-108 (Step 3b) adds the sticky instrument column to S1-30: in the two
+ * Studio states the window is scrolled to its bottom and the column must stay
+ * fully in the window (top >= -1, bottom <= innerHeight + 1, scrollY > 0); in
+ * the two Dictionary states its height is printed against innerHeight, not
+ * asserted.
+ * Positive control: S1_PROBE_INJECT_CSS='.proto-a__grid--single
+ * .proto-a__instrument{position:static!important}' turns S1-30 red in the two
+ * Studio states (the column scrolls out of the window).
+ *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
@@ -410,7 +419,7 @@ const CRITERIA = [
   // (the threshold read from src/layout.js). Also matrix:false, and run only by
   // --single-column-only (it loads ~55 pages; the default run has no room for
   // that). One pixel under the threshold must stay classic.
-  { id: "S1-30", decides: true, matrix: false, what: `single column (${A_PRIME_MIN_WIDTH}..2559px): one instrument column ending before the 24px right margin, a 56px header that never overflows with every button >= --hit-min, the sequencer's 16 cells of 48px per row uncut, no horizontal page scroll in Studio+piano / Studio+guitar / Dictionary+bass / Dictionary+scales+guitar; the three segments switch the column, the help menu opens (controls on top) and closes on Escape (focus back) or a press outside; every entry of the parity list reachable at 1920x970; ${A_PRIME_MIN_WIDTH - 1}px classic / ${A_PRIME_MIN_WIDTH}px A′; threshold 1440..${A_PRIME_MIN_WIDTH} informative (no scroll and cells >= 48px)` },
+  { id: "S1-30", decides: true, matrix: false, what: `single column (${A_PRIME_MIN_WIDTH}..2559px): one instrument column ending before the 24px right margin, staying fully in the window when the page is scrolled to its bottom in the two Studio states, a 56px header that never overflows with every button >= --hit-min, the sequencer's 16 cells of 48px per row uncut, no horizontal page scroll in Studio+piano / Studio+guitar / Dictionary+bass / Dictionary+scales+guitar; the three segments switch the column, the help menu opens (controls on top) and closes on Escape (focus back) or a press outside; every entry of the parity list reachable at 1920x970; ${A_PRIME_MIN_WIDTH - 1}px classic / ${A_PRIME_MIN_WIDTH}px A′; threshold 1440..${A_PRIME_MIN_WIDTH} informative (no scroll and cells >= 48px)` },
 ];
 
 // The per-state matrix criteria (S1-28 is a per-viewport check, see above).
@@ -4249,14 +4258,16 @@ function singleColumnMeasure() {
   if (!document.querySelector('[data-prototype="a"]')) return { missing: "the A′ page did not open" };
   const instruments = [...document.querySelectorAll(".proto-a__instrument")];
   const first = instruments[0];
-  const instrument = first
+  const fb = first ? first.getBoundingClientRect() : null;
+  const instrument = fb
     ? {
         count: instruments.length,
         fn: first.getAttribute("data-fn"),
-        right: round(first.getBoundingClientRect().right),
-        width: round(first.getBoundingClientRect().width),
+        right: round(fb.right),
+        width: round(fb.width),
+        height: round(fb.height),
       }
-    : { count: 0, fn: null, right: null, width: null };
+    : { count: 0, fn: null, right: null, width: null, height: null };
   const header = document.querySelector("header.proto-a__header");
   const hb = header ? header.getBoundingClientRect() : null;
   // --hit-min is inherited from :root (44px; 48px from 3840) — read live.
@@ -4360,6 +4371,52 @@ function singleColumnLine(m) {
   if (m.missing) return "no A′ page";
   const s = m.sequencer || {};
   return `page ${m.scrollWidth}x${m.scrollHeight} (scrollWidth ${m.scrollWidth} <= ${m.innerWidth}; scrollHeight reported), column ${m.instrument.fn || "none"} ${m.instrument.width ?? "-"}px right x=${m.instrument.right ?? "-"} (margin ${m.instrument.right === null ? "-" : Math.round(m.innerWidth - m.instrument.right)}), header ${m.headerHeight}px (${m.headerOverflow ? `${m.headerOverflow.scrollWidth}/${m.headerOverflow.clientWidth}` : "-"}), ${m.buttons.length} button(s) min ${m.buttons.length ? Math.min(...m.buttons.map((b) => b.min)) : "-"}px (hit-min ${m.hitMin}px), sequencer ${s.rows}x[${(s.rowCounts || []).join("/")}] cells, cell ${s.minCellWidth}px, ${s.scrolls} scrolling, ${s.cut} cut`;
+}
+
+/**
+ * In page: C-108's sticky check. Scroll the window to its bottom, wait for
+ * layout, and report the instrument column's box in the window — then scroll
+ * back to the top, so the next state starts where it expects.
+ */
+function singleColumnStickMeasure() {
+  const round = (n) => Math.round(n * 10) / 10;
+  const de = document.documentElement;
+  const col = document.querySelector(".proto-a__grid--single .proto-a__instrument");
+  const read = () => {
+    const b = col ? col.getBoundingClientRect() : null;
+    return {
+      top: b ? round(b.top) : null,
+      bottom: b ? round(b.bottom) : null,
+      height: b ? round(b.height) : null,
+      scrollY: round(window.scrollY),
+      innerHeight: window.innerHeight,
+      scrollHeight: de.scrollHeight,
+      canScroll: de.scrollHeight > window.innerHeight,
+    };
+  };
+  window.scrollTo(0, de.scrollHeight);
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const out = read();
+      window.scrollTo(0, 0);
+      requestAnimationFrame(() => resolve(out));
+    }));
+  });
+}
+
+/** C-108: at the page's bottom the stuck column must be fully in the window,
+ * and the window must have scrolled. A page that cannot scroll at that size is
+ * printed, not failed. */
+function singleColumnStickFails(m, label) {
+  if (m.top === null) return [`${label}: no .proto-a__instrument in the single column`];
+  if (!m.canScroll) return [];
+  const out = [];
+  if (!(m.scrollY > 0)) out.push(`${label}: the window did not scroll (scrollY ${m.scrollY})`);
+  if (m.top < -1) out.push(`${label}: the stuck column's top is ${m.top}, above the window`);
+  if (m.bottom > m.innerHeight + 1) {
+    out.push(`${label}: the column ends at ${m.bottom}, past the window's ${m.innerHeight} (it does not fit)`);
+  }
+  return out;
 }
 
 /** Open the compact A′ page as Gabriel reaches it (no prototype parameter:
@@ -4515,6 +4572,7 @@ async function reportSingleColumn(browser, viewport) {
   page.on("pageerror", (e) => pageErrors.push(String(e)));
   const fails = [];
   const rows = [];
+  const sticks = [];
   const measure = async (state, want) => {
     const m = await page.evaluate(singleColumnMeasure);
     const stateFails = singleColumnFails(m, `${viewport.label} ${state}`);
@@ -4524,12 +4582,22 @@ async function reportSingleColumn(browser, viewport) {
     fails.push(...stateFails);
     rows.push({ state, m, pass: stateFails.length === 0 });
   };
+  // C-108: in the Studio the page scrolls, so the column is checked at the
+  // bottom; in the Dictionary its height is only printed.
+  const checkStuck = async (state) => {
+    const m = await page.evaluate(singleColumnStickMeasure);
+    const stateFails = singleColumnStickFails(m, `${viewport.label} ${state}`);
+    fails.push(...stateFails);
+    sticks.push({ state, m, pass: stateFails.length === 0 });
+  };
   try {
     // 1. Studio, piano (the default). 2. Studio, guitar (a segment click).
     await openCompactPage(page, "", '[data-s1="piano"]');
     await measure("Studio+piano", "jouer.piano");
+    await checkStuck("Studio+piano");
     await clickSegment(page, "guitar");
     await measure("Studio+guitar", "jouer.guitare");
+    await checkStuck("Studio+guitar");
     // 3. Dictionary, bass (a chord scenario).
     await openCompactPage(page, "?scenario=cmaj", '[data-fn="dico.type-accord"]');
     await clickSegment(page, "bass");
@@ -4553,10 +4621,18 @@ async function reportSingleColumn(browser, viewport) {
     await page.close();
   }
   if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
-  singleColumnChecks[viewport.label] = { fails, rows };
+  singleColumnChecks[viewport.label] = { fails, rows, sticks };
   if (AS_JSON) return;
   const lead = `${viewport.label} S1-30 (single column)`;
   for (const row of rows) console.log(`${lead} ${row.state} ${row.pass ? "PASS" : "FAIL"}  ${singleColumnLine(row.m)}`);
+  for (const s of sticks) {
+    console.log(
+      `${lead} ${s.state} stuck ${s.pass ? "PASS" : "FAIL"}  scrollY ${s.m.scrollY} (scrollHeight ${s.m.scrollHeight}, window ${s.m.innerHeight}), column top ${s.m.top} bottom ${s.m.bottom}${s.m.canScroll ? "" : " — the page cannot scroll at this size (printed, not asserted)"}`
+    );
+  }
+  for (const row of rows.filter((r) => r.state.startsWith("Dictionary"))) {
+    console.log(`${lead} ${row.state} column height ${row.m.instrument.height} vs window ${row.m.innerHeight} (printed, not asserted)`);
+  }
   if (viewport.label === SINGLE_COLUMN_TIGHTEST) console.log(`${lead}   page choice: ${A_PRIME_MIN_WIDTH - 1}px classic, ${A_PRIME_MIN_WIDTH}px A′ on the Studio; segments: guitar / bass / piano each left one column and one pressed segment; menu: opens with the four help controls on top, Escape closes and returns the focus, a press on the centre column closes`);
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
