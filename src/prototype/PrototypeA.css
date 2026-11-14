@@ -195,6 +195,18 @@
   grid-template-columns: minmax(0, 1fr) minmax(var(--proto-single-col, 424px), max-content);
 }
 
+/* C-108 (Step 3b): in the single column the centre is taller than the window
+   (stacked sequencers), so the page scrolls and the instrument would scroll
+   away. It stays in view, stuck at the window's top (the header above it is
+   not sticky and scrolls away). align-self: start is what makes it possible:
+   a grid item stretched to the row's full height has no room to move inside
+   its grid area, so `position: sticky` would never take effect. */
+.proto-a__grid--single .proto-a__instrument {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
 .proto-a__center {
   display: flex;
   flex-direction: column;
