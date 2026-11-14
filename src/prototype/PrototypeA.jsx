@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./PrototypeA.css";
 import "./aPrimeType.css";
 import PianoKeyboard from "../components/Instruments/PianoKeyboard";
@@ -13,8 +13,9 @@ import { generateChordsFromNNS, formatPitchRange, midiToDisplayName } from "../c
 import { realizationRange } from "../core/realization";
 import { placementLabel, stepPlacement } from "../components/Instruments/placementLabel";
 import { verticalFretShare } from "../components/Instruments/verticalNeckGeometry";
-import { chooseKeyboardOctaves, chooseFretWindow } from "../core/instrumentWindow";
+import { chooseKeySize, chooseKeyboardOctaves, chooseFretWindow } from "../core/instrumentWindow";
 import { translations } from "../i18n/translations";
+import { DESKTOP_QUERY } from "../layout";
 import { useBpmEditor } from "../hooks/useBpmEditor";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
 import InstrumentHead from "./InstrumentHead";
@@ -111,6 +112,28 @@ const LABEL_MODE_FN = {
   us: "nav.noms-notes-us",
   fingers: "nav.etiquettes-doigts",
 };
+
+/**
+ * C-104 (Step 3b) — does A′ show its THREE instrument columns? Live: it follows
+ * a resize, on DESKTOP_QUERY (2560px, src/layout.js). From 1648 to 2559 the page
+ * shows the single chosen column instead (layout.js A_PRIME_MIN_WIDTH is the
+ * page's own threshold, not this one). Without window.matchMedia (SSR, or a
+ * test that removed it) the answer is true — all three columns — the same
+ * answer useBreakpoint gives; hooks/useMediaQuery.js itself calls matchMedia
+ * unguarded, so it is not reused here.
+ */
+function useThreeColumns() {
+  const supported = typeof window !== "undefined" && typeof window.matchMedia === "function";
+  const [matches, setMatches] = useState(() => (supported ? window.matchMedia(DESKTOP_QUERY).matches : true));
+  useEffect(() => {
+    if (!supported) return undefined;
+    const mql = window.matchMedia(DESKTOP_QUERY);
+    const onChange = (e) => setMatches(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [supported]);
+  return supported ? matches : true;
+}
 
 function readParams() {
   if (typeof window === "undefined") return {};
@@ -220,6 +243,47 @@ export default function PrototypeA({
   // re-renders once the node exists.
   const [recipesNode, setRecipesNode] = useState(null);
   const bpmEditor = useBpmEditor({ currentBpm, onCommit: handleBpmChange });
+
+  // C-106 (Step 3b, part 2) — below 2560px the header is compact: the mode tabs
+  // take the width of their text, and the Guide / Theory / language / About
+  // (and Debug, in the development build) move into one "Aide et réglages"
+  // menu. The panel renders the SAME HeaderActions, so every control keeps its
+  // data-fn and each name exists once in the page. Escape closes it and gives
+  // the focus back; a press outside it (the language's list is portaled to the
+  // body, so a press inside .custom-select-body counts as inside) closes it; a
+  // Guide / Theory / About click closes it and leaves the window it opened.
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpRef = useRef(null);
+  const helpButtonRef = useRef(null);
+  const helpPanelId = useId();
+  useEffect(() => {
+    if (!helpOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      setHelpOpen(false);
+      if (helpButtonRef.current) helpButtonRef.current.focus();
+    };
+    const onPointerDown = (e) => {
+      const target = e.target;
+      if (helpRef.current && helpRef.current.contains(target)) return;
+      // The language CustomSelect portals its option list to document.body.
+      if (target instanceof Element && target.closest(".custom-select-body")) return;
+      setHelpOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [helpOpen]);
+  // The three controls that open a window close the menu first; the language
+  // change leaves it open (CustomSelect's onChange is not one of these fns).
+  const onHelpPanelClick = (e) => {
+    const el = e.target instanceof Element ? e.target.closest("[data-fn]") : null;
+    const name = el && el.getAttribute("data-fn");
+    if (name === "aide.guide" || name === "aide.theorie" || name === "aide.a-propos") setHelpOpen(false);
+  };
 
   // C-103 (Step 3a) — measure the room the instruments have: the window's
   // height minus the instruments' top and a 40px bottom margin, re-measured on
@@ -366,13 +430,19 @@ export default function PrototypeA({
   // context value is not yet there, re-running the memo needlessly).
   const engine = useMemo(() => musicEngineContextValue || {}, [musicEngineContextValue]);
 
+  // C-104 (Step 3b): three columns at 2560px and wider, ONE (the chosen
+  // instrument) from 1648 to 2559 — live, it follows a resize. Read before the
+  // fit below: C-105 lets the single-column page shrink the key.
+  const threeColumns = useThreeColumns();
+
   // C-103 (Step 3a) — how many octaves and frets fit in the measured height,
   // and which fret window each neck shows. Every size is read from the page's
-  // own CSS (--proto-key, --proto-piano-chrome, --proto-keys, --fbv-head,
-  // --fbv-fret, --fbv-n) so no number is written twice; the fallbacks are the
-  // same values, used only where the CSS cannot be read (jsdom, which measures
-  // 0 and keeps the full instruments anyway). The two pure rules live in
-  // core/instrumentWindow.js and receive all of these as parameters.
+  // own CSS (--proto-key-full, --hit-min, --proto-piano-chrome, --proto-keys,
+  // --fbv-head, --fbv-fret, --fbv-n) so no number is written twice; the
+  // fallbacks are the same values, used only where the CSS cannot be read
+  // (jsdom, which measures 0 and keeps the full instruments anyway). The three
+  // pure rules live in core/instrumentWindow.js and receive all of these as
+  // parameters.
   const instrumentFit = useMemo(() => {
     const root = protoRef.current;
     const readPx = (css, name, fallback) => {
@@ -380,8 +450,21 @@ export default function PrototypeA({
       return Number.isFinite(n) ? n : fallback;
     };
     const cs = root ? getComputedStyle(root) : { getPropertyValue: () => "" };
-    const keyPx = readPx(cs, "--proto-key", 61);
+    // C-105: the CSS default is read from --proto-key-full, never from
+    // --proto-key — the single column writes the shrunk key there:
+    //   key = min(full, max(--hit-min, floor((available - chrome) / 15)))
+    // so the keyboard keeps 2 octaves; the whole page then uses that key.
+    const fullKeyPx = readPx(cs, "--proto-key-full", 61);
+    const minKeyPx = readPx(cs, "--hit-min", 44);
     const chromePx = readPx(cs, "--proto-piano-chrome", 18);
+    const keyPx = threeColumns
+      ? fullKeyPx
+      : chooseKeySize(availableHeight > 0 ? availableHeight : Infinity, {
+          fullKeyPx,
+          minKeyPx,
+          chromePx,
+          targetOctaves: 2,
+        });
     const fullKeys = parseInt(cs.getPropertyValue("--proto-keys"), 10) || 29;
     const maxOctaves = Math.max(1, Math.round((fullKeys - 1) / 7));
     const fullKeyboardHeight = fullKeys * keyPx + chromePx;
@@ -407,8 +490,8 @@ export default function PrototypeA({
       });
     };
 
-    return { keyboard, guitar: windowFor("guitar"), bass: windowFor("bass") };
-  }, [availableHeight, engine]);
+    return { keyboard, keyPx, guitar: windowFor("guitar"), bass: windowFor("bass") };
+  }, [availableHeight, engine, threeColumns]);
   const isDictionary = appMode === "dictionary";
   // The classic words of a position (voicingOf, shapeLabel, positionDefault...)
   // live in the page's main table; the French one when `txt` has none.
@@ -516,13 +599,22 @@ export default function PrototypeA({
     };
   };
   const chosenInstrument = engine.playbackInstrument || "piano";
-  const head = (id, name, setting) => (
+  const selectInstrument = (id) => engine.setPlaybackInstrument && engine.setPlaybackInstrument(id);
+  // The single column's row 1: the three names as one segmented control, each
+  // keeping its head toggle's registry name (InstrumentHead's `choices`).
+  const instrumentChoices = [
+    { id: "piano", name: T.piano, selected: chosenInstrument === "piano", onSelect: () => selectInstrument("piano") },
+    { id: "guitar", name: T.guitar, selected: chosenInstrument === "guitar", onSelect: () => selectInstrument("guitar") },
+    { id: "bass", name: T.bass, selected: chosenInstrument === "bass", onSelect: () => selectInstrument("bass") },
+  ];
+  const head = (id, name, setting, choices = null) => (
     <InstrumentHead
       id={id}
       name={name}
       chooseTitle={T.chooseInstrument}
       selected={chosenInstrument === id}
-      onSelect={() => engine.setPlaybackInstrument && engine.setPlaybackInstrument(id)}
+      onSelect={() => selectInstrument(id)}
+      choices={choices}
       play={isDictionary ? { label: `${T.play} — ${name}`, onPlay: () => engine.playInstrument && engine.playInstrument(id) } : null}
       setting={setting}
     />
@@ -574,6 +666,56 @@ export default function PrototypeA({
     );
   };
 
+  // C-104 — one instrument column, its content unchanged: same data-s1, same
+  // data-fn, same head and body. The single-column page renders only the chosen
+  // instrument's; at 2560px and wider the three are the same elements as before.
+  const instrumentView = {
+    piano: {
+      fn: "jouer.piano",
+      name: T.piano,
+      caption: T.pianoCaption,
+      attrs: { "data-s1-notes": s1Notes },
+      setting: pianoSetting,
+      body: <PianoKeyboard orientation="vertical" windowOctaves={instrumentFit.keyboard.octaves} />,
+    },
+    guitar: {
+      fn: "jouer.guitare",
+      name: T.guitar,
+      caption: T.neckCaption,
+      attrs: { "data-s1-positions": s1GuitarPositions },
+      setting: neckSetting("guitar"),
+      body: neckFor("guitar"),
+    },
+    bass: {
+      fn: "jouer.basse",
+      name: T.bass,
+      caption: T.neckCaption,
+      attrs: { "data-s1-positions": s1BassPositions },
+      setting: neckSetting("bass"),
+      body: neckFor("bass"),
+    },
+  };
+  const instrumentColumn = (id, choices = null) => {
+    const v = instrumentView[id];
+    return (
+      <section
+        key={id}
+        className="proto-a__instrument"
+        data-s1={id}
+        {...v.attrs}
+        data-fn={v.fn}
+        aria-label={`${v.name} — ${v.caption}`}
+        title={v.caption}
+      >
+        {head(id, v.name, v.setting, choices)}
+        {v.body}
+      </section>
+    );
+  };
+  // A playback instrument this page does not draw (never set by its setters)
+  // falls back to the piano, so the single column is always one of the three.
+  const singleInstrument = instrumentView[chosenInstrument] ? chosenInstrument : "piano";
+
   // The sequencer, rendered once: it sits alone in the Dictionary's centre
   // column, and inside the Studio's layout grid (with the dock under it and
   // the recipes column to its right).
@@ -593,10 +735,14 @@ export default function PrototypeA({
   return (
     <MusicEngineProvider value={musicEngineContextValue}>
       <PlaybackProvider value={playbackContextValue}>
+        {/* C-105: below 2560px the key shrinks to keep 2 octaves; at 2560+
+            --proto-key keeps its CSS value (the full key), so no inline style. */}
         <div
-          className="proto-a"
+          className={`proto-a${threeColumns ? "" : " proto-a--compact"}`}
           data-prototype="a"
           ref={protoRef}
+          style={threeColumns ? undefined : { "--proto-key": `${instrumentFit.keyPx}px` }}
+          data-fit-key={instrumentFit.keyPx}
           data-fit-octaves={instrumentFit.keyboard.octaves}
           data-fit-keys={instrumentFit.keyboard.keys}
         >
@@ -650,11 +796,37 @@ export default function PrototypeA({
             </div>
             {/* A′-ACCÈS: Guide, Theory, language, About — the classic header's
                 own controls (HeaderActions), without its note-name toggle:
-                "Sur les notes" above is that function here. Provisional place,
-                until the header's "Aide / Réglages" (L1b-1). */}
-            {headerProps && (
+                "Sur les notes" above is that function here.
+                C-106: at 2560px and wider they stay in the header, unchanged.
+                Below, the header is compact and they live in one "Aide et
+                réglages" menu, its button in their place (L1b-1). */}
+            {headerProps && threeColumns && (
               <div className="proto-a__header-actions">
                 <HeaderActions {...headerProps} showNotation={false} />
+              </div>
+            )}
+            {headerProps && !threeColumns && (
+              <div className="proto-a__help" ref={helpRef}>
+                <button
+                  ref={helpButtonRef}
+                  type="button"
+                  className={`proto-a__btn proto-a__help-btn ${helpOpen ? "is-active" : ""}`}
+                  data-fn="nav.aide-reglages"
+                  aria-expanded={helpOpen}
+                  aria-controls={helpOpen ? helpPanelId : undefined}
+                  onClick={() => setHelpOpen((o) => !o)}
+                >
+                  {T.helpSettings}
+                </button>
+                {helpOpen && (
+                  <div
+                    id={helpPanelId}
+                    className="proto-a__header-actions proto-a__help-panel"
+                    onClick={onHelpPanelClick}
+                  >
+                    <HeaderActions {...headerProps} showNotation={false} />
+                  </div>
+                )}
               </div>
             )}
             {/* VMU-184: put forward (mauve -> black gradient, tokens.css) until
@@ -671,7 +843,7 @@ export default function PrototypeA({
             </button>
           </header>
 
-          <div className="proto-a__grid">
+          <div className={`proto-a__grid${threeColumns ? "" : " proto-a__grid--single"}`}>
             <main className="proto-a__center" data-s1="center">
               <section className="proto-a__panel proto-a__transport" data-s1="transport">
                 <button type="button" className={`proto-a__btn proto-a__btn--primary ${isPlaying ? "is-playing" : ""}`} data-fn="jouer.lecture" onClick={handlePlay}>
@@ -864,42 +1036,18 @@ export default function PrototypeA({
             </main>
 
             {/* L1b-1b: the captions left the heads for the columns' tooltip
-                and accessible name; the heads carry the name, ▶ and the setting. */}
-            <section
-              className="proto-a__instrument"
-              data-s1="piano"
-              data-s1-notes={s1Notes}
-              data-fn="jouer.piano"
-              aria-label={`${T.piano} — ${T.pianoCaption}`}
-              title={T.pianoCaption}
-            >
-              {head("piano", T.piano, pianoSetting)}
-              <PianoKeyboard orientation="vertical" windowOctaves={instrumentFit.keyboard.octaves} />
-            </section>
-
-            <section
-              className="proto-a__instrument"
-              data-s1="guitar"
-              data-s1-positions={s1GuitarPositions}
-              data-fn="jouer.guitare"
-              aria-label={`${T.guitar} — ${T.neckCaption}`}
-              title={T.neckCaption}
-            >
-              {head("guitar", T.guitar, neckSetting("guitar"))}
-              {neckFor("guitar")}
-            </section>
-
-            <section
-              className="proto-a__instrument"
-              data-s1="bass"
-              data-s1-positions={s1BassPositions}
-              data-fn="jouer.basse"
-              aria-label={`${T.bass} — ${T.neckCaption}`}
-              title={T.neckCaption}
-            >
-              {head("bass", T.bass, neckSetting("bass"))}
-              {neckFor("bass")}
-            </section>
+                and accessible name; the heads carry the name, ▶ and the setting.
+                C-104: from 1648 to 2559px, ONE column — the chosen instrument,
+                its head's row 1 a segmented control; at 2560+, the three. */}
+            {threeColumns ? (
+              <>
+                {instrumentColumn("piano")}
+                {instrumentColumn("guitar")}
+                {instrumentColumn("bass")}
+              </>
+            ) : (
+              instrumentColumn(singleInstrument, instrumentChoices)
+            )}
           </div>
 
           {drawerOpen && (

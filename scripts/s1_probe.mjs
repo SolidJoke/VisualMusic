@@ -165,9 +165,38 @@
  * (4 octaves, frets 1-22). The window follows the music: the piano through
  * chooseKeyboardWindow, the necks through chooseFretWindow (core/instrumentWindow.js).
  *   npm run s1:probe -- --height-fit-only   # S1-29 alone
- * Positive control: forcing the keyboard to always show 4 octaves must turn
- * S1-29 red at the two 2560 heights (and only there):
- *   (temporarily make chooseKeyboardOctaves return 4 octaves)
+ * C-105 (Step 3b) adds 1920x970 and 2048x1052: below 2560px wide A′ is one
+ * column and the key itself shrinks to keep 2 octaves —
+ * key = min(61, max(--hit-min, floor((available - 18) / 15))) — so the key,
+ * the octave count and the necks' full-neck rows all follow that key. The
+ * piano is measured first, then the guitar is chosen for the neck readings.
+ * Positive control: making chooseKeySize always return the full key must turn
+ * S1-29 red at those two sizes (and only there); it does.
+ *   (temporarily make chooseKeySize return fullKeyPx)
+ *
+ * C-107 (Step 3b, part 4) adds S1-30, decisive, at 1648x900 (the threshold
+ * A_PRIME_MIN_WIDTH, moved there from 1600 because 1600's rail left a step cell
+ * 45.9px wide), 1920x970, 2048x1052 and 2559x1283: the compact A′ page (no URL
+ * parameter, Studio first) holds in four states — Studio+piano, Studio+guitar,
+ * Dictionary+bass, Dictionary+scales+guitar — with one instrument column
+ * inside the 24px right margin, the 56px header without overflow and every
+ * header button >= --hit-min, the sequencer on the S1-11 rule (16 cells of
+ * 48px per row, uncut), no horizontal page scroll (the page may scroll
+ * vertically: scrollHeight is reported, not asserted). It also checks the
+ * three instrument segments, the "Aide et réglages" menu (open, on top,
+ * Escape -> focus on the button, a press outside closes), the whole parity
+ * list at 1920x970 (needs "panel" excepted: the guitar's panel button is
+ * only asserted to open a panel, its content is S1-26's at 3840), that 1647px
+ * stays classic and 1648px A′, and — informative only — the smallest width
+ * from 1440 to A_PRIME_MIN_WIDTH (step 16) where A′ (forced by ?prototype=a)
+ * both has no horizontal scroll in all four states and keeps every step cell
+ * >= 48px. The threshold is read from src/layout.js, never written here.
+ * Behind --single-column-only: it loads ~55 pages, more than the ~2 min the
+ * default run allows.
+ *   npm run s1:probe -- --single-column-only   # S1-30 alone
+ * Positive control: S1_PROBE_INJECT_CSS='.proto-a.proto-a--compact
+ * .proto-a__tab{width:251px!important}' turns S1-30 red at the tightest
+ * viewport (header).
  *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
@@ -189,6 +218,7 @@ import path from "node:path";
 import process from "node:process";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "../src/prototype/s1Scenarios.js";
 import { A_PRIME_ACCESS } from "../src/prototype/aPrimeAccess.js";
+import { A_PRIME_MIN_WIDTH } from "../src/layout.js";
 import { repoRootFrom } from "./lib/repoRoot.mjs";
 
 // VMU-166: decoded with fileURLToPath (a space or a "~" in the path broke .pathname).
@@ -238,15 +268,69 @@ const MATH_WINDOW_ONLY = flag("math-window-only");
 const TEXT_SIZE_ONLY = flag("text-size-only");
 // --height-fit-only: S1-29 alone (C-103 Step 3a, fewer octaves/frets below 2045px).
 const HEIGHT_FIT_ONLY = flag("height-fit-only");
-const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY || POSITION_PANEL_ONLY || MATH_WINDOW_ONLY || TEXT_SIZE_ONLY || HEIGHT_FIT_ONLY;
+// --single-column-only: S1-30 alone (C-107 Step 3b, the compact page from the
+// A_PRIME_MIN_WIDTH threshold to 2559).
+const SINGLE_COLUMN_ONLY = flag("single-column-only");
+const ACCESS_ONLY = flag("access-only") || SELECTION_ONLY || CHORD_OCTAVE_ONLY || CONFIRM_ONLY || POSITION_PANEL_ONLY || MATH_WINDOW_ONLY || TEXT_SIZE_ONLY || HEIGHT_FIT_ONLY || SINGLE_COLUMN_ONLY;
 
 // S1-29 (C-103 Step 3a): the window below Gabriel's 2045px is measured at the
 // full height and at two shorter ones (a 2560 wide page, 1440 = a typical
 // laptop, 1283 = the page where the instruments must first start giving way).
+// C-105 (Step 3b) adds two single-column laptops (1920x970, 2048x1052): below
+// 2560px wide the key itself shrinks to keep 2 octaves, floor 44px.
 const HEIGHT_FIT_VIEWPORTS = [
   { w: 3840, h: 2045, label: "3840x2045" },
   { w: 2560, h: 1440, label: "2560x1440" },
   { w: 2560, h: 1283, label: "2560x1283" },
+  // C-105 (Step 3b): below 2560px the single column shrinks the white key so
+  // the keyboard keeps 2 octaves (never under --hit-min, 44px).
+  { w: 1920, h: 970, label: "1920x970" },
+  { w: 2048, h: 1052, label: "2048x1052" },
+];
+
+// S1-30 (C-107 Step 3b, part 4): the compact page, from its first pixel — the
+// A_PRIME_MIN_WIDTH threshold, read from src/layout.js — to the last before the
+// three-column layout at 2560. All four states are measured at each size; the
+// segments and the help menu at the tightest one.
+const SINGLE_COLUMN_VIEWPORTS = [
+  { w: A_PRIME_MIN_WIDTH, h: 900, label: `${A_PRIME_MIN_WIDTH}x900` },
+  { w: 1920, h: 970, label: "1920x970" },
+  { w: 2048, h: 1052, label: "2048x1052" },
+  { w: 2559, h: 1283, label: "2559x1283" },
+];
+/** The tightest compact size; it also carries the page-choice / segments / menu checks. */
+const SINGLE_COLUMN_TIGHTEST = SINGLE_COLUMN_VIEWPORTS[0].label;
+
+// S1-30 parity: every entry of the shared list but the dev-only one and the
+// position panel's own (needs "panel"), which S1-26 walks at 3840. Grouped by
+// the state the compact page must be in for them to exist — one page, one
+// setup per state, never one reload per entry.
+const SINGLE_COLUMN_PARITY = A_PRIME_ACCESS.filter((f) => !f.devOnly && f.needs !== "panel");
+
+/** The state in which one registry entry exists on the compact page. */
+function parityStateOf(f) {
+  if (f.needs === "drawer") return "studio-drawer";
+  if (f.compactNeeds === "menu") return "studio-menu";
+  const instrument = f.compactNeeds ? f.compactNeeds.split(":")[1] : "piano";
+  if (f.needs && f.needs.startsWith("dictionary")) {
+    return `dict-${f.needs === "dictionary:scale" ? "scale" : "chord"}-${instrument}`;
+  }
+  return `studio-${instrument}`;
+}
+
+// In order: each setup is relative to the page the previous state left.
+const SINGLE_COLUMN_PARITY_STATES = [
+  { id: "studio-piano", search: "", ready: '[data-s1="piano"]' },
+  { id: "studio-guitar", segment: "guitar" },
+  { id: "studio-bass", segment: "bass" },
+  { id: "studio-menu", click: "nav.aide-reglages" },
+  { id: "studio-drawer", escape: true, click: "nav.studio-harmonie", open: '[data-s1="drawer"]' },
+  { id: "dict-chord-piano", search: "?scenario=cmaj", ready: '[data-fn="dico.type-accord"]' },
+  { id: "dict-chord-guitar", segment: "guitar" },
+  { id: "dict-chord-bass", segment: "bass" },
+  { id: "dict-scale-piano", search: "?scenario=cmajscale", ready: '[data-fn="dico.type-gamme"]' },
+  { id: "dict-scale-guitar", segment: "guitar" },
+  { id: "dict-scale-bass", segment: "bass" },
 ];
 
 // VMU-212 follow-up (C-99d, Gabriel 2026-11-05: "Augmente la taille des polices
@@ -321,7 +405,12 @@ const CRITERIA = [
   { id: "S1-28", decides: true, matrix: false, what: "one text size: every A′ text 14px (+-0.5), the instruments' frozen drawing excepted, SVG text >= 14px on screen" },
   // C-103 (Step 3a): below 2045px the instruments keep their drawing and show
   // fewer octaves / frets. Also matrix:false (per viewport, on Gabriel's page).
-  { id: "S1-29", decides: true, matrix: false, what: "height fit: below 2045px the white key stays 61px and the fret rows their full-neck heights; the keyboard shows the largest whole octave count that fits ((7k+1)*61+18 <= available), the necks the most frets whose full-neck rows fit the keyboard's length, their bottom at/above the keyboard's by less than one row; 3840x2045 identical to today (4 octaves, frets 1-22)" },
+  { id: "S1-29", decides: true, matrix: false, what: "height fit: below 2045px the instruments show fewer octaves/frets; at 2560+ the white key stays 61px, below 2560px (single column, C-105) it shrinks to keep 2 octaves, floor --hit-min; the fret rows keep their full-neck height at that key, their bottom at/above the keyboard's by less than one row; 3840x2045 identical to today (4 octaves, frets 1-22)" },
+  // C-107 (Step 3b, part 4): the compact page, A_PRIME_MIN_WIDTH..2559 px
+  // (the threshold read from src/layout.js). Also matrix:false, and run only by
+  // --single-column-only (it loads ~55 pages; the default run has no room for
+  // that). One pixel under the threshold must stay classic.
+  { id: "S1-30", decides: true, matrix: false, what: `single column (${A_PRIME_MIN_WIDTH}..2559px): one instrument column ending before the 24px right margin, a 56px header that never overflows with every button >= --hit-min, the sequencer's 16 cells of 48px per row uncut, no horizontal page scroll in Studio+piano / Studio+guitar / Dictionary+bass / Dictionary+scales+guitar; the three segments switch the column, the help menu opens (controls on top) and closes on Escape (focus back) or a press outside; every entry of the parity list reachable at 1920x970; ${A_PRIME_MIN_WIDTH - 1}px classic / ${A_PRIME_MIN_WIDTH}px A′; threshold 1440..${A_PRIME_MIN_WIDTH} informative (no scroll and cells >= 48px)` },
 ];
 
 // The per-state matrix criteria (S1-28 is a per-viewport check, see above).
@@ -1577,7 +1666,9 @@ async function runAccess(browser, viewport) {
 
     // 1. Every function of the list, where Gabriel's page shows it.
     // (VMU-185: the Studio's style menu is "needs: studio" - there on arrival.)
-    located = await page.evaluate(locateFns, A_PRIME_ACCESS.filter((f) => !f.needs || f.needs === "studio").map((f) => f.fn));
+    // compactOnly (the compact page's help menu button, C-106) is absent at
+    // 3840: S1-30 walks it below 2560.
+    located = await page.evaluate(locateFns, A_PRIME_ACCESS.filter((f) => !f.compactOnly && (!f.needs || f.needs === "studio")).map((f) => f.fn));
     for (const row of located) fails.push(...locatedFails(row));
     layouts.studio = await page.evaluate(accessLayout);
     fails.push(...layoutFails("Studio", layouts.studio));
@@ -3870,48 +3961,100 @@ function fretShareFor(fret, numFrets) {
 }
 
 /** In page: the raw sizes S1-29 needs, plus what the page actually chose. */
-function heightFitMeasure() {
+function heightFitMeasure(withKeyboard = true) {
   const proto = document.querySelector(".proto-a");
   const piano = document.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
-  if (!proto || !piano) return { open: false };
+  // Below 2560px the page shows ONE instrument: the keyboard readings need the
+  // piano chosen, the neck readings the guitar. The same function serves both.
+  if (!proto || (withKeyboard && !piano)) return { open: false };
+  const width = window.innerWidth;
+  const scroll = { height: document.documentElement.scrollHeight, viewport: window.innerHeight };
   const css = (el, name) => parseFloat(getComputedStyle(el).getPropertyValue(name));
   const keyPx = css(proto, "--proto-key");
   const chromePx = css(proto, "--proto-piano-chrome");
   const fullKeys = parseInt(getComputedStyle(proto).getPropertyValue("--proto-keys"), 10) || 29;
-  const pianoRect = piano.getBoundingClientRect();
-  const available = Math.max(0, window.innerHeight - pianoRect.top - 40);
-  const whiteKey = piano.querySelector(".piano-key.white-key");
+  const pianoRect = piano ? piano.getBoundingClientRect() : { top: 0, bottom: 0 };
+  const available = piano ? Math.max(0, window.innerHeight - pianoRect.top - 40) : 0;
+  const whiteKey = piano ? piano.querySelector(".piano-key.white-key") : null;
   const whiteKeyHeight = whiteKey ? whiteKey.getBoundingClientRect().height : 0;
   const neckEl = document.querySelector('[data-s1="guitar"] .fretboard-container--vertical');
   const ncs = getComputedStyle(neckEl || proto);
-  const headPx = css(neckEl || proto, "--fbv-head");
-  const fretPx = css(neckEl || proto, "--fbv-fret");
+  // Single column (< 2560px): no neck is rendered while the keyboard is
+  // measured, so the neck's fixed rows come from the same documented defaults
+  // the page uses when the CSS is out of reach (36px heads + 70px open row).
+  const headPx = css(neckEl || proto, "--fbv-head") || 36;
+  const fretPx = css(neckEl || proto, "--fbv-fret") || 70;
   const numFrets = parseInt(ncs.getPropertyValue("--fbv-n"), 10) || 22;
   const fixedRows = 2 * headPx + fretPx;
   const fullRowsHeight = fullKeys * keyPx + chromePx - fixedRows;
+  // S1-4, recomputed on the neck the height fit shows: pastilles, fret
+  // numbers, open-string names, status symbols, inlay dots and warnings, with
+  // the outlines / hard rings S1-4 counts as drawn. Two objects overlap when
+  // their drawn areas intersect (an ancestor pair is one object, not two).
+  const area = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  const drawnRect = (el) => {
+    const b = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    let grow = 0;
+    if (cs.outlineStyle !== "none") grow = Math.max(grow, parseFloat(cs.outlineOffset) + parseFloat(cs.outlineWidth));
+    if (cs.boxShadow && cs.boxShadow !== "none") {
+      for (const shadow of cs.boxShadow.split(/,(?![^(]*\))/)) {
+        if (/inset/.test(shadow)) continue;
+        const nums = shadow.replace(/rgba?\([^)]*\)/g, "").trim().split(/\s+/).map(parseFloat).filter(Number.isFinite);
+        if (nums.length >= 4 && nums[2] === 0) grow = Math.max(grow, nums[3] + Math.max(Math.abs(nums[0]), Math.abs(nums[1])));
+      }
+    }
+    return { left: b.left - grow, right: b.right + grow, top: b.top - grow, bottom: b.bottom + grow };
+  };
+  const overLap = (el) => {
+    if (!el) return { n: 0, pairs: 0, examples: [] };
+    const els = [...el.querySelectorAll(".note-marker, .fbv-fret-number, .open-string-name, .string-status-symbol, .fretboard-dot, .range-warning")]
+      .filter((e) => e.getClientRects().length > 0);
+    const rects = els.map(drawnRect);
+    const examples = [];
+    let pairs = 0;
+    for (let i = 0; i < els.length; i++) {
+      for (let j = i + 1; j < els.length; j++) {
+        if (els[i].contains(els[j]) || els[j].contains(els[i])) continue;
+        if (area(rects[i], rects[j]) > 0.01) {
+          pairs++;
+          if (examples.length < 3) examples.push(`${els[i].className || els[i].tagName} x ${els[j].className || els[j].tagName}`);
+        }
+      }
+    }
+    return { n: els.length, pairs, examples };
+  };
   const neck = (id) => {
     const el = document.querySelector(`[data-s1="${id}"] .fretboard-container--vertical`);
     const win = (el?.getAttribute("data-fret-window") || "").split("-").map(Number);
     const rect = el ? el.getBoundingClientRect() : { top: 0, bottom: 0, height: 0 };
     const rows = el ? [...el.querySelectorAll('.fbv-fret-row[data-fret]:not([data-fret="0"])')] : [];
     const last = rows[rows.length - 1];
+    const rowHeights = rows.map((row) => ({
+      fret: Number(row.getAttribute("data-fret")),
+      height: row.getBoundingClientRect().height,
+    }));
     return {
       firstFret: Number.isFinite(win[0]) ? win[0] : 0,
       lastFret: Number.isFinite(win[1]) ? win[1] : 0,
       height: rect.height,
       bottom: rect.bottom,
       lastRowHeight: last ? last.getBoundingClientRect().height : 0,
+      rowHeights,
+      smallestRow: rowHeights.length ? Math.min(...rowHeights.map((r) => r.height)) : 0,
+      overlap: overLap(el),
     };
   };
   return {
     open: true,
-    keyPx, chromePx, fullKeys, available,
+    width, keyPx, chromePx, fullKeys, available, scroll,
+    fitKey: Number(proto.getAttribute("data-fit-key")),
     fitOctaves: Number(proto.getAttribute("data-fit-octaves")),
     fitKeys: Number(proto.getAttribute("data-fit-keys")),
-    windowOctaves: Number(piano.getAttribute("data-window-octaves")),
+    windowOctaves: piano ? Number(piano.getAttribute("data-window-octaves")) : null,
     whiteKeyHeight,
     fixedRows, fullRowsHeight, numFrets,
-    keyboardBottom: pianoRect.bottom,
+    keyboardBottom: piano ? pianoRect.bottom : 0,
     guitar: neck("guitar"),
     bass: neck("bass"),
   };
@@ -3975,23 +4118,50 @@ async function reportHeightFit(browser, viewport) {
     if (!m.open) {
       fails.push("the A′ prototype / vertical piano did not open");
     } else {
-      // The keyboard: largest k with (7k+1)*keyPx + chromePx <= available, min 1.
+      // C-105: below 2560px wide the key shrinks to keep 2 octaves:
+      //   key = min(61, max(44, floor((available - chrome) / 15))).
+      // At 2560 and wider nothing changes: the full 61px key.
+      const expectedKey = m.width >= 2560
+        ? 61
+        : Math.min(61, Math.max(44, Math.floor((m.available - m.chromePx) / 15)));
+      if (m.fitKey !== expectedKey) fails.push(`key: page chose ${m.fitKey}px, expected ${expectedKey}px (width ${m.width}px, available ${m.available.toFixed(1)}px)`);
+      if (Math.abs(m.keyPx - expectedKey) > 1) fails.push(`--proto-key is ${m.keyPx}px, expected ${expectedKey}px`);
+      // The keyboard: largest k with (7k+1)*key + chrome <= available, min 1.
       let expectedOctaves = 1;
       for (let k = 4; k >= 1; k--) {
-        if ((7 * k + 1) * m.keyPx + m.chromePx <= m.available) { expectedOctaves = k; break; }
+        if ((7 * k + 1) * expectedKey + m.chromePx <= m.available) { expectedOctaves = k; break; }
       }
       const expectedKeys = 7 * expectedOctaves + 1;
-      const keyboardHeight = expectedKeys * m.keyPx + m.chromePx;
+      const keyboardHeight = expectedKeys * expectedKey + m.chromePx;
       if (m.fitOctaves !== expectedOctaves) fails.push(`octaves: page chose ${m.fitOctaves}, expected ${expectedOctaves} (available ${m.available.toFixed(1)}px)`);
       if (m.fitKeys !== expectedKeys) fails.push(`keys: page chose ${m.fitKeys}, expected ${expectedKeys}`);
       if (m.windowOctaves !== expectedOctaves) fails.push(`piano window: ${m.windowOctaves} octave(s), expected ${expectedOctaves}`);
-      if (m.whiteKeyHeight < m.keyPx - 1) fails.push(`white key ${m.whiteKeyHeight.toFixed(1)}px thick, --proto-key is ${m.keyPx}px (the drawing shrank)`);
-      // The necks: the most frets whose full-neck rows fit the keyboard's length.
+      if (Math.abs(m.whiteKeyHeight - expectedKey) > 1) fails.push(`white key ${m.whiteKeyHeight.toFixed(1)}px thick, expected ${expectedKey}px`);
+      // The necks: the most frets whose full-neck rows (at that key) fit the
+      // keyboard's length; every row keeps its full-neck height.
+      const fullRowsHeight = m.fullKeys * expectedKey + m.chromePx - m.fixedRows;
       let expectedFretCount = 1;
       for (let n = m.numFrets; n >= 1; n--) {
         let s = 0;
         for (let f = 1; f <= n; f++) s += fretShareFor(f, m.numFrets);
-        if (m.fixedRows + m.fullRowsHeight * s <= keyboardHeight + 1e-6) { expectedFretCount = n; break; }
+        if (m.fixedRows + fullRowsHeight * s <= keyboardHeight + 1e-6) { expectedFretCount = n; break; }
+      }
+      // Below 2560px the page shows one instrument: the piano readings above,
+      // then the guitar's neck (the S1-4 "neck shown"). The key stays the one
+      // the page computed from the measured height — switching instruments
+      // does not re-measure.
+      let mn = m;
+      if (m.width < 2560) {
+        const guitarTab = page.locator('[data-fn="jouer.instrument-tuile-guitar"]');
+        if (!(await guitarTab.count())) {
+          fails.push("single column: the guitar instrument segment is missing");
+        } else {
+          await guitarTab.click();
+          await page.locator('[data-s1="guitar"] .fretboard-container--vertical').waitFor({ state: "visible", timeout: 10_000 });
+          await page.waitForTimeout(200);
+          mn = await page.evaluate(heightFitMeasure, false);
+          if (!mn.open) fails.push("single column: the guitar neck did not render");
+        }
       }
       const neckOk = (id, n) => {
         if (!Number.isFinite(n.firstFret) || !Number.isFinite(n.lastFret)) { fails.push(`${id}: no fret window drawn`); return; }
@@ -4000,10 +4170,29 @@ async function reportHeightFit(browser, viewport) {
         if (n.bottom > m.keyboardBottom + 2) fails.push(`${id}: neck bottom ${n.bottom.toFixed(1)}px, keyboard bottom ${m.keyboardBottom.toFixed(1)}px (the neck overflows)`);
         const shortfall = m.keyboardBottom - n.bottom;
         if (shortfall >= n.lastRowHeight + 2) fails.push(`${id}: neck ends ${shortfall.toFixed(1)}px above the keyboard, a full row (${n.lastRowHeight.toFixed(1)}px) or more`);
+        for (const row of n.rowHeights) {
+          const expectedRow = fullRowsHeight * fretShareFor(row.fret, m.numFrets);
+          if (Math.abs(row.height - expectedRow) > 1) fails.push(`${id}: fret ${row.fret} row ${row.height.toFixed(1)}px, full-neck height at key ${expectedKey}px is ${expectedRow.toFixed(1)}px`);
+        }
+        // S1-4: no two drawn objects (pastilles included) may overlap.
+        if (n.overlap.pairs > 0) fails.push(`${id}: S1-4 ${n.overlap.pairs} overlapping pair(s) among ${n.overlap.n} object(s): ${n.overlap.examples.join(" | ")}`);
       };
-      neckOk("guitar", m.guitar);
-      neckOk("bass", m.bass);
-      notes.push(`${m.available.toFixed(1)}px available -> ${m.fitOctaves} octave(s) / ${m.fitKeys} keys (key ${m.whiteKeyHeight.toFixed(1)}px), guitar ${m.guitar.firstFret}-${m.guitar.lastFret}, bass ${m.bass.firstFret}-${m.bass.lastFret}`);
+      if (mn.open) {
+        neckOk("guitar", mn.guitar);
+        if (mn.bass.firstFret > 0) neckOk("bass", mn.bass);
+        const shownNecks = [mn.guitar, mn.bass].filter((n) => n.rowHeights.length);
+        const smallestRow = shownNecks.length ? Math.min(...shownNecks.map((n) => n.smallestRow)) : Infinity;
+        const bassNote = mn.bass.firstFret > 0 ? `, bass ${mn.bass.firstFret}-${mn.bass.lastFret}` : "";
+        notes.push(`${m.available.toFixed(1)}px available -> key ${expectedKey}px, ${m.fitOctaves} octave(s) / ${m.fitKeys} keys (drawn key ${m.whiteKeyHeight.toFixed(1)}px), guitar ${mn.guitar.firstFret}-${mn.guitar.lastFret}${bassNote}, smallest row ${Number.isFinite(smallestRow) ? smallestRow.toFixed(1) : "n/a"}px`);
+      }
+      // C-105: the instruments must stay inside the window — no scroll for
+      // them. (The centre column scrolls at these window heights on the
+      // untouched page too: it is 2355px tall at 2560x1440, so the page's own
+      // scrollHeight is not this criterion's subject; the keyboard's bottom is.)
+      if (m.keyboardBottom > m.scroll.viewport) {
+        fails.push(`instruments: keyboard bottom ${m.keyboardBottom.toFixed(1)}px, below the ${m.scroll.viewport}px window`);
+      }
+      notes.push(`instruments end at ${m.keyboardBottom.toFixed(1)}px in the ${m.scroll.viewport}px window (page scrollHeight ${m.scroll.height}px, the centre column)`);
     }
     // C-103b: on the 2560x1283 page the rail must line up with a window that
     // no longer starts at fret 1. Choose the guitar's highest position (the
@@ -4048,6 +4237,470 @@ async function reportHeightFit(browser, viewport) {
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
 }
 
+// ─── S1-30 (C-107, Step 3b part 4): the compact page, A_PRIME_MIN_WIDTH..2559 ─
+
+/**
+ * In page: what S1-30 measures in ONE state of the compact page. The S1-11
+ * sequencer block is the same code as measureInPage's (the rule is one rule).
+ */
+function singleColumnMeasure() {
+  const round = (n) => Math.round(n * 10) / 10;
+  const de = document.documentElement;
+  if (!document.querySelector('[data-prototype="a"]')) return { missing: "the A′ page did not open" };
+  const instruments = [...document.querySelectorAll(".proto-a__instrument")];
+  const first = instruments[0];
+  const instrument = first
+    ? {
+        count: instruments.length,
+        fn: first.getAttribute("data-fn"),
+        right: round(first.getBoundingClientRect().right),
+        width: round(first.getBoundingClientRect().width),
+      }
+    : { count: 0, fn: null, right: null, width: null };
+  const header = document.querySelector("header.proto-a__header");
+  const hb = header ? header.getBoundingClientRect() : null;
+  // --hit-min is inherited from :root (44px; 48px from 3840) — read live.
+  const hitMin = header ? parseFloat(getComputedStyle(header).getPropertyValue("--hit-min")) : NaN;
+  const buttons = header
+    ? [...header.querySelectorAll("button")].map((b) => {
+        const bb = b.getBoundingClientRect();
+        return { fn: b.getAttribute("data-fn") || (b.textContent || "").trim().slice(0, 16), min: round(Math.min(bb.width, bb.height)) };
+      })
+    : [];
+  // S1-11 — the REAL sequencer (copied from measureInPage): 16 step cells per
+  // track row (the loop's window), each >= 48px wide, and the grid never cut.
+  const sequencer = document.querySelector('[data-s1="sequencer"]');
+  const seqRows = sequencer ? [...sequencer.querySelectorAll(".steps-container")] : [];
+  const seqLamps = sequencer ? [...sequencer.querySelectorAll(".step-lamp")] : [];
+  const seqLampW = seqLamps.map((el) => el.getBoundingClientRect().width);
+  const seqRowCounts = seqRows.map((row) => row.querySelectorAll(".step-lamp").length);
+  const seqScrolls = sequencer
+    ? [...sequencer.querySelectorAll(".scrollable-instrument")].filter((el) => el.scrollWidth > el.clientWidth + 1).length
+    : 0;
+  // Active cells carry a transform: scale(1.05) glow; neutralize it for the
+  // containment check (and transitions, so it applies synchronously).
+  const seqTransforms = seqLamps.map((el) => el.style.getPropertyValue("transform"));
+  seqLamps.forEach((el) => {
+    el.style.setProperty("transition", "none", "important");
+    el.style.setProperty("transform", "none", "important");
+  });
+  if (sequencer) void sequencer.offsetWidth; // flush style before measuring
+  let seqCut = 0;
+  try {
+    for (const el of seqLamps) {
+      const b = el.getBoundingClientRect();
+      const row = el.closest(".steps-container");
+      const rb = row ? row.getBoundingClientRect() : null;
+      if (rb && (b.left < rb.left - 0.5 || b.right > rb.right + 0.5 || b.top < rb.top - 0.5 || b.bottom > rb.bottom + 0.5)) seqCut++;
+    }
+  } finally {
+    seqLamps.forEach((el, i) => {
+      el.style.removeProperty("transform");
+      if (seqTransforms[i]) el.style.setProperty("transform", seqTransforms[i]);
+      el.style.removeProperty("transition");
+    });
+  }
+  return {
+    scrollWidth: de.scrollWidth,
+    scrollHeight: de.scrollHeight,
+    innerWidth: window.innerWidth,
+    innerHeight: window.innerHeight,
+    instrument,
+    headerHeight: hb ? round(hb.height) : null,
+    headerOverflow: header ? { scrollWidth: header.scrollWidth, clientWidth: header.clientWidth } : null,
+    hitMin,
+    buttons,
+    sequencer: {
+      sequencer: Boolean(sequencer),
+      rows: seqRows.length,
+      rowCounts: seqRowCounts,
+      cellCount: seqLamps.length,
+      minCellWidth: seqLampW.length ? round(Math.min(...seqLampW)) : null,
+      scrolls: seqScrolls,
+      cut: seqCut,
+    },
+  };
+}
+
+/** S1-30 verdict on one singleColumnMeasure(). */
+function singleColumnFails(m, label) {
+  if (m.missing) return [`${label}: ${m.missing}`];
+  const out = [];
+  if (m.scrollWidth > m.innerWidth) out.push(`${label}: the page scrolls horizontally (${m.scrollWidth} > ${m.innerWidth})`);
+  if (m.instrument.count !== 1) out.push(`${label}: ${m.instrument.count} .proto-a__instrument, 1 expected`);
+  else if (m.instrument.right > m.innerWidth - 24 + 0.5) {
+    out.push(`${label}: the instrument column ends at x=${m.instrument.right}, past the 24px right margin (${m.innerWidth - 24})`);
+  }
+  if (!(m.headerHeight !== null && Math.abs(m.headerHeight - A_PRIME_HEADER) <= 1)) {
+    out.push(`${label}: header ${m.headerHeight}px high, ${A_PRIME_HEADER} +-1 expected`);
+  }
+  if (!m.headerOverflow) out.push(`${label}: no header`);
+  else if (m.headerOverflow.scrollWidth > m.headerOverflow.clientWidth) {
+    out.push(`${label}: the header overflows (${m.headerOverflow.scrollWidth} > ${m.headerOverflow.clientWidth})`);
+  }
+  const small = m.buttons.filter((b) => !(b.min >= m.hitMin - 0.5));
+  if (small.length) {
+    out.push(`${label}: ${small.length} header button(s) under the ${m.hitMin}px hit minimum: ${small.slice(0, 4).map((b) => `${b.fn} ${b.min}px`).join(", ")}`);
+  }
+  const s = m.sequencer;
+  if (!s.sequencer) out.push(`${label}: no [data-s1="sequencer"]`);
+  else {
+    if (s.rows < 1) out.push(`${label}: the sequencer has no row`);
+    if (s.rowCounts.some((n) => n !== 16)) out.push(`${label}: sequencer rows carry ${s.rowCounts.join(",")} cells, 16 each expected`);
+    if (!(s.minCellWidth >= 48)) out.push(`${label}: a step cell is ${s.minCellWidth}px wide, 48px minimum`);
+    if (s.scrolls) out.push(`${label}: ${s.scrolls} sequencer row(s) scroll horizontally`);
+    if (s.cut) out.push(`${label}: ${s.cut} sequencer cell(s) cut by their row`);
+  }
+  return out;
+}
+
+/** S1-30 numbers, one line. scrollHeight is reported, not asserted: the page
+ * may scroll vertically (only scrollWidth is the criterion). */
+function singleColumnLine(m) {
+  if (m.missing) return "no A′ page";
+  const s = m.sequencer || {};
+  return `page ${m.scrollWidth}x${m.scrollHeight} (scrollWidth ${m.scrollWidth} <= ${m.innerWidth}; scrollHeight reported), column ${m.instrument.fn || "none"} ${m.instrument.width ?? "-"}px right x=${m.instrument.right ?? "-"} (margin ${m.instrument.right === null ? "-" : Math.round(m.innerWidth - m.instrument.right)}), header ${m.headerHeight}px (${m.headerOverflow ? `${m.headerOverflow.scrollWidth}/${m.headerOverflow.clientWidth}` : "-"}), ${m.buttons.length} button(s) min ${m.buttons.length ? Math.min(...m.buttons.map((b) => b.min)) : "-"}px (hit-min ${m.hitMin}px), sequencer ${s.rows}x[${(s.rowCounts || []).join("/")}] cells, cell ${s.minCellWidth}px, ${s.scrolls} scrolling, ${s.cut} cut`;
+}
+
+/** Open the compact A′ page as Gabriel reaches it (no prototype parameter:
+ * A′ is the default from A_PRIME_MIN_WIDTH), wait for the state's marker and
+ * the fonts. */
+async function openCompactPage(page, search, ready) {
+  await page.goto(`${ORIGIN}/${search}`, { waitUntil: "domcontentloaded" });
+  await page.locator(ready).first().waitFor({ state: "visible", timeout: 20_000 });
+  if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(250);
+}
+
+/** Choose an instrument on the compact page's segmented head. */
+async function clickSegment(page, id) {
+  await page.locator(`[data-fn="jouer.instrument-tuile-${id}"]`).click({ timeout: 4000 });
+  await page.locator(`[data-s1="${id}"]`).waitFor({ state: "visible", timeout: 10_000 });
+  await page.waitForTimeout(150);
+}
+
+/** S1-30: one pixel under A_PRIME_MIN_WIDTH stays the classic page; the
+ * threshold itself is A′, on the Studio. */
+async function checkPageChoice(browser) {
+  const fails = [];
+  const page = await browser.newPage({ viewport: { width: A_PRIME_MIN_WIDTH - 1, height: 900 } });
+  try {
+    await page.goto(`${ORIGIN}/`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(800);
+    const classic = await page.evaluate(() => ({
+      classic: document.querySelectorAll(".app-container").length,
+      a: document.querySelectorAll('[data-prototype="a"]').length,
+    }));
+    if (classic.classic !== 1 || classic.a !== 0) {
+      fails.push(`page choice: at ${A_PRIME_MIN_WIDTH - 1}x900 the classic page is expected (.app-container ${classic.classic}, [data-prototype="a"] ${classic.a})`);
+    }
+    // The page choice is read once, when layout.js loads: reload after resizing.
+    await page.setViewportSize({ width: A_PRIME_MIN_WIDTH, height: 900 });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="piano"]').waitFor({ state: "visible", timeout: 20_000 });
+    const a = await page.evaluate(() => ({
+      a: document.querySelectorAll('[data-prototype="a"]').length,
+      studio: document.querySelectorAll('[data-fn="nav.mode-studio"][aria-pressed="true"]').length,
+    }));
+    if (a.a !== 1) fails.push(`page choice: at ${A_PRIME_MIN_WIDTH}x900 A′ is expected ([data-prototype="a"] ${a.a})`);
+    if (a.studio !== 1) fails.push(`page choice: A′ does not open on the Studio (pressed studio tab ${a.studio})`);
+  } catch (err) {
+    fails.push(`page choice: ${String(err && err.message ? err.message : err).split("\n")[0]}`);
+  } finally {
+    await page.close();
+  }
+  return fails;
+}
+
+/** S1-30: the three segments each leave one column and one pressed segment. */
+async function checkSegments(page) {
+  const fails = [];
+  const sectionFn = { piano: "jouer.piano", guitar: "jouer.guitare", bass: "jouer.basse" };
+  for (const id of ["guitar", "bass", "piano"]) {
+    await clickSegment(page, id);
+    const m = await page.evaluate(() => ({
+      sections: [...document.querySelectorAll(".proto-a__instrument")].map((s) => s.getAttribute("data-fn")),
+      pressed: [...document.querySelectorAll('[data-fn^="jouer.instrument-tuile-"]')]
+        .filter((b) => b.getAttribute("aria-pressed") === "true")
+        .map((b) => b.getAttribute("data-fn")),
+    }));
+    if (m.sections.length !== 1 || m.sections[0] !== sectionFn[id]) {
+      fails.push(`segments: after ${id}, the column(s) are ${m.sections.join(", ") || "none"}, ${sectionFn[id]} alone expected`);
+    }
+    if (m.pressed.length !== 1 || m.pressed[0] !== `jouer.instrument-tuile-${id}`) {
+      fails.push(`segments: after ${id}, the pressed segment(s) are ${m.pressed.join(", ") || "none"}, jouer.instrument-tuile-${id} alone expected`);
+    }
+  }
+  return fails;
+}
+
+/** S1-30: the compact "Aide et réglages" menu — open, controls on top, Escape
+ * returns the focus to the button, a press on the centre column closes it. */
+async function checkMenu(page) {
+  const fails = [];
+  const help = "nav.aide-reglages";
+  const items = ["aide.guide", "aide.theorie", "nav.langue", "aide.a-propos"];
+  await page.locator(`[data-fn="${help}"]`).click({ timeout: 4000 });
+  await page.waitForTimeout(150);
+  const open = await page.evaluate((ids) => {
+    const button = document.querySelector('[data-fn="nav.aide-reglages"]');
+    const found = ids.map((id) => {
+      const el = document.querySelector(`[data-fn="${id}"]`);
+      if (!el) return { id, why: "is missing" };
+      const b = el.getBoundingClientRect();
+      const hit = b.width > 0 && b.height > 0 ? document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2) : null;
+      if (hit && (hit === el || el.contains(hit))) return { id, why: null };
+      if (!hit) return { id, why: "has no hit point" };
+      return { id, why: `is covered by ${hit.tagName.toLowerCase()}.${(hit.className || "").toString().split(/\s+/)[0]}` };
+    });
+    return { expanded: button && button.getAttribute("aria-expanded"), found };
+  }, items);
+  if (open.expanded !== "true") fails.push(`menu: aria-expanded is ${open.expanded} after the click`);
+  for (const f of open.found) if (f.why) fails.push(`menu: ${f.id} ${f.why}`);
+
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(150);
+  const escaped = await page.evaluate(() => ({
+    expanded: document.querySelector('[data-fn="nav.aide-reglages"]').getAttribute("aria-expanded"),
+    focus: document.activeElement && document.activeElement.getAttribute("data-fn"),
+    guide: document.querySelectorAll('[data-fn="aide.guide"]').length,
+  }));
+  if (escaped.expanded !== "false") fails.push(`menu: Escape left aria-expanded ${escaped.expanded}`);
+  if (escaped.focus !== help) fails.push(`menu: Escape left the focus on ${escaped.focus || "nothing"}`);
+  if (escaped.guide !== 0) fails.push("menu: Escape left the menu open");
+
+  await page.locator(`[data-fn="${help}"]`).click({ timeout: 4000 });
+  await page.waitForTimeout(150);
+  await page.locator('[data-s1="center"]').click({ position: { x: 4, y: 4 }, timeout: 4000 });
+  await page.waitForTimeout(150);
+  const outside = await page.evaluate(() => document.querySelector('[data-fn="nav.aide-reglages"]').getAttribute("aria-expanded"));
+  if (outside !== "false") fails.push(`menu: a press on the centre column left it open (${outside})`);
+  return fails;
+}
+
+/**
+ * In page: locate the parity list after scrolling each entry into view. The
+ * compact page may be taller than a 970px window (scrollHeight is not S1-30's
+ * subject), so the whole rect need not be on screen — but each control must be
+ * visible and the element on top at its centre.
+ */
+function locateParity(fns) {
+  const describe = (el) => {
+    if (!el) return "nothing";
+    const cls = typeof el.className === "string" ? el.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).join(".") : "";
+    return `${el.tagName.toLowerCase()}${cls ? `.${cls}` : ""}`;
+  };
+  return fns.map((fn) => {
+    const els = [...document.querySelectorAll(`[data-fn="${fn}"]`)];
+    const el = els[0];
+    if (!el) return { fn, count: 0 };
+    el.scrollIntoView({ block: "center", inline: "nearest" });
+    const b = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const visible = b.width > 0 && b.height > 0 && cs.visibility !== "hidden" && cs.display !== "none" && Number(cs.opacity) > 0;
+    const x = b.left + b.width / 2;
+    const y = b.top + b.height / 2;
+    const inWin = x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight;
+    const hit = visible && inWin ? document.elementFromPoint(x, y) : null;
+    const onTop = Boolean(hit && (hit === el || el.contains(hit)));
+    return { fn, count: els.length, visible, inWin, onTop, hit: onTop ? null : describe(hit) };
+  });
+}
+
+/** S1-30 on one viewport, the page as Gabriel reaches it (no URL parameter). */
+async function reportSingleColumn(browser, viewport) {
+  const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const rows = [];
+  const measure = async (state, want) => {
+    const m = await page.evaluate(singleColumnMeasure);
+    const stateFails = singleColumnFails(m, `${viewport.label} ${state}`);
+    if (!m.missing && m.instrument.count === 1 && m.instrument.fn !== want) {
+      stateFails.push(`${viewport.label} ${state}: the column is ${m.instrument.fn}, ${want} expected`);
+    }
+    fails.push(...stateFails);
+    rows.push({ state, m, pass: stateFails.length === 0 });
+  };
+  try {
+    // 1. Studio, piano (the default). 2. Studio, guitar (a segment click).
+    await openCompactPage(page, "", '[data-s1="piano"]');
+    await measure("Studio+piano", "jouer.piano");
+    await clickSegment(page, "guitar");
+    await measure("Studio+guitar", "jouer.guitare");
+    // 3. Dictionary, bass (a chord scenario).
+    await openCompactPage(page, "?scenario=cmaj", '[data-fn="dico.type-accord"]');
+    await clickSegment(page, "bass");
+    await measure("Dictionary+bass", "jouer.basse");
+    // 4. Dictionary, scales family, guitar, with the position rail.
+    await openCompactPage(page, "?scenario=cmajscale", '[data-fn="dico.type-gamme"]');
+    await clickSegment(page, "guitar");
+    await page.locator('[data-s1="guitar"] .proto-a__position-rail').waitFor({ state: "visible", timeout: 10_000 });
+    await page.waitForTimeout(200);
+    await measure("Dictionary+scales+guitar", "jouer.guitare");
+    // The tightest compact size also checks the page choice, the segments and
+    // the help menu (the page is already on the Dictionary scale state).
+    if (viewport.label === SINGLE_COLUMN_TIGHTEST) {
+      fails.push(...(await checkPageChoice(browser)));
+      fails.push(...(await checkSegments(page)));
+      fails.push(...(await checkMenu(page)));
+    }
+  } catch (err) {
+    fails.push(String(err && err.message ? err.message : err).split("\n")[0]);
+  } finally {
+    await page.close();
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  singleColumnChecks[viewport.label] = { fails, rows };
+  if (AS_JSON) return;
+  const lead = `${viewport.label} S1-30 (single column)`;
+  for (const row of rows) console.log(`${lead} ${row.state} ${row.pass ? "PASS" : "FAIL"}  ${singleColumnLine(row.m)}`);
+  if (viewport.label === SINGLE_COLUMN_TIGHTEST) console.log(`${lead}   page choice: ${A_PRIME_MIN_WIDTH - 1}px classic, ${A_PRIME_MIN_WIDTH}px A′ on the Studio; segments: guitar / bass / piano each left one column and one pressed segment; menu: opens with the four help controls on top, Escape closes and returns the focus, a press on the centre column closes`);
+  if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
+}
+
+/** S1-30 parity: every applicable entry of the shared list, at 1920x970, one
+ * setup per state (needs "panel" excepted — its content is S1-26's at 3840). */
+async function reportSingleColumnParity(browser) {
+  const page = await browser.newPage({ viewport: { width: 1920, height: 970 } });
+  const pageErrors = [];
+  page.on("pageerror", (e) => pageErrors.push(String(e)));
+  const fails = [];
+  const notes = [];
+  const states = [];
+  const seen = new Set();
+  const stateIds = SINGLE_COLUMN_PARITY_STATES.map((s) => s.id);
+  for (const f of SINGLE_COLUMN_PARITY) {
+    if (seen.has(f.fn)) fails.push(`parity: ${f.fn} appears twice in the list`);
+    seen.add(f.fn);
+    if (!stateIds.includes(parityStateOf(f))) fails.push(`parity: ${f.fn} has no state (${parityStateOf(f)})`);
+  }
+  try {
+    for (const state of SINGLE_COLUMN_PARITY_STATES) {
+      if (state.search !== undefined) {
+        await openCompactPage(page, state.search, state.ready);
+      } else if (state.escape) {
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(150);
+        await page.locator(`[data-fn="${state.click}"]`).click({ timeout: 4000 });
+        await page.locator(state.open).waitFor({ state: "visible", timeout: 4000 });
+      } else if (state.segment) {
+        await clickSegment(page, state.segment);
+      } else if (state.click) {
+        await page.locator(`[data-fn="${state.click}"]`).click({ timeout: 4000 });
+        await page.waitForTimeout(150);
+      }
+      const entries = SINGLE_COLUMN_PARITY.filter((f) => parityStateOf(f) === state.id);
+      const rows = await page.evaluate(locateParity, entries.map((f) => f.fn));
+      for (const row of rows) {
+        if (row.count !== 1) fails.push(`parity ${state.id}: ${row.fn} ${row.count} element(s), 1 expected`);
+        else if (!row.visible) fails.push(`parity ${state.id}: ${row.fn} not visible`);
+        else if (!row.inWin) fails.push(`parity ${state.id}: ${row.fn} could not be brought on screen`);
+        else if (!row.onTop) fails.push(`parity ${state.id}: ${row.fn} covered by ${row.hit}`);
+      }
+      const ok = rows.filter((r) => r.count === 1 && r.visible && r.inWin && r.onTop).length;
+      states.push({ id: state.id, total: rows.length, ok });
+      // The neck's panel button is the one "needs: panel" entry whose opening
+      // this probe checks here; the panel's CONTENT is S1-26's (at 3840).
+      if (state.id === "dict-chord-guitar") {
+        await page.locator('[data-fn="jouer.position-panneau-guitar"]').click({ timeout: 4000 });
+        await page.locator('[role="dialog"].proto-a__position-panel').waitFor({ state: "visible", timeout: 4000 });
+        notes.push("jouer.position-panneau-guitar opens a position panel in the Dictionary on a chord (its content is S1-26's, checked at 3840)");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(150);
+      }
+    }
+  } catch (err) {
+    fails.push(`parity: ${String(err && err.message ? err.message : err).split("\n")[0]}`);
+  } finally {
+    await page.close();
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  singleColumnParity = { fails, notes, states, total: SINGLE_COLUMN_PARITY.length };
+  if (AS_JSON) return;
+  const found = states.reduce((n, s) => n + s.ok, 0);
+  const lead = "1920x970 S1-30 (parity)";
+  console.log(`${lead} ${fails.length ? "FAIL" : "PASS"}  ${found}/${singleColumnParity.total} entries found, visible, on top in ${states.length} states`);
+  for (const s of states) console.log(`${lead}   ${s.id}: ${s.ok}/${s.total}`);
+  for (const n of notes) console.log(`${lead}   ${n}`);
+  if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
+}
+
+/** In page: the page's horizontal scroll and its smallest sequencer step cell,
+ * for the S1-30 threshold scan. */
+function pageScrollMeasure() {
+  const round = (n) => Math.round(n * 10) / 10;
+  const cells = [...document.querySelectorAll('[data-s1="sequencer"] .step-lamp')].map(
+    (el) => el.getBoundingClientRect().width
+  );
+  return {
+    a: Boolean(document.querySelector('[data-prototype="a"]')),
+    scrollWidth: document.documentElement.scrollWidth,
+    scrollHeight: document.documentElement.scrollHeight,
+    innerWidth: window.innerWidth,
+    minCellWidth: cells.length ? round(Math.min(...cells)) : null,
+  };
+}
+
+/**
+ * S1-30 threshold, INFORMATIVE: with A′ forced by ?prototype=a (below the
+ * threshold the page would choose the classic one), scan 1440 ->
+ * A_PRIME_MIN_WIDTH step 16 at 900px high and print, per width, the smallest
+ * step cell among the four states and whether both rules hold: no horizontal
+ * scroll and every cell >= 48px. A_PRIME_MIN_WIDTH itself is read, not changed.
+ */
+async function reportSingleColumnThreshold(browser) {
+  const fails = [];
+  const results = [];
+  const pageErrors = [];
+  // One page per width: the app persists its mode and instrument (localStorage,
+  // VMU-050), so a shared page would start the next width in the Dictionary's
+  // guitar and never show the Studio's piano. A fresh page is a fresh context.
+  try {
+    for (let width = 1440; width <= A_PRIME_MIN_WIDTH; width += 16) {
+      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      page.on("pageerror", (e) => pageErrors.push(String(e)));
+      try {
+        const states = [];
+        const take = async (state) => states.push({ state, ...(await page.evaluate(pageScrollMeasure)) });
+        await openCompactPage(page, "?prototype=a", '[data-s1="piano"]');
+        await take("Studio+piano");
+        await clickSegment(page, "guitar");
+        await take("Studio+guitar");
+        await openCompactPage(page, "?prototype=a&scenario=cmaj", '[data-fn="dico.type-accord"]');
+        await clickSegment(page, "bass");
+        await take("Dictionary+bass");
+        await openCompactPage(page, "?prototype=a&scenario=cmajscale", '[data-fn="dico.type-gamme"]');
+        await clickSegment(page, "guitar");
+        await page.locator('[data-s1="guitar"] .proto-a__position-rail').waitFor({ state: "visible", timeout: 10_000 });
+        await take("Dictionary+scales+guitar");
+        if (states.some((s) => !s.a)) fails.push(`threshold ${width}px: A′ is not rendered although ?prototype=a is given`);
+        // The smallest step cell among the four states — the deciding number.
+        const smallestCell = states.reduce(
+          (n, s) => (s.minCellWidth === null ? n : n === null ? s.minCellWidth : Math.min(n, s.minCellWidth)),
+          null
+        );
+        // Both rules, in every state: no horizontal scroll, and cells >= 48px.
+        const pass = states.every((s) => s.scrollWidth <= s.innerWidth && s.minCellWidth !== null && s.minCellWidth >= 48);
+        results.push({ width, pass, smallestCell, states });
+        if (!AS_JSON) console.log(`  threshold ${width}px: ${pass ? "PASS" : "FAIL"}  smallest step cell ${smallestCell ?? "-"}px; ${states.map((s) => `${s.state} ${s.scrollWidth}/${s.innerWidth}`).join(", ")}`);
+      } finally {
+        await page.close();
+      }
+    }
+  } catch (err) {
+    fails.push(`threshold: ${String(err && err.message ? err.message : err).split("\n")[0]}`);
+  }
+  if (pageErrors.length) fails.push(`page errors: ${pageErrors.slice(0, 3).join(" | ")}`);
+  const smallest = results.find((r) => r.pass);
+  singleColumnThreshold = { fails, results, smallest: smallest ? smallest.width : null };
+  if (AS_JSON) return;
+  console.log(`S1-30 (threshold, informative) smallest width where all four states have no horizontal scroll AND every step cell >= 48px: ${smallest ? `${smallest.width}px` : `none in 1440..${A_PRIME_MIN_WIDTH}`} (A_PRIME_MIN_WIDTH: ${A_PRIME_MIN_WIDTH}px)`);
+  if (fails.length) console.log(`S1-30 (threshold) FAILED: ${fails.join(" | ")}`);
+}
+
 const { chromium } = await import("playwright");
 const dev = await startDevServer();
 if (!AS_JSON) {
@@ -4071,6 +4724,11 @@ const positionPanelChecks = {};
 const mathWindowChecks = {};
 const textSizeChecks = {};
 const heightFitChecks = {};
+const singleColumnChecks = {};
+// S1-30's parity and threshold checks: assigned by their report functions
+// (empty, hence vacuous, when --single-column-only is not given).
+let singleColumnParity = { fails: [], states: [], total: 0 };
+let singleColumnThreshold = { fails: [], results: [], smallest: null };
 try {
   for (const viewport of ACCESS_ONLY ? [] : VIEWPORTS) {
     for (const scenario of STATES) {
@@ -4105,8 +4763,8 @@ try {
     }
   }
   // S1-20 (A′-ACCÈS): Gabriel's page, at its own two heights (skipped by
-  // --height-fit-only, which runs S1-29 below on its own three sizes).
-  for (const viewport of HEIGHT_FIT_ONLY ? [] : ACCESS_VIEWPORTS) {
+  // --height-fit-only and --single-column-only, which run their own checks).
+  for (const viewport of HEIGHT_FIT_ONLY || SINGLE_COLUMN_ONLY ? [] : ACCESS_VIEWPORTS) {
     if (CHORD_OCTAVE_ONLY) {
       await reportChordOctave(browser, viewport);
       continue;
@@ -4192,6 +4850,23 @@ try {
       await reportHeightFit(browser, viewport);
     }
   }
+  // S1-30 (C-107 Step 3b, part 4): the compact page, alone on
+  // --single-column-only. It loads ~55 pages (four sizes, the parity page and
+  // the 14-width threshold scan), more than the ~2 min the default run allows:
+  // that is why it is not part of the full run.
+  if (SINGLE_COLUMN_ONLY) {
+    for (const viewport of SINGLE_COLUMN_VIEWPORTS) {
+      await reportSingleColumn(browser, viewport);
+    }
+    await reportSingleColumnParity(browser);
+    await reportSingleColumnThreshold(browser);
+    if (!AS_JSON) {
+      const okViewports = Object.values(singleColumnChecks).filter((c) => c.fails.length === 0).length;
+      const parityOk = singleColumnParity.fails.length === 0;
+      const failCount = Object.values(singleColumnChecks).reduce((n, c) => n + c.fails.length, 0) + singleColumnParity.fails.length;
+      console.log(`S1-30 ${okViewports === SINGLE_COLUMN_VIEWPORTS.length && parityOk ? "PASS" : "FAIL"} ${okViewports}/${SINGLE_COLUMN_VIEWPORTS.length} viewport(s)${parityOk ? "" : "; parity failed"}${failCount ? `; ${failCount} failure(s)` : ""}`);
+    }
+  }
 } finally {
   await browser.close();
   if (dev.server) await dev.server.close();
@@ -4243,11 +4918,17 @@ const textSizePassCount = Object.values(textSizeChecks).filter((c) => c.fails.le
 // drawing and show fewer octaves / frets).
 const heightFitOk = Object.values(heightFitChecks).every((c) => c.fails.length === 0);
 const heightFitPassCount = Object.values(heightFitChecks).filter((c) => c.fails.length === 0).length;
-const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk && positionPanelOk && mathWindowOk && textSizeOk && heightFitOk ? "A′" : "B";
+// S1-30 decides when it is run (--single-column-only); its threshold scan is
+// informative and never enters the verdict.
+const singleColumnOk = SINGLE_COLUMN_ONLY
+  ? Object.values(singleColumnChecks).every((c) => c.fails.length === 0) && singleColumnParity.fails.length === 0
+  : true;
+const singleColumnPassCount = Object.values(singleColumnChecks).filter((c) => c.fails.length === 0).length;
+const decision = decisive.every((s) => s.pass) && noBenchOk && accessOk && headsOk && selectionOk && chordOctaveOk && confirmOk && positionPanelOk && mathWindowOk && textSizeOk && heightFitOk && singleColumnOk ? "A′" : "B";
 const anyPageError = results.some((r) => r.pageErrors.length);
 
 if (AS_JSON) {
-  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, positionPanelChecks, mathWindowChecks, textSizeChecks, heightFitChecks, summary, decision }, null, 2));
+  console.log(JSON.stringify({ results, drawerChecks, noBenchChecks, accessChecks, headsChecks, selectionChecks, chordOctaveChecks, confirmChecks, positionPanelChecks, mathWindowChecks, textSizeChecks, heightFitChecks, singleColumnChecks, singleColumnParity, singleColumnThreshold, summary, decision }, null, 2));
 } else {
   const nScen = STATES.filter((s) => !s.extra).length;
   const nExtra = STATES.filter((s) => s.extra).length;
@@ -4265,9 +4946,10 @@ if (AS_JSON) {
   console.log(`  S1-26 ${positionPanelOk ? "PASS" : "FAIL"} ${positionPanelPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  L1b-1c position panel: the label of a neck's position opens a panel over the neck (heads stay 100px, keyboard does not move), Mi / La / Ré with Do's fret, 48px targets on top, a root string changes the shape drawn, reset, Escape closes and returns the focus; no warning sign in the Studio (VMU-201)`);
   console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text = ${S1_27.text}px (+-0.5; SVG >= ${S1_27.text}px on screen), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, six "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; the recipes column beside the dock (or stacked under it), open by default (toggle on, 4 recipes, texts ${S1_27.text}px, targets >= 32px, nothing spills out); phase B phasing slider thumb >= ${S1_27.thumb}px, iso 64 cells fully visible, poly grid-led >= ${S1_27.cell}px`);
   console.log(`  S1-28 ${textSizeOk ? "PASS" : "FAIL"} ${textSizePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-212 one text size: every A′ text ${S1_28.size}px (+-${S1_28.tolerance}), the instruments' frozen drawing excepted, SVG >= ${S1_28.svgFloor}px on screen; Studio / Math dock / Dictionary chord+scale / Assistant drawer / Instruments & Audio / Guide`);
-  console.log(`  S1-29 ${heightFitOk ? "PASS" : "FAIL"} ${heightFitPassCount}/${HEIGHT_FIT_VIEWPORTS.length} viewport(s)  C-103 Step 3a height fit: below 2045px the white key stays 61px and the fret rows their full-neck heights; the keyboard shows the largest whole octave count that fits ((7k+1)*61+18 <= available), the necks the most frets whose full-neck rows fit the keyboard's length, their bottom at/above the keyboard's by less than one row; 3840x2045 identical to today (4 octaves, frets 1-22)`);
+  console.log(`  S1-29 ${heightFitOk ? "PASS" : "FAIL"} ${heightFitPassCount}/${HEIGHT_FIT_VIEWPORTS.length} viewport(s)  C-103 Step 3a / C-105 Step 3b height fit: at 2560+ the white key stays 61px; below 2560px it shrinks to min(61, max(--hit-min, floor((available-18)/15))) so the keyboard keeps 2 octaves. The keyboard shows the largest whole octave count that fits ((7k+1)*key+18 <= available), the necks the most frets whose full-neck rows (at that key) fit the keyboard's length, every row at its full-neck height, their bottom at/above the keyboard's by less than one row; no S1-4 overlap; the instruments end inside the window. 3840x2045 identical to today (4 octaves, frets 1-22)`);
+  console.log(`  S1-30 ${SINGLE_COLUMN_ONLY ? (singleColumnOk ? "PASS" : "FAIL") : "not run"}${SINGLE_COLUMN_ONLY ? ` ${singleColumnPassCount}/${SINGLE_COLUMN_VIEWPORTS.length} viewport(s)` : " (--single-column-only: ~55 pages, more than the default run's ~2 min)"}  C-107 Step 3b single column, ${A_PRIME_MIN_WIDTH}..2559px: one instrument column inside the 24px right margin, a 56px header without overflow and every button >= --hit-min, the sequencer's 16 cells of 48px per row uncut, no horizontal page scroll in Studio+piano / Studio+guitar / Dictionary+bass / Dictionary+scales+guitar; the three segments, the help menu (Escape returns the focus), the whole parity list at 1920x970, ${A_PRIME_MIN_WIDTH - 1}px classic / ${A_PRIME_MIN_WIDTH}px A′; threshold 1440..${A_PRIME_MIN_WIDTH} informative${singleColumnThreshold.smallest ? ` (no scroll + cells >= 48px from ${singleColumnThreshold.smallest}px)` : ""}`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
-  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-29 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
+  console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-30 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");
 }
 

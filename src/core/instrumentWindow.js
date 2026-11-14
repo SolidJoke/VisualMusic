@@ -19,6 +19,28 @@
 // component dependency.
 
 /**
+ * The white key's thickness for the single-column A′ (C-105, Step 3b): the
+ * keyboard keeps `targetOctaves` octaves by letting the key shrink, never
+ * below `minKeyPx` and never above `fullKeyPx`.
+ *
+ * `targetOctaves` octaves and the closing C need `7 * targetOctaves + 1` white
+ * keys, so the key that makes them fit the available height is
+ * `floor((availableHeight - chromePx) / (7 * targetOctaves + 1))`. It is then
+ * clamped to [minKeyPx, fullKeyPx]: a taller window keeps the full key (the
+ * octave rule above then chooses the count), a shorter one hits the floor.
+ * `Infinity` (the page's "everything fits", as in jsdom) returns `fullKeyPx`.
+ *
+ * @param {number} availableHeight px the keyboard may use
+ * @param {{fullKeyPx: number, minKeyPx: number, chromePx: number, targetOctaves: number}} opts
+ * @returns {number} the key's thickness in px
+ */
+export function chooseKeySize(availableHeight, { fullKeyPx, minKeyPx, chromePx, targetOctaves }) {
+  const targetKeys = 7 * targetOctaves + 1;
+  const fitted = Math.floor((availableHeight - chromePx) / targetKeys);
+  return Math.min(fullKeyPx, Math.max(minKeyPx, fitted));
+}
+
+/**
  * The number of octaves (plus the closing C) that fit in `availableHeight`.
  *
  * A keyboard of k octaves has 7k + 1 white keys (each octave's 7 whites plus

@@ -25,12 +25,20 @@ import { PlayGlyph } from "../components/Instruments/InstrumentBar";
  * PrototypeA (translations.js protoA, VMU-182). Each control carries its name in
  * the parity registry (data-fn, src/prototype/aPrimeAccess.js).
  *
+ * C-104 (Step 3b): from 1648 to 2559 px A′ shows ONE instrument column, so row 1
+ * becomes a segmented control of the three names ("Piano · Guitare · Basse") when
+ * `choices` is given: each segment keeps the registry name of the head toggle it
+ * replaces (jouer.instrument-tuile-<id>), is pressed for the chosen instrument and
+ * chooses it. Without `choices`, row 1 is exactly the single name as before.
+ *
  * @param {Object} props
  * @param {'piano'|'guitar'|'bass'} props.id
  * @param {string} props.name
  * @param {string} props.chooseTitle the name's tooltip: it chooses, it does not play
  * @param {boolean} props.selected
  * @param {() => void} props.onSelect
+ * @param {{id: string, name: string, selected: boolean, onSelect: () => void}[]|null} [props.choices]
+ *   row 1 as segments (the single-column page), or none: the single name
  * @param {{label: string, onPlay: () => void}|null} [props.play] ▶, or none
  * @param {{
  *   groupLabel: string,
@@ -40,7 +48,7 @@ import { PlayGlyph } from "../components/Instruments/InstrumentBar";
  *   panel?: {fn: string, title: string, alert: {kind: string, text: string}|null, content: React.ReactNode}|null,
  * }|null} [props.setting] row 2, or an empty row
  */
-export default function InstrumentHead({ id, name, chooseTitle, selected, onSelect, play = null, setting = null }) {
+export default function InstrumentHead({ id, name, chooseTitle, selected, onSelect, choices = null, play = null, setting = null }) {
   const panel = (setting && setting.panel) || null;
   const hasPanel = Boolean(panel);
   const [open, setOpen] = useState(false);
@@ -87,16 +95,34 @@ export default function InstrumentHead({ id, name, chooseTitle, selected, onSele
   return (
     <div className="proto-a__inst-head" data-head={id}>
       <div className="proto-a__head-row">
-        <button
-          type="button"
-          className={`proto-a__head-name ${selected ? "is-active" : ""}`}
-          aria-pressed={Boolean(selected)}
-          title={chooseTitle}
-          data-fn={`jouer.instrument-tuile-${id}`}
-          onClick={onSelect}
-        >
-          {name}
-        </button>
+        {choices ? (
+          <div className="proto-a__segments proto-a__head-segments" role="group" aria-label={chooseTitle}>
+            {choices.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`proto-a__segment ${c.selected ? "is-active" : ""}`}
+                aria-pressed={Boolean(c.selected)}
+                title={chooseTitle}
+                data-fn={`jouer.instrument-tuile-${c.id}`}
+                onClick={c.onSelect}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            type="button"
+            className={`proto-a__head-name ${selected ? "is-active" : ""}`}
+            aria-pressed={Boolean(selected)}
+            title={chooseTitle}
+            data-fn={`jouer.instrument-tuile-${id}`}
+            onClick={onSelect}
+          >
+            {name}
+          </button>
+        )}
         {play && (
           <button
             type="button"

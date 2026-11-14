@@ -21,6 +21,9 @@
   --proto-gap: 24px;           /* between two columns */
   --proto-piano-col: 248px;    /* the piano's column: its inset + its keyboard */
   --proto-piano-inset: 10px;   /* the keyboard's left inset inside that column */
+  /* C-104 (Step 3b): the single instrument column (1648..2559px) is as wide as
+     the guitar's, so the page does not jump when the instrument changes. */
+  --proto-single-col: 424px;
   --proto-head-pad: 16px;      /* the three instrument heads' left padding (aligned) */
   /* L1b-1b: one head = two 48px rows (name + ▶, then ‹ setting ›) and a 4px
      gap, the same in the three columns (UX critique § 2: 100px). */
@@ -43,7 +46,11 @@
      head alone would leave 21px). S1-8 (>= 52px) and S1-5 (>= 64px up to
      fret 12) still hold. The other lever, the column's 24px top padding, was
      kept: it aligns the heads with the transport's top (y 96). */
-  --proto-key: 61px;
+  /* C-105 (Step 3b): the full key stays readable once the single column
+     overrides --proto-key inline (the page writes the shrunk key on the root).
+     Everything derived (--proto-inst-h, --fbv-h) follows whichever value wins. */
+  --proto-key-full: 61px;
+  --proto-key: var(--proto-key-full, 61px);
   --proto-keys: 29;
   --proto-piano-chrome: 18px;
   --proto-inst-h: calc(var(--proto-keys, 29) * var(--proto-key, 61px) + var(--proto-piano-chrome, 18px));
@@ -52,6 +59,11 @@
   position: relative;
   min-height: 100vh;
   display: grid;
+  /* C-104: the page is sized on its content otherwise. Sized on its content,
+     the page stayed 2018px wide at 1600 with one column. minmax(0, 1fr) lets
+     the centre shrink to the window; nothing in it overflows at 1100px. At
+     2560+ the row is the same width as the window. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: var(--a-prime-header, 56px) auto;
   background: var(--bg);
   color: var(--text-primary);
@@ -106,6 +118,14 @@
   background: var(--surface-3);
   color: var(--text-on-select);
   border-color: var(--select);
+}
+
+/* C-106 (Step 3b, part 2): below 2560px the header is compact. The mode tabs
+   take the width of their text (same 48px height, look and data-fn) instead of
+   the fixed 251px, which the narrower header cannot fit. */
+.proto-a.proto-a--compact .proto-a__tab {
+  width: auto;
+  padding: 0 20px;
 }
 
 /* The label modes ("Sur les notes"): ONE control with three segments, on the
@@ -165,6 +185,14 @@
   column-gap: var(--proto-gap, 24px);
   padding: 0 var(--proto-margin-right, 24px) 0 var(--proto-margin-left, 16px);
   min-height: 0;
+}
+
+/* C-104 (Step 3b): from 1648 to 2559px A′ shows ONE instrument column, as wide
+   as the guitar's. The track may grow past that width for the guitar's position
+   rail (max-content: 98px more), so a scale's rail is never clipped; the piano
+   and the bass keep the 424px track (their max-content is narrower). */
+.proto-a__grid--single {
+  grid-template-columns: minmax(0, 1fr) minmax(var(--proto-single-col, 424px), max-content);
 }
 
 .proto-a__center {
@@ -484,6 +512,45 @@
   min-height: var(--hit-min) !important;
 }
 
+/* C-106 (Step 3b, part 2): below 2560px, the "Aide et réglages" button and its
+   menu. The button takes the place the header actions had, before the
+   Assistant button; the panel opens under it, its right edge on the button's,
+   out of the flow (the header keeps its 56px) and above the page. It renders
+   the same HeaderActions, in a column, each control full width and at least
+   --hit-min high. */
+.proto-a__help {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.proto-a .proto-a__help-btn {
+  white-space: nowrap;
+}
+
+.proto-a .proto-a__help-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 240px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--lg-shadow);
+}
+
+.proto-a .proto-a__help-panel .btn-header-action,
+.proto-a .proto-a__help-panel .header-lang-select {
+  width: 100% !important;
+  min-width: 0;
+  min-height: var(--hit-min);
+}
+
 /* VMU-184 (Gabriel, 2026-10-09): the Assistant button put forward, a mauve ->
    black gradient through tokens (tokens.css --assistant-*), light text >=
    4.5:1 on every stop (AssistantButtonTokens.test.js, and S1-20 in the
@@ -723,6 +790,15 @@
   --piano-v-key: var(--proto-key, 61px);
 }
 
+/* C-104 (Step 3b): in the single 424px column the piano is centred
+   horizontally. Its block keeps its usual width — the 10px inset and the
+   238px keyboard (--proto-piano-col minus the inset). */
+.proto-a__grid--single .proto-a__instrument[data-s1="piano"] .piano-wrapper--vertical {
+  width: calc(var(--proto-piano-col, 248px) - var(--proto-piano-inset, 10px));
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* One head, the same in the three columns (L1b-1b, InstrumentHead.jsx): a
    fixed height, two rows of one line each, padded alike so the names align.
    (The bass's caption once wrapped to two lines and pushed its neck 14px
@@ -774,6 +850,20 @@
   background: var(--surface-3);
   color: var(--text-on-select);
   border-color: var(--select);
+}
+
+/* C-104 (Step 3b): the single column's row 1 — the three names as one
+   segmented control, the header's own look (.proto-a__segments /
+   .proto-a__segment, above). Inside a head row the segments take the row's
+   height (--hit-min, never below it) and the row keeps its one line. */
+.proto-a__head-segments {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.proto-a .proto-a__head-segments .proto-a__segment {
+  height: var(--hit-min);
+  padding: 0 12px;
 }
 
 /* ▶ and the arrows: square 48px targets. */
