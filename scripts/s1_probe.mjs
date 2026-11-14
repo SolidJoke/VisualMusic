@@ -200,12 +200,22 @@
  *
  * C-108 (Step 3b) adds the sticky instrument column to S1-30: in the two
  * Studio states the window is scrolled to its bottom and the column must stay
- * fully in the window (top >= -1, bottom <= innerHeight + 1, scrollY > 0); in
- * the two Dictionary states its height is printed against innerHeight, not
- * asserted.
+ * fully in the window (top >= -1, bottom <= innerHeight + 1, scrollY > 0).
+ * C-108b (Step 3b) makes the key size independent of the instrument shown:
+ * every state of a viewport records data-fit-key (on .proto-a) and must show
+ * the SAME key as Studio+piano, and with the window at its top (scrollY 0) the
+ * column must end inside the window (bottom <= innerHeight + 1) — the
+ * Dictionary height C-108 only printed is now asserted. Two states exercise
+ * the measure itself: Studio+guitar+reload (the Studio reopens on the guitar:
+ * no piano to measure) and Studio+scrolled+bass (the bass is chosen while the
+ * window is scrolled to its bottom, then the window goes back to the top).
+ * Both must show the same key, the column inside the window.
  * Positive control: S1_PROBE_INJECT_CSS='.proto-a__grid--single
  * .proto-a__instrument{position:static!important}' turns S1-30 red in the two
  * Studio states (the column scrolls out of the window).
+ * C-108b positive control: measuring the piano only again ([data-s1="piano"]
+ * .piano-wrapper--vertical, other changes kept) turns --single-column-only red
+ * on Studio+guitar+reload (key 61, column past the window).
  *
  *   npm run s1:probe                    # human-readable
  *   npm run s1:probe -- --json          # JSON, one entry per state
@@ -419,7 +429,7 @@ const CRITERIA = [
   // (the threshold read from src/layout.js). Also matrix:false, and run only by
   // --single-column-only (it loads ~55 pages; the default run has no room for
   // that). One pixel under the threshold must stay classic.
-  { id: "S1-30", decides: true, matrix: false, what: `single column (${A_PRIME_MIN_WIDTH}..2559px): one instrument column ending before the 24px right margin, staying fully in the window when the page is scrolled to its bottom in the two Studio states, a 56px header that never overflows with every button >= --hit-min, the sequencer's 16 cells of 48px per row uncut, no horizontal page scroll in Studio+piano / Studio+guitar / Dictionary+bass / Dictionary+scales+guitar; the three segments switch the column, the help menu opens (controls on top) and closes on Escape (focus back) or a press outside; every entry of the parity list reachable at 1920x970; ${A_PRIME_MIN_WIDTH - 1}px classic / ${A_PRIME_MIN_WIDTH}px A′; threshold 1440..${A_PRIME_MIN_WIDTH} informative (no scroll and cells >= 48px)` },
+  { id: "S1-30", decides: true, matrix: false, what: `single column (${A_PRIME_MIN_WIDTH}..2559px): one instrument column ending before the 24px right margin, the same data-fit-key in every state (Studio+piano as the reference) and at the top of the page the column ending inside the window (including after a reload on the guitar and after choosing the bass while scrolled), staying fully in the window when the page is scrolled to its bottom in the two Studio states, a 56px header that never overflows with every button >= --hit-min, the sequencer's 16 cells of 48px per row uncut, no horizontal page scroll in Studio+piano / Studio+guitar / Dictionary+bass / Dictionary+scales+guitar; the three segments switch the column, the help menu opens (controls on top) and closes on Escape (focus back) or a press outside; every entry of the parity list reachable at 1920x970; ${A_PRIME_MIN_WIDTH - 1}px classic / ${A_PRIME_MIN_WIDTH}px A′; threshold 1440..${A_PRIME_MIN_WIDTH} informative (no scroll and cells >= 48px)` },
 ];
 
 // The per-state matrix criteria (S1-28 is a per-viewport check, see above).
@@ -4255,7 +4265,12 @@ async function reportHeightFit(browser, viewport) {
 function singleColumnMeasure() {
   const round = (n) => Math.round(n * 10) / 10;
   const de = document.documentElement;
+  // C-108b: the criteria are read with the window at its top. Below 2560px the
+  // column is sticky, so a scrolled window would show a different bottom.
+  if (window.scrollY !== 0) window.scrollTo(0, 0);
   if (!document.querySelector('[data-prototype="a"]')) return { missing: "the A′ page did not open" };
+  const root = document.querySelector('[data-prototype="a"]');
+  const key = parseFloat(root ? root.getAttribute("data-fit-key") : "");
   const instruments = [...document.querySelectorAll(".proto-a__instrument")];
   const first = instruments[0];
   const fb = first ? first.getBoundingClientRect() : null;
@@ -4266,8 +4281,9 @@ function singleColumnMeasure() {
         right: round(fb.right),
         width: round(fb.width),
         height: round(fb.height),
+        bottom: round(fb.bottom),
       }
-    : { count: 0, fn: null, right: null, width: null, height: null };
+    : { count: 0, fn: null, right: null, width: null, height: null, bottom: null };
   const header = document.querySelector("header.proto-a__header");
   const hb = header ? header.getBoundingClientRect() : null;
   // --hit-min is inherited from :root (44px; 48px from 3840) — read live.
@@ -4314,8 +4330,10 @@ function singleColumnMeasure() {
   return {
     scrollWidth: de.scrollWidth,
     scrollHeight: de.scrollHeight,
+    scrollY: round(window.scrollY),
     innerWidth: window.innerWidth,
     innerHeight: window.innerHeight,
+    key: Number.isFinite(key) ? key : null,
     instrument,
     headerHeight: hb ? round(hb.height) : null,
     headerOverflow: header ? { scrollWidth: header.scrollWidth, clientWidth: header.clientWidth } : null,
@@ -4338,6 +4356,14 @@ function singleColumnFails(m, label) {
   if (m.missing) return [`${label}: ${m.missing}`];
   const out = [];
   if (m.scrollWidth > m.innerWidth) out.push(`${label}: the page scrolls horizontally (${m.scrollWidth} > ${m.innerWidth})`);
+  // C-108b: the key is the same in every state of a viewport (compared with
+  // Studio+piano in reportSingleColumn), and the column fits the window with
+  // the page at its top.
+  if (m.key === null) out.push(`${label}: no data-fit-key on [data-prototype="a"]`);
+  if (m.scrollY !== 0) out.push(`${label}: the window is scrolled (scrollY ${m.scrollY}), 0 expected`);
+  if (m.instrument.bottom !== null && m.instrument.bottom > m.innerHeight + 1) {
+    out.push(`${label}: the instrument column ends at ${m.instrument.bottom}, past the window's ${m.innerHeight} (it does not fit)`);
+  }
   if (m.instrument.count !== 1) out.push(`${label}: ${m.instrument.count} .proto-a__instrument, 1 expected`);
   else if (m.instrument.right > m.innerWidth - 24 + 0.5) {
     out.push(`${label}: the instrument column ends at x=${m.instrument.right}, past the 24px right margin (${m.innerWidth - 24})`);
@@ -4370,7 +4396,7 @@ function singleColumnFails(m, label) {
 function singleColumnLine(m) {
   if (m.missing) return "no A′ page";
   const s = m.sequencer || {};
-  return `page ${m.scrollWidth}x${m.scrollHeight} (scrollWidth ${m.scrollWidth} <= ${m.innerWidth}; scrollHeight reported), column ${m.instrument.fn || "none"} ${m.instrument.width ?? "-"}px right x=${m.instrument.right ?? "-"} (margin ${m.instrument.right === null ? "-" : Math.round(m.innerWidth - m.instrument.right)}), header ${m.headerHeight}px (${m.headerOverflow ? `${m.headerOverflow.scrollWidth}/${m.headerOverflow.clientWidth}` : "-"}), ${m.buttons.length} button(s) min ${m.buttons.length ? Math.min(...m.buttons.map((b) => b.min)) : "-"}px (hit-min ${m.hitMin}px), sequencer ${s.rows}x[${(s.rowCounts || []).join("/")}] cells, cell ${s.minCellWidth}px, ${s.scrolls} scrolling, ${s.cut} cut`;
+  return `key ${m.key ?? "-"}px, column ${m.instrument.fn || "none"} ${m.instrument.width ?? "-"}px right x=${m.instrument.right ?? "-"} bottom ${m.instrument.bottom ?? "-"} (window ${m.innerHeight}, margin ${m.instrument.right === null ? "-" : Math.round(m.innerWidth - m.instrument.right)}), page ${m.scrollWidth}x${m.scrollHeight} (scrollWidth ${m.scrollWidth} <= ${m.innerWidth}; scrollHeight reported), header ${m.headerHeight}px (${m.headerOverflow ? `${m.headerOverflow.scrollWidth}/${m.headerOverflow.clientWidth}` : "-"}), ${m.buttons.length} button(s) min ${m.buttons.length ? Math.min(...m.buttons.map((b) => b.min)) : "-"}px (hit-min ${m.hitMin}px), sequencer ${s.rows}x[${(s.rowCounts || []).join("/")}] cells, cell ${s.minCellWidth}px, ${s.scrolls} scrolling, ${s.cut} cut`;
 }
 
 /**
@@ -4573,17 +4599,29 @@ async function reportSingleColumn(browser, viewport) {
   const fails = [];
   const rows = [];
   const sticks = [];
+  // C-108b: the reference key, read in Studio+piano; every other state of the
+  // viewport must show the same one.
+  let expectedKey = null;
+  // The scrolled-choice state (2): its scroll positions are printed below.
+  let before = null;
+  let atChoice = null;
   const measure = async (state, want) => {
     const m = await page.evaluate(singleColumnMeasure);
     const stateFails = singleColumnFails(m, `${viewport.label} ${state}`);
     if (!m.missing && m.instrument.count === 1 && m.instrument.fn !== want) {
       stateFails.push(`${viewport.label} ${state}: the column is ${m.instrument.fn}, ${want} expected`);
     }
+    if (!m.missing && typeof m.key === "number") {
+      if (expectedKey === null) expectedKey = m.key;
+      else if (m.key !== expectedKey) {
+        stateFails.push(`${viewport.label} ${state}: the key is ${m.key}px, ${expectedKey}px in Studio+piano expected`);
+      }
+    }
     fails.push(...stateFails);
     rows.push({ state, m, pass: stateFails.length === 0 });
   };
   // C-108: in the Studio the page scrolls, so the column is checked at the
-  // bottom; in the Dictionary its height is only printed.
+  // bottom too. (The at-top fit of every state is already in singleColumnFails.)
   const checkStuck = async (state) => {
     const m = await page.evaluate(singleColumnStickMeasure);
     const stateFails = singleColumnStickFails(m, `${viewport.label} ${state}`);
@@ -4591,18 +4629,56 @@ async function reportSingleColumn(browser, viewport) {
     sticks.push({ state, m, pass: stateFails.length === 0 });
   };
   try {
-    // 1. Studio, piano (the default). 2. Studio, guitar (a segment click).
+    // 1. Studio, piano (the default).
     await openCompactPage(page, "", '[data-s1="piano"]');
     await measure("Studio+piano", "jouer.piano");
     await checkStuck("Studio+piano");
+    // 2. C-108b: choose the bass while the window is scrolled to its bottom
+    // (the sticky column keeps the segmented head in view), then come back to
+    // the top. A measure that read the sticky top as the document top would
+    // keep the full key here.
+    const beforeScroll = await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      return {
+        scrollY: window.scrollY,
+        canScroll: document.documentElement.scrollHeight > window.innerHeight,
+      };
+    });
+    before = beforeScroll;
+    await page.waitForTimeout(150);
+    if (before.canScroll && !(before.scrollY > 0)) {
+      fails.push(`${viewport.label} Studio+scrolled+bass: the window did not scroll before choosing (scrollY ${before.scrollY})`);
+    }
+    // A DOM click, not page.click: Playwright would scroll the button into view
+    // and the state would no longer be "chosen while scrolled".
+    await page.evaluate(() => {
+      const btn = document.querySelector('[data-fn="jouer.instrument-tuile-bass"]');
+      if (btn) btn.click();
+    });
+    await page.locator('[data-s1="bass"]').waitFor({ state: "visible", timeout: 10_000 });
+    const atChoiceScroll = await page.evaluate(() => window.scrollY);
+    atChoice = atChoiceScroll;
+    await page.waitForTimeout(150);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(150);
+    await measure("Studio+scrolled+bass", "jouer.basse");
+    // 3. Studio, guitar (a segment click).
     await clickSegment(page, "guitar");
     await measure("Studio+guitar", "jouer.guitare");
     await checkStuck("Studio+guitar");
-    // 3. Dictionary, bass (a chord scenario).
+    // 4. C-108b: the Studio reopened on the guitar (the choice is persisted).
+    // There is no piano to measure, so the neck must size the page.
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator('[data-s1="guitar"]').waitFor({ state: "visible", timeout: 20_000 });
+    if (INJECT_CSS) await page.addStyleTag({ content: INJECT_CSS });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(250);
+    await measure("Studio+guitar+reload", "jouer.guitare");
+    // 5. Dictionary, bass (a chord scenario).
     await openCompactPage(page, "?scenario=cmaj", '[data-fn="dico.type-accord"]');
     await clickSegment(page, "bass");
     await measure("Dictionary+bass", "jouer.basse");
-    // 4. Dictionary, scales family, guitar, with the position rail.
+    // 6. Dictionary, scales family, guitar, with the position rail.
     await openCompactPage(page, "?scenario=cmajscale", '[data-fn="dico.type-gamme"]');
     await clickSegment(page, "guitar");
     await page.locator('[data-s1="guitar"] .proto-a__position-rail').waitFor({ state: "visible", timeout: 10_000 });
@@ -4630,8 +4706,8 @@ async function reportSingleColumn(browser, viewport) {
       `${lead} ${s.state} stuck ${s.pass ? "PASS" : "FAIL"}  scrollY ${s.m.scrollY} (scrollHeight ${s.m.scrollHeight}, window ${s.m.innerHeight}), column top ${s.m.top} bottom ${s.m.bottom}${s.m.canScroll ? "" : " — the page cannot scroll at this size (printed, not asserted)"}`
     );
   }
-  for (const row of rows.filter((r) => r.state.startsWith("Dictionary"))) {
-    console.log(`${lead} ${row.state} column height ${row.m.instrument.height} vs window ${row.m.innerHeight} (printed, not asserted)`);
+  if (before.canScroll) {
+    console.log(`${lead} Studio+scrolled+bass chosen at scrollY ${before.scrollY} (scrollY ${atChoice} after the choice, back to 0 before the measure)`);
   }
   if (viewport.label === SINGLE_COLUMN_TIGHTEST) console.log(`${lead}   page choice: ${A_PRIME_MIN_WIDTH - 1}px classic, ${A_PRIME_MIN_WIDTH}px A′ on the Studio; segments: guitar / bass / piano each left one column and one pressed segment; menu: opens with the four help controls on top, Escape closes and returns the focus, a press on the centre column closes`);
   if (fails.length) console.log(`${lead}   FAILED: ${fails.join(" | ")}`);
@@ -5023,7 +5099,7 @@ if (AS_JSON) {
   console.log(`  S1-27 ${mathWindowOk ? "PASS" : "FAIL"} ${mathWindowPassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-195-C Math & Rythmes dock: phase A one title, every text = ${S1_27.text}px (+-0.5; SVG >= ${S1_27.text}px on screen), targets >= ${S1_27.target}px (buttons and selects ${S1_27.button}px), the cases strip's cells >= ${S1_27.strip}px (as many as comp-n-value), six steppers >= ${S1_27.stepper}px, six "?" buttons, "Écouter" on top, no page scroll, inside the centre column, clear of the sequencer and the instruments; the recipes column beside the dock (or stacked under it), open by default (toggle on, 4 recipes, texts ${S1_27.text}px, targets >= 32px, nothing spills out); phase B phasing slider thumb >= ${S1_27.thumb}px, iso 64 cells fully visible, poly grid-led >= ${S1_27.cell}px`);
   console.log(`  S1-28 ${textSizeOk ? "PASS" : "FAIL"} ${textSizePassCount}/${ACCESS_VIEWPORTS.length} viewport(s)  VMU-212 one text size: every A′ text ${S1_28.size}px (+-${S1_28.tolerance}), the instruments' frozen drawing excepted, SVG >= ${S1_28.svgFloor}px on screen; Studio / Math dock / Dictionary chord+scale / Assistant drawer / Instruments & Audio / Guide`);
   console.log(`  S1-29 ${heightFitOk ? "PASS" : "FAIL"} ${heightFitPassCount}/${HEIGHT_FIT_VIEWPORTS.length} viewport(s)  C-103 Step 3a / C-105 Step 3b height fit: at 2560+ the white key stays 61px; below 2560px it shrinks to min(61, max(--hit-min, floor((available-18)/15))) so the keyboard keeps 2 octaves. The keyboard shows the largest whole octave count that fits ((7k+1)*key+18 <= available), the necks the most frets whose full-neck rows (at that key) fit the keyboard's length, every row at its full-neck height, their bottom at/above the keyboard's by less than one row; no S1-4 overlap; the instruments end inside the window. 3840x2045 identical to today (4 octaves, frets 1-22)`);
-  console.log(`  S1-30 ${SINGLE_COLUMN_ONLY ? (singleColumnOk ? "PASS" : "FAIL") : "not run"}${SINGLE_COLUMN_ONLY ? ` ${singleColumnPassCount}/${SINGLE_COLUMN_VIEWPORTS.length} viewport(s)` : " (--single-column-only: ~55 pages, more than the default run's ~2 min)"}  C-107 Step 3b single column, ${A_PRIME_MIN_WIDTH}..2559px: one instrument column inside the 24px right margin, a 56px header without overflow and every button >= --hit-min, the sequencer's 16 cells of 48px per row uncut, no horizontal page scroll in Studio+piano / Studio+guitar / Dictionary+bass / Dictionary+scales+guitar; the three segments, the help menu (Escape returns the focus), the whole parity list at 1920x970, ${A_PRIME_MIN_WIDTH - 1}px classic / ${A_PRIME_MIN_WIDTH}px A′; threshold 1440..${A_PRIME_MIN_WIDTH} informative${singleColumnThreshold.smallest ? ` (no scroll + cells >= 48px from ${singleColumnThreshold.smallest}px)` : ""}`);
+  console.log(`  S1-30 ${SINGLE_COLUMN_ONLY ? (singleColumnOk ? "PASS" : "FAIL") : "not run"}${SINGLE_COLUMN_ONLY ? ` ${singleColumnPassCount}/${SINGLE_COLUMN_VIEWPORTS.length} viewport(s)` : " (--single-column-only: ~55 pages, more than the default run's ~2 min)"}  C-107 Step 3b single column, ${A_PRIME_MIN_WIDTH}..2559px: one instrument column inside the 24px right margin, the same data-fit-key in every state and the column inside the window at the top of the page, a 56px header without overflow and every button >= --hit-min, the sequencer's 16 cells of 48px per row uncut, no horizontal page scroll in Studio+piano / Studio+guitar / Dictionary+bass / Dictionary+scales+guitar; the three segments, the help menu (Escape returns the focus), the whole parity list at 1920x970, ${A_PRIME_MIN_WIDTH - 1}px classic / ${A_PRIME_MIN_WIDTH}px A′; threshold 1440..${A_PRIME_MIN_WIDTH} informative${singleColumnThreshold.smallest ? ` (no scroll + cells >= 48px from ${singleColumnThreshold.smallest}px)` : ""}`);
   if (ACCESS_ONLY) console.log("  (--access-only: S1-1..S1-19 not run)");
   console.log(`\nDecision by the spec's rule (S1-1..S1-11, S1-15..S1-30 all PASS -> A′, one FAIL -> B; S1-14 pending): ${decision}`);
   if (anyPageError) console.log("WARNING: page errors occurred (see lines above).");

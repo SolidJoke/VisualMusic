@@ -286,26 +286,49 @@ export default function PrototypeA({
   };
 
   // C-103 (Step 3a) — measure the room the instruments have: the window's
-  // height minus the instruments' top and a 40px bottom margin, re-measured on
-  // resize. In jsdom there is no layout (the keyboard's box is 0px tall), so
-  // the measure stays 0 and the fit below keeps the full instruments.
+  // height minus the instruments' top and a 40px bottom margin.
+  // C-108b: the measure reads the body of the FIRST instrument column — its
+  // piano keyboard, or the neck it shows once another instrument is chosen —
+  // so a page opened on the guitar or the bass is sized like one opened on the
+  // piano. Below 2560px the column is `position: sticky; top: 0` (C-108): once
+  // stuck, its rect.top AND its offsetTop report the stuck position (0 at any
+  // scroll), never the natural one. The measure therefore puts the column back
+  // at its grid position for the synchronous read (`position: static`) and
+  // takes the DOCUMENT position, `rect.top + scrollY`; restored before paint,
+  // this is exactly the top the column has at the page's top. Re-measured on
+  // resize, on a mode change and on an instrument change; none of those depends
+  // on the key size, so this cannot loop. In jsdom there is no layout (the
+  // body's box is 0px tall), so the measure stays 0 and the fit below keeps the
+  // full instruments.
   const protoRef = useRef(null);
   const [availableHeight, setAvailableHeight] = useState(0);
+  // Read here (not next to the column rendering below) because the measure
+  // must know the chosen instrument as soon as the page mounts.
+  const chosenInstrument = musicEngineContextValue?.playbackInstrument || "piano";
   useLayoutEffect(() => {
     const measure = () => {
       const root = protoRef.current;
-      const piano = root?.querySelector('[data-s1="piano"] .piano-wrapper--vertical');
-      const rect = piano?.getBoundingClientRect();
-      if (!rect || rect.height <= 0) {
+      const column = root?.querySelector(".proto-a__instrument");
+      const body = column?.querySelector(".piano-wrapper--vertical, .proto-a__neck");
+      if (!column || !body) {
         setAvailableHeight(0);
         return;
       }
-      setAvailableHeight(Math.max(0, window.innerHeight - rect.top - 40));
+      const previousPosition = column.style.position;
+      column.style.position = "static";
+      const rect = body.getBoundingClientRect();
+      const top = rect.top + window.scrollY;
+      column.style.position = previousPosition;
+      if (rect.height <= 0) {
+        setAvailableHeight(0);
+        return;
+      }
+      setAvailableHeight(Math.max(0, window.innerHeight - top - 40));
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [appMode, chosenInstrument]);
 
   // Escape closes the drawer, like the classic windows — but not when it
   // belongs to something on top of it: a window open over the drawer (it
@@ -598,7 +621,7 @@ export default function PrototypeA({
       panel: panelFor(id, index),
     };
   };
-  const chosenInstrument = engine.playbackInstrument || "piano";
+  // `chosenInstrument` is read next to the measure (C-108b), before this point.
   const selectInstrument = (id) => engine.setPlaybackInstrument && engine.setPlaybackInstrument(id);
   // The single column's row 1: the three names as one segmented control, each
   // keeping its head toggle's registry name (InstrumentHead's `choices`).
