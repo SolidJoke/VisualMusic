@@ -15,7 +15,7 @@ import { placementLabel, stepPlacement } from "../components/Instruments/placeme
 import { verticalFretShare } from "../components/Instruments/verticalNeckGeometry";
 import { chooseKeySize, chooseKeyboardOctaves, chooseFretWindow } from "../core/instrumentWindow";
 import { translations } from "../i18n/translations";
-import { DESKTOP_QUERY } from "../layout";
+import { DESKTOP_QUERY, IS_PHONE } from "../layout";
 import { useBpmEditor } from "../hooks/useBpmEditor";
 import { S1_SCENARIOS, S1_LABEL_MODES, S1_EXTRA_STATES } from "./s1Scenarios.js";
 import InstrumentHead from "./InstrumentHead";
@@ -24,6 +24,7 @@ import PositionRail from "./PositionRail";
 import { positionPanelView } from "../components/Instruments/positionPanel";
 import SelectionRow from "./SelectionRow";
 import MathDock from "./MathDock";
+import PhoneDrawer from "./PhoneDrawer";
 
 /**
  * S1 prototype — layout A′ at 3840px (VMU-135 / 035, VMU-155).
@@ -237,6 +238,18 @@ export default function PrototypeA({
   // caller hands no translations (the unit tests render with txt={}).
   const T = txt && txt.protoA ? txt.protoA : translations.fr.protoA;
   const [drawerOpen, setDrawerOpen] = useState(() => readParams().drawer === "open");
+  // C-109 (phone) — the bottom sheet's height, remembered PER MODE (Studio /
+  // Dictionary) in React state. The sheet owns the history stack (PhoneDrawer);
+  // the stage's own press folds it through the imperative `fold()`.
+  const [phoneDrawerHeights, setPhoneDrawerHeights] = useState({ studio: "folded", dictionary: "folded" });
+  const phoneDrawerHeight = phoneDrawerHeights[appMode] || "folded";
+  const phoneDrawerRef = useRef(null);
+  const setPhoneDrawerHeight = (next) => {
+    setPhoneDrawerHeights((heights) => (heights[appMode] === next ? heights : { ...heights, [appMode]: next }));
+  };
+  const foldPhoneDrawer = () => {
+    if (phoneDrawerHeight !== "folded") phoneDrawerRef.current?.fold();
+  };
   // VMU-213 (part 2): the recipes column ("Pour aller plus loin", right of the
   // sequencers) — an empty <aside> whose node the CompositionPanel portals its
   // advanced section into. A callback ref into state, so the portaled section
@@ -457,6 +470,9 @@ export default function PrototypeA({
   // instrument) from 1648 to 2559 — live, it follows a resize. Read before the
   // fit below: C-105 lets the single-column page shrink the key.
   const threeColumns = useThreeColumns();
+  // C-109 (phone): one instrument on the stage whatever the live query says,
+  // and the compact key rule (the octave count is the next lot's business).
+  const singleColumn = IS_PHONE || !threeColumns;
 
   // C-103 (Step 3a) — how many octaves and frets fit in the measured height,
   // and which fret window each neck shows. Every size is read from the page's
@@ -480,14 +496,14 @@ export default function PrototypeA({
     const fullKeyPx = readPx(cs, "--proto-key-full", 61);
     const minKeyPx = readPx(cs, "--hit-min", 44);
     const chromePx = readPx(cs, "--proto-piano-chrome", 18);
-    const keyPx = threeColumns
-      ? fullKeyPx
-      : chooseKeySize(availableHeight > 0 ? availableHeight : Infinity, {
+    const keyPx = singleColumn
+      ? chooseKeySize(availableHeight > 0 ? availableHeight : Infinity, {
           fullKeyPx,
           minKeyPx,
           chromePx,
           targetOctaves: 2,
-        });
+        })
+      : fullKeyPx;
     const fullKeys = parseInt(cs.getPropertyValue("--proto-keys"), 10) || 29;
     const maxOctaves = Math.max(1, Math.round((fullKeys - 1) / 7));
     const fullKeyboardHeight = fullKeys * keyPx + chromePx;
@@ -514,7 +530,7 @@ export default function PrototypeA({
     };
 
     return { keyboard, keyPx, guitar: windowFor("guitar"), bass: windowFor("bass") };
-  }, [availableHeight, engine, threeColumns]);
+  }, [availableHeight, engine, singleColumn]);
   const isDictionary = appMode === "dictionary";
   // The classic words of a position (voicingOf, shapeLabel, positionDefault...)
   // live in the page's main table; the French one when `txt` has none.
@@ -761,10 +777,10 @@ export default function PrototypeA({
         {/* C-105: below 2560px the key shrinks to keep 2 octaves; at 2560+
             --proto-key keeps its CSS value (the full key), so no inline style. */}
         <div
-          className={`proto-a${threeColumns ? "" : " proto-a--compact"}`}
+          className={`proto-a${singleColumn ? " proto-a--compact" : ""}${IS_PHONE ? " proto-a--phone" : ""}`}
           data-prototype="a"
           ref={protoRef}
-          style={threeColumns ? undefined : { "--proto-key": `${instrumentFit.keyPx}px` }}
+          style={singleColumn ? { "--proto-key": `${instrumentFit.keyPx}px` } : undefined}
           data-fit-key={instrumentFit.keyPx}
           data-fit-octaves={instrumentFit.keyboard.octaves}
           data-fit-keys={instrumentFit.keyboard.keys}
@@ -781,7 +797,7 @@ export default function PrototypeA({
                 data-fn="nav.mode-studio"
                 onClick={() => (onRequestAppMode || setAppMode)("studio")}
               >
-                {T.tabStudio}
+                {IS_PHONE ? T.tabStudioShort : T.tabStudio}
               </button>
               <button
                 type="button"
@@ -791,7 +807,7 @@ export default function PrototypeA({
                 data-fn="nav.mode-dictionnaire"
                 onClick={() => (onRequestAppMode || setAppMode)("dictionary")}
               >
-                {T.tabDictionary}
+                {IS_PHONE ? T.tabDictionaryShort : T.tabDictionary}
               </button>
             </nav>
             <div className="proto-a__spacer" />
@@ -823,12 +839,12 @@ export default function PrototypeA({
                 C-106: at 2560px and wider they stay in the header, unchanged.
                 Below, the header is compact and they live in one "Aide et
                 réglages" menu, its button in their place (L1b-1). */}
-            {headerProps && threeColumns && (
+            {headerProps && !singleColumn && (
               <div className="proto-a__header-actions">
                 <HeaderActions {...headerProps} showNotation={false} />
               </div>
             )}
-            {headerProps && !threeColumns && (
+            {headerProps && singleColumn && (
               <div className="proto-a__help" ref={helpRef}>
                 <button
                   ref={helpButtonRef}
@@ -866,7 +882,12 @@ export default function PrototypeA({
             </button>
           </header>
 
-          <div className={`proto-a__grid${threeColumns ? "" : " proto-a__grid--single"}`}>
+          {/* C-109: the centre is rendered ONCE, then placed either in the
+              grid (768 px and wider, unchanged) or inside the phone's bottom
+              sheet. The IIFE keeps one JSX source for both, so every data-fn
+              exists exactly once whichever layout is on. */}
+          {(() => {
+            const centre = (
             <main className="proto-a__center" data-s1="center">
               <section className="proto-a__panel proto-a__transport" data-s1="transport">
                 <button type="button" className={`proto-a__btn proto-a__btn--primary ${isPlaying ? "is-playing" : ""}`} data-fn="jouer.lecture" onClick={handlePlay}>
@@ -1057,21 +1078,44 @@ export default function PrototypeA({
                 <TheoryLegend />
               </section>
             </main>
+            );
 
-            {/* L1b-1b: the captions left the heads for the columns' tooltip
-                and accessible name; the heads carry the name, ▶ and the setting.
-                C-104: from 1648 to 2559px, ONE column — the chosen instrument,
-                its head's row 1 a segmented control; at 2560+, the three. */}
-            {threeColumns ? (
+            // C-109 (phone): one instrument on the stage, the centre in the
+            // bottom sheet. 768 px and wider: the grid exactly as before.
+            return IS_PHONE ? (
               <>
-                {instrumentColumn("piano")}
-                {instrumentColumn("guitar")}
-                {instrumentColumn("bass")}
+                <div className="proto-a__stage" data-s1="stage" onClick={foldPhoneDrawer}>
+                  {instrumentColumn(singleInstrument, instrumentChoices)}
+                </div>
+                <PhoneDrawer
+                  ref={phoneDrawerRef}
+                  height={phoneDrawerHeight}
+                  onHeightChange={setPhoneDrawerHeight}
+                  label={T.drawer}
+                  handleLabel={T.drawerHandle}
+                >
+                  {centre}
+                </PhoneDrawer>
               </>
             ) : (
-              instrumentColumn(singleInstrument, instrumentChoices)
-            )}
-          </div>
+              <div className={`proto-a__grid${singleColumn ? " proto-a__grid--single" : ""}`}>
+                {centre}
+                {/* L1b-1b: the captions left the heads for the columns' tooltip
+                    and accessible name; the heads carry the name, ▶ and the setting.
+                    C-104: from 1648 to 2559px, ONE column — the chosen instrument,
+                    its head's row 1 a segmented control; at 2560+, the three. */}
+                {threeColumns ? (
+                  <>
+                    {instrumentColumn("piano")}
+                    {instrumentColumn("guitar")}
+                    {instrumentColumn("bass")}
+                  </>
+                ) : (
+                  instrumentColumn(singleInstrument, instrumentChoices)
+                )}
+              </div>
+            );
+          })()}
 
           {drawerOpen && (
             <aside className="proto-a__drawer" data-s1="drawer" aria-label={T.drawerAria}>

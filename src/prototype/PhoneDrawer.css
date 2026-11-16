@@ -1,0 +1,98 @@
+/* C-109 (phone, lot 1) — A′'s bottom sheet (PhoneDrawer.jsx).
+   Fixed, full width, three heights read from data-drawer-height. Colours come
+   from tokens.css only. The height itself is set here (not inline): folded is
+   the --phone-drawer-folded the stage's height subtracts, half and full are
+   fractions of the small viewport (dvh), so a phone's browser chrome never
+   hides the handle. No bounce: one ease-out transition, 200 ms, and none at
+   all under prefers-reduced-motion. */
+
+.phone-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--surface-1);
+  border-top: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--lg-shadow);
+  transition: height 200ms ease-out;
+}
+
+.phone-drawer[data-drawer-height="folded"] {
+  height: var(--phone-drawer-folded, 150px);
+}
+
+.phone-drawer[data-drawer-height="half"] {
+  height: 55dvh;
+}
+
+.phone-drawer[data-drawer-height="full"] {
+  height: 92dvh;
+}
+
+/* The handle: a real 44 x 22 button at the top centre. The visible grip is
+   decorative; the button is the target (the design's own size, an exception
+   to --hit-min allowed by the lot for this control only). */
+.phone-drawer__handle {
+  flex: 0 0 22px;
+  box-sizing: border-box;
+  width: 44px;
+  height: 22px;
+  margin: 4px auto 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.phone-drawer__handle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.phone-drawer__grip {
+  display: block;
+  width: 36px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-strong);
+}
+
+/* The centre column, unchanged in the DOM: vertically scrollable at half and
+   full, not at all when folded (a folded sheet shows its top, it does not
+   move under the finger). min-height: 0 is what lets it scroll inside the
+   sheet's fixed height. */
+.phone-drawer__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.phone-drawer[data-drawer-height="half"] .phone-drawer__body,
+.phone-drawer[data-drawer-height="full"] .phone-drawer__body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The stage's 16px gutters follow the centre into the sheet. The small top
+   padding is what keeps the transport (▶ and the tempo) inside the folded
+   sheet's visible height at 390px. */
+.phone-drawer .proto-a__center {
+  padding: 4px 16px 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-drawer {
+    transition: none;
+  }
+}

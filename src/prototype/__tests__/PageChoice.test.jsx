@@ -79,7 +79,14 @@ vi.mock("../../components/Panels/SequencerPanel", () => ({ default: () => <div d
 import React, { Suspense } from "react";
 import { render, cleanup, waitFor, fireEvent } from "@testing-library/react";
 import { translations } from "../../i18n/translations";
-import { choosePage, A_PRIME_MIN_WIDTH, A_PRIME_QUERY, DESKTOP_QUERY } from "../../layout";
+import {
+  choosePage,
+  A_PRIME_MIN_WIDTH,
+  A_PRIME_QUERY,
+  DESKTOP_QUERY,
+  PHONE_MAX_WIDTH,
+  PHONE_QUERY,
+} from "../../layout";
 
 const FR = translations.fr;
 
@@ -87,12 +94,14 @@ const FR = translations.fr;
 vi.setConfig({ testTimeout: 60_000 });
 const LOAD_TIMEOUT = 20_000;
 
-/** matchMedia at a viewport `width`: "(min-width: Npx)" matches when width >= N. */
+/** matchMedia at a viewport `width`: "(min-width: Npx)" matches when width >= N,
+ * "(max-width: Npx)" when width <= N (C-109's phone query). */
 function viewport(width) {
   return vi.fn().mockImplementation((query) => {
     const min = /^\(min-width:\s*(\d+)px\)$/.exec(query);
+    const max = /^\(max-width:\s*(\d+)px\)$/.exec(query);
     return {
-      matches: min ? width >= Number(min[1]) : false,
+      matches: min ? width >= Number(min[1]) : max ? width <= Number(max[1]) : false,
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -125,6 +134,7 @@ async function openApp(search, width = 3840) {
   );
   return {
     page: document.querySelector('[data-prototype="a"]') ? "a" : "classic",
+    phone: Boolean(document.querySelector(".proto-a--phone")),
     pianoOwnsOctave: dictionary.calls.at(-1)?.pianoOwnsOctave,
   };
 }
@@ -222,5 +232,49 @@ describe("C-104: choosePage at the 1648 px threshold", () => {
     expect(A_PRIME_MIN_WIDTH).toBe(1648);
     expect(A_PRIME_QUERY).toBe("(min-width: 1648px)");
     expect(DESKTOP_QUERY).toBe("(min-width: 2560px)");
+  });
+});
+
+// C-109 (phone, lot 1): A′ is also served below 768 px, in its phone variant.
+describe("C-109: choosePage at the phone threshold", () => {
+  const at = (width) => choosePage("", width >= A_PRIME_MIN_WIDTH, width <= PHONE_MAX_WIDTH);
+
+  it("767 px -> A′; 768 and 1647 px -> classic; 1648 px -> A′ (not phone)", () => {
+    expect(at(767)).toBe("a");
+    expect(at(768)).toBe("classic");
+    expect(at(1647)).toBe("classic");
+    expect(at(1648)).toBe("a");
+  });
+
+  it("keeps the phone constants", () => {
+    expect(PHONE_MAX_WIDTH).toBe(767);
+    expect(PHONE_QUERY).toBe("(max-width: 767px)");
+  });
+
+  it("767 px mounts A′ with proto-a--phone; 768 px stays the classic page", async () => {
+    const phone = await openApp("", 767);
+    expect(phone.page).toBe("a");
+    expect(phone.phone).toBe(true);
+
+    const classic = await openApp("", 768);
+    expect(classic.page).toBe("classic");
+    expect(classic.phone).toBe(false);
+  });
+
+  it("1647 px is still classic; 1648 px is A′ without the phone variant", async () => {
+    expect((await openApp("", 1647)).page).toBe("classic");
+    const wide = await openApp("", 1648);
+    expect(wide.page).toBe("a");
+    expect(wide.phone).toBe(false);
+  });
+
+  it("?prototype=a on a phone keeps the phone variant; ?layout=classic still wins", async () => {
+    const forcedA = await openApp("?prototype=a", 390);
+    expect(forcedA.page).toBe("a");
+    expect(forcedA.phone).toBe(true);
+
+    const forcedClassic = await openApp("?layout=classic", 390);
+    expect(forcedClassic.page).toBe("classic");
+    expect(forcedClassic.phone).toBe(false);
   });
 });

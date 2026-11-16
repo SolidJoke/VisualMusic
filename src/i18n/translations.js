@@ -420,6 +420,10 @@ export const translations = {
       tabDictionary: "Dictionnaire",
       tabStudioAria: "Mode Studio",
       tabDictionaryAria: "Mode Dictionnaire",
+      // C-109: the phone header's short labels (the full ones stay the
+      // accessible names above).
+      tabStudioShort: "Studio",
+      tabDictionaryShort: "Dictionnaire",
       labelsCaption: "Sur les notes",
       labelModes: { eu: "Noms Do Ré Mi", us: "Noms C D E", fingers: "Doigts" },
       assistant: "Assistant",
@@ -427,6 +431,9 @@ export const translations = {
       dictionary: "Dictionnaire",
       drawerAria: "Assistant",
       close: "Fermer",
+      // C-109: the phone's bottom sheet.
+      drawer: "Panneau",
+      drawerHandle: "Agrandir le panneau",
       playProgression: "▶ Lire la progression",
       listen: "▶ Écouter",
       stop: "■ Arrêter",
@@ -899,6 +906,9 @@ export const translations = {
       tabDictionary: "Dictionary",
       tabStudioAria: "Studio mode",
       tabDictionaryAria: "Dictionary mode",
+      // C-109: the phone header's short labels.
+      tabStudioShort: "Studio",
+      tabDictionaryShort: "Dictionary",
       labelsCaption: "On the notes",
       labelModes: { eu: "Names Do Re Mi", us: "Names C D E", fingers: "Fingers" },
       assistant: "Assistant",
@@ -906,6 +916,9 @@ export const translations = {
       dictionary: "Dictionary",
       drawerAria: "Assistant",
       close: "Close",
+      // C-109: the phone's bottom sheet.
+      drawer: "Panel",
+      drawerHandle: "Expand the panel",
       playProgression: "▶ Play the progression",
       listen: "▶ Listen",
       stop: "■ Stop",
@@ -1315,6 +1328,9 @@ export const translations = {
       tabDictionary: "Dicionário",
       tabStudioAria: "Modo Estúdio",
       tabDictionaryAria: "Modo Dicionário",
+      // C-109: the phone header's short labels.
+      tabStudioShort: "Estúdio",
+      tabDictionaryShort: "Dicionário",
       labelsCaption: "Nas notas",
       labelModes: { eu: "Nomes Dó Ré Mi", us: "Nomes C D E", fingers: "Dedos" },
       assistant: "Assistente",
@@ -1322,6 +1338,9 @@ export const translations = {
       dictionary: "Dicionário",
       drawerAria: "Assistente",
       close: "Fechar",
+      // C-109: the phone's bottom sheet.
+      drawer: "Painel",
+      drawerHandle: "Expandir o painel",
       playProgression: "▶ Tocar a progressão",
       listen: "▶ Ouvir",
       stop: "■ Parar",
@@ -1770,6 +1789,9 @@ export const translations = {
       tabDictionary: "字典",
       tabStudioAria: "工作室模式",
       tabDictionaryAria: "字典模式",
+      // C-109: the phone header's short labels.
+      tabStudioShort: "工作室",
+      tabDictionaryShort: "词典",
       labelsCaption: "音符上显示",
       labelModes: { eu: "唱名 Do Re Mi", us: "音名 C D E", fingers: "指法" },
       assistant: "助手",
@@ -1777,6 +1799,9 @@ export const translations = {
       dictionary: "字典",
       drawerAria: "助手",
       close: "关闭",
+      // C-109: the phone's bottom sheet.
+      drawer: "面板",
+      drawerHandle: "展开面板",
       playProgression: "▶ 播放和弦进行",
       listen: "▶ 试听",
       stop: "■ 停止",
