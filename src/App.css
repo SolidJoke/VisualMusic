@@ -857,17 +857,16 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
-/* Tactile Touch Targets: guarantee 44px min-height on small screens */
+/* Tactile Touch Targets: guarantee 44px min-height on small screens.
+   C-109: two exclusions, both needed on every selector —
+     · [hidden] and an inline display:none are never made visible. CustomSelect
+       keeps a native <select> with style="display: none" for the tests and
+       assistive tech; the !important display below used to override that
+       inline style and paint the duplicate in white beside the custom one;
+     · .proto-a is left alone: A′ sizes its own targets with --hit-min and its
+       phone layout (C-109) sets its own header heights. */
 @media (max-width: 768px) {
-  button,
-  select,
-  .btn-premium,
-  .btn-segment,
-  .btn-header-action,
-  .select-lang,
-  .custom-select__trigger,
-  .btn-toggle,
-  .btn-playback-premium {
+  :is(button, select, .btn-premium, .btn-segment, .btn-header-action, .select-lang, .custom-select__trigger, .btn-toggle, .btn-playback-premium):not([hidden]):not([style*="display: none"]):not([style*="display:none"]):not(.proto-a *) {
     min-height: 44px !important;
     display: inline-flex !important;
     align-items: center;

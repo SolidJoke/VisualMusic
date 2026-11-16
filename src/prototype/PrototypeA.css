@@ -1353,3 +1353,173 @@
   background: var(--surface-3);
   border-radius: var(--radius-sm);
 }
+
+/* ─── C-109 (phone, lot 1): below 768 px ───────────────────────────────────
+   A′ wears .proto-a--phone (src/layout.js IS_PHONE) next to --compact. One
+   instrument on the stage, full width between two 16px gutters, from under the
+   56px header to the top of the folded bottom sheet (PhoneDrawer.css); the
+   centre column moves into that sheet. Nothing here applies at 768 px and
+   above: every rule is scoped to .proto-a--phone.
+
+   The phone's own text floor is 15px (this lot's rule): the page's two sizes
+   are re-pointed here, the instruments' frozen drawing is not. Greens are
+   untouched: the header shrinks to the two short mode tabs and the existing
+   "Aide et réglages" button (the title, the label modes and the Assistant
+   button stay in the DOM, hidden, so every data-fn still exists once). */
+.proto-a--phone {
+  --phone-drawer-folded: 150px;
+  --a-prime-header: 56px;
+  --fs-body: 15px;
+  --fs-label: 15px;
+
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.proto-a--phone .proto-a__header {
+  box-sizing: border-box;
+  flex: 0 0 56px;
+  height: 56px;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+/* Not in the phone header — present, hidden, so their data-fn stay reachable. */
+.proto-a--phone .proto-a__title,
+.proto-a--phone .proto-a__segmented,
+.proto-a--phone .proto-a__assistant {
+  display: none;
+}
+
+/* Two short tabs and the existing help button: tight enough for a 360px
+   window (the longest labels are FR "Dictionnaire" / "Aide et réglages"). */
+.proto-a--phone .proto-a__tabs {
+  gap: 4px;
+  min-width: 0;
+}
+
+.proto-a--phone .proto-a__tab {
+  width: auto;
+  height: 44px;
+  padding: 0 8px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.proto-a--phone .proto-a__help {
+  min-width: 0;
+}
+
+.proto-a--phone .proto-a__help-btn {
+  height: 44px;
+  padding: 0 8px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+/* The stage: exactly the window minus the header and the folded sheet. It
+   scrolls inside itself when the instrument is taller (the page never scrolls
+   horizontally; the necks are wider than a 360px stage by 18px, so the stage
+   takes that overflow rather than the document). */
+.proto-a--phone .proto-a__stage {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  height: calc(100dvh - 56px - var(--phone-drawer-folded, 150px));
+  min-height: 0;
+  padding: 8px 16px 0;
+  overflow: auto;
+}
+
+.proto-a--phone .proto-a__instrument {
+  /* C-108's sticky column is for the scrolling compact page; the phone's
+     stage is its own scroller, so the column stays in it. */
+  position: static;
+  width: 100%;
+  min-width: 0;
+  padding-top: 0;
+  box-shadow: none;
+}
+
+/* The piano fills the stage's width, no 10px inset nor a 248px box. */
+.proto-a--phone .proto-a__instrument[data-s1="piano"] .piano-wrapper--vertical {
+  width: auto;
+  margin-left: 0;
+  margin-right: 0;
+  --piano-v-width: 100%;
+}
+
+/* C-109: the design's phone neck — 53px string pitch and a 40px pastille:
+   guitar 28 + 6 x 53 = 346px, inside the 358px a 390px phone leaves. The two
+   declarations are needed on the container itself (it sets its own values),
+   not only on the neck wrapper. */
+.proto-a--phone .proto-a__neck,
+.proto-a--phone .proto-a__neck .fretboard-container--vertical {
+  --fbv-string: 53px;
+  --fbv-marker: 40px;
+}
+
+.proto-a--phone .proto-a__rail-warn {
+  font-size: 15px;
+}
+
+/* The centre moved into the sheet: its blocks wrap instead of widening it.
+   Nothing is removed, only given the phone's width. */
+.proto-a--phone .proto-a__panel {
+  padding: 8px;
+  gap: 8px;
+}
+
+/* Folded, the sheet shows the transport's first line: ▶ (44px, still a target)
+   and the tempo's − number +. At 390px the 64px ▶ and number pushed the tempo
+   below the visible 124px of the sheet; at 44 / 48px both fit. */
+.proto-a--phone .proto-a__btn--primary {
+  min-height: var(--hit-min);
+  padding: 0 16px;
+}
+
+.proto-a--phone .proto-a__bpm {
+  height: 48px;
+}
+
+.proto-a--phone .proto-a__tempo,
+.proto-a--phone .proto-a__volume {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.proto-a--phone .proto-a__volume-slider {
+  flex: 1 1 140px;
+  width: auto;
+  min-width: 0;
+}
+
+.proto-a--phone .proto-a__selection {
+  gap: 12px 16px;
+}
+
+/* A label and its select on two lines: the select's 100% then starts at the
+   field's left edge instead of running past the sheet's right edge. */
+.proto-a--phone .proto-a__field {
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+/* Every direct selector takes the sheet's width (never its 480px design
+   width, which would make the drawer scroll sideways). */
+.proto-a--phone .proto-a__field .custom-select-container {
+  --proto-sel-w: 100%;
+  width: 100%;
+}
+
+.proto-a--phone .proto-a__family {
+  flex-wrap: wrap;
+}
+
+.proto-a--phone .proto-a__sequencer {
+  min-width: 0;
+  overflow-x: auto;
+}
