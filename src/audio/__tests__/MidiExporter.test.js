@@ -236,13 +236,16 @@ describe("the Studio's document exports the same files as the pre-T3 signatures"
 //    playback maps them to synths, via the shared classifyDrumTrack().
 // ---------------------------------------------------------------------------
 describe("drum export maps track names like playback", () => {
+  // The category is the voice playback plays the row with (unchanged). The
+  // exported note is the row's own GM key since VMU-217 (EXPORT-6): Rim is a
+  // snare in the app but a side stick (37) in the file, Clap 39, Crash 49.
   const cases = [
     ["Kick", "kick", 36],
     ["Snare", "snare", 38],
-    ["Clap", "snare", 38],
-    ["Rim", "snare", 38],
+    ["Clap", "snare", 39],
+    ["Rim", "snare", 37],
     ["Hat", "hat", 42],
-    ["Crash", "hat", 42], // not in any exact-match list: playback falls back to hi-hat
+    ["Crash", "hat", 49], // playback falls back to hi-hat; the file keeps the crash
   ];
 
   cases.forEach(([name, expectedCategory, expectedMidiNote]) => {

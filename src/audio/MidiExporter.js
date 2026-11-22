@@ -83,6 +83,106 @@ function newFile(bpm, name) {
 }
 
 /**
+ * EXPORT-6 (VMU-217): the GM percussion key of a drum row, read from the row's
+ * **name** — the export only. Playback sorts every drum row into three voices
+ * (trackMapping.js: kick, snare group, hi-hat group) because the Studio has
+ * three drum synths; a DAW's drum rack has one pad per GM key, so the file
+ * keeps what each row is called. Rim therefore sounds as a snare in the app
+ * and as a side stick in Live; the playback mapping is unchanged.
+ *
+ * First match wins, so the specific names come before the general ones. A
+ * name this table does not know keeps `fallback`, the key of the voice
+ * playback plays it with (dispatch.js DRUM_GM_KEY) — the pre-VMU-217 export.
+ * Names present in bricks.json today: Kick, Snare, Hat, Rim, Crash. The rest
+ * are kept for the styles to come, on the usual GM drum-kit keys.
+ */
+const GM_DRUM_KEYS = [
+  [/\b(kick|bass ?drum)\b/, 36],
+  [/\b(rim|rimshot|side ?stick)\b/, 37],
+  [/\bsnare\b/, 38],
+  [/\bclaps?\b/, 39],
+  [/\b(open|ouvert|aberto)\b.*\bhi-?hat\b|\bhi-?hat\b.*\bopen\b|\bopen\b.*\bhat\b|\bhat\b.*\bopen\b/, 46],
+  [/\bpedal\b/, 44],
+  [/\b(hi-?hat|hat|charleston)\b/, 42],
+  [/\b(floor|low)\b.*\btom\b|\btom\b.*\b(floor|low)\b/, 41],
+  [/\b(high|hi)\b.*\btom\b|\btom\b.*\b(high|hi)\b/, 48],
+  [/\btom(-?tom)?s?\b/, 45],
+  [/\bcrash\b/, 49],
+  [/\bride\b/, 51],
+  [/\bsplash\b/, 55],
+  [/\bcowbell\b/, 56],
+  [/\btambourine\b/, 54],
+  [/\bshaker\b/, 70],
+];
+
+/**
+ * @param {string} trackName the drum row's name ("Kick", "Rim", "Crash", ...)
+ * @param {number} fallback GM key to keep for a name the table does not know
+ * @returns {number} GM percussion key (channel 10)
+ */
+export function drumExportKey(trackName, fallback) {
+  const name = String(trackName || "").toLowerCase();
+  const hit = GM_DRUM_KEYS.find(([pattern]) => pattern.test(name));
+  return hit ? hit[1] : fallback;
+}
+
+/** What each file is called in a file name, by interface language. */
+const PART_LABELS = {
+  fr: { drums: "Batterie", chords: "Accords", bass: "Basse" },
+  en: { drums: "Drums", chords: "Chords", bass: "Bass" },
+  pt: { drums: "Bateria", chords: "Acordes", bass: "Baixo" },
+  zh: { drums: "鼓", chords: "和弦", bass: "贝斯" },
+};
+
+/** Note names of the 12 pitch classes: Do-Ré-Mi for fr/pt, letters for en/zh (the app's NOTES). */
+const KEY_NAMES = {
+  eu: ["Do", "Do#", "Ré", "Ré#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si"],
+  us: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
+};
+
+/** One piece of a file name: no character Windows forbids, spaces as "-". Accents stay. */
+function fileNamePart(text) {
+  return String(text ?? "")
+    // eslint-disable-next-line no-control-regex
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/\.+$/, "");
+}
+
+/**
+ * VMU-217: the name of an exported file — `VMU_<style>_<key>_<bpm>bpm_<A|B>_<part>.mid`,
+ * e.g. `VMU_Bossa-Nova_Sol_130bpm_A_Batterie.mid` — so the three files of a
+ * style, and its two variations, never collide in a DAW's drop zone.
+ * Style, key and part are in the interface language.
+ *
+ * @param {Object} file
+ * @param {string} [file.styleName] the style's name in the interface language
+ * @param {{ rootValue: number }|null} [file.key] the document's key (tonic only)
+ * @param {"fr"|"en"|"pt"|"zh"|string} [file.lang]
+ * @param {number} file.bpm
+ * @param {"A"|"B"|string} [file.variation] the displayed variation
+ * @param {"drums"|"chords"|"bass"} file.part
+ * @returns {string}
+ */
+export function midiFileName({ styleName, key, lang = "fr", bpm, variation = "A", part }) {
+  const labels = PART_LABELS[lang] || PART_LABELS.fr;
+  const names = lang === "fr" || lang === "pt" ? KEY_NAMES.eu : KEY_NAMES.us;
+  const tonic = key && Number.isInteger(key.rootValue) ? names[((key.rootValue % 12) + 12) % 12] : "";
+  const parts = [
+    "VMU",
+    fileNamePart(styleName) || "Studio",
+    fileNamePart(tonic),
+    `${Math.round(bpm)}bpm`,
+    variation === "B" ? "B" : "A",
+    fileNamePart(labels[part] || part),
+  ].filter(Boolean);
+  return `${parts.join("_")}.mid`;
+}
+
+/**
  * The drum file of a timeline document: every drum row, over its window.
  * @param {import("../core/timeline").TimelineDoc} doc
  * @param {number} bpm
@@ -92,11 +192,11 @@ export function exportTimelineDrums(doc, bpm) {
   // Channel 10 is standard for drums in GM (0-indexed = 9)
   track.channel = 9;
 
-  // The GM key comes with the event (dispatch.js DRUM_GM_KEY), from the same
-  // classification playback uses to pick a synth (VMU-128).
+  // The event's GM key is the voice playback plays the row with (dispatch.js
+  // DRUM_GM_KEY, VMU-128); the row's name refines it (EXPORT-6, above).
   loopEvents(doc, "drums").forEach(({ step, event }) => {
     track.addNote({
-      midi: event.midi[0],
+      midi: drumExportKey(event.track, event.midi[0]),
       time: getStepTime(step, bpm),
       duration: EXPORT_DRUM_DURATION_STEPS * getStepDuration(bpm),
       velocity: event.velocity,
