@@ -475,6 +475,10 @@ export const translations = {
       keyChordsAria: "Les 7 accords de la tonalité",
       keyChordsLabel: "Accords de la tonalité",
       keyChordHint: "Touche un accord pour l'entendre.",
+      undoLabel: "Annuler (Ctrl+Z)",
+      redoLabel: "Rétablir (Ctrl+Y)",
+      hearOriginal: "Écouter l'original",
+      hearOriginalHint: "Maintiens pour entendre le style sans tes modifications, à la même tonalité et au même tempo.",
       keyChordPhrases: {
         major: [
           "la maison, on s'y repose",
@@ -989,6 +993,10 @@ export const translations = {
       keyChordsAria: "The 7 chords of the key",
       keyChordsLabel: "Chords of the key",
       keyChordHint: "Touch a chord to hear it.",
+      undoLabel: "Undo (Ctrl+Z)",
+      redoLabel: "Redo (Ctrl+Y)",
+      hearOriginal: "Hear the original",
+      hearOriginalHint: "Hold to hear the style without your changes, in the same key and at the same tempo.",
       keyChordPhrases: {
         major: [
           "home, where you rest",
@@ -1442,6 +1450,10 @@ export const translations = {
       keyChordsAria: "Os 7 acordes da tonalidade",
       keyChordsLabel: "Acordes da tonalidade",
       keyChordHint: "Toque num acorde para ouvi-lo.",
+      undoLabel: "Desfazer (Ctrl+Z)",
+      redoLabel: "Refazer (Ctrl+Y)",
+      hearOriginal: "Ouvir o original",
+      hearOriginalHint: "Mantenha premido para ouvir o estilo sem as suas alterações, na mesma tonalidade e ao mesmo andamento.",
       keyChordPhrases: {
         major: [
           "a casa, onde se descansa",
@@ -1934,6 +1946,10 @@ export const translations = {
       keyChordsAria: "这个调的 7 个和弦",
       keyChordsLabel: "本调和弦",
       keyChordHint: "点一下和弦即可试听。",
+      undoLabel: "撤销 (Ctrl+Z)",
+      redoLabel: "重做 (Ctrl+Y)",
+      hearOriginal: "听原版",
+      hearOriginalHint: "按住即可听到没有你改动的风格，调和速度相同。",
       keyChordPhrases: {
         major: [
           "家，可以在这里休息",

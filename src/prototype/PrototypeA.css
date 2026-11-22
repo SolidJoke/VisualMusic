@@ -256,6 +256,31 @@
   padding: 0;
 }
 
+/* VMU-227: ↶ ↷ and the held "hear the original", beside Play. The held
+   button must not select text, scroll or zoom under a finger. */
+.proto-a .proto-a__try {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.proto-a .proto-a__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.proto-a .proto-a__hold {
+  min-width: var(--hit-min);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.proto-a .proto-a__hold[aria-disabled="true"] {
+  opacity: 0.55;
+}
+
 /* The tempo: "Tempo - n + battements / min", n typed on a click (VMU-181).
    The number is a button (it opens the field), as tall as the play button:
    the transport keeps its one row and gains no height. */

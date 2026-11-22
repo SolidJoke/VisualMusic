@@ -26,6 +26,7 @@ import PositionPanel from "./PositionPanel";
 import PositionRail from "./PositionRail";
 import { positionPanelView } from "../components/Instruments/positionPanel";
 import SelectionRow from "./SelectionRow";
+import TryBar from "./TryBar";
 import MathDock from "./MathDock";
 import PhoneDrawer from "./PhoneDrawer";
 
@@ -239,6 +240,15 @@ export default function PrototypeA({
   // VMU-219: the loop's effective key (useStudioMode's keyRoot) and its setter.
   keyRoot,
   setKeyRoot,
+  // VMU-227: undo / redo of the Studio's edits and the held "hear the original"
+  // (useStudioMode). Absent (the unit tests): the bar is not drawn.
+  undo,
+  redo,
+  canUndo = false,
+  canRedo = false,
+  hasEdits = false,
+  holdingOriginal = false,
+  setListenOriginal,
 }) {
   // Every label of the page (VMU-182). The French table stands in when the
   // caller hands no translations (the unit tests render with txt={}).
@@ -1006,6 +1016,18 @@ export default function PrototypeA({
                 <button type="button" className={`proto-a__btn proto-a__btn--primary ${isPlaying ? "is-playing" : ""}`} data-fn="jouer.lecture" onClick={handlePlay}>
                   {isPlaying ? T.stop : appMode === "dictionary" ? T.listen : T.playProgression}
                 </button>
+                {appMode !== "dictionary" && undo && redo && setListenOriginal && (
+                  <TryBar
+                    T={T}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                    onUndo={undo}
+                    onRedo={redo}
+                    hasEdits={hasEdits}
+                    holding={holdingOriginal}
+                    onHold={setListenOriginal}
+                  />
+                )}
                 {/* Tempo: - n + (steps of 1), and a click on n types it (VMU-181,
                     the sidebar badge's logic: hooks/useBpmEditor.js). */}
                 <div className="proto-a__tempo" role="group" aria-label={T.tempo} data-fn="jouer.tempo">
