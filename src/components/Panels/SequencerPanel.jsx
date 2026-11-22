@@ -1,7 +1,7 @@
 import React from 'react';
 import PianoRoll from "../Sequencer/PianoRoll";
 import DAWHelper from "../Sequencer/DAWHelper";
-import { exportTimelineDrums, exportTimelineChords, exportTimelineBass, triggerMidiDownload } from "../../audio/MidiExporter";
+import { exportTimelineDrums, exportTimelineChords, exportTimelineBass, midiFileName, triggerMidiDownload } from "../../audio/MidiExporter";
 import { DRUM_ROLES, MELODIC_ROLES, loopSteps, measurePattern } from "../../core/timeline";
 import { useAppContext } from '../../context/AppContext';
 import { usePlaybackContext } from '../../context/PlaybackContext';
@@ -28,6 +28,18 @@ const SequencerPanel = ({
   const chordRows = rows.filter((track) => track.role === "chordHits");
   const melodicRows = rows.filter((track) => MELODIC_ROLES.includes(track.role));
   const totalSteps = timeline ? loopSteps(timeline) : 0;
+
+  // VMU-217: one name per file (style, key, tempo, variation, part), in the
+  // interface language, so the three files and both variations do not collide.
+  const fileName = (part) =>
+    midiFileName({
+      styleName: activeBrick?.name?.[lang] || activeBrick?.name?.en,
+      key: timeline?.key,
+      lang,
+      bpm: currentBpm,
+      variation: timeline?.origin?.variation,
+      part,
+    });
 
   return (
     <div
@@ -67,7 +79,7 @@ const SequencerPanel = ({
         <span>{txt.drumMachine}</span>
         <button className="module-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
           const midiData = exportTimelineDrums(timeline, currentBpm);
-          triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Drums"}_${currentBpm}bpm.mid`);
+          triggerMidiDownload(midiData, fileName("drums"));
         }}>⬇️ MIDI</button>
       </div>
       <div className="scrollable-instrument">
@@ -83,7 +95,7 @@ const SequencerPanel = ({
         <span>🎹 {txt.harmonicSeq || "Harmonic Sequencer"}</span>
         <button className="module-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
           const midiData = exportTimelineChords(timeline, currentBpm, { octaveOffset: chordOctaveOffset });
-          triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Chords"}_${currentBpm}bpm.mid`);
+          triggerMidiDownload(midiData, fileName("chords"));
         }}>⬇️ MIDI</button>
       </div>
       <div className="scrollable-instrument">
@@ -99,7 +111,7 @@ const SequencerPanel = ({
         <span>{txt.melodicSeq}</span>
         <button className="module-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
           const midiData = exportTimelineBass(timeline, currentBpm);
-          triggerMidiDownload(midiData, `VMU_${activeBrick?.name?.en?.replace(/\s+/g, '_') || "Bass"}_${currentBpm}bpm.mid`);
+          triggerMidiDownload(midiData, fileName("bass"));
         }}>⬇️ MIDI</button>
       </div>
       <div className="scrollable-instrument">
