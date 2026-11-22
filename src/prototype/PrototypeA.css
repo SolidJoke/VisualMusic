@@ -1449,6 +1449,26 @@
   margin-left: 0;
   margin-right: 0;
   --piano-v-width: 100%;
+  /* VMU-031 lot 2: the phone's piano has its own key (PrototypeA writes
+     --phone-piano-key on the root: two octaves fit the stage, never under 33px),
+     not the page's --proto-key, which the necks read and which keeps the 44px
+     floor. The black keys are drawn at 75% of a white one, not a real piano's
+     58%: 25px at the minimum, over the 24px WCAG target size. */
+  --piano-v-key: var(--phone-piano-key, 33px);
+  --piano-v-black: calc(var(--piano-v-key, 33px) * var(--phone-black-ratio, 0.75));
+}
+
+/* VMU-031 lot 2: the piano head's ‹ › (the octaves shown), at the end of row 1.
+   Two --hit-min squares, side by side; the three instrument names give them the
+   room (their row shrinks, min-width 0). */
+.proto-a--phone .proto-a__head-window {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+}
+
+.proto-a--phone .proto-a__head-segments .proto-a__segment {
+  padding: 0 6px;
 }
 
 /* C-109: the design's phone neck — 53px string pitch and a 40px pastille:

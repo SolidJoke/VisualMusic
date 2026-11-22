@@ -434,6 +434,10 @@ export const translations = {
       // C-109: the phone's bottom sheet.
       drawer: "Panneau",
       drawerHandle: "Agrandir le panneau",
+      // VMU-031 lot 2: the phone piano's ‹ › (the octaves drawn, not the notes').
+      pianoWindowGroup: "Octaves affichées",
+      pianoWindowPrev: "Afficher des octaves plus graves",
+      pianoWindowNext: "Afficher des octaves plus aiguës",
       playProgression: "▶ Lire la progression",
       listen: "▶ Écouter",
       stop: "■ Arrêter",
@@ -919,6 +923,10 @@ export const translations = {
       // C-109: the phone's bottom sheet.
       drawer: "Panel",
       drawerHandle: "Expand the panel",
+      // VMU-031 lot 2: the phone piano's ‹ › (the octaves drawn, not the notes').
+      pianoWindowGroup: "Octaves shown",
+      pianoWindowPrev: "Show lower octaves",
+      pianoWindowNext: "Show higher octaves",
       playProgression: "▶ Play the progression",
       listen: "▶ Listen",
       stop: "■ Stop",
@@ -1341,6 +1349,10 @@ export const translations = {
       // C-109: the phone's bottom sheet.
       drawer: "Painel",
       drawerHandle: "Expandir o painel",
+      // VMU-031 lot 2: the phone piano's ‹ › (the octaves drawn, not the notes').
+      pianoWindowGroup: "Oitavas exibidas",
+      pianoWindowPrev: "Mostrar oitavas mais graves",
+      pianoWindowNext: "Mostrar oitavas mais agudas",
       playProgression: "▶ Tocar a progressão",
       listen: "▶ Ouvir",
       stop: "■ Parar",
@@ -1802,6 +1814,10 @@ export const translations = {
       // C-109: the phone's bottom sheet.
       drawer: "面板",
       drawerHandle: "展开面板",
+      // VMU-031 lot 2: the phone piano's ‹ › (the octaves drawn, not the notes').
+      pianoWindowGroup: "显示的八度",
+      pianoWindowPrev: "显示更低的八度",
+      pianoWindowNext: "显示更高的八度",
       playProgression: "▶ 播放和弦进行",
       listen: "▶ 试听",
       stop: "■ 停止",

@@ -258,13 +258,19 @@
         flex-shrink: 0;
     }
 
-    .white-key {
+    /* VMU-031 lot 2: scoped to the horizontal keyboard (.piano-container). These
+       !important sizes also hit the VERTICAL keyboard, the only one A′'s phone
+       layout draws: its keys came out 28px wide and 120px tall (overlapping at
+       a 44px pitch) and its black keys 16 x 70 — measured in the page, not in
+       jsdom, which has no layout. The vertical keys size themselves
+       (.piano-vertical ..., --piano-v-key / --piano-v-black). */
+    .piano-container .white-key {
         width: 28px !important;  /* Ajusté de 24 à 28 pour 14 touches = 392px */
         min-width: 28px !important;
         height: 120px !important;
     }
 
-    .black-key {
+    .piano-container .black-key {
         width: 16px !important;
         height: 70px !important;
         left: -8px !important;
