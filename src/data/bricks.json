@@ -126,10 +126,10 @@
       "zh": "使用于: Johnny B. Goode, La Bamba."
     },
     "nnsProgression": [
-      "1",
-      "4",
-      "5",
-      "4"
+      "17",
+      "47",
+      "57",
+      "47"
     ],
     "theme": {
       "primary": "#e65100",
@@ -147,7 +147,13 @@
         "name": "Snare",
         "activeSteps": [
           4,
-          12
+          7,
+          12,
+          15
+        ],
+        "lowVelocitySteps": [
+          7,
+          15
         ]
       },
       {
@@ -160,6 +166,12 @@
           8,
           10,
           12,
+          14
+        ],
+        "lowVelocitySteps": [
+          2,
+          6,
+          10,
           14
         ]
       }
@@ -222,9 +234,13 @@
     },
     "nnsProgression": [
       "1",
-      "6-",
+      "6-7",
       "4",
-      "5"
+      "57"
+    ],
+    "chordRhythm": [
+      0,
+      2
     ],
     "theme": {
       "primary": "#4dd0e1",
@@ -242,20 +258,20 @@
         "name": "Snare",
         "activeSteps": [
           4,
-          12
+          12,
+          14
+        ],
+        "lowVelocitySteps": [
+          14
         ]
       },
       {
         "name": "Hat",
         "activeSteps": [
           0,
-          2,
           4,
-          6,
           8,
-          10,
-          12,
-          14
+          12
         ]
       }
     ],
@@ -334,9 +350,9 @@
         "name": "Kick",
         "activeSteps": [
           0,
-          4,
+          3,
           8,
-          12
+          11
         ]
       },
       {
@@ -362,10 +378,15 @@
         "activeSteps": [
           0,
           3,
-          7,
-          10,
-          14
-        ]
+          8,
+          11
+        ],
+        "pitchSteps": {
+          "0": "R",
+          "3": "R",
+          "8": "R",
+          "11": "b7"
+        }
       }
     ]
   },
@@ -408,10 +429,10 @@
       "zh": "使用于: Autumn Leaves, Fly Me to the Moon."
     },
     "nnsProgression": [
-      "2-",
-      "5",
-      "1",
-      "1"
+      "2-7",
+      "57",
+      "1maj7",
+      "1maj7"
     ],
     "theme": {
       "primary": "#ffca28",
@@ -422,27 +443,37 @@
         "name": "Kick",
         "activeSteps": [
           0,
-          8
+          4,
+          8,
+          12
+        ],
+        "lowVelocitySteps": [
+          0,
+          4,
+          8,
+          12
         ]
       },
       {
         "name": "Snare",
         "activeSteps": [
-          4,
-          12
+          6,
+          14
+        ],
+        "lowVelocitySteps": [
+          6,
+          14
         ]
       },
       {
         "name": "Hat",
         "activeSteps": [
           0,
-          2,
           4,
-          6,
+          7,
           8,
-          10,
           12,
-          14
+          15
         ]
       }
     ],
@@ -1513,10 +1544,10 @@
       "bg": "#2b1600"
     },
     "nnsProgression": [
-      "1-",
-      "4",
-      "1-",
-      "4"
+      "1-7",
+      "1-7",
+      "49",
+      "1-7"
     ],
     "nnsProgressionVariation": [
       "1-",
@@ -1524,33 +1555,67 @@
       "2-",
       "5"
     ],
+    "chordRhythm": [
+      2,
+      3,
+      6,
+      10,
+      11,
+      14
+    ],
     "drumTracks": [
       {
         "name": "Kick",
         "activeSteps": [
           0,
-          8,
-          14
+          3,
+          10
         ]
       },
       {
         "name": "Snare",
         "activeSteps": [
           4,
-          12
+          7,
+          9,
+          12,
+          15
+        ],
+        "lowVelocitySteps": [
+          7,
+          9,
+          15
         ]
       },
       {
         "name": "Hat",
         "activeSteps": [
           0,
+          1,
           2,
+          3,
           4,
+          5,
           6,
+          7,
           8,
+          9,
           10,
+          11,
           12,
-          14
+          13,
+          14,
+          15
+        ],
+        "lowVelocitySteps": [
+          1,
+          3,
+          5,
+          7,
+          9,
+          11,
+          13,
+          15
         ]
       }
     ],
@@ -1688,7 +1753,13 @@
         "name": "Snare",
         "activeSteps": [
           4,
-          12
+          12,
+          14,
+          15
+        ],
+        "lowVelocitySteps": [
+          14,
+          15
         ]
       },
       {
@@ -1740,7 +1811,17 @@
           10,
           12,
           14
-        ]
+        ],
+        "pitchSteps": {
+          "0": "R",
+          "2": "R",
+          "4": "5",
+          "6": "R",
+          "8": "R",
+          "10": "R",
+          "12": "5",
+          "14": "b7"
+        }
       }
     ],
     "melodyTracksVariation": [
@@ -2314,7 +2395,7 @@
       "zh": "现代流行音乐"
     },
     "_group": "pop",
-    "bpm": 120,
+    "bpm": 76,
     "scaleKey": "scale_major",
     "rootValue": 0,
     "tuning": "Standard",
@@ -2339,10 +2420,10 @@
       "zh": "最著名的流行和弦进行。"
     },
     "examples": {
-      "fr": "1-5-6-4 : Utilisée dans des milliers de hits (Jason Mraz, Adele...).",
-      "en": "1-5-6-4: Used in thousands of hits.",
-      "pt": "1-5-6-4: Usada em milhares de hits.",
-      "zh": "1-5-6-4 : 用于数以千计的热门歌曲中。"
+      "fr": "6-4-1-5 : la boucle 1-5-6-4 démarrée sur l'accord triste, pour une ballade (le refrain, thème B, reprend 1-5-6-4).",
+      "en": "6-4-1-5: the 1-5-6-4 loop started on the sad chord, for a ballad (the chorus, theme B, plays 1-5-6-4).",
+      "pt": "6-4-1-5: o loop 1-5-6-4 começando pelo acorde triste, para uma balada (o refrão, tema B, toca 1-5-6-4).",
+      "zh": "6-4-1-5：从忧伤和弦开始的 1-5-6-4 循环，适合抒情歌（副歌，主题B，演奏 1-5-6-4）。"
     },
     "inspiration": {
       "fr": "🎧 Adele, Ed Sheeran, Jason Mraz — progressions pop universelles.",
@@ -2353,16 +2434,16 @@
       "bg": "#26000d"
     },
     "nnsProgression": [
-      "1",
-      "5",
-      "6-",
-      "4"
-    ],
-    "nnsProgressionVariation": [
       "6-",
       "4",
       "1",
       "5"
+    ],
+    "nnsProgressionVariation": [
+      "1",
+      "5",
+      "6-",
+      "4"
     ],
     "drumTracks": [
       {
@@ -2373,7 +2454,7 @@
         ]
       },
       {
-        "name": "Snare",
+        "name": "Rim",
         "activeSteps": [
           4,
           12
@@ -2383,13 +2464,13 @@
         "name": "Hat",
         "activeSteps": [
           0,
-          2,
           4,
-          6,
           8,
-          10,
-          12,
-          14
+          12
+        ],
+        "lowVelocitySteps": [
+          4,
+          12
         ]
       }
     ],
@@ -2429,7 +2510,11 @@
         "activeSteps": [
           0,
           8
-        ]
+        ],
+        "pitchSteps": {
+          "0": "R",
+          "8": "5"
+        }
       }
     ],
     "melodyTracksVariation": [
@@ -2451,7 +2536,7 @@
       "zh": "迪斯科放克"
     },
     "_group": "pop",
-    "bpm": 115,
+    "bpm": 120,
     "scaleKey": "scale_dorian",
     "rootValue": 4,
     "tuning": "Standard",
@@ -2490,16 +2575,22 @@
       "bg": "#1c0024"
     },
     "nnsProgression": [
-      "1-",
+      "1-7",
       "4",
-      "1-",
-      "4"
+      "7",
+      "5-7"
     ],
     "nnsProgressionVariation": [
       "1-",
       "b3",
       "4",
       "5"
+    ],
+    "chordRhythm": [
+      2,
+      6,
+      10,
+      14
     ],
     "drumTracks": [
       {
@@ -2512,7 +2603,7 @@
         ]
       },
       {
-        "name": "Snare",
+        "name": "Clap",
         "activeSteps": [
           4,
           12
@@ -2521,10 +2612,20 @@
       {
         "name": "Hat",
         "activeSteps": [
+          0,
           2,
+          4,
           6,
+          8,
           10,
+          12,
           14
+        ],
+        "lowVelocitySteps": [
+          0,
+          4,
+          8,
+          12
         ]
       }
     ],
@@ -2539,7 +2640,7 @@
         ]
       },
       {
-        "name": "Snare",
+        "name": "Clap",
         "activeSteps": [
           4,
           12
@@ -2567,11 +2668,24 @@
         "name": "Bass",
         "activeSteps": [
           0,
-          3,
-          7,
+          2,
+          4,
+          6,
+          8,
           10,
+          12,
           14
-        ]
+        ],
+        "pitchSteps": {
+          "0": "R",
+          "2": "8va",
+          "4": "R",
+          "6": "8va",
+          "8": "R",
+          "10": "8va",
+          "12": "R",
+          "14": "8va"
+        }
       }
     ],
     "melodyTracksVariation": [
@@ -2651,6 +2765,7 @@
         "name": "Kick",
         "activeSteps": [
           0,
+          2,
           8
         ]
       },
@@ -2703,8 +2818,16 @@
         "name": "Bass",
         "activeSteps": [
           0,
-          8
-        ]
+          2,
+          8,
+          10
+        ],
+        "pitchSteps": {
+          "0": "R",
+          "2": "R",
+          "8": "R",
+          "10": "b7"
+        }
       }
     ],
     "melodyTracksVariation": [

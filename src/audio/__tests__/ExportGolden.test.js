@@ -58,6 +58,27 @@ function allCases() {
 // Crash 42 -> 49): 7:B, 8:A, 8:B, 13:B, 15:B, 16:A, 17:A, 17:B, 19:B, 20:B,
 // 21:A, 21:B, 25:B. Every other case, and every chord and bass fingerprint,
 // kept its frozen value.
+// VMU-226 (styles, lot 1) changed the data of nine styles (1, 2, 3, 4, 12, 13, 18, 19, 20),
+// not the export code. These 16 cases moved, in the files named after each; every other
+// fingerprint (the 18 other styles in both themes, and the four particular cases, which
+// are built on style 0) kept its frozen value:
+//   12:A Groovy Funk: drums, chords, bass
+//   12:B Groovy Funk: chords
+//   13:A 60s Rock: drums, bass
+//   18:A Modern Pop (Ballad): drums, chords, bass
+//   18:B Modern Pop (Ballad): chords, bass
+//   19:A Disco Funk: drums, chords, bass
+//   19:B Disco Funk: drums, chords
+//   1:A Rock / Blues (Basic): drums, chords
+//   1:B Rock / Blues (Basic): drums, chords
+//   20:A Classic Rock: drums, bass
+//   2:A Doo-Wop Ballad (50s): drums, chords
+//   2:B Doo-Wop Ballad (50s): drums, chords
+//   3:A Funk/Disco Loop: drums, bass
+//   3:B Funk/Disco Loop: drums, bass
+//   4:A Jazz Turnaround (ii-V-I): drums, chords
+//   4:B Jazz Turnaround (ii-V-I): drums, chords
+// Why each moved is in the commit message and the pull request of VMU-226 lot 1.
 const GOLDEN = {
   "0:A Modern Pop (4 Chords)": [
     "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
@@ -70,43 +91,43 @@ const GOLDEN = {
     "4e6ea3749ee4802f4ac2dbd0c89e560571a7ac60b27b299a4d527b0e76ef683d",
   ],
   "1:A Rock / Blues (Basic)": [
-    "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
-    "105d02855cfb0e321172f5f44a6a746eb8bbd1f415703103dc33d6869821d02d",
+    "a48aa2bee6cda9748b28b81fc21bbeec0bc3cb9609f7f2cccfa00f80219759a1",
+    "ea754d9b6e1b05e12d49dd3aee5a205dcd553fa937e782cf7ed49860989e4b08",
     "8422e2dcc438b9534d42104a58dbcc568407f04027ae2450a1ed00816aaa6aa6",
   ],
   "1:B Rock / Blues (Basic)": [
-    "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
-    "105d02855cfb0e321172f5f44a6a746eb8bbd1f415703103dc33d6869821d02d",
+    "a48aa2bee6cda9748b28b81fc21bbeec0bc3cb9609f7f2cccfa00f80219759a1",
+    "ea754d9b6e1b05e12d49dd3aee5a205dcd553fa937e782cf7ed49860989e4b08",
     "8422e2dcc438b9534d42104a58dbcc568407f04027ae2450a1ed00816aaa6aa6",
   ],
   "2:A Doo-Wop Ballad (50s)": [
-    "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
-    "1bc49d5cb0bfc52ae60eff697db237fee68aa5cebd68d1760d0e9fb19ab7f061",
+    "e07b7b82685698e2af5d94621e7cdd30fa0bc41acf3c38769ac25466f1ab0619",
+    "6189826fe07489ea8ca64555d436b2e3b45bc0c80c809c570dd0b63d776e25e7",
     "0300601cba7baef9c58a7414825e862db71c8151f23edea65fe30ca44f328332",
   ],
   "2:B Doo-Wop Ballad (50s)": [
-    "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
-    "1bc49d5cb0bfc52ae60eff697db237fee68aa5cebd68d1760d0e9fb19ab7f061",
+    "e07b7b82685698e2af5d94621e7cdd30fa0bc41acf3c38769ac25466f1ab0619",
+    "6189826fe07489ea8ca64555d436b2e3b45bc0c80c809c570dd0b63d776e25e7",
     "0300601cba7baef9c58a7414825e862db71c8151f23edea65fe30ca44f328332",
   ],
   "3:A Funk/Disco Loop": [
-    "0628bafec7f8e52576648fff0a2b602315fc7de5b341ae2f47e31c84efcaf8ed",
+    "d8ca81245ef2821bdaf2174b29a147f2cb4bca2a6fded1c94c7635c3ce87fdef",
     "c8f0b858fbe0e485cf8ed8be15ae5f8d63e54b8d60025cc568cbb6ef74e08841",
-    "df883810c27e1280bc54f005bdbc59adf14703fbdaf2ad0cf2775ded39ad30cb",
+    "f6e5eec4ff013cb804bfd8e337d49598104da022ce0f1a46697d0593d1ea3c62",
   ],
   "3:B Funk/Disco Loop": [
-    "0628bafec7f8e52576648fff0a2b602315fc7de5b341ae2f47e31c84efcaf8ed",
+    "d8ca81245ef2821bdaf2174b29a147f2cb4bca2a6fded1c94c7635c3ce87fdef",
     "c8f0b858fbe0e485cf8ed8be15ae5f8d63e54b8d60025cc568cbb6ef74e08841",
-    "df883810c27e1280bc54f005bdbc59adf14703fbdaf2ad0cf2775ded39ad30cb",
+    "f6e5eec4ff013cb804bfd8e337d49598104da022ce0f1a46697d0593d1ea3c62",
   ],
   "4:A Jazz Turnaround (ii-V-I)": [
-    "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
-    "02d708153f12b4892811f428770c618475787d7dd85c6257444d89ced3f8bfc0",
+    "e8084aa31dd0872f45ff99645a5ddae1090b7f9bf6391b08880328a8d92b76f0",
+    "16b83f737dba4e54e8c467e48fceca93e1e45089e6e22e98233411ca714a27df",
     "7948947c1fbb58d452e39819d93e8378404cdd278efbadc4cc28773e5be2de5e",
   ],
   "4:B Jazz Turnaround (ii-V-I)": [
-    "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
-    "02d708153f12b4892811f428770c618475787d7dd85c6257444d89ced3f8bfc0",
+    "e8084aa31dd0872f45ff99645a5ddae1090b7f9bf6391b08880328a8d92b76f0",
+    "16b83f737dba4e54e8c467e48fceca93e1e45089e6e22e98233411ca714a27df",
     "7948947c1fbb58d452e39819d93e8378404cdd278efbadc4cc28773e5be2de5e",
   ],
   "5:A Euphoric Techno": [
@@ -180,19 +201,19 @@ const GOLDEN = {
     "b6a1717e9869d659c726ab46963e85061f845186d8be79ccee351acfa5c6acfb",
   ],
   "12:A Groovy Funk": [
-    "13ca73a5d069892b6445a62f022974612ea66dbe1ac7206a528374dff6fcd32c",
-    "cd877bec7796c920cf130ba7a439160b110e4c8c98263e2cacba5f56ce8bc32c",
-    "58f3c9c868407e58a9f3ed0971d9e678c6735fe436f1854d38f5c0bc835e7a99",
+    "75b920c30d5ea4f9ec3f79ff66e4b9a536ee66cc852daad2a541018cc2acaf0e",
+    "4f3bf0bcd16b42781d5654de35952d063ba7013157c649614a242d3c74d7f434",
+    "41f4273647870df0c692b063c5af94846e537827ab60f9a0468d681351e489b7",
   ],
   "12:B Groovy Funk": [
     "3509c91fcfa3d58810b53e73d8375fb67f4b1aaaa1dfde06003b568daf2b8820",
-    "842f8cbe9a9e1d04f4546aa79eff5436eaf3e05c639ac84a7fdc94412bdffe51",
+    "9d367b85ab25fb8d272293b183c3aae7dd791d6649519bb8df51a2dfd9bcdacc",
     "203f9ade655a58be24c201ba7e8c664b2cc468058665a33bc521509421315225",
   ],
   "13:A 60s Rock": [
-    "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
+    "a034f94cef607eda095b9e9655aeb5f71f50fe802c1c0e4794290c14b70f9b46",
     "539ba2efd8017e209e7c386fdcb719f5cb1637e69a2ba07dfbabbcf38f3029d0",
-    "48cbbe0c56b1bb8f81fb09c27ddd401f798897551a06b1f758623b7fc3ac4caf",
+    "ccca7f3c1c17f2cd99cb728af3e183f2daf9dbbc2e6d09cda7a8295e1f78620e",
   ],
   "13:B 60s Rock": [
     "cc582ebfed5acd5f78f3a5e63770f37da514827564ec134543afadfd1821fa6b",
@@ -240,29 +261,29 @@ const GOLDEN = {
     "df0999b3efcd7fbed82c944538b7c107eb680a3e46eca002c0bbe9335adca205",
   ],
   "18:A Modern Pop (Ballad)": [
-    "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
-    "9549754b781fb6fc49f369c7de22d512febbc49ce118cffa07c3d96852566aaa",
-    "6231645bdec1c1f8f07f3cc445825a36cffe10f68e29251c98a8890db0e24736",
+    "9050fb35abfabb9f1f17862347c0a0be51a17a8d59de9b692a29bb48f8c2a272",
+    "639c3c90450ba183579ddc53c46e5450f1b4ce66f50d00a427a759164c4a2530",
+    "53ff13168b59a50a608011025f6427adfc62d58fb5371aecc5cd8ec251304aea",
   ],
   "18:B Modern Pop (Ballad)": [
     "230cc25494a95f93775e23270a687611f8bce952c46a6f26e5289b9e44164904",
-    "639c3c90450ba183579ddc53c46e5450f1b4ce66f50d00a427a759164c4a2530",
-    "ae69ee83e2383120a9cb7592dc1b8d32e3e3072350059d09348cad366d8185c4",
+    "9549754b781fb6fc49f369c7de22d512febbc49ce118cffa07c3d96852566aaa",
+    "4e6ea3749ee4802f4ac2dbd0c89e560571a7ac60b27b299a4d527b0e76ef683d",
   ],
   "19:A Disco Funk": [
-    "0628bafec7f8e52576648fff0a2b602315fc7de5b341ae2f47e31c84efcaf8ed",
-    "cd877bec7796c920cf130ba7a439160b110e4c8c98263e2cacba5f56ce8bc32c",
-    "df883810c27e1280bc54f005bdbc59adf14703fbdaf2ad0cf2775ded39ad30cb",
+    "9a18668df2ef9c51afa0042a6749b3ad42cd1b9647f321a1da48c5dc5ba9272f",
+    "9afb979ed690bef9ded29e9120dd4da41eeba844a10eb26d67bf505a5a0648ab",
+    "f38cf4529656b08bdac93743c4a937471b6b47b51364a7e81b87ff4383da5834",
   ],
   "19:B Disco Funk": [
-    "7c84c054d9cb8261e9eb4236769c6e2b1df973f59d6464bcaf3585d666a8223b",
-    "7e99b4f41d77e03cbbb319ac497b1eca734f9438e870b7d7c402b5d86677a0db",
+    "0cbe7335ba4e5d126f5e1136e49aa4ef54c8fe769682a63c5c1f07cee769b6b4",
+    "dd071f38d84d6f0822875f7db0b98075c6c2cb15c732d31c9cdaa3eab9abc7ae",
     "8e519d53932683ef90912134498b50a1c599ef29be91eae21de5942cd068ee0b",
   ],
   "20:A Classic Rock": [
-    "94a82ddbdc46fbd849a83bce8808d83da9eed42f14d3dd79b4603cc6c5d963b2",
+    "fbab79aaa8a765ff65c18206c80dcb9aeeb10d5f019e880fa61ee503cd7bc8ac",
     "acf59413c96a837398ad7b24d51ab201c944871f287da82bdc96d325f6fff5cc",
-    "e76ed57671ce8c62de05abd33c4d53566043c26e7c81de1f28bee2ef1c32d6d6",
+    "131584d5176faf11ab3a4a14c16e4f0a026d493b855a0a6961a1752051f0d009",
   ],
   "20:B Classic Rock": [
     "cc582ebfed5acd5f78f3a5e63770f37da514827564ec134543afadfd1821fa6b",
