@@ -93,7 +93,7 @@ function newFile(bpm, name) {
  * First match wins, so the specific names come before the general ones. A
  * name this table does not know keeps `fallback`, the key of the voice
  * playback plays it with (dispatch.js DRUM_GM_KEY) — the pre-VMU-217 export.
- * Names present in bricks.json today: Kick, Snare, Hat, Rim, Crash. The rest
+ * Names present in bricks.json today: Kick, Snare, Hat, Rim, Clap, Crash. The rest
  * are kept for the styles to come, on the usual GM drum-kit keys.
  */
 const GM_DRUM_KEYS = [

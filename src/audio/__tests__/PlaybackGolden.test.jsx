@@ -168,11 +168,19 @@ function allCases() {
 // the fingerprints and entry counts below are unchanged — step 2 of the brief
 // proved it: every case's hash with `setCurrentlyPlayingNotes` removed is
 // byte-identical before and after. Nothing audible moved.
+// VMU-226 (styles, lot 1) rewrote the data of styles 3 and 18, the only two of the nine it
+// changes that this file samples. These four cases moved (entries before -> after; 18:B keeps
+// its count, its progression is 1-5-6-4 now); the other 19, every sampled style it did not
+// touch and the five particular cases, kept their frozen value:
+//   18:A Modern Pop (Ballad): 108 -> 92 entries
+//   18:B Modern Pop (Ballad): 124 -> 124 entries
+//   3:A Funk/Disco Loop: 176 -> 172 entries
+//   3:B Funk/Disco Loop: 176 -> 172 entries
 const GOLDEN = {
   "0:A Modern Pop (4 Chords)": ["d785c550ed37d0a3641984eed4164ee59990472c74160d0a460e568086e81283", 120],
   "0:B Modern Pop (4 Chords)": ["d785c550ed37d0a3641984eed4164ee59990472c74160d0a460e568086e81283", 120],
-  "3:A Funk/Disco Loop": ["6f51195d8c0782be371f9967ae5e8ca7f5ffb898312d7ade867c2d07377c1375", 176],
-  "3:B Funk/Disco Loop": ["6f51195d8c0782be371f9967ae5e8ca7f5ffb898312d7ade867c2d07377c1375", 176],
+  "3:A Funk/Disco Loop": ["b119e4fb9dfb391ceb1bd1d387e81082a22d9c8f0f07027f5cb3bdfc17baca0f", 172],
+  "3:B Funk/Disco Loop": ["b119e4fb9dfb391ceb1bd1d387e81082a22d9c8f0f07027f5cb3bdfc17baca0f", 172],
   "5:A Euphoric Techno": ["ca9fb34cbbcba022b8fe1d2018052d38bdee324fa72978bd8e2f36945a55a7e1", 244],
   "5:B Euphoric Techno": ["0e3215f22b975a17e6a889a3a30523c0a56a21d1af31670b46734b119b7dfbb5", 156],
   "7:A Epic Metal": ["b465ddef72c1a2711e7a07318f84320ab0e176dbd0ff1059a8d2864b75d9ee21", 204],
@@ -183,8 +191,8 @@ const GOLDEN = {
   "10:B Oldschool Boom Bap": ["6f11e5f5568cc561475b0d3b8d2151dff5e18499fd12fb7e702b69086b5779ed", 132],
   "16:A Groove Metal": ["4860c7765908593675f8c7cbd56f311a9c4291fa7295e666dc228dc859126723", 160],
   "16:B Groove Metal": ["9e5491e36908b1aa50db4523ea7d56751b21cd6ed395a6f0d5e2b9cf335352fe", 156],
-  "18:A Modern Pop (Ballad)": ["317399cd3ba436f97b7e316e80b79acc559dff56df3a909d12612f88279d53a8", 108],
-  "18:B Modern Pop (Ballad)": ["3be2b7d419eb3d9c8a743382c8757491730b246877732677019f023a3969442b", 124],
+  "18:A Modern Pop (Ballad)": ["34db637204952f37f341ad07627cdacfd2bd16455205d87e756ce8ca3b84e06c", 92],
+  "18:B Modern Pop (Ballad)": ["7bcb300f325ae7f608884eff840c37e112b81aa6ed092327086304b7430b8ccc", 124],
   "21:A Bossa Nova": ["74df84d7e6869fd12dfc12ad55beb8f9a78497a726c6b351312a7bdbd52b2870", 124],
   "21:B Bossa Nova": ["cdc1e55b081dab895b5c2e987d1d88de2137f01dd070fd87d1579d5703dc9180", 160],
   "rhythm-absolute-0-6-10": ["1d10decb400c4ff57b27bdda4a157e80ff8f02909aa3e9a97170dcb939c6c8e8", 116],

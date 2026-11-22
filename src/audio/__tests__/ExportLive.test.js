@@ -82,8 +82,9 @@ describe("drumExportKey — GM keys by row name", () => {
   it("maps every drum row name bricks.json holds", () => {
     const names = new Set();
     BRICKS.forEach((brick) => [...(brick.drumTracks || []), ...(brick.drumTracksVariation || [])].forEach((t) => names.add(t.name)));
-    expect([...names].sort()).toEqual(["Crash", "Hat", "Kick", "Rim", "Snare"]);
-    const keys = { Kick: 36, Snare: 38, Hat: 42, Rim: 37, Crash: 49 };
+    // VMU-226 lot 1: Disco Funk's backbeat is a Clap (its description says so), key 39.
+    expect([...names].sort()).toEqual(["Clap", "Crash", "Hat", "Kick", "Rim", "Snare"]);
+    const keys = { Kick: 36, Snare: 38, Hat: 42, Rim: 37, Clap: 39, Crash: 49 };
     names.forEach((name) => expect(drumExportKey(name, -1), name).toBe(keys[name]));
   });
 
@@ -123,7 +124,8 @@ describe("exported drum file — Rim and Crash keep their sound", () => {
 });
 
 describe("exported drum notes, every style and theme", () => {
-  it("only the styles with a Rim or a Crash row leave 36/38/42", () => {
+  // VMU-226 lot 1 added two: 18:A (the ballad's side stick, Rim) and 19:A (Disco Funk's Clap).
+  it("only the styles with a Rim, a Clap or a Crash row leave 36/38/42", () => {
     const moved = [];
     BRICKS.forEach((brick, index) => {
       ["A", "B"].forEach((theme) => {
@@ -140,6 +142,8 @@ describe("exported drum notes, every style and theme", () => {
       "16:A Groove Metal",
       "17:A Middle Eastern",
       "17:B Middle Eastern",
+      "18:A Modern Pop (Ballad)",
+      "19:A Disco Funk",
       "19:B Disco Funk",
       "20:B Classic Rock",
       "21:A Bossa Nova",

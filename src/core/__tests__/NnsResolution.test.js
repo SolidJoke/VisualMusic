@@ -62,7 +62,7 @@ import {
  */
 
 const PC = { C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11 };
-const TYPE = { "": "chord_major", m: "chord_minor", dim: "chord_dim", 7: "chord_7", m7: "chord_m7", maj7: "chord_maj7", m7b5: "chord_m7b5" };
+const TYPE = { "": "chord_major", m: "chord_minor", dim: "chord_dim", 7: "chord_7", m7: "chord_m7", maj7: "chord_maj7", m7b5: "chord_m7b5", 9: "chord_9" };
 
 /** "Bbm" → { rootPc: 10, type: "chord_minor" }. */
 function chord(name) {
@@ -157,10 +157,10 @@ describe("VMU-157/158 — what does not change (green before and after)", () => 
 // Styles 0-4 have no variation (theme B plays theme A).
 const STYLES = [
   ["0:A", "C scale_major", "1 5 6- 4", "C G Am F"],
-  ["1:A", "G scale_mixolydian", "1 4 5 4", "G C D C"],
-  ["2:A", "D scale_major", "1 6- 4 5", "D Bm G A"],
+  ["1:A", "G scale_mixolydian", "17 47 57 47", "G7 C7 D7 C7"],
+  ["2:A", "D scale_major", "1 6-7 4 57", "D Bm7 G A7"],
   ["3:A", "E scale_dorian", "1- 4 1- 4", "Em A Em A"],
-  ["4:A", "D scale_dorian", "2- 5 1 1", "Em A D D"],
+  ["4:A", "D scale_dorian", "2-7 57 1maj7 1maj7", "Em7 A7 Dmaj7 Dmaj7"],
   ["5:A", "C scale_major", "1 5 4 1", "C G F C"],
   ["5:B", "C scale_major", "1 6- 4 5", "C Am F G"],
   ["6:A", "D scale_dorian", "1- 6 7 1-", "Dm B C Dm"],
@@ -175,7 +175,7 @@ const STYLES = [
   ["10:B", "C# scale_minor", "1- 6 7 1-", "C#m A B C#m"],
   ["11:A", "D# scale_phrygian", "1 b2 1 b2", "Eb E Eb E"],
   ["11:B", "D# scale_phrygian", "1 1 b6 5", "Eb Eb B Bb"],
-  ["12:A", "E scale_dorian", "1- 4 1- 4", "Em A Em A"],
+  ["12:A", "E scale_dorian", "1-7 1-7 49 1-7", "Em7 Em7 A9 Em7"],
   ["12:B", "E scale_dorian", "1- 1- 2- 5", "Em Em F#m B"],
   ["13:A", "A scale_mixolydian", "1 4 5 4", "A D E D"],
   ["13:B", "A scale_mixolydian", "1 b7 4 1", "A G D A"],
@@ -187,9 +187,9 @@ const STYLES = [
   ["16:B", "E scale_locrian", "1° b5 b3 b2", "Edim Bb G F"],
   ["17:A", "D scale_phrygian_dominant", "1 b2 1 4m", "D Eb D Gm"],
   ["17:B", "D scale_phrygian_dominant", "1 b7m b6 5", "D Cm Bb A"],
-  ["18:A", "C scale_major", "1 5 6- 4", "C G Am F"],
-  ["18:B", "C scale_major", "6- 4 1 5", "Am F C G"],
-  ["19:A", "E scale_dorian", "1- 4 1- 4", "Em A Em A"],
+  ["18:A", "C scale_major", "6- 4 1 5", "Am F C G"],
+  ["18:B", "C scale_major", "1 5 6- 4", "C G Am F"],
+  ["19:A", "E scale_dorian", "1-7 4 7 5-7", "Em7 A D Bm7"],
   ["19:B", "E scale_dorian", "1- b3 4 5", "Em G A B"],
   ["20:A", "A scale_mixolydian", "1 4 1 5", "A D A E"],
   ["20:B", "A scale_mixolydian", "1 b7 4 1", "A G D A"],
