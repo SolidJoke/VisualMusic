@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import CustomSelect from "../components/Common/CustomSelect";
+import KeyChordsRow from "./KeyChordsRow";
 import {
   styleOptions,
   rootNoteOptions,
@@ -50,6 +51,11 @@ import {
  *   currentBrickIndex, setCurrentBrickIndex   the Studio's style (index in BRICKS)
  *   dictRoot, setDictRoot, dictType, setDictType   the Dictionary's selection
  *   chordOctave      Studio only: {groupLabel, help, label, prev, next}, or null
+ *   keySetting       Studio only (VMU-219): the loop's key, {groupLabel, help, label, prev, next}
+ *                    - the same shape as chordOctave -, or null. Next to the style.
+ *   keyChords        Studio only (VMU-219): the props of KeyChordsRow (the seven chords of
+ *                    the key, on a row of their own under the fields): {T, pills, notation,
+ *                    onTouch, resetKey}, or null.
  */
 export default function SelectionRow({
   T,
@@ -64,6 +70,8 @@ export default function SelectionRow({
   dictType,
   setDictType,
   chordOctave = null,
+  keySetting = null,
+  keyChords = null,
 }) {
   const family = dictFamily(dictType);
   const styles = useMemo(() => styleOptions(lang), [lang]);
@@ -98,6 +106,21 @@ export default function SelectionRow({
             onChange={(val) => setCurrentBrickIndex && setCurrentBrickIndex(Number(val))}
             options={styles}
           />
+        </div>
+      )}
+
+      {!isDictionary && keySetting && (
+        <div
+          className="proto-a__field proto-a__field--octave proto-a__field--key"
+          role="group"
+          aria-label={keySetting.help}
+          title={keySetting.help}
+          data-testid="selection-key"
+        >
+          <span className="proto-a__muted" aria-hidden="true">{keySetting.groupLabel}</span>
+          {arrow(keySetting.prev, "‹")}
+          <span className="proto-a__head-label">{keySetting.label}</span>
+          {arrow(keySetting.next, "›")}
         </div>
       )}
 
@@ -175,6 +198,16 @@ export default function SelectionRow({
             </div>
           )}
         </>
+      )}
+
+      {!isDictionary && keyChords && (
+        <KeyChordsRow
+          key={keyChords.resetKey}
+          T={keyChords.T}
+          pills={keyChords.pills}
+          notation={keyChords.notation}
+          onTouch={keyChords.onTouch}
+        />
       )}
     </div>
   );

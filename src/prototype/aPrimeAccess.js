@@ -85,6 +85,11 @@ export const A_PRIME_ACCESS = [
   // dico.type-accord, dico.type-gamme. "where" is "centre" (the centre column's
   // transport block, not the top row of it).
   { fn: "composer.style", where: "centre", needs: "studio" },
+  // VMU-219: the loop's key (‹ Ré ›), next to the style, and the seven chords of that
+  // key (one group; its pills are not registered one by one).
+  { fn: "composer.tonalite-prec", where: "centre", needs: "studio" },
+  { fn: "composer.tonalite-suiv", where: "centre", needs: "studio" },
+  { fn: "composer.accords-tonalite", where: "centre", needs: "studio" },
   { fn: "dico.famille", where: "centre", needs: "dictionary" },
   { fn: "dico.fondamentale", where: "centre", needs: "dictionary" },
   { fn: "dico.type-accord", where: "centre", needs: "dictionary:chord" },
