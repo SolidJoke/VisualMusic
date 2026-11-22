@@ -47,8 +47,15 @@ import { PlayGlyph } from "../components/Instruments/InstrumentBar";
  *   next?: {fn: string, label: string, disabled?: boolean, onClick: () => void},
  *   panel?: {fn: string, title: string, alert: {kind: string, text: string}|null, content: React.ReactNode}|null,
  * }|null} [props.setting] row 2, or an empty row
+ * @param {{
+ *   groupLabel: string,
+ *   prev: {fn: string, label: string, disabled?: boolean, onClick: () => void},
+ *   next: {fn: string, label: string, disabled?: boolean, onClick: () => void},
+ * }|null} [props.windowNav] VMU-031 lot 2 (the phone's piano only): ‹ › at the end
+ *   of row 1, which move the octaves the stage shows. Not the setting's ‹ ›: those
+ *   change the notes' octave, these only change which octaves are drawn.
  */
-export default function InstrumentHead({ id, name, chooseTitle, selected, onSelect, choices = null, play = null, setting = null }) {
+export default function InstrumentHead({ id, name, chooseTitle, selected, onSelect, choices = null, play = null, setting = null, windowNav = null }) {
   const panel = (setting && setting.panel) || null;
   const hasPanel = Boolean(panel);
   const [open, setOpen] = useState(false);
@@ -122,6 +129,12 @@ export default function InstrumentHead({ id, name, chooseTitle, selected, onSele
           >
             {name}
           </button>
+        )}
+        {windowNav && (
+          <div className="proto-a__head-window" role="group" aria-label={windowNav.groupLabel}>
+            {arrow(windowNav.prev, "‹")}
+            {arrow(windowNav.next, "›")}
+          </div>
         )}
         {play && (
           <button

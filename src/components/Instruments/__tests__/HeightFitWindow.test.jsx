@@ -129,6 +129,74 @@ describe("PianoKeyboard orientation=\"vertical\" windowOctaves (C-103 Step 3a)",
   });
 });
 
+// VMU-031 lot 2 (the phone): the page chooses the window (it owns the ‹ ›), the
+// keyboard draws exactly that one. The engine value here is hand-made with a
+// known piano realization (C4 E4 G4): the harness above carries no notes.
+describe("PianoKeyboard orientation=\"vertical\" windowStart (VMU-031 lot 2)", () => {
+  const notes = [60, 64, 67].map((absoluteValue, i) => ({ absoluteValue, value: absoluteValue % 12, order: String([1, 3, 5][i]) }));
+
+  function renderWindow(windowStart) {
+    const value = {
+      realizationsByInstrument: { piano: notes },
+      currentRootValue: 0,
+      targetValuesByInstrument: {},
+      autoPlayNote: () => {},
+      currentlyPlayingNotes: [],
+      contextualScaleAbsoluteValues: [],
+      dictType: null,
+      appMode: "dictionary",
+    };
+    return render(
+      <AppProvider>
+        <MusicEngineProvider value={value}>
+          <PianoKeyboard orientation="vertical" windowOctaves={2} windowStart={windowStart} />
+        </MusicEngineProvider>
+      </AppProvider>
+    ).container;
+  }
+
+  it("draws exactly the window it was given: C3..C5, with the chord in it", () => {
+    const container = renderWindow(3);
+    const wrapper = container.querySelector('[data-orientation="vertical"]');
+    expect(wrapper.getAttribute("data-window-start")).toBe("3");
+    expect(wrapper.getAttribute("data-window-holds-all")).toBe("true");
+    const keys = verticalKeys(container);
+    expect(keys.filter((k) => !k.isBlack)).toHaveLength(15);
+    expect(Math.min(...keys.map((k) => k.abs))).toBe(getAbsoluteNoteValue("C3"));
+    expect(Math.max(...keys.map((k) => k.abs))).toBe(getAbsoluteNoteValue("C5"));
+    // The three chord keys exist and are lit (a role class).
+    for (const abs of [60, 64, 67]) {
+      const key = container.querySelector(`[data-abs="${abs}"]`);
+      expect(key, `key ${abs}`).not.toBeNull();
+      expect(key.className, `key ${abs}`).toMatch(/role-/);
+    }
+  });
+
+  it("a window moved away from the chord shows no lit key and says it leaves notes out", () => {
+    const container = renderWindow(6);
+    const wrapper = container.querySelector('[data-orientation="vertical"]');
+    expect(wrapper.getAttribute("data-window-start")).toBe("6");
+    expect(wrapper.getAttribute("data-window-holds-all")).toBe("false");
+    expect(container.querySelector('[data-abs="60"]')).toBeNull();
+    expect(container.querySelectorAll('.piano-key[class*="role-"]')).toHaveLength(0);
+  });
+
+  it("without windowStart the keyboard picks the window that holds the chord, as before", () => {
+    const value = {
+      realizationsByInstrument: { piano: notes }, currentRootValue: 0, targetValuesByInstrument: {},
+      autoPlayNote: () => {}, currentlyPlayingNotes: [], contextualScaleAbsoluteValues: [], dictType: null, appMode: "dictionary",
+    };
+    const container = render(
+      <AppProvider>
+        <MusicEngineProvider value={value}>
+          <PianoKeyboard orientation="vertical" windowOctaves={2} />
+        </MusicEngineProvider>
+      </AppProvider>
+    ).container;
+    expect(container.querySelector('[data-orientation="vertical"]').getAttribute("data-window-start")).toBe("3");
+  });
+});
+
 describe("Fretboard orientation=\"vertical\" fretWindow (C-103 Step 3a)", () => {
   it("draws the open-string row and only the window's frets", () => {
     const container = renderWithEngine(

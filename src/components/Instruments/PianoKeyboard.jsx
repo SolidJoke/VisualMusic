@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import "./PianoKeyboard.css";
 import { NOTES, getAbsoluteNoteValue } from "../../core/theory";
-import { chooseKeyboardWindow } from "../../core/noteEngine";
+import { chooseKeyboardWindow, realizeNote } from "../../core/noteEngine";
 import { getHarmonicSeries } from "../../core/acousticEngine";
 import { getRoleForDegreeLabel, getChordIntervalLabel } from "../../core/harmonyEngine";
 import { useAppContext } from "../../context/AppContext";
@@ -33,8 +33,13 @@ const FLAT_EQUIVALENTS = {
  *   the horizontal render is unchanged. "vertical" turns the geometry, never
  *   the text: high notes at the top, black keys on the left, C2 to C6
  *   (29 white keys), one label per key laid out horizontally.
+ * @param {number} [props.windowOctaves] vertical only: the octaves shown (the page's choice)
+ * @param {number} [props.windowStart] vertical only (VMU-031 lot 2, the phone):
+ *   the window's lowest C, scientific (3 = C3), chosen by the page — which owns
+ *   the ‹ › that move it. Absent: the window that holds the active notes
+ *   (chooseKeyboardWindow), as before.
  */
-function PianoKeyboard({ orientation = "horizontal", windowOctaves = VERTICAL_OCTAVES } = {}) {
+function PianoKeyboard({ orientation = "horizontal", windowOctaves = VERTICAL_OCTAVES, windowStart } = {}) {
   const {
     realizationsByInstrument,
     currentRootValue: rootValue = 0,
@@ -306,11 +311,20 @@ function PianoKeyboard({ orientation = "horizontal", windowOctaves = VERTICAL_OC
     // does not pass it keeps the full 4-octave keyboard. Notes without an
     // absolute pitch keep their legacy place (describeKey) and do not move the
     // window.
-    const pianoWindow = chooseKeyboardWindow(
-      activeNotes.map((n) => n.absoluteValue).filter(Number.isFinite),
-      { lowestOctave: LOWEST_OCTAVE, octaveCount: numOctaves, windowOctaves },
-      Number(rootValue) % 12,
-    );
+    const activePitches = activeNotes.map((n) => n.absoluteValue).filter(Number.isFinite);
+    const pianoWindow = Number.isInteger(windowStart)
+      ? {
+          startOctave: /** @type {number} */ (windowStart),
+          holdsAll: activePitches.every(
+            (p) => realizeNote(0, /** @type {number} */ (windowStart)) <= p
+              && p <= realizeNote(0, /** @type {number} */ (windowStart) + windowOctaves),
+          ),
+        }
+      : chooseKeyboardWindow(
+          activePitches,
+          { lowestOctave: LOWEST_OCTAVE, octaveCount: numOctaves, windowOctaves },
+          Number(rootValue) % 12,
+        );
     const first = pianoWindow.startOctave - LOWEST_OCTAVE; // describeKey's octave index
     // windowOctaves octaves plus the closing C: 7*windowOctaves + 1 white keys,
     // in ascending order here, laid out high-at-top by the index below.

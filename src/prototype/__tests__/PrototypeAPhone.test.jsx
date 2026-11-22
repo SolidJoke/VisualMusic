@@ -61,7 +61,10 @@ vi.mock("../../audio/AudioEngine", () => ({
 }));
 
 vi.mock("../../components/Visualizer/AudioVisualizer", () => ({ default: () => <div data-testid="mock-visualizer" /> }));
-vi.mock("../../components/Instruments/PianoKeyboard", () => ({ default: () => <div data-testid="piano-stub" /> }));
+vi.mock("../../components/Instruments/PianoKeyboard", () => ({
+  // The stub shows what the page asked of the keyboard: the window it chose.
+  default: (props) => <div data-testid="piano-stub" data-window-start={props.windowStart} data-window-octaves={props.windowOctaves} />,
+}));
 vi.mock("../../components/Instruments/Fretboard", () => ({ default: () => <div data-testid="neck-stub" /> }));
 vi.mock("../../components/Panels/SequencerPanel", () => ({ default: () => <div data-testid="sequencer-stub" /> }));
 
@@ -167,5 +170,69 @@ describe("C-109: A′ on the phone", () => {
     // Its content, and its data-fn, never left the DOM.
     expect(drawer().querySelector(".proto-a__center")).not.toBeNull();
     expect(document.querySelectorAll('[data-fn="jouer.lecture"]')).toHaveLength(1);
+  });
+});
+
+// VMU-031 lot 2 — the phone's piano shows TWO octaves and has ‹ › for them.
+describe("VMU-031 lot 2: the phone piano's window", () => {
+  const stub = () => document.querySelector('[data-testid="piano-stub"]');
+  const prev = () => fn("jouer.piano-fenetre-prec");
+  const next = () => fn("jouer.piano-fenetre-suiv");
+
+  it("asks the keyboard for two octaves, from the window that holds the notes", async () => {
+    await renderPhone();
+    expect(stub().getAttribute("data-window-octaves")).toBe("2");
+    // The Studio's default chord (C3 E3 G3) sits in the lowest window, C2..C4.
+    expect(stub().getAttribute("data-window-start")).toBe("2");
+  });
+
+  it("has ‹ › in the piano head, named in the page's language, the lower one disabled at the bottom", async () => {
+    await renderPhone();
+    expect(prev().getAttribute("aria-label")).toBe(T.pianoWindowPrev);
+    expect(next().getAttribute("aria-label")).toBe(T.pianoWindowNext);
+    expect(prev().textContent).toBe("‹");
+    expect(next().textContent).toBe("›");
+    expect(prev().closest(".proto-a__inst-head")).not.toBeNull();
+    expect(prev().closest('[role="group"]').getAttribute("aria-label")).toBe(T.pianoWindowGroup);
+    expect(prev().disabled).toBe(true);
+    expect(next().disabled).toBe(false);
+  });
+
+  it("‹ › move the window by an octave and the buttons follow the keyboard's ends", async () => {
+    await renderPhone();
+    fireEvent.click(next());
+    expect(stub().getAttribute("data-window-start")).toBe("3");
+    expect(prev().disabled).toBe(false);
+    for (let i = 0; i < 10; i++) fireEvent.click(next());
+    expect(stub().getAttribute("data-window-start")).toBe("7");
+    expect(next().disabled).toBe(true);
+    fireEvent.click(prev());
+    expect(stub().getAttribute("data-window-start")).toBe("6");
+    expect(next().disabled).toBe(false);
+  });
+
+  it("a move holds until the notes change; then the window falls back on them (Dictionary, +1 octave)", async () => {
+    await renderPhone();
+    fireEvent.click(document.querySelectorAll(".proto-a__tab")[1]); // Dictionary: a single note, C4
+    await settle();
+    expect(stub().getAttribute("data-window-start")).toBe("2");
+    fireEvent.click(next());
+    fireEvent.click(next());
+    expect(stub().getAttribute("data-window-start")).toBe("4");
+    // The piano head's ‹ Octave ›: the note goes to C5, the window comes to it.
+    fireEvent.click(fn("jouer.octave-piano-suiv"));
+    await settle();
+    expect(stub().getAttribute("data-window-start")).toBe("3");
+    expect(stub().getAttribute("data-window-octaves")).toBe("2");
+  });
+
+  it("every language names the buttons", () => {
+    for (const lang of ["fr", "en", "pt", "zh"]) {
+      const p = translations[lang].protoA;
+      for (const key of ["pianoWindowGroup", "pianoWindowPrev", "pianoWindowNext"]) {
+        expect(typeof p[key], `${lang}.${key}`).toBe("string");
+        expect(p[key].length, `${lang}.${key}`).toBeGreaterThan(2);
+      }
+    }
   });
 });

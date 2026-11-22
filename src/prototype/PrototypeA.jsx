@@ -14,6 +14,8 @@ import { realizationRange } from "../core/realization";
 import { placementLabel, stepPlacement } from "../components/Instruments/placementLabel";
 import { verticalFretShare } from "../components/Instruments/verticalNeckGeometry";
 import { chooseKeySize, chooseKeyboardOctaves, chooseFretWindow } from "../core/instrumentWindow";
+import { PHONE_PIANO_OCTAVES, PHONE_PIANO_KEY_MIN, PHONE_BLACK_RATIO, scrollToReveal } from "../core/pianoWindow";
+import { usePianoWindow } from "../hooks/usePianoWindow";
 import { translations } from "../i18n/translations";
 import { DESKTOP_QUERY, IS_PHONE } from "../layout";
 import { useBpmEditor } from "../hooks/useBpmEditor";
@@ -315,6 +317,11 @@ export default function PrototypeA({
   // full instruments.
   const protoRef = useRef(null);
   const [availableHeight, setAvailableHeight] = useState(0);
+  // VMU-031 lot 2 (phone): the height the stage leaves the keyboard, from the
+  // top of its body to the bottom of the stage (the stage scrolls inside
+  // itself; the window's own height is not the room, the folded sheet takes
+  // the bottom 150px). 0 where nothing is measured (jsdom, other pages).
+  const [phoneRoom, setPhoneRoom] = useState(0);
   // Read here (not next to the column rendering below) because the measure
   // must know the chosen instrument as soon as the page mounts.
   const chosenInstrument = musicEngineContextValue?.playbackInstrument || "piano";
@@ -325,6 +332,7 @@ export default function PrototypeA({
       const body = column?.querySelector(".piano-wrapper--vertical, .proto-a__neck");
       if (!column || !body) {
         setAvailableHeight(0);
+        setPhoneRoom(0);
         return;
       }
       const previousPosition = column.style.position;
@@ -334,9 +342,17 @@ export default function PrototypeA({
       column.style.position = previousPosition;
       if (rect.height <= 0) {
         setAvailableHeight(0);
+        setPhoneRoom(0);
         return;
       }
       setAvailableHeight(Math.max(0, window.innerHeight - top - 40));
+      const stage = IS_PHONE ? root.querySelector(".proto-a__stage") : null;
+      if (stage) {
+        // The body's offset inside the stage's scrollable content, whatever the
+        // stage's scroll position now.
+        const offset = rect.top - stage.getBoundingClientRect().top + stage.scrollTop;
+        setPhoneRoom(Math.max(0, stage.clientHeight - offset));
+      }
     };
     measure();
     window.addEventListener("resize", measure);
@@ -515,6 +531,21 @@ export default function PrototypeA({
 
     const keyboard = chooseKeyboardOctaves(availableHeight > 0 ? availableHeight : Infinity, { keyPx, chromePx, maxOctaves });
 
+    // VMU-031 lot 2 (phone): the piano's own key, apart from the page's. The
+    // necks keep sizing themselves from `keyPx` / `keyboard` above (lot 1,
+    // untouched); the piano always shows PHONE_PIANO_OCTAVES octaves, its key the
+    // one that makes them fit the stage, never under PHONE_PIANO_KEY_MIN (the
+    // 44px floor is for the 768..2559px pages). When even that does not fit,
+    // the stage scrolls.
+    const phonePianoKey = IS_PHONE
+      ? chooseKeySize(phoneRoom > 0 ? phoneRoom : Infinity, {
+          fullKeyPx,
+          minKeyPx: PHONE_PIANO_KEY_MIN,
+          chromePx,
+          targetOctaves: PHONE_PIANO_OCTAVES,
+        })
+      : null;
+
     const windowFor = (id) => {
       const fingering = id === "guitar" ? engine.guitarFingering : engine.bassFingering;
       const activeFrets = fingeringFrets(fingering);
@@ -529,8 +560,43 @@ export default function PrototypeA({
       });
     };
 
-    return { keyboard, keyPx, guitar: windowFor("guitar"), bass: windowFor("bass") };
-  }, [availableHeight, engine, singleColumn]);
+    return { keyboard, keyPx, phonePianoKey, guitar: windowFor("guitar"), bass: windowFor("bass") };
+  }, [availableHeight, phoneRoom, engine, singleColumn]);
+
+  // VMU-031 lot 2 (phone): the piano's window — the two octaves that hold the
+  // active notes (the piano's own realization, as the keyboard reads it), moved
+  // by the ‹ › of the head until the notes change. Called on every page (hooks
+  // cannot be conditional); only the phone passes the result to the keyboard.
+  const pianoPitches = useMemo(
+    () => (engine.realizationsByInstrument?.piano || []).map((n) => n?.absoluteValue).filter(Number.isFinite),
+    [engine.realizationsByInstrument],
+  );
+  const pianoWin = usePianoWindow(
+    pianoPitches,
+    (((engine.currentRootValue ?? 0) % 12) + 12) % 12,
+    { lowestOctave: 2, octaveCount: 7, windowOctaves: PHONE_PIANO_OCTAVES },
+  );
+
+  // Bring the lit keys into the stage. Two octaves at the minimum key can be
+  // taller than a short phone's stage, which then scrolls: the window holds the
+  // notes, this keeps them on screen. Runs when the notes or the window change
+  // (not on a scroll), moves only if a lit key is out of view.
+  useLayoutEffect(() => {
+    if (!IS_PHONE) return;
+    const stage = protoRef.current?.querySelector(".proto-a__stage");
+    // phoneRoom 0 = not measured yet: the key is still its unfitted default and
+    // the scroll it would compute is for a keyboard that is about to shrink.
+    if (!stage || stage.clientHeight <= 0 || phoneRoom <= 0) return;
+    const lit = [...stage.querySelectorAll('.piano-wrapper--vertical .piano-key[class*="role-"]')];
+    if (lit.length === 0) return;
+    const rects = lit.map((k) => k.getBoundingClientRect());
+    const view = stage.getBoundingClientRect();
+    const delta = scrollToReveal(
+      { top: Math.min(...rects.map((r) => r.top)), bottom: Math.max(...rects.map((r) => r.bottom)) },
+      { top: view.top, bottom: view.bottom },
+    );
+    if (delta !== 0) stage.scrollTop += delta;
+  }, [pianoWin.notesKey, pianoWin.startOctave, instrumentFit.phonePianoKey, phoneRoom, chosenInstrument, appMode]);
   const isDictionary = appMode === "dictionary";
   // The classic words of a position (voicingOf, shapeLabel, positionDefault...)
   // live in the page's main table; the French one when `txt` has none.
@@ -646,7 +712,7 @@ export default function PrototypeA({
     { id: "guitar", name: T.guitar, selected: chosenInstrument === "guitar", onSelect: () => selectInstrument("guitar") },
     { id: "bass", name: T.bass, selected: chosenInstrument === "bass", onSelect: () => selectInstrument("bass") },
   ];
-  const head = (id, name, setting, choices = null) => (
+  const head = (id, name, setting, choices = null, windowNav = null) => (
     <InstrumentHead
       id={id}
       name={name}
@@ -656,6 +722,7 @@ export default function PrototypeA({
       choices={choices}
       play={isDictionary ? { label: `${T.play} — ${name}`, onPlay: () => engine.playInstrument && engine.playInstrument(id) } : null}
       setting={setting}
+      windowNav={windowNav}
     />
   );
 
@@ -715,7 +782,11 @@ export default function PrototypeA({
       caption: T.pianoCaption,
       attrs: { "data-s1-notes": s1Notes },
       setting: pianoSetting,
-      body: <PianoKeyboard orientation="vertical" windowOctaves={instrumentFit.keyboard.octaves} />,
+      body: IS_PHONE ? (
+        <PianoKeyboard orientation="vertical" windowOctaves={PHONE_PIANO_OCTAVES} windowStart={pianoWin.startOctave} />
+      ) : (
+        <PianoKeyboard orientation="vertical" windowOctaves={instrumentFit.keyboard.octaves} />
+      ),
     },
     guitar: {
       fn: "jouer.guitare",
@@ -734,6 +805,14 @@ export default function PrototypeA({
       body: neckFor("bass"),
     },
   };
+  // VMU-031 lot 2: the phone's piano head carries ‹ › for the octaves shown.
+  const pianoWindowNav = IS_PHONE
+    ? {
+        groupLabel: T.pianoWindowGroup,
+        prev: { fn: "jouer.piano-fenetre-prec", label: T.pianoWindowPrev, disabled: !pianoWin.canPrev, onClick: () => pianoWin.shift(-1) },
+        next: { fn: "jouer.piano-fenetre-suiv", label: T.pianoWindowNext, disabled: !pianoWin.canNext, onClick: () => pianoWin.shift(1) },
+      }
+    : null;
   const instrumentColumn = (id, choices = null) => {
     const v = instrumentView[id];
     return (
@@ -746,7 +825,7 @@ export default function PrototypeA({
         aria-label={`${v.name} — ${v.caption}`}
         title={v.caption}
       >
-        {head(id, v.name, v.setting, choices)}
+        {head(id, v.name, v.setting, choices, id === "piano" ? pianoWindowNav : null)}
         {v.body}
       </section>
     );
@@ -780,10 +859,12 @@ export default function PrototypeA({
           className={`proto-a${singleColumn ? " proto-a--compact" : ""}${IS_PHONE ? " proto-a--phone" : ""}`}
           data-prototype="a"
           ref={protoRef}
-          style={singleColumn ? { "--proto-key": `${instrumentFit.keyPx}px` } : undefined}
+          style={singleColumn ? { "--proto-key": `${instrumentFit.keyPx}px`, ...(IS_PHONE ? { "--phone-piano-key": `${instrumentFit.phonePianoKey}px`, "--phone-black-ratio": PHONE_BLACK_RATIO } : null) } : undefined}
           data-fit-key={instrumentFit.keyPx}
           data-fit-octaves={instrumentFit.keyboard.octaves}
           data-fit-keys={instrumentFit.keyboard.keys}
+          data-phone-piano-key={IS_PHONE ? instrumentFit.phonePianoKey : undefined}
+          data-phone-piano-window={IS_PHONE ? pianoWin.startOctave : undefined}
         >
           <header className="proto-a__header">
             <div className="proto-a__title">{T.title}</div>
