@@ -123,7 +123,10 @@ function AppDesktop() {
     activeTracks,
     timeline,
     viewRequest,
-    requestSequencerView
+    requestSequencerView,
+    // VMU-227: undo / redo, and the held "hear the original".
+    undo, redo, canUndo, canRedo, consumeRestoredStyle,
+    setListenOriginal, listenOriginal
   } = useStudioMode();
 
   // VMU-126: changing the style or the mode clears what the user built on top
@@ -360,11 +363,14 @@ function AppDesktop() {
     }
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
+    // VMU-227: an undo / redo that changed the style has just put its edits
+    // back: they are not cleared this once.
+    if (consumeRestoredStyle()) return;
     setSuggestedBassTrack(null);
     setCustomProgression(null);
     setCustomRhythm(null);
     setCustomDrums(null);
-  }, [currentBrickIndex, appMode, styleBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression, setClickedChord, setCurrentAbsoluteNotes, setCustomRhythm, setCustomDrums]);
+  }, [consumeRestoredStyle, currentBrickIndex, appMode, styleBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression, setClickedChord, setCurrentAbsoluteNotes, setCustomRhythm, setCustomDrums]);
 
   // VMU-050: what the next visit reopens on, written once, together, when one
   // of the kept values changes (persistedState.js says which and why). Not the
@@ -395,7 +401,7 @@ function AppDesktop() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  useKeyboardShortcuts({ appMode, togglePlayback, setAppMode: requestAppMode });
+  useKeyboardShortcuts({ appMode, togglePlayback, setAppMode: requestAppMode, undo, redo });
 
   const playbackContextValue = useMemo(() => ({
     currentStep,
@@ -676,6 +682,13 @@ function AppDesktop() {
         // VMU-219: the loop's key, next to the style.
         keyRoot={keyRoot}
         setKeyRoot={setKeyRoot}
+        undo={undo}
+        redo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        hasEdits={hasEdits}
+        holdingOriginal={listenOriginal}
+        setListenOriginal={setListenOriginal}
         notation={notation}
         setNotation={setNotation}
         appMode={appMode}
