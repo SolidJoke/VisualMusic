@@ -9,7 +9,8 @@ import AudioVisualizer from "../components/Visualizer/AudioVisualizer";
 import { HeaderActions } from "../components/Layout/AppHeader";
 import { MusicEngineProvider } from "../context/MusicEngineContext";
 import { PlaybackProvider } from "../context/PlaybackContext";
-import { generateChordsFromNNS, formatPitchRange, midiToDisplayName } from "../core/theory";
+import { generateChordsFromNNS, formatPitchRange, midiToDisplayName, NOTES } from "../core/theory";
+import { keyChordPills } from "../core/keyChoice";
 import { realizationRange } from "../core/realization";
 import { placementLabel, stepPlacement } from "../components/Instruments/placementLabel";
 import { verticalFretShare } from "../components/Instruments/verticalNeckGeometry";
@@ -235,6 +236,9 @@ export default function PrototypeA({
   lang = "fr",
   currentBrickIndex,
   setCurrentBrickIndex,
+  // VMU-219: the loop's effective key (useStudioMode's keyRoot) and its setter.
+  keyRoot,
+  setKeyRoot,
 }) {
   // Every label of the page (VMU-182). The French table stands in when the
   // caller hands no translations (the unit tests render with txt={}).
@@ -635,6 +639,34 @@ export default function PrototypeA({
   const chordOctaveSetting = isDictionary
     ? null
     : { groupLabel: T.chordOctaveGroup, help: T.chordOctaveHelp, label: midiToDisplayName(60 + 12 * octave, notation), prev: octavePrev, next: octaveNext };
+  // VMU-219 - the loop's key, in the selection row next to the style: ‹ Ré ›, one
+  // semitone a step, round the octave. The state and its rule are useStudioMode's
+  // (keyRoot, setKeyRoot): this only names it and steps it.
+  const keyKnown = !isDictionary && Number.isInteger(keyRoot) && Boolean(setKeyRoot);
+  const keyNote = keyKnown ? NOTES[((keyRoot % 12) + 12) % 12] : null;
+  const stepKey = (delta) => setKeyRoot((keyRoot + delta + 12) % 12);
+  const keySetting = keyKnown
+    ? {
+        groupLabel: T.keyGroupLabel,
+        help: T.keyHelp,
+        label: notation === "us" ? keyNote.us : keyNote.eu,
+        prev: { fn: "composer.tonalite-prec", label: T.keyDown, onClick: () => stepKey(-1) },
+        next: { fn: "composer.tonalite-suiv", label: T.keyUp, onClick: () => stepKey(1) },
+      }
+    : null;
+  // The seven chords of that key, in the style's mode. A touch is a chord click of
+  // the Studio's own (handleChordClick), at the root position (index 0): it plays and
+  // shows the chord and does not touch the loop.
+  const keyChords =
+    keyKnown && activeBrick && handleChordClick
+      ? {
+          T,
+          pills: keyChordPills(keyRoot, activeBrick.scaleKey),
+          notation,
+          onTouch: (pill) => handleChordClick(pill.chord, 0),
+          resetKey: `${keyRoot}-${activeBrick.scaleKey}`,
+        }
+      : null;
   const isScaleMode = isDictionary && typeof dictType === "string" && dictType.includes("scale");
   // L1b-1c: the position panel, opened from the neck's label - the classic
   // PositionSelector's controls on the same state and setters (shared rules:
@@ -1076,6 +1108,8 @@ export default function PrototypeA({
                   dictType={dictType}
                   setDictType={setDictType}
                   chordOctave={chordOctaveSetting}
+                  keySetting={keySetting}
+                  keyChords={keyChords}
                 />
               </section>
 

@@ -416,6 +416,84 @@
   padding: 0 8px;
 }
 
+/* VMU-219 - the loop's key, next to the style: the "Octave des accords" stepper
+   (same classes, same 48px arrows), the value a note name ("Ré", "La#"). */
+.proto-a__field--key .proto-a__head-label {
+  min-width: 4ch;
+}
+
+/* VMU-219 - "Les 7 accords de la tonalité" (KeyChordsRow.jsx): the label, seven
+   pills, then the sentence of the pill touched last. It stays on the selection
+   row's line while the line is wide enough (the centre column at 3840px holds
+   it all: the row stays 48px, S1-23's one line) and drops under the fields
+   when it is not (its own full-width line, which only a narrower window pays).
+   The pill is a 48px target (the floor of the page, over the ticket's 44px):
+   the chord's name, its Roman numeral under it. */
+.proto-a__keychords-row {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  min-width: 0;
+}
+
+.proto-a__keychords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.proto-a .proto-a__keychord {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--hit-min);
+  min-height: var(--hit-min);
+  padding: 2px 12px;
+  color: var(--text-primary);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.proto-a .proto-a__keychord.is-active {
+  background: var(--surface-3);
+  color: var(--text-on-select);
+  border-color: var(--select);
+}
+
+.proto-a .proto-a__keychord:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.proto-a__keychord-name {
+  font-size: var(--fs-body);
+  white-space: nowrap;
+}
+
+.proto-a__keychord-roman {
+  font-size: var(--fs-label);
+  color: var(--text-secondary);
+}
+
+.proto-a .proto-a__keychord.is-active .proto-a__keychord-roman {
+  color: inherit;
+}
+
+.proto-a__keychord-phrase {
+  flex: 0 1 auto;
+  min-width: 24ch;
+  color: var(--text-secondary);
+  font-size: var(--fs-label);
+}
+
 /* CustomSelect is width: 100% of its parent: here each one has a width of its
    own, wide enough for its longest name (S1-23 measures that no name is cut). */
 .proto-a__field .custom-select-container {
@@ -1537,6 +1615,22 @@
 
 .proto-a--phone .proto-a__family {
   flex-wrap: wrap;
+}
+
+/* VMU-219 (phone): the seven pills share the sheet's width, none under 44px. */
+.proto-a--phone .proto-a__keychords {
+  flex: 1 1 100%;
+  flex-wrap: nowrap;
+}
+
+.proto-a--phone .proto-a__keychord {
+  flex: 1 1 0;
+  min-width: 44px;
+  padding: 2px 0;
+}
+
+.proto-a--phone .proto-a__keychord-name {
+  font-size: var(--fs-label);
 }
 
 .proto-a--phone .proto-a__sequencer {

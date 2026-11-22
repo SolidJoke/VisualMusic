@@ -4,6 +4,7 @@ import { BRICKS } from "../core/bricks";
 import { buildStudioTimeline, studioSelection } from "../core/timeline";
 import { loadPersisted, brickIndexOf } from "../utils/persistedState";
 import { loopLengthForCycle, maxCycleLength } from "../core/loopWindow";
+import { effectiveRoot, keyedBrick as keyedBrickOf, transposeTimeline } from "../core/keyChoice";
 
 export function useStudioMode() {
   // VMU-050: the style the last visit left, found by its stable name (never by
@@ -28,6 +29,30 @@ export function useStudioMode() {
   const [customDrums, setCustomDrums] = useState(null);
 
   const activeBrick = useMemo(() => BRICKS.at(Number(currentBrickIndex)), [currentBrickIndex]);
+
+  // VMU-219: the loop's key. `keyChoice` is the user's tonic (0-11) or null, in
+  // which case the style's own is followed — also after a style change; a
+  // chosen one is kept across style changes. Not kept across a reload.
+  // `keyRoot` is the effective tonic: the one value playback, the
+  // instruments, the DAW helper, the copied progression and the exported
+  // file's name all read (core/keyChoice.js).
+  const [keyChoice, setKeyChoice] = useState(null);
+  const keyRoot = effectiveRoot(activeBrick.rootValue, keyChoice);
+  // The style's brick in the effective key: what the panels and the
+  // instruments read. `activeBrick` itself stays the style's own, with its own
+  // identity, because the page clears the user's edits when it changes.
+  const keyedBrick = useMemo(() => keyedBrickOf(activeBrick, keyRoot), [activeBrick, keyRoot]);
+  const setKeyRoot = useCallback(
+    (root) => {
+      const next = effectiveRoot(activeBrick.rootValue, root);
+      // The style's own tonic is no choice: a later style's tonic is followed.
+      setKeyChoice(next === activeBrick.rootValue ? null : next);
+      // What was clicked was voiced in the old key.
+      setClickedChord(null);
+      setCurrentAbsoluteNotes([]);
+    },
+    [activeBrick],
+  );
 
   const overrides = useMemo(
     () => ({ customDrums, customRhythm, customProgression, suggestedBassTrack }),
@@ -63,13 +88,16 @@ export function useStudioMode() {
   // above (VMU-214); the document already holds all 8 measures.
   const timeline = useMemo(
     () =>
-      buildStudioTimeline({
-        brickIndex: currentBrickIndex,
-        theme: currentTheme,
-        overrides,
-        lengthMeasures,
-      }),
-    [currentBrickIndex, currentTheme, overrides, lengthMeasures],
+      transposeTimeline(
+        buildStudioTimeline({
+          brickIndex: currentBrickIndex,
+          theme: currentTheme,
+          overrides,
+          lengthMeasures,
+        }),
+        keyRoot - activeBrick.rootValue,
+      ),
+    [currentBrickIndex, currentTheme, overrides, lengthMeasures, keyRoot, activeBrick],
   );
 
   return {
@@ -88,6 +116,8 @@ export function useStudioMode() {
     customRhythm, setCustomRhythm,
     customDrums, setCustomDrums,
     activeBrick,
+    keyRoot, setKeyRoot,
+    keyedBrick,
     activeTracks,
     timeline,
     viewRequest,

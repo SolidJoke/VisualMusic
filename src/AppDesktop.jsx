@@ -114,7 +114,12 @@ function AppDesktop() {
     customProgression, setCustomProgression,
     customRhythm, setCustomRhythm,
     customDrums, setCustomDrums,
-    activeBrick,
+    // VMU-219: `styleBrick` is the style itself (its identity is what the
+    // "style changed" effect below watches); `activeBrick` is that style in
+    // the loop's effective key, which every reader below uses.
+    activeBrick: styleBrick,
+    keyedBrick: activeBrick,
+    keyRoot, setKeyRoot,
     activeTracks,
     timeline,
     viewRequest,
@@ -349,9 +354,9 @@ function AppDesktop() {
       // setTempo (T2 / VMU-025), which sets the transport and what the
       // badge shows together.
       if (setCurrentBpm) {
-        setCurrentBpm(activeBrick.bpm);
+        setCurrentBpm(styleBrick.bpm);
       }
-      applyGenrePreset(activeBrick._group);
+      applyGenrePreset(styleBrick._group);
     }
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
@@ -359,12 +364,12 @@ function AppDesktop() {
     setCustomProgression(null);
     setCustomRhythm(null);
     setCustomDrums(null);
-  }, [currentBrickIndex, appMode, activeBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression, setClickedChord, setCurrentAbsoluteNotes, setCustomRhythm, setCustomDrums]);
+  }, [currentBrickIndex, appMode, styleBrick, setCurrentBpm, setSuggestedBassTrack, setCustomProgression, setClickedChord, setCurrentAbsoluteNotes, setCustomRhythm, setCustomDrums]);
 
   // VMU-050: what the next visit reopens on, written once, together, when one
   // of the kept values changes (persistedState.js says which and why). Not the
   // tempo, the volume, the metronome nor the edits: slice 2.
-  const brickId = activeBrick ? activeBrick.name.en : undefined;
+  const brickId = styleBrick ? styleBrick.name.en : undefined;
   useEffect(() => {
     savePersisted({
       appMode, lang, notation, playbackInstrumentByMode, brickId, chordOctaveOffset, dictRoot, dictType, dictOctave,
@@ -668,6 +673,9 @@ function AppDesktop() {
         lang={lang}
         currentBrickIndex={currentBrickIndex}
         setCurrentBrickIndex={requestBrickIndex}
+        // VMU-219: the loop's key, next to the style.
+        keyRoot={keyRoot}
+        setKeyRoot={setKeyRoot}
         notation={notation}
         setNotation={setNotation}
         appMode={appMode}
