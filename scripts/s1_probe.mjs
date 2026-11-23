@@ -221,6 +221,10 @@
  *   npm run s1:probe -- --json          # JSON, one entry per state
  *   npm run s1:probe -- --shot          # also PNGs in probe.local/ (gitignored)
  *   npm run s1:probe -- --only=gsm7,harm-gsm7   # only these scenario / state ids
+ *       (--only= selects STATES: cmaj gsm7 cmajscale apenta dict-oct3 studio-oct2
+ *       harm-cmaj harm-gsm7 harm-cmajscale harm-apenta. There is no per-criterion
+ *       filter; an unknown id exits 2 with the list. A criterion measured on 0
+ *       states prints NOT MEASURED, never PASS.)
  *   npm run s1:probe -- --viewport=3840x2045    # one other window size, instead of the two
  *
  * Positive control: S1_PROBE_INJECT_CSS="<css>" adds a <style> to every
@@ -1390,6 +1394,18 @@ const STATES = [
   ...S1_SCENARIOS.map((s) => ({ id: s.id, extra: false })),
   ...S1_EXTRA_STATES.map((x) => ({ id: x.id, extra: true })),
 ].filter((s) => ONLY.length === 0 || ONLY.includes(s.id));
+
+// VMU-232: --only filters STATES, never criteria. A value naming no state used
+// to measure nothing and print "S1-12 PASS 0/0": it now fails, listing the ids.
+{
+  const validIds = [...S1_SCENARIOS.map((s) => s.id), ...S1_EXTRA_STATES.map((x) => x.id)];
+  const unknown = ONLY.filter((id) => !validIds.includes(id));
+  if (unknown.length) {
+    console.error(`s1_probe: --only= takes state ids (scenarios and L1a states), not criteria; unknown: ${unknown.join(", ")}`);
+    console.error(`  valid ids: ${validIds.join(", ")}`);
+    process.exit(2);
+  }
+}
 
 async function runState(browser, viewport, state, labels) {
   const page = await browser.newPage({ viewport: { width: viewport.w, height: viewport.h } });
@@ -5033,7 +5049,10 @@ const summary = MATRIX_CRITERIA.map((c) => {
     id: c.id,
     what: c.what,
     decides: c.decides,
-    pass: failed.length === 0,
+    // VMU-232: a criterion measured on 0 states is not a pass (--access-only
+    // runs no matrix state on purpose and does not print this summary).
+    pass: failed.length === 0 && (states.length > 0 || ACCESS_ONLY),
+    notMeasured: states.length === 0,
     passCount: states.length - failed.length,
     total: states.length,
     firstFail: failed[0] ? `${failed[0].viewport} ${failed[0].scenario} ${failed[0].labels}: ${failed[0].verdicts[c.id].value}` : null,
@@ -5086,7 +5105,7 @@ if (AS_JSON) {
   const nExtra = STATES.filter((s) => s.extra).length;
   console.log(`\nSummary (all states: ${ACCESS_ONLY ? 0 : VIEWPORTS.length} viewports x (${nScen} scenarios + ${nExtra} L1a states) x ${S1_LABEL_MODES.length} label modes)`);
   for (const s of ACCESS_ONLY ? [] : summary) {
-    console.log(`  ${s.id.padEnd(5)} ${s.pass ? "PASS" : "FAIL"} ${String(s.passCount).padStart(2)}/${s.total}  ${s.what}${s.decides ? "" : "  [correction, not a decision criterion]"}${s.firstFail ? `\n        first fail: ${s.firstFail}` : ""}`);
+    console.log(`  ${s.id.padEnd(5)} ${s.notMeasured ? "NOT MEASURED" : s.pass ? "PASS" : "FAIL"} ${String(s.passCount).padStart(2)}/${s.total}  ${s.what}${s.decides ? "" : "  [correction, not a decision criterion]"}${s.firstFail ? `\n        first fail: ${s.firstFail}` : ""}`);
   }
   console.log("  S1-14 not measured: Gabriel's reading test (10 labels per instrument, names then degrees).");
   console.log(`  S1-19 no-bench behaviour: ${noBenchOk ? "PASS" : "FAIL"} in ${Object.keys(noBenchChecks).length}/${ACCESS_ONLY ? 0 : VIEWPORTS.length} viewport(s)`);

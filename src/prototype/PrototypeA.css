@@ -863,9 +863,16 @@
   outline-offset: 2px;
 }
 
+/* VMU-232: at 3840 x 2020 (the mock-up's useful height) the Studio column was 2031px
+   (header 56 + 24 top padding + transport 162 + visualizer 60 + studio 1618 + legend 39
+   + three 24px gaps): 11px past the window, so S1-12 (no page scroll) failed on
+   studio-oct2. Nothing else may shrink (48px targets, 14px texts, the 2045 window);
+   the 24px between the sequencer and the Math dock becomes 8px, 16px given back
+   (2015px). Only the two-column layout, which exists from 3840px up. */
 @media (min-width: 3840px) {
   .proto-a__studio {
     grid-template-columns: 1600px minmax(0, 1fr);
+    row-gap: 8px;
     grid-template-areas:
       "seq recipes"
       "dock recipes";
