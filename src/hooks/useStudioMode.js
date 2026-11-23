@@ -8,20 +8,26 @@ import { createHistory, record, undo as undoHistory, redo as redoHistory, canUnd
 import { effectiveRoot, keyedBrick as keyedBrickOf, transposeTimeline } from "../core/keyChoice";
 import { applyEditedChords, progressionFromDoc } from "../core/progressionEdit";
 import { sameState } from "../core/history";
+import { applyChance, cycleChance, emptyChance, isNeutral, setDensity, withSeed } from "../core/chance";
+import { newSeed } from "../core/random";
 
 /**
  * Whether any of the four overrides is set, or (VMU-127) a variation's
- * progression is edited.
+ * progression is edited, or (VMU-221) a chance or a density is set.
  */
-function hasOverrides(overrides, customChords = null) {
+function hasOverrides(overrides, customChords = null, chance = null) {
   return Boolean(
     overrides.customDrums ||
       overrides.customRhythm ||
       overrides.customProgression ||
       overrides.suggestedBassTrack ||
-      (customChords && (customChords.A || customChords.B)),
+      (customChords && (customChords.A || customChords.B)) ||
+      (chance && !isNeutral(chance)),
   );
 }
+
+/** No removed hit (a constant: a stable identity for the readers). */
+const NO_DROPPED = Object.freeze({});
 
 /** The variation a theme plays: "B", or "A" for anything else. */
 function variationOf(theme) {
@@ -59,6 +65,15 @@ export function useStudioMode() {
     setCustomProgression(progression);
     setCustomChords(null);
   }, []);
+
+  // VMU-221: a chance per cell, a density per track and the seed of the draw
+  // (core/chance.js). A first visit draws its seed once; it is state (the
+  // history holds it, the grid shows it), never read again from a clock. Not
+  // kept across a reload, like the key.
+  const [chance, setChance] = useState(() => emptyChance(newSeed()));
+  const cycleCellChance = useCallback((trackId, step) => setChance((c) => cycleChance(c, trackId, step)), []);
+  const setTrackDensity = useCallback((trackId, percent) => setChance((c) => setDensity(c, trackId, percent)), []);
+  const newChanceVersion = useCallback(() => setChance((c) => withSeed(c, newSeed())), []);
 
   const activeBrick = useMemo(() => BRICKS.at(Number(currentBrickIndex)), [currentBrickIndex]);
 
@@ -108,8 +123,9 @@ export function useStudioMode() {
       customProgression,
       suggestedBassTrack,
       customChords,
+      chance,
     }),
-    [currentBrickIndex, currentTheme, keyChoice, customDrums, customRhythm, customProgression, suggestedBassTrack, customChords],
+    [currentBrickIndex, currentTheme, keyChoice, customDrums, customRhythm, customProgression, suggestedBassTrack, customChords, chance],
   );
   // The history is state (what the buttons show); the ref beside it is what
   // the handlers read, written where the state is (never during a render).
@@ -131,6 +147,9 @@ export function useStudioMode() {
       setCustomRhythm(null);
       setCustomDrums(null);
       setCustomChords(null);
+      // The chances and densities are keyed by the style's tracks: they do not
+      // carry over. The seed does (the version stays the version).
+      setChance((c) => (isNeutral(c) ? c : emptyChance(c.seed)));
     }
     setBrickIndexRaw(next);
   }, []);
@@ -154,6 +173,7 @@ export function useStudioMode() {
     setCustomProgression(target.customProgression);
     setSuggestedBassTrack(target.suggestedBassTrack);
     setCustomChords(target.customChords ?? null);
+    if (target.chance) setChance(target.chance);
     // What was clicked was voiced in the loop of before.
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
@@ -179,7 +199,7 @@ export function useStudioMode() {
   // page shows is the style's own fill (no override), in the same key. Not a
   // state of the loop (no history step): a hand held on a button.
   const [listenOriginal, setListenOriginal] = useState(false);
-  const isHearingOriginal = listenOriginal && hasOverrides(overrides, customChords);
+  const isHearingOriginal = listenOriginal && hasOverrides(overrides, customChords, chance);
 
   // VMU-127: the edited progression of the variation that plays, if any.
   const editedChords = customChords?.[variationOf(currentTheme)] ?? null;
@@ -220,19 +240,25 @@ export function useStudioMode() {
     return editedChords ? applyEditedChords(doc, editedChords, cycleSteps) : doc;
   }, [currentBrickIndex, currentTheme, overrides, lengthMeasures, editedChords, cycleSteps]);
 
+  // VMU-221: the chances and densities, applied after the document is built
+  // (the progression's edits above are in it) and before the key moves it.
+  // `dropped` is the removed hits, for the grid to mark.
+  const chanced = useMemo(() => applyChance(editedDoc, chance), [editedDoc, chance]);
+
   const timeline = useMemo(
     () =>
       transposeTimeline(
         isHearingOriginal
           ? // VMU-227: the style alone — its own window, no override (nor
-            // edited chords). The key is the same (transposed below), the
-            // tempo is not the document's.
+            // edited chords, nor chance). The key is the same (transposed
+            // below), the tempo is not the document's.
             buildStudioTimeline({ brickIndex: currentBrickIndex, theme: currentTheme })
-          : editedDoc,
+          : chanced.doc,
         keyRoot - activeBrick.rootValue,
       ),
-    [currentBrickIndex, currentTheme, editedDoc, keyRoot, activeBrick, isHearingOriginal],
+    [currentBrickIndex, currentTheme, chanced, keyRoot, activeBrick, isHearingOriginal],
   );
+  const chanceDropped = isHearingOriginal ? NO_DROPPED : chanced.dropped;
 
   // VMU-127 — one editing gesture: `operation` (a progressionEdit.js
   // operation, partially applied) maps the edited list of the variation that
@@ -267,6 +293,8 @@ export function useStudioMode() {
     customRhythm, setCustomRhythm,
     customDrums, setCustomDrums,
     customChords, editedChords, editChords,
+    chance, chanceDropped, cycleCellChance, setTrackDensity, newChanceVersion,
+    chanceActive: !isNeutral(chance),
     activeBrick,
     keyRoot, setKeyRoot,
     keyedBrick,
@@ -276,6 +304,6 @@ export function useStudioMode() {
     requestSequencerView,
     undo, redo, canUndo, canRedo, consumeRestoredStyle,
     listenOriginal, setListenOriginal, isHearingOriginal,
-    hasEdits: hasOverrides(overrides, customChords),
+    hasEdits: hasOverrides(overrides, customChords, chance),
   };
 }

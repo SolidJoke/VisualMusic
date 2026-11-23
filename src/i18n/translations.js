@@ -410,6 +410,24 @@ export const translations = {
       metronomeOff: "Métronome désactivé"
     },
     // VMU-182 (A′-ACCÈS): every label of the A′ page (?prototype=a), none hard-coded.
+    // VMU-221: a chance per cell and a density per track (SequencerPanel, PianoRoll).
+    chance: {
+      group: "Chance et densité",
+      toggle: "Chance",
+      toggleHint: "Règle la chance de chaque coup : touche un coup pour qu'il ne sonne qu'une fois sur deux, puis une fois sur quatre.",
+      helpButton: "Aide : la chance",
+      help: "Touche un coup allumé : il ne jouera plus qu'une fois sur deux (50 %), puis une fois sur quatre (25 %), puis toujours. Les coups retirés dans cette version apparaissent en pointillés.",
+      density: "Densité",
+      densityHint: "Part des coups de la piste qui sont joués : 100 % = tous, 0 % = aucun.",
+      seedLabel: "Version",
+      seedHint: "Le code de cette version : le même code redonne exactement les mêmes coups.",
+      another: "Une autre version",
+      anotherHint: "Tire une autre version au hasard. Elle s'annule avec ↶.",
+      anotherNeeds: "Règle d'abord une chance ou une densité : sinon il n'y a rien à faire varier.",
+      cellChance: "chance",
+      cellRemoved: "retiré dans cette version",
+      close: "Fermer",
+    },
     protoA: {
       // VMU-126/050: the confirmation before a change of style or mode erases edits.
       confirmKeep: "Garder mes modifications",
@@ -970,6 +988,24 @@ export const translations = {
       metronomeOn: "Metronome on",
       metronomeOff: "Metronome off"
     },
+    // VMU-221: a chance per cell and a density per track (SequencerPanel, PianoRoll).
+    chance: {
+      group: "Chance and density",
+      toggle: "Chance",
+      toggleHint: "Set the chance of each hit: touch a hit so that it plays only one time in two, then one time in four.",
+      helpButton: "Help: chance",
+      help: "Touch a lit hit: it will play only one time in two (50 %), then one time in four (25 %), then always. The hits removed in this version are shown dashed.",
+      density: "Density",
+      densityHint: "How many of the track's hits are played: 100 % = all, 0 % = none.",
+      seedLabel: "Version",
+      seedHint: "The code of this version: the same code gives back exactly the same hits.",
+      another: "Another version",
+      anotherHint: "Draws another version at random. Undo it with ↶.",
+      anotherNeeds: "Set a chance or a density first: otherwise there is nothing to vary.",
+      cellChance: "chance",
+      cellRemoved: "removed in this version",
+      close: "Close",
+    },
     protoA: {
       // VMU-126/050: the confirmation before a change of style or mode erases edits.
       confirmKeep: "Keep my changes",
@@ -1465,6 +1501,24 @@ export const translations = {
       clickToEditBpm: "Clique para editar o BPM",
       metronomeOn: "Metrônomo ativado",
       metronomeOff: "Metrônomo desativado"
+    },
+    // VMU-221: a chance per cell and a density per track (SequencerPanel, PianoRoll).
+    chance: {
+      group: "Probabilidade e densidade",
+      toggle: "Probabilidade",
+      toggleHint: "Define a probabilidade de cada batida: toque numa batida para que toque só uma vez em duas, depois uma vez em quatro.",
+      helpButton: "Ajuda: probabilidade",
+      help: "Toque numa batida acesa: passa a tocar só uma vez em duas (50 %), depois uma vez em quatro (25 %), depois sempre. As batidas retiradas nesta versão aparecem a tracejado.",
+      density: "Densidade",
+      densityHint: "Parte das batidas da pista que são tocadas: 100 % = todas, 0 % = nenhuma.",
+      seedLabel: "Versão",
+      seedHint: "O código desta versão: o mesmo código devolve exatamente as mesmas batidas.",
+      another: "Outra versão",
+      anotherHint: "Sorteia outra versão ao acaso. Anula-se com ↶.",
+      anotherNeeds: "Defina primeiro uma probabilidade ou uma densidade: senão não há nada a variar.",
+      cellChance: "probabilidade",
+      cellRemoved: "retirada nesta versão",
+      close: "Fechar",
     },
     protoA: {
       // VMU-126/050: the confirmation before a change of style or mode erases edits.
@@ -2000,6 +2054,24 @@ export const translations = {
       clickToEditBpm: "点击修改 BPM",
       metronomeOn: "节拍器已开启",
       metronomeOff: "节拍器已关闭"
+    },
+    // VMU-221: a chance per cell and a density per track (SequencerPanel, PianoRoll).
+    chance: {
+      group: "概率与密度",
+      toggle: "概率",
+      toggleHint: "设置每一击的概率：点按一击，让它两次只响一次，再点则四次只响一次。",
+      helpButton: "帮助：概率",
+      help: "点按一个亮着的击点：它会变成两次只响一次（50 %），再点变成四次只响一次（25 %），再点恢复每次都响。这一版中被去掉的击点以虚线显示。",
+      density: "密度",
+      densityHint: "该轨道有多少击点会响：100 % = 全部，0 % = 一个也不响。",
+      seedLabel: "版本",
+      seedHint: "这一版的代码：同一个代码会给出完全相同的击点。",
+      another: "换一个版本",
+      anotherHint: "随机抽取另一个版本。可用 ↶ 撤销。",
+      anotherNeeds: "请先设置概率或密度：否则没有可变化的内容。",
+      cellChance: "概率",
+      cellRemoved: "这一版中已去掉",
+      close: "关闭",
     },
     protoA: {
       // VMU-126/050: the confirmation before a change of style or mode erases edits.

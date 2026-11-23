@@ -1,0 +1,175 @@
+/* VMU-221 — chance per cell, density per track.
+   Targets are --hit-min (44px; 48px at 3840 and wider). Colours are the page's
+   tokens only. */
+
+/* ─── The bar in the drum machine's header ────────────────────────── */
+.chance-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+  margin-right: 12px;
+}
+
+.chance-bar__seed {
+  color: var(--text-secondary);
+  font-size: var(--a-prime-fs, 14px);
+  white-space: nowrap;
+}
+
+.chance-bar__seed code {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+}
+
+.chance-bar__pop {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  width: min(420px, 90vw);
+  margin-top: 4px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.chance-bar__pop p {
+  margin: 0 0 8px;
+}
+
+.chance-bar__pop-muted {
+  color: var(--text-secondary);
+}
+
+/* ─── The header that holds the bar ───────────────────────────────── */
+/* The page has about 14px to spare at 3840x2045 (VMU-127 measured 6) and none
+   at 3840x2020: the header + its margin must not be taller than the 48px they
+   are without the bar (34px + 14px margin). The buttons are --hit-min high; their
+   layout box is 12px shorter (negative block margin), they sit on the header's
+   line instead of growing it. */
+:root:has(.proto-a) .module-header.module-header--chance {
+  padding-bottom: 0 !important;
+  margin-bottom: 11px !important;
+}
+
+.module-header--chance .chance-bar {
+  margin-block: -6px;
+}
+
+/* ─── The densities, in each roll's control bar ───────────────────── */
+/* The slider's touch area is --hit-min high; its layout box is not: the
+   negative block margin lets it overflow the bar's padding, so the bar keeps
+   its height. */
+.chance-density {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--hit-min);
+  margin-block: calc((var(--hit-min) - 24px) / -2);
+  font-size: var(--a-prime-fs, 14px);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.chance-density__name {
+  font-family: var(--font-mono);
+}
+
+.proto-a .chance-density .chance-density__slider {
+  width: 120px;
+}
+
+.chance-density output {
+  min-width: 4ch;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  text-align: right;
+}
+
+/* ─── The cells ───────────────────────────────────────────────────── */
+/* In "Chance" mode a lit cell (or a removed one) is touchable. */
+.step-lamp.step--touch {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.step-lamp.step--touch:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 1px;
+}
+
+/* A chance under 100 %: the top (100 - chance) % of the cell is veiled, so a
+   50 % cell is half filled and a 25 % cell a quarter filled; the number is
+   written in it. */
+.step__chance-veil {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface-3);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.step__chance-label {
+  position: absolute;
+  bottom: 1px;
+  right: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-on-select);
+  pointer-events: none;
+}
+
+/* A hit the draw removed in this version: dashed outline in the track's
+   colour, empty inside, with a cross. Visibly not an empty cell, visibly not a
+   played one. */
+.step-lamp.step--dropped {
+  background: transparent !important;
+  border: 2px dashed var(--lg-accent) !important;
+  box-shadow: none;
+}
+
+.bg-kick.step--dropped { border-color: var(--seq-kick) !important; }
+.bg-snare.step--dropped, .bg-clap.step--dropped, .bg-rim.step--dropped { border-color: var(--seq-snare) !important; }
+.bg-hat.step--dropped, .bg-crash.step--dropped { border-color: var(--seq-hat) !important; }
+.bg-bass.step--dropped { border-color: var(--seq-bass) !important; }
+
+.step-lamp.step--dropped::after {
+  content: "×";
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 767px) {
+  .chance-bar {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+  }
+  /* In the flow, under the bar: an absolute note would run off the screen. */
+  .chance-bar__pop {
+    position: static;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .step__chance-label {
+    display: none;
+  }
+  .proto-a .chance-density .chance-density__slider {
+    width: 96px;
+  }
+}

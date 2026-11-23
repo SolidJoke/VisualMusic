@@ -17,6 +17,7 @@ import Modal from "./components/Common/Modal";
 import ConfirmDialog from "./components/Common/ConfirmDialog";
 import { useSequencer } from "./audio/useSequencer";
 import { useStudioMode } from "./hooks/useStudioMode";
+import { emptyChance } from "./core/chance";
 import { useDictionaryMode } from "./hooks/useDictionaryMode";
 import { usePlaybackHandlers } from "./hooks/usePlaybackHandlers";
 import { useMetronome } from "./hooks/useMetronome";
@@ -117,6 +118,8 @@ function AppDesktop() {
     // VMU-127: the progression edited chord by chord (one list per variation),
     // the list of the variation that plays, and the one editing entry point.
     customChords, editedChords, editChords,
+    // VMU-221: the chance per cell, the density per track and the seed.
+    chance: chanceSettings, chanceDropped, chanceActive, cycleCellChance, setTrackDensity, newChanceVersion, isHearingOriginal,
     // VMU-219: `styleBrick` is the style itself (its identity is what the
     // "style changed" effect below watches); `activeBrick` is that style in
     // the loop's effective key, which every reader below uses.
@@ -132,13 +135,28 @@ function AppDesktop() {
     setListenOriginal, listenOriginal
   } = useStudioMode();
 
+  // VMU-221: what the sequencer shows and writes of the chances. While the
+  // original is held, it shows the style alone: no chance, no density, no
+  // removed hit (the document is the style's own).
+  const chanceApi = useMemo(
+    () => ({
+      settings: isHearingOriginal ? emptyChance(chanceSettings.seed) : chanceSettings,
+      dropped: chanceDropped,
+      active: chanceActive,
+      onCycle: cycleCellChance,
+      onDensity: setTrackDensity,
+      onNewVersion: newChanceVersion,
+    }),
+    [isHearingOriginal, chanceSettings, chanceDropped, chanceActive, cycleCellChance, setTrackDensity, newChanceVersion],
+  );
+
   // VMU-126: changing the style or the mode clears what the user built on top
   // of the style (the effect below). When there is something to lose, the
   // change is REQUESTED here and a confirmation opens first; the raw setters
   // stay for the page's own programmatic changes (A' scenarios, URL states).
   // The edits are the four overrides of useStudioMode; the clicked chord and
   // the notes are a selection, not an edit, and clear without a question.
-  const hasEdits = Boolean(customProgression || customRhythm || customDrums || suggestedBassTrack || customChords);
+  const hasEdits = Boolean(customProgression || customRhythm || customDrums || suggestedBassTrack || customChords || chanceActive);
   const [pendingChange, setPendingChange] = useState(null); // { kind: "style" | "mode", value }
 
   const requestBrickIndex = useCallback((next) => {
@@ -718,6 +736,7 @@ function AppDesktop() {
         // VMU-127: the chord row's edits (useStudioMode).
         editedChords={editedChords}
         editChords={editChords}
+        chance={chanceApi}
         viewRequest={viewRequest}
         onSendView={requestSequencerView}
         currentStep={currentStep}

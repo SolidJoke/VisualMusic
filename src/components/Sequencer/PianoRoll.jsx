@@ -1,6 +1,8 @@
 import React from 'react';
 import './PianoRoll.css';
+import './Chance.css';
 import { sequencerViewSize } from '../../core/loopWindow';
+import { chanceAt, densityOf } from '../../core/chance';
 
 /**
  * PianoRoll — Step sequencer display with velocity & pitch indicators
@@ -14,8 +16,15 @@ import { sequencerViewSize } from '../../core/loopWindow';
  * - currentStep: number (-1 = none)
  * - viewRequest: number — a send's request; when it changes, the roll shows
  *   the whole loop (VMU-214)
+ * - chance: (VMU-221, the Studio's A′ page only; absent elsewhere = nothing
+ *   changes) { T, settings, dropped, mode, onCycle(trackId, step),
+ *   onDensity(trackId, percent) } — the chance of each cell, the steps the
+ *   draw removed in this version (`dropped`, trackId -> steps; drawn dashed),
+ *   whether touching a cell sets its chance (`mode`), and the densities, in
+ *   this roll's bar. The chord row has no chance.
  */
-export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1, viewRequest = 0 }) {
+export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1, viewRequest = 0, chance = null }) {
+    const chanceTracks = chance ? tracks.filter((t) => t && t.role !== 'chordHits') : [];
     const [isZoomed, setIsZoomed] = React.useState(false);
     const [pageSize, setPageSize] = React.useState(16); // 16, 32, or 64 steps visible
     const [currentPage, setCurrentPage] = React.useState(0); // 0-indexed page
@@ -85,6 +94,29 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                     </div>
                 )}
 
+                {/* VMU-221: the density of each track of this roll (0-100 %). */}
+                {chanceTracks.map((track) => {
+                    const value = densityOf(chance.settings, track.id);
+                    return (
+                        <label key={track.id} className="chance-density" title={chance.T.densityHint} data-chance="density" data-track={track.id}>
+                            <span className="chance-density__name">{chance.T.density} · {track.name}</span>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="5"
+                                className="proto-a__volume-slider chance-density__slider"
+                                value={value}
+                                aria-label={`${chance.T.density} — ${track.name}`}
+                                aria-valuetext={`${value} %`}
+                                style={{ '--value': `${value}%` }}
+                                onChange={(e) => chance.onDensity(track.id, Number(e.target.value))}
+                            />
+                            <output>{value} %</output>
+                        </label>
+                    );
+                })}
+
                 {/* Keep the zoom button */}
                 <button 
                     className="btn-header-action" 
@@ -96,6 +128,9 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
             </div>
             {tracks.filter(Boolean).map((track, trackIndex) => {
                 const colorClass = `bg-${track.name.toLowerCase()}`;
+                // VMU-221: this row's chances and removed hits (none for the chord row).
+                const withChance = Boolean(chance) && track.role !== 'chordHits';
+                const droppedSteps = withChance ? new Set(chance.dropped?.[track.id] ?? []) : null;
 
                 return (
                     <div key={trackIndex} className="track-row">
@@ -109,6 +144,9 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                                 const isLowVel = cell?.vel === 'ghost';
                                 const isCurrent = currentStep === stepIndex;
                                 const pitchLabel = cell?.pitch || null;
+                                const isDropped = Boolean(droppedSteps && droppedSteps.has(stepIndex));
+                                const level = withChance && (isActive || isDropped) ? chanceAt(chance.settings, track.id, stepIndex) : 100;
+                                const touchable = withChance && chance.mode && (isActive || isDropped);
 
                                 // Build CSS classes
                                 const classes = [
@@ -116,6 +154,9 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                                     isActive ? 'active' : '',
                                     isActive ? colorClass : '',
                                     isActive && isLowVel ? 'step--ghost' : '',
+                                    isDropped ? `step--dropped ${colorClass}` : '',
+                                    level < 100 ? `step--chance step--chance-${level}` : '',
+                                    touchable ? 'step--touch' : '',
                                     isCurrent ? 'step--current' : '',
                                     stepIndex % 4 === 0 ? 'step--beat' : '',
                                     stepIndex % 16 === 0 ? 'step--measure' : '',
@@ -134,8 +175,30 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                                             transform: isActive && !isLowVel ? 'scale(1.05)' : 'scale(1)',
                                             zIndex: isActive ? 2 : 1
                                         }}
-                                        title={isActive ? buildTooltip(track.name, stepIndex, isLowVel, pitchLabel) : ''}
+                                        title={isActive ? buildTooltip(track.name, stepIndex, isLowVel, pitchLabel, level) : isDropped ? `${track.name} — Step ${stepIndex + 1} | ${chance.T.cellRemoved}` : ''}
+                                        data-chance-level={level < 100 ? level : undefined}
+                                        data-dropped={isDropped ? '' : undefined}
+                                        {...(touchable
+                                            ? {
+                                                role: 'button',
+                                                tabIndex: 0,
+                                                'aria-label': `${track.name} ${stepIndex + 1} — ${chance.T.cellChance} ${level} %${isDropped ? ` — ${chance.T.cellRemoved}` : ''}`,
+                                                onClick: () => chance.onCycle(track.id, stepIndex),
+                                                onKeyDown: (e) => {
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.preventDefault();
+                                                        chance.onCycle(track.id, stepIndex);
+                                                    }
+                                                },
+                                            }
+                                            : null)}
                                     >
+                                        {level < 100 && (
+                                            <>
+                                                <div className="step__chance-veil" style={{ height: `${100 - level}%` }} aria-hidden="true" />
+                                                <span className="step__chance-label" aria-hidden="true">{level}</span>
+                                            </>
+                                        )}
                                         {isActive && pitchLabel && (
                                             <span className="step__pitch-label">{pitchLabel}</span>
                                         )}
@@ -157,8 +220,9 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
 /**
  * Build a descriptive tooltip for a step.
  */
-function buildTooltip(trackName, stepIndex, isGhost, pitchLabel) {
+function buildTooltip(trackName, stepIndex, isGhost, pitchLabel, level = 100) {
     const parts = [`${trackName} — Step ${stepIndex + 1}`];
+    if (level < 100) parts.push(`${level} %`);
     if (isGhost) parts.push('Velocity: Ghost (low)');
     if (pitchLabel) parts.push(`Pitch: ${pitchLabel}`);
     return parts.join(' | ');
