@@ -6,12 +6,26 @@ import { loadPersisted, brickIndexOf } from "../utils/persistedState";
 import { loopLengthForCycle, maxCycleLength } from "../core/loopWindow";
 import { createHistory, record, undo as undoHistory, redo as redoHistory, canUndo as historyCanUndo, canRedo as historyCanRedo } from "../core/history";
 import { effectiveRoot, keyedBrick as keyedBrickOf, transposeTimeline } from "../core/keyChoice";
+import { applyEditedChords, progressionFromDoc } from "../core/progressionEdit";
+import { sameState } from "../core/history";
 
-/** Whether any of the four overrides is set. */
-function hasOverrides(overrides) {
+/**
+ * Whether any of the four overrides is set, or (VMU-127) a variation's
+ * progression is edited.
+ */
+function hasOverrides(overrides, customChords = null) {
   return Boolean(
-    overrides.customDrums || overrides.customRhythm || overrides.customProgression || overrides.suggestedBassTrack,
+    overrides.customDrums ||
+      overrides.customRhythm ||
+      overrides.customProgression ||
+      overrides.suggestedBassTrack ||
+      (customChords && (customChords.A || customChords.B)),
   );
+}
+
+/** The variation a theme plays: "B", or "A" for anything else. */
+function variationOf(theme) {
+  return theme === "B" ? "B" : "A";
 }
 
 export function useStudioMode() {
@@ -35,6 +49,16 @@ export function useStudioMode() {
   const [customProgression, setCustomProgression] = useState(null);
   const [customRhythm, setCustomRhythm] = useState(null);
   const [customDrums, setCustomDrums] = useState(null);
+  // VMU-127: the progression edited chord by chord, one list per variation
+  // (core/progressionEdit.js), null when neither is edited.
+  const [customChords, setCustomChords] = useState(/** @type {import("../core/progressionEdit").CustomChords|null} */ (null));
+  // A Quick Start replaces the progression of both variations: it is the new
+  // starting point of an edit, so it drops the edits made on the old one. The
+  // page's own resets (a style change) go through it too.
+  const setCustomProgressionAndDropEdits = useCallback((progression) => {
+    setCustomProgression(progression);
+    setCustomChords(null);
+  }, []);
 
   const activeBrick = useMemo(() => BRICKS.at(Number(currentBrickIndex)), [currentBrickIndex]);
 
@@ -83,8 +107,9 @@ export function useStudioMode() {
       customRhythm,
       customProgression,
       suggestedBassTrack,
+      customChords,
     }),
-    [currentBrickIndex, currentTheme, keyChoice, customDrums, customRhythm, customProgression, suggestedBassTrack],
+    [currentBrickIndex, currentTheme, keyChoice, customDrums, customRhythm, customProgression, suggestedBassTrack, customChords],
   );
   // The history is state (what the buttons show); the ref beside it is what
   // the handlers read, written where the state is (never during a render).
@@ -105,6 +130,7 @@ export function useStudioMode() {
       setCustomProgression(null);
       setCustomRhythm(null);
       setCustomDrums(null);
+      setCustomChords(null);
     }
     setBrickIndexRaw(next);
   }, []);
@@ -127,6 +153,7 @@ export function useStudioMode() {
     setCustomRhythm(target.customRhythm);
     setCustomProgression(target.customProgression);
     setSuggestedBassTrack(target.suggestedBassTrack);
+    setCustomChords(target.customChords ?? null);
     // What was clicked was voiced in the loop of before.
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
@@ -152,15 +179,17 @@ export function useStudioMode() {
   // page shows is the style's own fill (no override), in the same key. Not a
   // state of the loop (no history step): a hand held on a button.
   const [listenOriginal, setListenOriginal] = useState(false);
-  const isHearingOriginal = listenOriginal && Boolean(hasOverrides(overrides));
+  const isHearingOriginal = listenOriginal && hasOverrides(overrides, customChords);
+
+  // VMU-127: the edited progression of the variation that plays, if any.
+  const editedChords = customChords?.[variationOf(currentTheme)] ?? null;
 
   // VMU-214: the loop grows to hold the longest active cycle (Math & Rythmes
   // whole-circle overrides), never shorter than today's 4 measures, never past
-  // the document's 8.
-  const { lengthMeasures } = useMemo(
-    () => loopLengthForCycle(maxCycleLength(overrides)),
-    [overrides],
-  );
+  // the document's 8. An edited progression sets its own window instead
+  // (progressionEdit.js editedLoopLength: the chords' length or the cycle's).
+  const cycleSteps = useMemo(() => maxCycleLength(overrides), [overrides]);
+  const { lengthMeasures } = useMemo(() => loopLengthForCycle(cycleSteps), [cycleSteps]);
 
   // VMU-214: a send re-applies the sequencer view (whole loop, page 1). The
   // counter, not the value, is what the piano rolls watch: the same view twice
@@ -172,31 +201,54 @@ export function useStudioMode() {
   // What the panels show and edit: the style's tracks and progression, the
   // overrides above applied (core/timeline.js studioSelection — the rules
   // this memo used to hold).
-  const activeTracks = useMemo(
-    () => studioSelection(activeBrick, currentTheme, overrides),
-    [activeBrick, currentTheme, overrides],
-  );
+  // VMU-127: an edited progression is what the panels show as the
+  // progression (its degrees, in order — the drawer's chord buttons).
+  const activeTracks = useMemo(() => {
+    const selection = studioSelection(activeBrick, currentTheme, overrides);
+    return editedChords ? { ...selection, progression: editedChords.map((chord) => chord.nns) } : selection;
+  }, [activeBrick, currentTheme, overrides, editedChords]);
 
   // T3: what plays — the timeline document the same style, theme and
   // overrides fill. The playback loop, the MIDI export, the piano rolls and
   // the DAW helper read it. Its window is the longest active cycle's, derived
   // above (VMU-214); the document already holds all 8 measures.
+  // The document with the user's edits, in the STYLE's key: the overrides,
+  // then (VMU-127) the edited chords, resolved in the style's tonic and laid
+  // over the window they set.
+  const editedDoc = useMemo(() => {
+    const doc = buildStudioTimeline({ brickIndex: currentBrickIndex, theme: currentTheme, overrides, lengthMeasures });
+    return editedChords ? applyEditedChords(doc, editedChords, cycleSteps) : doc;
+  }, [currentBrickIndex, currentTheme, overrides, lengthMeasures, editedChords, cycleSteps]);
+
   const timeline = useMemo(
     () =>
       transposeTimeline(
         isHearingOriginal
-          ? // VMU-227: the style alone — its own window, no override. The key is
-            // the same (transposed below), the tempo is not the document's.
+          ? // VMU-227: the style alone — its own window, no override (nor
+            // edited chords). The key is the same (transposed below), the
+            // tempo is not the document's.
             buildStudioTimeline({ brickIndex: currentBrickIndex, theme: currentTheme })
-          : buildStudioTimeline({
-              brickIndex: currentBrickIndex,
-              theme: currentTheme,
-              overrides,
-              lengthMeasures,
-            }),
+          : editedDoc,
         keyRoot - activeBrick.rootValue,
       ),
-    [currentBrickIndex, currentTheme, overrides, lengthMeasures, keyRoot, activeBrick, isHearingOriginal],
+    [currentBrickIndex, currentTheme, editedDoc, keyRoot, activeBrick, isHearingOriginal],
+  );
+
+  // VMU-127 — one editing gesture: `operation` (a progressionEdit.js
+  // operation, partially applied) maps the edited list of the variation that
+  // plays to the next one. A first gesture starts from what plays (the
+  // style's chords, a Quick Start's, the repeats of the window), so it changes
+  // only what it is about. A refused gesture changes nothing — no edit, no
+  // history step.
+  const editChords = useCallback(
+    (operation) => {
+      const variation = variationOf(currentTheme);
+      const start = customChords?.[variation] ?? progressionFromDoc(editedDoc);
+      const next = operation(start);
+      if (!Array.isArray(next) || next.length === 0 || sameState(next, start)) return;
+      setCustomChords((previous) => ({ ...(previous || {}), [variation]: next }));
+    },
+    [currentTheme, customChords, editedDoc],
   );
 
   return {
@@ -211,9 +263,10 @@ export function useStudioMode() {
     lastClickedContext, setLastClickedContext,
     singlePlayContext, setSinglePlayContext,
     suggestedBassTrack, setSuggestedBassTrack,
-    customProgression, setCustomProgression,
+    customProgression, setCustomProgression: setCustomProgressionAndDropEdits,
     customRhythm, setCustomRhythm,
     customDrums, setCustomDrums,
+    customChords, editedChords, editChords,
     activeBrick,
     keyRoot, setKeyRoot,
     keyedBrick,
@@ -223,6 +276,6 @@ export function useStudioMode() {
     requestSequencerView,
     undo, redo, canUndo, canRedo, consumeRestoredStyle,
     listenOriginal, setListenOriginal, isHearingOriginal,
-    hasEdits: hasOverrides(overrides),
+    hasEdits: hasOverrides(overrides, customChords),
   };
 }

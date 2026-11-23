@@ -11,6 +11,12 @@ import { usePlaybackContext } from '../../context/PlaybackContext';
  * plays, over its window, and their MIDI export.
  *
  * `timeline` is useStudioMode's document (core/timeline.js).
+ *
+ * `tight` (VMU-127, the A′ page): the spacing around and between the three
+ * rolls is tightened (12px paddings instead of 20, 16px between sections
+ * instead of 30, no bottom margin), giving back the height of the chord row
+ * A′ puts above the rolls — at 3840 x 2045 the Studio fitted the window with
+ * about 6px to spare. The classic page keeps its spacing.
  */
 const SequencerPanel = ({
   timeline,
@@ -19,7 +25,9 @@ const SequencerPanel = ({
   activeBrick,
   chordOctaveOffset,
   viewRequest = 0,
+  tight = false,
 }) => {
+  const sectionGap = tight ? "16px" : "30px";
   const { lang, txt, notation } = useAppContext();
   const { isPlaying, togglePlayback, handleBpmChange } = usePlaybackContext();
 
@@ -46,8 +54,8 @@ const SequencerPanel = ({
       className="module-body"
       style={{
         width: "100%",
-        marginBottom: "30px",
-        padding: "20px",
+        marginBottom: tight ? 0 : "30px",
+        padding: tight ? "12px 20px" : "20px",
         boxSizing: "border-box",
       }}
     >
@@ -91,7 +99,7 @@ const SequencerPanel = ({
         />
       </div>
 
-      <div className="module-header" style={{ marginTop: "30px" }}>
+      <div className="module-header" style={{ marginTop: sectionGap }}>
         <span>🎹 {txt.harmonicSeq || "Harmonic Sequencer"}</span>
         <button className="module-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
           const midiData = exportTimelineChords(timeline, currentBpm, { octaveOffset: chordOctaveOffset });
@@ -107,7 +115,7 @@ const SequencerPanel = ({
         />
       </div>
 
-      <div className="module-header" style={{ marginTop: "30px" }}>
+      <div className="module-header" style={{ marginTop: sectionGap }}>
         <span>{txt.melodicSeq}</span>
         <button className="module-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
           const midiData = exportTimelineBass(timeline, currentBpm);

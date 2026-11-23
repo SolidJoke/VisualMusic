@@ -33,8 +33,13 @@ import React, { useState } from "react";
  * @param {any[] & { mode: "major"|"minor" }} props.pills
  * @param {string} props.notation
  * @param {(pill: any) => void} props.onTouch
+ * @param {string} [props.fn] VMU-127: the group's registry name, when the row
+ *   is reused elsewhere (the chord row's choice, "replace by"); the selection
+ *   row's own by default.
+ * @param {string} [props.testId]
+ * @param {string} [props.s1] the probes' marker; the selection row's by default
  */
-export default function KeyChordsRow({ T, pills, notation, onTouch }) {
+export default function KeyChordsRow({ T, pills, notation, onTouch, fn = "composer.accords-tonalite", testId = "key-chords", s1 = "keychords" }) {
   const [touched, setTouched] = useState(/** @type {number|null} */ (null));
   const phrases = T.keyChordPhrases?.[pills.mode] || [];
   const sentence = (/** @type {any} */ pill) => `${pill.roman} : ${phrases[pill.degree - 1] ?? ""}`;
@@ -42,14 +47,14 @@ export default function KeyChordsRow({ T, pills, notation, onTouch }) {
   const shown = touched === null ? null : pills.find((pill) => pill.degree === touched);
 
   return (
-    <div className="proto-a__keychords-row" data-s1="keychords">
+    <div className="proto-a__keychords-row" data-s1={s1}>
       <span className="proto-a__muted">{T.keyChordsLabel}</span>
       <div
         className="proto-a__keychords"
         role="group"
         aria-label={T.keyChordsAria}
-        data-testid="key-chords"
-        data-fn="composer.accords-tonalite"
+        data-testid={testId}
+        data-fn={fn}
       >
         {pills.map((pill) => (
           <button
