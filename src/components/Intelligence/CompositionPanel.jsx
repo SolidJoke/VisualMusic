@@ -21,6 +21,8 @@ import {
   rotate,
 } from "../../core/compositionEngine";
 import { MAX_STEPS } from "../../core/timeline";
+import { PHASING_EVERY_CHOICES, driftCopy, driftOffsetAtStep } from "../../core/phasingDrift";
+import { loopLengthForCycle } from "../../core/loopWindow";
 import "./CompositionPanel.css";
 
 /* Grey stacked rhythms are told apart by their stroke, never by track colours. */
@@ -97,6 +99,8 @@ export default function CompositionPanel({
   const [showComplement, setShowComplement] = useState(true);
   const [showPhasing, setShowPhasing] = useState(false);
   const [phasingOffset, setPhasingOffset] = useState(0);
+  // VMU-211: the copy slips one case every N turns (0 = Off, the fixed copy).
+  const [phasingEvery, setPhasingEvery] = useState(0);
   const [phasingCopyTarget, setPhasingCopyTarget] = useState("Snare");
   const [showIsorhythm, setShowIsorhythm] = useState(false);
   const [isorhythmPitches, setIsorhythmPitches] = useState("C3, E3, G3, B3");
@@ -218,13 +222,32 @@ export default function CompositionPanel({
     return pattern;
   }, [showPolyrhythm, polyrhythmResult, showRealignment, realignedPattern, pattern]);
 
+  // VMU-211: the copy, laid out in advance on its whole cycle. It is what
+  // handleExport sends AND what the wheel and the grid read (one source).
+  const phasingCopy = useMemo(
+    () => (showPhasing ? driftCopy(pattern, phasingOffset, phasingEvery) : null),
+    [showPhasing, pattern, phasingOffset, phasingEvery],
+  );
+  // The copy's offset at the loop step now playing (the start offset when idle).
+  const copyOffset = phasingCopy
+    ? driftOffsetAtStep(
+        { subdivisions, start: phasingOffset, every: phasingEvery, cycleLength: phasingCopy.cycleLength },
+        currentStep,
+      )
+    : phasingOffset;
+
   const extraPolygons = useMemo(() => {
+    if (showPhasing) {
+      // The wheel draws the copy as a grey, dashed shape: what is heard.
+      const copyHits = rotate(pattern, copyOffset).flatMap((val, idx) => (val === 1 ? [idx] : []));
+      return [{ indices: copyHits, dash: "10 6" }];
+    }
     if (!showPolyrhythm || !polyrhythmResult) return [];
     return polyrhythmResult.polygons.map((poly, idx) => ({
       indices: poly.indices,
       dash: poly.op === '-' ? '2 6' : VOICE_DASH[idx % VOICE_DASH.length],
     }));
-  }, [showPolyrhythm, polyrhythmResult]);
+  }, [showPhasing, pattern, copyOffset, showPolyrhythm, polyrhythmResult]);
 
   const targetToken = SEQ_TOKEN[exportTarget] || SEQ_TOKEN.Kick;
 
@@ -298,9 +321,10 @@ export default function CompositionPanel({
     // VMU-195-E: the phasing copy sounds on its own drum (owner's decision
     // 2026-11-05) — the same loop shifted by the offset, the second voice the
     // visualizer draws.
-    const phasingCopySteps = showPhasing
-      ? rotate(pattern, phasingOffset).flatMap((val, idx) => (val === 1 ? [idx] : []))
-      : null;
+    // VMU-211: with "Glisse toute seule" the copy is its whole drift (see
+    // core/phasingDrift.js); Off gives the fixed copy, one circle long.
+    const phasingCopySteps = phasingCopy ? phasingCopy.activeSteps : null;
+    const phasingCopyCycle = phasingCopy ? phasingCopy.cycleLength : subdivisions;
 
     if (exportTarget === "Bass") {
       setSuggestedBassTrack({
@@ -316,7 +340,7 @@ export default function CompositionPanel({
         const drums = prev ? { ...prev } : {};
         drums[exportTarget] = { activeSteps: activeStepsToExport, cycleLength };
         if (phasingCopySteps) {
-          drums[phasingCopyTarget] = { activeSteps: phasingCopySteps, cycleLength: subdivisions };
+          drums[phasingCopyTarget] = { activeSteps: phasingCopySteps, cycleLength: phasingCopyCycle };
         }
         return drums;
       });
@@ -327,7 +351,7 @@ export default function CompositionPanel({
     if (phasingCopySteps && (exportTarget === "Bass" || exportTarget === "Chords")) {
       setCustomDrums(prev => {
         const drums = prev ? { ...prev } : {};
-        drums[phasingCopyTarget] = { activeSteps: phasingCopySteps, cycleLength: subdivisions };
+        drums[phasingCopyTarget] = { activeSteps: phasingCopySteps, cycleLength: phasingCopyCycle };
         return drums;
       });
     }
@@ -347,6 +371,7 @@ export default function CompositionPanel({
     showPolyrhythm && polyrhythmResult ? polyrhythmResult.pattern : null,
     showPhasing,
     phasingOffset,
+    phasingEvery,
     phasingCopyTarget,
   ]);
   const openingSignature = useRef(exportSignature);
@@ -520,9 +545,35 @@ export default function CompositionPanel({
                         ))}
                     </select>
                   </div>
+                  <div className="retro-input-container">
+                    <label className="input-label" htmlFor="comp-phasing-every">{txt.phasingEveryLabel}</label>
+                    <select
+                      id="comp-phasing-every"
+                      data-testid="comp-phasing-every"
+                      aria-label={txt.phasingEveryLabel}
+                      title={txt.phasingEveryHelp}
+                      value={phasingEvery}
+                      onChange={(e) => setPhasingEvery(parseInt(e.target.value, 10))}
+                      className="retro-select"
+                    >
+                      {PHASING_EVERY_CHOICES.map((n) => (
+                        <option key={n} value={n}>
+                          {n === 0 ? txt.phasingEveryOff : n === 1 ? txt.phasingEveryOne : txt.phasingEveryMany.replace("{n}", n)}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mode-hint" data-testid="comp-phasing-every-help">{txt.phasingEveryHelp}</p>
+                  </div>
+                  {phasingCopy?.cut && (
+                    <p className="cycle-cut-note" data-testid="comp-phasing-cut" role="status">
+                      {txt.phasingCut
+                        .replace("{loop}", phasingCopy.cycleLength)
+                        .replace("{measures}", loopLengthForCycle(phasingCopy.cycleLength).lengthMeasures)}
+                    </p>
+                  )}
                   <PhasingVisualizer
                     pattern={pattern}
-                    currentOffset={phasingOffset}
+                    currentOffset={copyOffset}
                     currentStep={activeStep}
                     txt={txt}
                   />
