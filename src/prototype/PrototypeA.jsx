@@ -29,6 +29,7 @@ import SelectionRow from "./SelectionRow";
 import TryBar from "./TryBar";
 import MathDock from "./MathDock";
 import PhoneDrawer from "./PhoneDrawer";
+import ChordLane from "./ChordLane";
 
 /**
  * S1 prototype — layout A′ at 3840px (VMU-135 / 035, VMU-155).
@@ -201,6 +202,10 @@ export default function PrototypeA({
   setDictRoot,
   setDictType,
   timeline,
+  // VMU-127: the edited progression of the variation that plays, and the one
+  // editing entry point (useStudioMode). Absent (the unit tests): no chord row.
+  editedChords = null,
+  editChords,
   currentStep,
   activeBrick,
   chordOctaveOffset,
@@ -881,6 +886,21 @@ export default function PrototypeA({
   // the recipes column to its right).
   const sequencer = (
     <section className="proto-a__sequencer" data-s1="sequencer" data-fn="composer.grilles">
+      {/* VMU-127: the progression, chord by chord, at the head of the
+          timeline (Studio only): what plays, editable (ChordLane.jsx). */}
+      {appMode === "studio" && editChords && (
+        <ChordLane
+          T={T}
+          timeline={timeline}
+          currentStep={currentStep}
+          isPlaying={isPlaying}
+          editedChords={editedChords}
+          editChords={editChords}
+          notation={notation}
+          onHear={handleChordClick}
+          measuresPerLine={IS_PHONE ? 2 : 4}
+        />
+      )}
       <SequencerPanel
         timeline={timeline}
         currentStep={currentStep}
@@ -888,6 +908,8 @@ export default function PrototypeA({
         activeBrick={activeBrick}
         chordOctaveOffset={chordOctaveOffset}
         viewRequest={viewRequest}
+        // VMU-127: with the chord row above it, its spacing gives the row's height back.
+        tight={appMode === "studio" && Boolean(editChords)}
       />
     </section>
   );

@@ -114,6 +114,9 @@ function AppDesktop() {
     customProgression, setCustomProgression,
     customRhythm, setCustomRhythm,
     customDrums, setCustomDrums,
+    // VMU-127: the progression edited chord by chord (one list per variation),
+    // the list of the variation that plays, and the one editing entry point.
+    customChords, editedChords, editChords,
     // VMU-219: `styleBrick` is the style itself (its identity is what the
     // "style changed" effect below watches); `activeBrick` is that style in
     // the loop's effective key, which every reader below uses.
@@ -135,7 +138,7 @@ function AppDesktop() {
   // stay for the page's own programmatic changes (A' scenarios, URL states).
   // The edits are the four overrides of useStudioMode; the clicked chord and
   // the notes are a selection, not an edit, and clear without a question.
-  const hasEdits = Boolean(customProgression || customRhythm || customDrums || suggestedBassTrack);
+  const hasEdits = Boolean(customProgression || customRhythm || customDrums || suggestedBassTrack || customChords);
   const [pendingChange, setPendingChange] = useState(null); // { kind: "style" | "mode", value }
 
   const requestBrickIndex = useCallback((next) => {
@@ -541,6 +544,7 @@ function AppDesktop() {
       suggestedBassTrack={suggestedBassTrack}
       setSuggestedBassTrack={setSuggestedBassTrack}
       setCustomProgression={setCustomProgression}
+      editChords={editChords}
       customRhythm={customRhythm}
       setCustomRhythm={setCustomRhythm}
       targetNotesPreset={targetNotesPreset}
@@ -711,6 +715,9 @@ function AppDesktop() {
         setDictRoot={setDictRoot}
         setDictType={setDictType}
         timeline={timeline}
+        // VMU-127: the chord row's edits (useStudioMode).
+        editedChords={editedChords}
+        editChords={editChords}
         viewRequest={viewRequest}
         onSendView={requestSequencerView}
         currentStep={currentStep}

@@ -19,6 +19,8 @@ import extendedTheoryData from '../../core/extendedTheoryData.json';
 import InfoTooltip from '../Common/InfoTooltip';
 import TargetNotesSelector from '../Common/TargetNotesSelector';
 import { isQuickStartLoaded, quickStartPatterns, quickStartProgression } from '../../core/quickStart';
+import { insertChordAfter, totalSteps } from '../../core/progressionEdit';
+import { MAX_STEPS, STEPS_PER_MEASURE } from '../../core/timeline';
 
 const StudioPanel = ({
   currentBrickIndex,
@@ -37,6 +39,9 @@ const StudioPanel = ({
   suggestedBassTrack,
   setSuggestedBassTrack,
   setCustomProgression,
+  // VMU-127: the Studio's one editing entry point (useStudioMode): a
+  // suggested next chord is put after the clicked one in one touch.
+  editChords,
   customRhythm,
   setCustomRhythm,
   targetNotesPreset,
@@ -64,8 +69,27 @@ const StudioPanel = ({
   // style's scale. On: the same, with the chord on the 5 made a dominant.
   // Not kept across a reload (that is VMU-050).
   const [classicCadence, setClassicCadence] = useState(false);
+  // VMU-127: which of this panel's progression buttons was clicked last, so a
+  // suggestion goes right after THAT chord of the progression.
+  const [clickedIndex, setClickedIndex] = useState(null);
 
   if (!activeBrick) return null;
+
+  // VMU-127: put a suggested chord after the clicked chord — after its place
+  // in the progression when it was clicked here, else at the end (a chord
+  // clicked elsewhere, e.g. the key's pills, has no place in it). One measure,
+  // or half of one when the loop has no room for a whole one.
+  const placeAfter = (suggested) => {
+    const [chord] = generateChordsFromNNS(activeBrick.rootValue, activeBrick.scaleKey, [suggested]);
+    if (!chord || !editChords) return;
+    const inProgression = clickedIndex !== null && (activeProgression || [])[clickedIndex] !== undefined && clickedChord?.nns === currentChords[clickedIndex]?.nns;
+    editChords((list) => {
+      const at = inProgression ? clickedIndex : list.length - 1;
+      const steps = totalSteps(list) + STEPS_PER_MEASURE <= MAX_STEPS ? STEPS_PER_MEASURE : STEPS_PER_MEASURE / 2;
+      return insertChordAfter(list, at, chord.nns, steps);
+    });
+    if (inProgression) setClickedIndex(clickedIndex + 1);
+  };
 
   const styleKey = { rootValue: activeBrick.rootValue, scaleKey: activeBrick.scaleKey };
   const quickStarts = quickStartPatterns(extendedTheoryData.axiomRules.progressions);
@@ -390,6 +414,7 @@ const StudioPanel = ({
                 <button
                   onClick={() => {
                     log("studio", `Selecting magic chord ${c.chordNameUS}`, c);
+                    setClickedIndex(i);
                     handleChordClick(c, i);
                   }}
                   title={c.role}
@@ -441,6 +466,19 @@ const StudioPanel = ({
                       <div key={idx} style={{ background: "var(--surface-2)", padding: "4px", borderRadius: "4px" }}>
                         <strong>{toRoman(s.chord)}</strong> <br/>
                         <span style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{s.reason}</span>
+                        {/* VMU-127: one touch puts the suggestion after the clicked chord. */}
+                        {editChords && (
+                          <button
+                            type="button"
+                            className="btn-premium"
+                            data-testid="suggestion-place-after"
+                            data-suggestion={s.chord}
+                            onClick={() => placeAfter(s.chord)}
+                            style={{ display: "block", margin: "4px auto 0", minHeight: "var(--hit-min)", fontSize: "12px", padding: "4px 12px" }}
+                          >
+                            {txt.protoA?.chordPlaceAfter || "Mettre après"}
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

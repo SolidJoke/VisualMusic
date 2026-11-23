@@ -97,6 +97,13 @@ export const A_PRIME_ACCESS = [
   // Centre column
   { fn: "son.visualiseur", where: "centre" },
   { fn: "composer.grilles", where: "centre" },
+  // VMU-127: the chord row at the head of the timeline (Studio only), its "?"
+  // and the loop's length. The choice a touched chord opens (replace, insert,
+  // remove, duration, suggestions) lives inside composer.progression and is not
+  // registered control by control, like the pills of composer.accords-tonalite.
+  { fn: "composer.progression", where: "centre", needs: "studio" },
+  { fn: "composer.progression-aide", where: "centre", needs: "studio" },
+  { fn: "composer.progression-longueur", where: "centre", needs: "studio" },
   { fn: "nav.legende", where: "centre" },
   // VMU-213 (part 2): the recipes column, right of the sequencers, Studio only.
   { fn: "composer.recettes", where: "centre", needs: "studio" },
