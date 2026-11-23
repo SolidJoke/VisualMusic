@@ -254,6 +254,9 @@ export default function PrototypeA({
   hasEdits = false,
   holdingOriginal = false,
   setListenOriginal,
+  // VMU-221: the chance per cell / density per track (useStudioMode), Studio
+  // only. Absent (the unit tests): no chance controls.
+  chance = null,
 }) {
   // Every label of the page (VMU-182). The French table stands in when the
   // caller hands no translations (the unit tests render with txt={}).
@@ -910,6 +913,7 @@ export default function PrototypeA({
         viewRequest={viewRequest}
         // VMU-127: with the chord row above it, its spacing gives the row's height back.
         tight={appMode === "studio" && Boolean(editChords)}
+        chance={appMode === "studio" ? chance : null}
       />
     </section>
   );

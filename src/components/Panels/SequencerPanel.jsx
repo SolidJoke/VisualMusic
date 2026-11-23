@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PianoRoll from "../Sequencer/PianoRoll";
 import DAWHelper from "../Sequencer/DAWHelper";
+import ChanceBar from "../Sequencer/ChanceBar";
+import { translations } from "../../i18n/translations";
+import { formatSeed } from "../../core/random";
 import { exportTimelineDrums, exportTimelineChords, exportTimelineBass, midiFileName, triggerMidiDownload } from "../../audio/MidiExporter";
 import { DRUM_ROLES, MELODIC_ROLES, loopSteps, measurePattern } from "../../core/timeline";
 import { useAppContext } from '../../context/AppContext';
@@ -17,6 +20,11 @@ import { usePlaybackContext } from '../../context/PlaybackContext';
  * instead of 30, no bottom margin), giving back the height of the chord row
  * A′ puts above the rolls — at 3840 x 2045 the Studio fitted the window with
  * about 6px to spare. The classic page keeps its spacing.
+ *
+ * `chance` (VMU-221, the Studio's A′ page; absent elsewhere = no chance
+ * controls): { settings, dropped, active, onCycle, onDensity, onNewVersion } —
+ * useStudioMode's chance state and writers (core/chance.js). The "Chance" mode
+ * (touching a cell sets its chance) is the panel's own, not a state of the loop.
  */
 const SequencerPanel = ({
   timeline,
@@ -26,10 +34,17 @@ const SequencerPanel = ({
   chordOctaveOffset,
   viewRequest = 0,
   tight = false,
+  chance = null,
 }) => {
+  const [chanceMode, setChanceMode] = useState(false);
   const sectionGap = tight ? "16px" : "30px";
   const { lang, txt, notation } = useAppContext();
   const { isPlaying, togglePlayback, handleBpmChange } = usePlaybackContext();
+
+  const C = txt?.chance ?? translations.fr.chance;
+  const rollChance = chance
+    ? { T: C, settings: chance.settings, dropped: chance.dropped, mode: chanceMode, onCycle: chance.onCycle, onDensity: chance.onDensity }
+    : null;
 
   const rows = timeline ? timeline.tracks : [];
   const drumRows = rows.filter((track) => DRUM_ROLES.includes(track.role));
@@ -83,8 +98,18 @@ const SequencerPanel = ({
         </div>
       </div>
 
-      <div className="module-header">
+      <div className={`module-header${chance ? " module-header--chance" : ""}`}>
         <span>{txt.drumMachine}</span>
+        {chance && (
+          <ChanceBar
+            T={C}
+            mode={chanceMode}
+            onMode={setChanceMode}
+            seed={formatSeed(chance.settings.seed)}
+            canVary={chance.active}
+            onNewVersion={chance.onNewVersion}
+          />
+        )}
         <button className="module-control-btn" style={{fontSize:"10px", padding:"2px 6px"}} onClick={() => {
           const midiData = exportTimelineDrums(timeline, currentBpm);
           triggerMidiDownload(midiData, fileName("drums"));
@@ -96,6 +121,7 @@ const SequencerPanel = ({
           totalSteps={totalSteps}
           currentStep={currentStep}
           viewRequest={viewRequest}
+          chance={rollChance}
         />
       </div>
 
@@ -128,6 +154,7 @@ const SequencerPanel = ({
           totalSteps={totalSteps}
           currentStep={currentStep}
           viewRequest={viewRequest}
+          chance={rollChance}
         />
       </div>
       {/* The DAW helper still describes each row one measure at a time: the
