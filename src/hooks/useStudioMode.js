@@ -5,35 +5,21 @@ import { buildStudioTimeline, studioSelection } from "../core/timeline";
 import { loadPersisted, brickIndexOf } from "../utils/persistedState";
 import { loopLengthForCycle, maxCycleLength } from "../core/loopWindow";
 import { createHistory, record, undo as undoHistory, redo as redoHistory, canUndo as historyCanUndo, canRedo as historyCanRedo } from "../core/history";
-import { effectiveRoot, keyedBrick as keyedBrickOf, transposeTimeline } from "../core/keyChoice";
-import { applyEditedChords, progressionFromDoc } from "../core/progressionEdit";
+import { effectiveRoot, keyedBrick as keyedBrickOf } from "../core/keyChoice";
+import { progressionFromDoc } from "../core/progressionEdit";
 import { sameState } from "../core/history";
-import { applyChance, cycleChance, emptyChance, isNeutral, setDensity, withSeed } from "../core/chance";
+import { cycleChance, isNeutral, setDensity, withSeed } from "../core/chance";
 import { newSeed } from "../core/random";
-import { clampHumanize, clampSwing, grooveOf, HUMANIZE_DEFAULT, SWING_DEFAULT } from "../core/groove";
-
-/**
- * Whether any of the four overrides is set, or (VMU-127) a variation's
- * progression is edited, or (VMU-221) a chance or a density is set.
- */
-function hasOverrides(overrides, customChords = null, chance = null) {
-  return Boolean(
-    overrides.customDrums ||
-      overrides.customRhythm ||
-      overrides.customProgression ||
-      overrides.suggestedBassTrack ||
-      (customChords && (customChords.A || customChords.B)) ||
-      (chance && !isNeutral(chance)),
-  );
-}
-
-/** No removed hit (a constant: a stable identity for the readers). */
-const NO_DROPPED = Object.freeze({});
-
-/** The variation a theme plays: "B", or "A" for anything else. */
-function variationOf(theme) {
-  return theme === "B" ? "B" : "A";
-}
+import { clampHumanize, clampSwing } from "../core/groove";
+import { variationOf } from "../core/generate/generators";
+import {
+  createStageCache,
+  hasModifications,
+  initialGeneratorSettings,
+  playedDocument,
+  settingsForNewStyle,
+  updateGeneratorSettings,
+} from "../core/generate/studio";
 
 export function useStudioMode() {
   // VMU-050: the style the last visit left, found by its stable name (never by
@@ -56,35 +42,57 @@ export function useStudioMode() {
   const [customProgression, setCustomProgression] = useState(null);
   const [customRhythm, setCustomRhythm] = useState(null);
   const [customDrums, setCustomDrums] = useState(null);
+
+  // VMU-234: the settings of every generator of the Studio, ONE state keyed by
+  // generator id (core/generate/studio.js; the ordered registry is
+  // core/generate/registry.js): the edited progression (VMU-127), the chance
+  // and the Studio's seed (VMU-221), the key (VMU-219), the swing and the
+  // humanisation (VMU-223). One state, so the history captures it in one
+  // piece. A first visit draws its seed once; it is state (the history holds
+  // it, the grid shows it), never read again from a clock. Not kept across a
+  // reload.
+  const [generators, setGenerators] = useState(() => initialGeneratorSettings());
+  /** Moves one generator's settings — the one door a new generator's controls need. */
+  const updateGenerator = useCallback(
+    (/** @type {string} */ id, /** @type {(own: any) => any} */ update) => setGenerators((s) => updateGeneratorSettings(s, id, update)),
+    [],
+  );
+
   // VMU-127: the progression edited chord by chord, one list per variation
   // (core/progressionEdit.js), null when neither is edited.
-  const [customChords, setCustomChords] = useState(/** @type {import("../core/progressionEdit").CustomChords|null} */ (null));
+  /** @type {import("../core/progressionEdit").CustomChords|null} */
+  const customChords = generators.progression;
   // A Quick Start replaces the progression of both variations: it is the new
   // starting point of an edit, so it drops the edits made on the old one. The
   // page's own resets (a style change) go through it too.
-  const setCustomProgressionAndDropEdits = useCallback((progression) => {
-    setCustomProgression(progression);
-    setCustomChords(null);
-  }, []);
+  const setCustomProgressionAndDropEdits = useCallback(
+    (progression) => {
+      setCustomProgression(progression);
+      updateGenerator("progression", () => null);
+    },
+    [updateGenerator],
+  );
 
-  // VMU-221: a chance per cell, a density per track and the seed of the draw
-  // (core/chance.js). A first visit draws its seed once; it is state (the
-  // history holds it, the grid shows it), never read again from a clock. Not
-  // kept across a reload, like the key.
-  const [chance, setChance] = useState(() => emptyChance(newSeed()));
-  const cycleCellChance = useCallback((trackId, step) => setChance((c) => cycleChance(c, trackId, step)), []);
-  const setTrackDensity = useCallback((trackId, percent) => setChance((c) => setDensity(c, trackId, percent)), []);
-  const newChanceVersion = useCallback(() => setChance((c) => withSeed(c, newSeed())), []);
+  // VMU-221: a chance per cell, a density per track and the seed of the draw.
+  /** @type {import("../core/chance").ChanceSettings} */
+  const chance = generators.chance;
+  const cycleCellChance = useCallback((trackId, step) => updateGenerator("chance", (c) => cycleChance(c, trackId, step)), [updateGenerator]);
+  const setTrackDensity = useCallback((trackId, percent) => updateGenerator("chance", (c) => setDensity(c, trackId, percent)), [updateGenerator]);
+  const newChanceVersion = useCallback(() => updateGenerator("chance", (c) => withSeed(c, newSeed())), [updateGenerator]);
 
   // VMU-223: the swing (50-75 %) and the humanisation (0-100 %), two settings
-  // of the whole Studio (core/groove.js). They are settings of PLAY, not edits
-  // of the style: a change of style keeps them, "hear the original" keeps
-  // them, and they are not in `hasEdits`. They are in the history (↶ ↷), and
-  // the humanisation draws from the same seed as the chance.
-  const [swing, setSwingRaw] = useState(SWING_DEFAULT);
-  const [humanize, setHumanizeRaw] = useState(HUMANIZE_DEFAULT);
-  const setSwing = useCallback((value) => setSwingRaw(clampSwing(value)), []);
-  const setHumanize = useCallback((value) => setHumanizeRaw(clampHumanize(value)), []);
+  // of PLAY, not edits of the style: a change of style keeps them, "hear the
+  // original" keeps them, and they are not in `hasEdits`. They are in the
+  // history (↶ ↷), and the humanisation draws from the same seed as the chance.
+  const { swing, humanize } = generators.groove;
+  const setSwing = useCallback(
+    (value) => updateGenerator("groove", (g) => (clampSwing(value) === g.swing ? g : { ...g, swing: clampSwing(value) })),
+    [updateGenerator],
+  );
+  const setHumanize = useCallback(
+    (value) => updateGenerator("groove", (g) => (clampHumanize(value) === g.humanize ? g : { ...g, humanize: clampHumanize(value) })),
+    [updateGenerator],
+  );
 
   const activeBrick = useMemo(() => BRICKS.at(Number(currentBrickIndex)), [currentBrickIndex]);
 
@@ -94,7 +102,7 @@ export function useStudioMode() {
   // `keyRoot` is the effective tonic: the one value playback, the
   // instruments, the DAW helper, the copied progression and the exported
   // file's name all read (core/keyChoice.js).
-  const [keyChoice, setKeyChoice] = useState(null);
+  const keyChoice = generators.transpose;
   const keyRoot = effectiveRoot(activeBrick.rootValue, keyChoice);
   // The style's brick in the effective key: what the panels and the
   // instruments read. `activeBrick` itself stays the style's own, with its own
@@ -104,12 +112,12 @@ export function useStudioMode() {
     (root) => {
       const next = effectiveRoot(activeBrick.rootValue, root);
       // The style's own tonic is no choice: a later style's tonic is followed.
-      setKeyChoice(next === activeBrick.rootValue ? null : next);
+      updateGenerator("transpose", () => (next === activeBrick.rootValue ? null : next));
       // What was clicked was voiced in the old key.
       setClickedChord(null);
       setCurrentAbsoluteNotes([]);
     },
-    [activeBrick],
+    [activeBrick, updateGenerator],
   );
 
   const overrides = useMemo(
@@ -118,51 +126,49 @@ export function useStudioMode() {
   );
 
   // VMU-227 — undo / redo over what the user decides: the style, the
-  // variation, the key and the four overrides (core/history.js holds the
-  // rules; this is the wiring). A change of style clears the overrides, as
-  // the page's effect always did; it does so HERE too, in the same batch, so
-  // that the style and the loss of the edits are ONE step — undone together,
-  // not through a state that never existed. The page's effect stays (it also
-  // clears on a mode change and at mount) and finds nothing left to clear.
+  // variation, the four overrides and (VMU-234) the generators' settings in
+  // one piece (core/history.js holds the rules; this is the wiring). A change
+  // of style clears the overrides, as the page's effect always did; it does
+  // so HERE too, in the same batch, so that the style and the loss of the
+  // edits are ONE step — undone together, not through a state that never
+  // existed. The page's effect stays (it also clears on a mode change and at
+  // mount) and finds nothing left to clear.
   const snapshot = useMemo(
     () => ({
       brickIndex: Number(currentBrickIndex),
       theme: currentTheme,
-      keyChoice,
       customDrums,
       customRhythm,
       customProgression,
       suggestedBassTrack,
-      customChords,
-      chance,
-      swing,
-      humanize,
+      generators,
     }),
-    [currentBrickIndex, currentTheme, keyChoice, customDrums, customRhythm, customProgression, suggestedBassTrack, customChords, chance, swing, humanize],
+    [currentBrickIndex, currentTheme, customDrums, customRhythm, customProgression, suggestedBassTrack, generators],
   );
   // The history is state (what the buttons show); the ref beside it is what
   // the handlers read, written where the state is (never during a render).
   const [history, setHistory] = useState(() => createHistory(snapshot));
   const snapshotRef = useRef(snapshot);
   const historyRef = useRef(history);
-  // VMU-223: a slider drag changes the setting at every pixel, and each value
-  // would be a step of the history (the limit is 50). While a groove gesture
-  // is held, the history waits; it records once, when the gesture ends.
-  const grooveGestureRef = useRef(false);
+  // VMU-223: a slider drag changes a setting at every pixel, and each value
+  // would be a step of the history (the limit is 50). While a gesture is
+  // held, the history waits; it records once, when the gesture ends — one
+  // step, whatever generator the gesture moves.
+  const gestureRef = useRef(false);
   useEffect(() => {
     snapshotRef.current = snapshot;
-    if (grooveGestureRef.current) return;
+    if (gestureRef.current) return;
     const next = record(historyRef.current, snapshot);
     if (next === historyRef.current) return;
     historyRef.current = next;
     setHistory(next);
   }, [snapshot]);
-  const beginGrooveGesture = useCallback(() => {
-    grooveGestureRef.current = true;
+  const beginGesture = useCallback(() => {
+    gestureRef.current = true;
   }, []);
-  const endGrooveGesture = useCallback(() => {
-    if (!grooveGestureRef.current) return;
-    grooveGestureRef.current = false;
+  const endGesture = useCallback(() => {
+    if (!gestureRef.current) return;
+    gestureRef.current = false;
     const next = record(historyRef.current, snapshotRef.current);
     if (next === historyRef.current) return;
     historyRef.current = next;
@@ -175,10 +181,10 @@ export function useStudioMode() {
       setCustomProgression(null);
       setCustomRhythm(null);
       setCustomDrums(null);
-      setCustomChords(null);
-      // The chances and densities are keyed by the style's tracks: they do not
-      // carry over. The seed does (the version stays the version).
-      setChance((c) => (isNeutral(c) ? c : emptyChance(c.seed)));
+      // Each generator says what a change of style leaves of its settings
+      // (the edited chords and the chances go; the seed, the key and the
+      // groove stay).
+      setGenerators((s) => settingsForNewStyle(s));
     }
     setBrickIndexRaw(next);
   }, []);
@@ -196,15 +202,11 @@ export function useStudioMode() {
     if (target.brickIndex !== snapshotRef.current.brickIndex) restoredStyleRef.current = true;
     setBrickIndexRaw(target.brickIndex);
     setCurrentTheme(target.theme);
-    setKeyChoice(target.keyChoice);
     setCustomDrums(target.customDrums);
     setCustomRhythm(target.customRhythm);
     setCustomProgression(target.customProgression);
     setSuggestedBassTrack(target.suggestedBassTrack);
-    setCustomChords(target.customChords ?? null);
-    if (target.chance) setChance(target.chance);
-    if (target.swing !== undefined) setSwingRaw(target.swing);
-    if (target.humanize !== undefined) setHumanizeRaw(target.humanize);
+    setGenerators(target.generators);
     // What was clicked was voiced in the loop of before.
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
@@ -227,10 +229,12 @@ export function useStudioMode() {
   const canRedo = historyCanRedo(history);
 
   // VMU-227 — hold to hear the original: while true, what plays and what the
-  // page shows is the style's own fill (no override), in the same key. Not a
-  // state of the loop (no history step): a hand held on a button.
+  // page shows is the style's own fill (no override, no "edit" generator), in
+  // the same key and groove. Not a state of the loop (no history step): a
+  // hand held on a button. VMU-234: offered on THE one "has edits" rule.
   const [listenOriginal, setListenOriginal] = useState(false);
-  const isHearingOriginal = listenOriginal && hasOverrides(overrides, customChords, chance);
+  const hasEdits = hasModifications(overrides, generators);
+  const isHearingOriginal = listenOriginal && hasEdits;
 
   // VMU-127: the edited progression of the variation that plays, if any.
   const editedChords = customChords?.[variationOf(currentTheme)] ?? null;
@@ -263,54 +267,56 @@ export function useStudioMode() {
   // overrides fill. The playback loop, the MIDI export, the piano rolls and
   // the DAW helper read it. Its window is the longest active cycle's, derived
   // above (VMU-214); the document already holds all 8 measures.
-  // The document with the user's edits, in the STYLE's key: the overrides,
-  // then (VMU-127) the edited chords, resolved in the style's tonic and laid
-  // over the window they set.
-  const editedDoc = useMemo(() => {
-    const doc = buildStudioTimeline({ brickIndex: currentBrickIndex, theme: currentTheme, overrides, lengthMeasures });
-    return editedChords ? applyEditedChords(doc, editedChords, cycleSteps) : doc;
-  }, [currentBrickIndex, currentTheme, overrides, lengthMeasures, editedChords, cycleSteps]);
+  // The SOURCE of the chain: the style with its overrides, in its own key.
+  const source = useMemo(
+    () => buildStudioTimeline({ brickIndex: currentBrickIndex, theme: currentTheme, overrides, lengthMeasures }),
+    [currentBrickIndex, currentTheme, overrides, lengthMeasures],
+  );
+  // VMU-227: the style alone — its own window, no override. The key and the
+  // groove still apply (the chain's "play" generators); the tempo is not the
+  // document's.
+  const original = useMemo(
+    () => (isHearingOriginal ? buildStudioTimeline({ brickIndex: currentBrickIndex, theme: currentTheme }) : null),
+    [isHearingOriginal, currentBrickIndex, currentTheme],
+  );
 
-  // VMU-221: the chances and densities, applied after the document is built
-  // (the progression's edits above are in it) and before the key moves it.
-  // `dropped` is the removed hits, for the grid to mark.
-  const chanced = useMemo(() => applyChance(editedDoc, chance), [editedDoc, chance]);
-
-  // VMU-223: the groove rides on the document, so playback, the grid and the
-  // MIDI export — which all read this document — read one placement. Null at
-  // 50 % and 0 %: the document is then exactly what it was. "Hear the
-  // original" keeps it: it is a setting of play, not an edit of the style.
-  const groove = useMemo(() => grooveOf(swing, humanize, chance.seed), [swing, humanize, chance.seed]);
-
-  const timeline = useMemo(() => {
-    const doc = transposeTimeline(
+  // VMU-234 — the generators of the registry, in its order, on the source:
+  // ONE computation of the document that plays, is drawn and is exported, and
+  // ONE list of marks (the hits a generator removed, for the grid). Each
+  // stage is memoised in a cache (its input, its settings, what it reads), so
+  // an identity holds when nothing it depends on moved, as the separate memos
+  // of before did. Two caches: the original and the edited chains do not
+  // evict each other. Each is one Map for the hook's life (a lazy state, never
+  // set); the result is the same with or without it.
+  const [editedCache] = useState(createStageCache);
+  const [originalCache] = useState(createStageCache);
+  const styleRoot = activeBrick.rootValue;
+  const played = useMemo(
+    () =>
       isHearingOriginal
-        ? // VMU-227: the style alone — its own window, no override (nor
-          // edited chords, nor chance). The key is the same (transposed
-          // below), the tempo is not the document's.
-          buildStudioTimeline({ brickIndex: currentBrickIndex, theme: currentTheme })
-        : chanced.doc,
-      keyRoot - activeBrick.rootValue,
-    );
-    return groove ? { ...doc, groove } : doc;
-  }, [currentBrickIndex, currentTheme, chanced, keyRoot, activeBrick, isHearingOriginal, groove]);
-  const chanceDropped = isHearingOriginal ? NO_DROPPED : chanced.dropped;
+        ? playedDocument(original, generators, { theme: currentTheme, styleRoot, cycleSteps }, { hearOriginal: true, cache: originalCache })
+        : playedDocument(source, generators, { theme: currentTheme, styleRoot, cycleSteps }, { cache: editedCache }),
+    [isHearingOriginal, original, source, generators, currentTheme, styleRoot, cycleSteps, originalCache, editedCache],
+  );
+  const timeline = played.doc;
+  const chanceDropped = played.dropped;
 
   // VMU-127 — one editing gesture: `operation` (a progressionEdit.js
   // operation, partially applied) maps the edited list of the variation that
   // plays to the next one. A first gesture starts from what plays (the
-  // style's chords, a Quick Start's, the repeats of the window), so it changes
-  // only what it is about. A refused gesture changes nothing — no edit, no
+  // style's chords, a Quick Start's, the repeats of the window — the source,
+  // since no edit of this variation is laid on it yet), so it changes only
+  // what it is about. A refused gesture changes nothing — no edit, no
   // history step.
   const editChords = useCallback(
     (operation) => {
       const variation = variationOf(currentTheme);
-      const start = customChords?.[variation] ?? progressionFromDoc(editedDoc);
+      const start = customChords?.[variation] ?? progressionFromDoc(source);
       const next = operation(start);
       if (!Array.isArray(next) || next.length === 0 || sameState(next, start)) return;
-      setCustomChords((previous) => ({ ...(previous || {}), [variation]: next }));
+      updateGenerator("progression", (previous) => ({ ...(previous || {}), [variation]: next }));
     },
-    [currentTheme, customChords, editedDoc],
+    [currentTheme, customChords, source, updateGenerator],
   );
 
   return {
@@ -331,7 +337,9 @@ export function useStudioMode() {
     customChords, editedChords, editChords,
     chance, chanceDropped, cycleCellChance, setTrackDensity, newChanceVersion,
     chanceActive: !isNeutral(chance),
-    swing, setSwing, humanize, setHumanize, beginGrooveGesture, endGrooveGesture,
+    swing, setSwing, humanize, setHumanize,
+    beginGrooveGesture: beginGesture, endGrooveGesture: endGesture,
+    generators, updateGenerator, beginGesture, endGesture,
     activeBrick,
     keyRoot, setKeyRoot,
     keyedBrick,
@@ -341,6 +349,6 @@ export function useStudioMode() {
     requestSequencerView,
     undo, redo, canUndo, canRedo, consumeRestoredStyle,
     listenOriginal, setListenOriginal, isHearingOriginal,
-    hasEdits: hasOverrides(overrides, customChords, chance),
+    hasEdits,
   };
 }
