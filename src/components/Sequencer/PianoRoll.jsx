@@ -1,6 +1,7 @@
 import React from 'react';
 import './PianoRoll.css';
 import './Chance.css';
+import './Groove.css';
 import { sequencerViewSize } from '../../core/loopWindow';
 import { chanceAt, densityOf } from '../../core/chance';
 
@@ -22,8 +23,14 @@ import { chanceAt, densityOf } from '../../core/chance';
  *   draw removed in this version (`dropped`, trackId -> steps; drawn dashed),
  *   whether touching a cell sets its chance (`mode`), and the densities, in
  *   this roll's bar. The chord row has no chance.
+ * - groove: (VMU-223, the Studio's A′ page only; absent = nothing changes)
+ *   { swingShift, note } — `swingShift`, in steps (core/groove.js
+ *   swingOffsetSteps): the odd cells are drawn that much to the right, the way
+ *   they sound; `note`: the short text the roll's bar shows ("Balancé 66 % ·
+ *   Humanisation 40 %"), empty when nothing is set.
  */
-export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1, viewRequest = 0, chance = null }) {
+export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = -1, viewRequest = 0, chance = null, groove = null }) {
+    const swingShift = groove?.swingShift || 0;
     const chanceTracks = chance ? tracks.filter((t) => t && t.role !== 'chordHits') : [];
     const [isZoomed, setIsZoomed] = React.useState(false);
     const [pageSize, setPageSize] = React.useState(16); // 16, 32, or 64 steps visible
@@ -62,7 +69,11 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
     const totalPages = Math.ceil(totalSteps / pageSize);
 
     return (
-        <div className={`piano-roll ${isZoomed ? 'is-zoomed' : ''}`}>
+        <div
+            className={`piano-roll ${isZoomed ? 'is-zoomed' : ''}${swingShift ? ' piano-roll--swung' : ''}`}
+            style={swingShift ? { '--swing-shift': swingShift } : undefined}
+            data-swing-shift={swingShift || undefined}
+        >
             <div className="piano-roll-controls">
                 {/* Step density selector */}
                 <div className="step-density-selector">
@@ -93,6 +104,9 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                         <span className="page-indicator">PAGE {currentPage + 1}/{totalPages}</span>
                     </div>
                 )}
+
+                {/* VMU-223: what the groove does to this roll. */}
+                {groove?.note ? <span className="groove-badge" data-groove="badge">{groove.note}</span> : null}
 
                 {/* VMU-221: the density of each track of this roll (0-100 %). */}
                 {chanceTracks.map((track) => {
@@ -147,6 +161,9 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                                 const isDropped = Boolean(droppedSteps && droppedSteps.has(stepIndex));
                                 const level = withChance && (isActive || isDropped) ? chanceAt(chance.settings, track.id, stepIndex) : 100;
                                 const touchable = withChance && chance.mode && (isActive || isDropped);
+                                // VMU-223: an odd step sounds late with the swing; a hit on it is drawn late
+                                // (an empty cell stays on the grid, so the grid is not blurred by overlaps).
+                                const isSwung = swingShift > 0 && stepIndex % 2 === 1 && (isActive || isDropped);
 
                                 // Build CSS classes
                                 const classes = [
@@ -158,6 +175,7 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                                     level < 100 ? `step--chance step--chance-${level}` : '',
                                     touchable ? 'step--touch' : '',
                                     isCurrent ? 'step--current' : '',
+                                    isSwung ? 'step--swung' : '',
                                     stepIndex % 4 === 0 ? 'step--beat' : '',
                                     stepIndex % 16 === 0 ? 'step--measure' : '',
                                     isZoomed ? 'zoomed' : '',
@@ -172,7 +190,7 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
                                             boxShadow: isActive 
                                                 ? `0 0 ${isLowVel ? '10px' : '20px'} var(--active-glow, currentColor)` 
                                                 : 'none',
-                                            transform: isActive && !isLowVel ? 'scale(1.05)' : 'scale(1)',
+                                            transform: `${isSwung ? 'translateX(calc(var(--swing-shift, 0) * (100% + 4px))) ' : ''}${isActive && !isLowVel ? 'scale(1.05)' : 'scale(1)'}`,
                                             zIndex: isActive ? 2 : 1
                                         }}
                                         title={isActive ? buildTooltip(track.name, stepIndex, isLowVel, pitchLabel, level) : isDropped ? `${track.name} — Step ${stepIndex + 1} | ${chance.T.cellRemoved}` : ''}

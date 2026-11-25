@@ -1,6 +1,7 @@
 import { Midi } from "@tonejs/midi";
 import { stepEvents } from "./dispatch";
 import { loopSteps, timelineFromSelection } from "../core/timeline";
+import { offsetSeconds } from "../core/groove";
 
 // T1 (VMU-137): what each file holds comes from stepEvents (dispatch.js), the
 // same function the playback loop plays. This module used to recompute each
@@ -60,6 +61,18 @@ function getStepDuration(bpm) {
 
 function getStepTime(step, bpm) {
   return step * getStepDuration(bpm);
+}
+
+/**
+ * VMU-223: where a hit is written — its step's time plus the swing and the
+ * humanisation the event carries (core/groove.js offsetSeconds, the very
+ * function playback adds to its Tone time). A file cannot start before 0.
+ * @param {number} step
+ * @param {import("./dispatch").StepEvent} event
+ * @param {number} bpm
+ */
+function getEventTime(step, event, bpm) {
+  return Math.max(0, getStepTime(step, bpm) + offsetSeconds(event, bpm));
 }
 
 /** The events of `voice` on every step of the document's window, in step order. */
@@ -197,7 +210,7 @@ export function exportTimelineDrums(doc, bpm) {
   loopEvents(doc, "drums").forEach(({ step, event }) => {
     track.addNote({
       midi: drumExportKey(event.track, event.midi[0]),
-      time: getStepTime(step, bpm),
+      time: getEventTime(step, event, bpm),
       duration: EXPORT_DRUM_DURATION_STEPS * getStepDuration(bpm),
       velocity: event.velocity,
     });
@@ -218,7 +231,7 @@ export function exportTimelineBass(doc, bpm) {
     if (!isExportedBassNote(event)) return;
     track.addNote({
       midi: event.midi[0],
-      time: getStepTime(step, bpm),
+      time: getEventTime(step, event, bpm),
       duration: event.durationSteps * getStepDuration(bpm),
       velocity: event.velocity,
     });
@@ -241,9 +254,11 @@ export function exportTimelineChords(doc, bpm, { octaveOffset = 0 } = {}) {
     event.midi.forEach((note) => {
       track.addNote({
         midi: note,
-        time: getStepTime(step, bpm),
+        time: getEventTime(step, event, bpm),
         duration: event.durationSteps * getStepDuration(bpm),
-        velocity: EXPORT_CHORD_VELOCITY,
+        // VMU-223: a humanised chord keeps the export's own base force, moved
+        // by the same factor as the force playback plays it at.
+        velocity: Math.min(1, EXPORT_CHORD_VELOCITY * (event.velocityScale ?? 1)),
       });
     });
   });

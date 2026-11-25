@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import PianoRoll from "../Sequencer/PianoRoll";
 import DAWHelper from "../Sequencer/DAWHelper";
 import ChanceBar from "../Sequencer/ChanceBar";
+import GrooveBar from "../Sequencer/GrooveBar";
+import { swingOffsetSteps } from "../../core/groove";
 import { translations } from "../../i18n/translations";
 import { formatSeed } from "../../core/random";
 import { exportTimelineDrums, exportTimelineChords, exportTimelineBass, midiFileName, triggerMidiDownload } from "../../audio/MidiExporter";
@@ -25,6 +27,12 @@ import { usePlaybackContext } from '../../context/PlaybackContext';
  * controls): { settings, dropped, active, onCycle, onDensity, onNewVersion } —
  * useStudioMode's chance state and writers (core/chance.js). The "Chance" mode
  * (touching a cell sets its chance) is the panel's own, not a state of the loop.
+ *
+ * `groove` (VMU-223, the A′ page; absent = no swing / humanisation controls):
+ * { swing, humanize, onSwing, onHumanize, onBegin, onEnd } — useStudioMode's two
+ * settings (core/groove.js). Their controls sit in the drum machine's header
+ * (so on the phone they are in the drawer with the sequencer); each roll shows
+ * the swing by drawing its odd cells late, and says what is set in its bar.
  */
 const SequencerPanel = ({
   timeline,
@@ -35,6 +43,7 @@ const SequencerPanel = ({
   viewRequest = 0,
   tight = false,
   chance = null,
+  groove = null,
 }) => {
   const [chanceMode, setChanceMode] = useState(false);
   const sectionGap = tight ? "16px" : "30px";
@@ -44,6 +53,18 @@ const SequencerPanel = ({
   const C = txt?.chance ?? translations.fr.chance;
   const rollChance = chance
     ? { T: C, settings: chance.settings, dropped: chance.dropped, mode: chanceMode, onCycle: chance.onCycle, onDensity: chance.onDensity }
+    : null;
+
+  // VMU-223: what each roll shows of the groove.
+  const G = txt?.groove ?? translations.fr.groove;
+  const rollGroove = groove
+    ? {
+        swingShift: swingOffsetSteps(1, groove.swing),
+        note: [
+          groove.swing > 50 ? `${G.swing} ${groove.swing} %` : "",
+          groove.humanize > 0 ? `${G.humanize} ${groove.humanize} %` : "",
+        ].filter(Boolean).join(" · "),
+      }
     : null;
 
   const rows = timeline ? timeline.tracks : [];
@@ -98,15 +119,26 @@ const SequencerPanel = ({
         </div>
       </div>
 
-      <div className={`module-header${chance ? " module-header--chance" : ""}`}>
+      <div className={`module-header${chance || groove ? " module-header--chance" : ""}`}>
         <span>{txt.drumMachine}</span>
+        {groove && (
+          <GrooveBar
+            T={G}
+            swing={groove.swing}
+            humanize={groove.humanize}
+            onSwing={groove.onSwing}
+            onHumanize={groove.onHumanize}
+            onBegin={groove.onBegin}
+            onEnd={groove.onEnd}
+          />
+        )}
         {chance && (
           <ChanceBar
             T={C}
             mode={chanceMode}
             onMode={setChanceMode}
             seed={formatSeed(chance.settings.seed)}
-            canVary={chance.active}
+            canVary={chance.active || (groove?.humanize ?? 0) > 0}
             onNewVersion={chance.onNewVersion}
           />
         )}
@@ -122,6 +154,7 @@ const SequencerPanel = ({
           currentStep={currentStep}
           viewRequest={viewRequest}
           chance={rollChance}
+          groove={rollGroove}
         />
       </div>
 
@@ -138,6 +171,7 @@ const SequencerPanel = ({
           totalSteps={totalSteps}
           currentStep={currentStep}
           viewRequest={viewRequest}
+          groove={rollGroove}
         />
       </div>
 
@@ -155,6 +189,7 @@ const SequencerPanel = ({
           currentStep={currentStep}
           viewRequest={viewRequest}
           chance={rollChance}
+          groove={rollGroove}
         />
       </div>
       {/* The DAW helper still describes each row one measure at a time: the

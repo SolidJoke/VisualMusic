@@ -10,6 +10,7 @@ import { applyEditedChords, progressionFromDoc } from "../core/progressionEdit";
 import { sameState } from "../core/history";
 import { applyChance, cycleChance, emptyChance, isNeutral, setDensity, withSeed } from "../core/chance";
 import { newSeed } from "../core/random";
+import { clampHumanize, clampSwing, grooveOf, HUMANIZE_DEFAULT, SWING_DEFAULT } from "../core/groove";
 
 /**
  * Whether any of the four overrides is set, or (VMU-127) a variation's
@@ -75,6 +76,16 @@ export function useStudioMode() {
   const setTrackDensity = useCallback((trackId, percent) => setChance((c) => setDensity(c, trackId, percent)), []);
   const newChanceVersion = useCallback(() => setChance((c) => withSeed(c, newSeed())), []);
 
+  // VMU-223: the swing (50-75 %) and the humanisation (0-100 %), two settings
+  // of the whole Studio (core/groove.js). They are settings of PLAY, not edits
+  // of the style: a change of style keeps them, "hear the original" keeps
+  // them, and they are not in `hasEdits`. They are in the history (↶ ↷), and
+  // the humanisation draws from the same seed as the chance.
+  const [swing, setSwingRaw] = useState(SWING_DEFAULT);
+  const [humanize, setHumanizeRaw] = useState(HUMANIZE_DEFAULT);
+  const setSwing = useCallback((value) => setSwingRaw(clampSwing(value)), []);
+  const setHumanize = useCallback((value) => setHumanizeRaw(clampHumanize(value)), []);
+
   const activeBrick = useMemo(() => BRICKS.at(Number(currentBrickIndex)), [currentBrickIndex]);
 
   // VMU-219: the loop's key. `keyChoice` is the user's tonic (0-11) or null, in
@@ -124,21 +135,39 @@ export function useStudioMode() {
       suggestedBassTrack,
       customChords,
       chance,
+      swing,
+      humanize,
     }),
-    [currentBrickIndex, currentTheme, keyChoice, customDrums, customRhythm, customProgression, suggestedBassTrack, customChords, chance],
+    [currentBrickIndex, currentTheme, keyChoice, customDrums, customRhythm, customProgression, suggestedBassTrack, customChords, chance, swing, humanize],
   );
   // The history is state (what the buttons show); the ref beside it is what
   // the handlers read, written where the state is (never during a render).
   const [history, setHistory] = useState(() => createHistory(snapshot));
   const snapshotRef = useRef(snapshot);
   const historyRef = useRef(history);
+  // VMU-223: a slider drag changes the setting at every pixel, and each value
+  // would be a step of the history (the limit is 50). While a groove gesture
+  // is held, the history waits; it records once, when the gesture ends.
+  const grooveGestureRef = useRef(false);
   useEffect(() => {
     snapshotRef.current = snapshot;
+    if (grooveGestureRef.current) return;
     const next = record(historyRef.current, snapshot);
     if (next === historyRef.current) return;
     historyRef.current = next;
     setHistory(next);
   }, [snapshot]);
+  const beginGrooveGesture = useCallback(() => {
+    grooveGestureRef.current = true;
+  }, []);
+  const endGrooveGesture = useCallback(() => {
+    if (!grooveGestureRef.current) return;
+    grooveGestureRef.current = false;
+    const next = record(historyRef.current, snapshotRef.current);
+    if (next === historyRef.current) return;
+    historyRef.current = next;
+    setHistory(next);
+  }, []);
 
   const setCurrentBrickIndex = useCallback((next) => {
     if (Number(next) !== snapshotRef.current.brickIndex) {
@@ -174,6 +203,8 @@ export function useStudioMode() {
     setSuggestedBassTrack(target.suggestedBassTrack);
     setCustomChords(target.customChords ?? null);
     if (target.chance) setChance(target.chance);
+    if (target.swing !== undefined) setSwingRaw(target.swing);
+    if (target.humanize !== undefined) setHumanizeRaw(target.humanize);
     // What was clicked was voiced in the loop of before.
     setClickedChord(null);
     setCurrentAbsoluteNotes([]);
@@ -245,19 +276,24 @@ export function useStudioMode() {
   // `dropped` is the removed hits, for the grid to mark.
   const chanced = useMemo(() => applyChance(editedDoc, chance), [editedDoc, chance]);
 
-  const timeline = useMemo(
-    () =>
-      transposeTimeline(
-        isHearingOriginal
-          ? // VMU-227: the style alone — its own window, no override (nor
-            // edited chords, nor chance). The key is the same (transposed
-            // below), the tempo is not the document's.
-            buildStudioTimeline({ brickIndex: currentBrickIndex, theme: currentTheme })
-          : chanced.doc,
-        keyRoot - activeBrick.rootValue,
-      ),
-    [currentBrickIndex, currentTheme, chanced, keyRoot, activeBrick, isHearingOriginal],
-  );
+  // VMU-223: the groove rides on the document, so playback, the grid and the
+  // MIDI export — which all read this document — read one placement. Null at
+  // 50 % and 0 %: the document is then exactly what it was. "Hear the
+  // original" keeps it: it is a setting of play, not an edit of the style.
+  const groove = useMemo(() => grooveOf(swing, humanize, chance.seed), [swing, humanize, chance.seed]);
+
+  const timeline = useMemo(() => {
+    const doc = transposeTimeline(
+      isHearingOriginal
+        ? // VMU-227: the style alone — its own window, no override (nor
+          // edited chords, nor chance). The key is the same (transposed
+          // below), the tempo is not the document's.
+          buildStudioTimeline({ brickIndex: currentBrickIndex, theme: currentTheme })
+        : chanced.doc,
+      keyRoot - activeBrick.rootValue,
+    );
+    return groove ? { ...doc, groove } : doc;
+  }, [currentBrickIndex, currentTheme, chanced, keyRoot, activeBrick, isHearingOriginal, groove]);
   const chanceDropped = isHearingOriginal ? NO_DROPPED : chanced.dropped;
 
   // VMU-127 — one editing gesture: `operation` (a progressionEdit.js
@@ -295,6 +331,7 @@ export function useStudioMode() {
     customChords, editedChords, editChords,
     chance, chanceDropped, cycleCellChance, setTrackDensity, newChanceVersion,
     chanceActive: !isNeutral(chance),
+    swing, setSwing, humanize, setHumanize, beginGrooveGesture, endGrooveGesture,
     activeBrick,
     keyRoot, setKeyRoot,
     keyedBrick,
