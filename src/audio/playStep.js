@@ -71,6 +71,10 @@ export function toneDuration(steps) {
  * @param {Array<{ absoluteValue: number }>} [options.guitarNotes] the guitar
  *   grip to play when `chordInstrument` is "guitar" — the cells
  *   core/guitarGrip.js computes for the step's chord, one per sounding string.
+ * @param {(event: import("./dispatch").StepEvent) => number} [options.offsetSeconds]
+ *   VMU-223: how many seconds after `time` an event sounds (core/groove.js
+ *   offsetSeconds: swing + humanisation). Absent = every event at `time`, as
+ *   before. A chord is one event: its notes share the one moment.
  * @returns {PlayedNote[]} the MIDI notes sounded, chord notes then melodic
  *   notes (drums excluded), each tagged with the instrument that played it —
  *   what the loop lights on screen. `scheduledPitches` in the audio harness
@@ -82,10 +86,15 @@ export function playStepEvents(synths, events, time, options = {}) {
   const notes = [];
   events.forEach((event) => {
     const duration = toneDuration(event.durationSteps);
+    // VMU-223: the event's own moment. Without the option, `time` itself.
+    const at = options.offsetSeconds ? time + options.offsetSeconds(event) : time;
+    // VMU-223: a humanised chord is played at its force; an event the groove
+    // did not touch (velocityScale absent) keeps the call it always made.
+    const chordForce = event.velocityScale === undefined ? [] : [event.velocity];
     if (event.voice === "drums") {
-      if (event.instrument === "kick") synths.kickSynth.triggerAttackRelease("C1", duration, time, event.velocity);
-      else if (event.instrument === "snare") synths.snareSynth.triggerAttackRelease(duration, time, event.velocity);
-      else synths.hatSynth.triggerAttackRelease(duration, time, event.velocity);
+      if (event.instrument === "kick") synths.kickSynth.triggerAttackRelease("C1", duration, at, event.velocity);
+      else if (event.instrument === "snare") synths.snareSynth.triggerAttackRelease(duration, at, event.velocity);
+      else synths.hatSynth.triggerAttackRelease(duration, at, event.velocity);
     } else if (event.voice === "chords") {
       if (chordInstrument === "guitar") {
         // VMU-209 — the guitar plays exactly the grip drawn for the step's
@@ -94,15 +103,15 @@ export function playStepEvents(synths, events, time, options = {}) {
         // guitar sounds.
         const grip = options.guitarNotes || [];
         const notesToPlay = grip.map((c) => midiToNoteName(c.absoluteValue));
-        synths.playDictionaryNote("guitar", notesToPlay, duration, time);
+        synths.playDictionaryNote("guitar", notesToPlay, duration, at, ...chordForce);
         notes.push(...grip.map((c) => /** @type {PlayedNote} */ ({ absoluteValue: c.absoluteValue, instrument: "guitar", nearShape: true })));
       } else {
         const notesToPlay = event.midi.map((p) => midiToNoteName(p));
-        synths.playDictionaryNote("piano", notesToPlay, duration, time);
+        synths.playDictionaryNote("piano", notesToPlay, duration, at, ...chordForce);
         notes.push(...event.midi.map((p) => /** @type {PlayedNote} */ ({ absoluteValue: p, instrument: "piano" })));
       }
     } else {
-      synths.bassSynth.triggerAttackRelease(midiToNoteName(event.midi[0]), duration, time, event.velocity);
+      synths.bassSynth.triggerAttackRelease(midiToNoteName(event.midi[0]), duration, at, event.velocity);
       notes.push({ absoluteValue: event.midi[0], instrument: "bass", nearShape: true });
     }
   });

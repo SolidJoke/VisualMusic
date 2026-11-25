@@ -36,6 +36,7 @@ import { getBassNote, getLeadingTone, resolveChordSemitones } from "../core/theo
 import { realizeChord, realizeNote } from "../core/noteEngine";
 import { chordAt, DRUM_ROLES, MELODIC_ROLES, STEPS_PER_MEASURE } from "../core/timeline";
 import { noteNameToMidi } from "./measure/signalMetrics";
+import { eventGroove } from "../core/groove";
 
 /** 16 sixteenth-note steps per measure. The loop's length is the document's (core/timeline.js `loopSteps`). */
 export { STEPS_PER_MEASURE };
@@ -78,6 +79,15 @@ const CHORD_DURATION_STEPS = 4;
  *   (node_modules/tone/build/esm/instrument/Sampler.js, Monophonic.js).
  * @property {string} track name of the row it comes from ("Chords" for the
  *   chord row).
+ * @property {number} [offsetSteps] VMU-223, present only when the document has
+ *   a groove (core/groove.js): how many 16th-note steps after the step's own
+ *   moment it sounds — the swing. `velocity` then already holds the humanised
+ *   force.
+ * @property {number} [jitterMs] VMU-223, with `offsetSteps`: the humanisation's
+ *   error of time, in milliseconds (core/groove.js offsetSeconds adds both).
+ * @property {number} [velocityScale] VMU-223, with `offsetSteps`: the factor the
+ *   force was multiplied by (1 = unchanged). A consumer that writes its own
+ *   base force (the export's chords) multiplies it by this.
  * @property {boolean} [tonicFallback] melody only: true when the note is the
  *   sequencer's tonic because no chord applies — the row is a melody, not a
  *   bass line, or the document has no chord at all (no progression, no
@@ -174,6 +184,41 @@ function bassNote(doc, cell, step, span, octave) {
 }
 
 /**
+ * VMU-223: the groove (core/groove.js) of a document, when it has one. The
+ * Studio attaches it to the document it plays and exports, so playback, the
+ * grid and the export read one placement. A document without one — every
+ * golden — gives the events exactly as before.
+ *
+ * @param {import("../core/timeline").TimelineDoc} doc
+ * @returns {import("../core/groove").Groove | null}
+ */
+export function grooveOfDoc(doc) {
+  return /** @type {{ groove?: import("../core/groove").Groove | null }} */ (doc).groove ?? null;
+}
+
+/**
+ * The event with its place in time and its force from the groove, or the very
+ * same event when the document has none.
+ *
+ * @param {import("../core/groove").Groove | null} groove
+ * @param {import("../core/timeline").TimelineTrack} track the row it comes from
+ * @param {number} step
+ * @param {StepEvent} event
+ * @returns {StepEvent}
+ */
+function withGroove(groove, track, step, event) {
+  if (!groove) return event;
+  const hit = eventGroove(groove, { trackId: track.id, step, velocity: event.velocity });
+  return {
+    ...event,
+    velocity: hit.velocity,
+    offsetSteps: hit.offsetSteps,
+    jitterMs: hit.jitterMs,
+    velocityScale: hit.velocityScale,
+  };
+}
+
+/**
  * Everything that sounds on `step`, in the order playback triggers it: drum
  * rows (document order), then the chord, then melodic rows (document order).
  *
@@ -191,6 +236,7 @@ export function stepEvents(doc, step, options = {}) {
   const { octaveOffset, rootValue } = options;
   const span = resolveChordAt(doc, step, octaveOffset);
   const cellOf = (track) => track.steps[step] || null;
+  const groove = grooveOfDoc(doc);
   /** @type {StepEvent[]} */
   const events = [];
 
@@ -198,7 +244,7 @@ export function stepEvents(doc, step, options = {}) {
     const cell = cellOf(track);
     if (!cell || !DRUM_ROLES.includes(track.role)) return;
     const drum = /** @type {"kick"|"snare"|"hat"} */ (track.role);
-    events.push({
+    events.push(withGroove(groove, track, step, {
       voice: "drums",
       instrument: drum,
       role: drum,
@@ -206,14 +252,14 @@ export function stepEvents(doc, step, options = {}) {
       durationSteps: cell.len ?? DRUM_DURATION_STEPS[drum],
       velocity: cell.vel === "ghost" ? 0.3 : 0.8,
       track: track.name,
-    });
+    }));
   });
 
   if (span) {
     doc.tracks.forEach((track) => {
       const cell = cellOf(track);
       if (!cell || track.role !== "chordHits") return;
-      events.push({
+      events.push(withGroove(groove, track, step, {
         voice: "chords",
         instrument: "piano",
         role: track.role,
@@ -221,7 +267,7 @@ export function stepEvents(doc, step, options = {}) {
         durationSteps: cell.len ?? CHORD_DURATION_STEPS,
         velocity: 1,
         track: track.name,
-      });
+      }));
     });
   }
 
@@ -235,7 +281,7 @@ export function stepEvents(doc, step, options = {}) {
     const note = tonicFallback
       ? realizeNote(Number(rootValue) % 12, octave)
       : bassNote(doc, cell, step, span, octave);
-    events.push({
+    events.push(withGroove(groove, track, step, {
       voice: "melody",
       instrument: "bass",
       role: track.role,
@@ -244,7 +290,7 @@ export function stepEvents(doc, step, options = {}) {
       velocity: cell.vel === "ghost" ? 0.4 : 0.9,
       track: track.name,
       tonicFallback,
-    });
+    }));
   });
 
   return events;

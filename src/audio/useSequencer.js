@@ -15,7 +15,8 @@ import {
   getGuitarSynth
 } from "./AudioEngine";
 import { DEFAULT_MIXER_LEVELS } from "./InstrumentPresets";
-import { resolveChordAt, stepEvents } from "./dispatch";
+import { grooveOfDoc, resolveChordAt, stepEvents } from "./dispatch";
+import { offsetSeconds, stepOffsetSeconds } from "../core/groove";
 import { playStepEvents } from "./playStep";
 import { describeChord, loopSteps, timelineFromSelection } from "../core/timeline";
 import { guitarGripCells } from "../core/guitarGrip";
@@ -210,7 +211,18 @@ export function useSequencer({
    * phase with the metronome's (VMU-163-fix2 brief, sequence 1).
    */
   const repeat = (time) => {
-    Tone.Draw.schedule(() => setCurrentStep(stepCounterRef.current), time);
+    // VMU-223: the swing moves the odd steps. What the screen lights follows
+    // the same moment the sound does (core/groove.js, read off the document
+    // the loop plays, like the events), so the cell lights when its hit
+    // sounds. No groove: `shownAt` is `time`, as it always was.
+    const doc = timelineRef.current;
+    const bpm = getTransportState().bpm;
+    const shownAt = time + stepOffsetSeconds(grooveOfDoc(doc), stepCounterRef.current, bpm);
+    // The step is captured, not read from the ref when the Draw fires: the
+    // swing delays the light, and by then (lookAhead 0.1 s) the loop may
+    // already have moved the counter on to the next step.
+    const litStep = stepCounterRef.current;
+    Tone.Draw.schedule(() => setCurrentStep(litStep), shownAt);
 
     try {
       if (appModeRef.current === "dictionary") {
@@ -218,7 +230,6 @@ export function useSequencer({
         return;
       }
 
-      const doc = timelineRef.current;
       const octaveOffset = octaveRef.current;
       const stepCounter = stepCounterRef.current;
 
@@ -235,7 +246,7 @@ export function useSequencer({
         const forDisplay = playing
           ? { ...describeChord(doc.key, playing.chord), absolutePitches: playing.absolutePitches }
           : null;
-        Tone.Draw.schedule(() => setCurrentPlayingChord(forDisplay), time);
+        Tone.Draw.schedule(() => setCurrentPlayingChord(forDisplay), shownAt);
       }
 
       // --- What plays on this step: drums, chord, melodic tracks ---
@@ -260,11 +271,16 @@ export function useSequencer({
             tuning: brickRef.current?.guitarStrings || TUNINGS.GUITAR_STANDARD,
           })
         : null;
-      const frameNotes = playStepEvents(STUDIO_SYNTHS, events, time, { chordInstrument, guitarNotes });
+      const frameNotes = playStepEvents(STUDIO_SYNTHS, events, time, {
+        chordInstrument,
+        guitarNotes,
+        // VMU-223: each hit at its own moment (swing + humanisation).
+        offsetSeconds: (event) => offsetSeconds(event, bpm),
+      });
 
       if (frameNotes.length > 0) {
         const publish = setCurrentlyPlayingNotesRef.current;
-        Tone.Draw.schedule(() => publish(frameNotes), time);
+        Tone.Draw.schedule(() => publish(frameNotes), shownAt);
         Tone.Draw.schedule(() => {
           // VMU-207 hold: never blank a note that has just replaced another
           // (the same rule VMU-203 gave the arpeggio, useStudioPlayback.js).
@@ -272,7 +288,7 @@ export function useSequencer({
           // shown, so a clear scheduled after the next step's light cannot
           // erase it — whichever fires first, the next step's light wins.
           publish((prev) => (prev === frameNotes ? [] : prev));
-        }, time + 0.15);
+        }, shownAt + 0.15);
       }
     } catch (err) {
       console.error("Error in useSequencer repeat loop:", err);

@@ -120,6 +120,8 @@ function AppDesktop() {
     customChords, editedChords, editChords,
     // VMU-221: the chance per cell, the density per track and the seed.
     chance: chanceSettings, chanceDropped, chanceActive, cycleCellChance, setTrackDensity, newChanceVersion, isHearingOriginal,
+    // VMU-223: the swing and the humanisation (core/groove.js).
+    swing, setSwing, humanize, setHumanize, beginGrooveGesture, endGrooveGesture,
     // VMU-219: `styleBrick` is the style itself (its identity is what the
     // "style changed" effect below watches); `activeBrick` is that style in
     // the loop's effective key, which every reader below uses.
@@ -148,6 +150,13 @@ function AppDesktop() {
       onNewVersion: newChanceVersion,
     }),
     [isHearingOriginal, chanceSettings, chanceDropped, chanceActive, cycleCellChance, setTrackDensity, newChanceVersion],
+  );
+
+  // VMU-223: the two settings the sequencer shows and writes. They are kept
+  // while the original is held (they are settings of play, not edits).
+  const grooveApi = useMemo(
+    () => ({ swing, humanize, onSwing: setSwing, onHumanize: setHumanize, onBegin: beginGrooveGesture, onEnd: endGrooveGesture }),
+    [swing, humanize, setSwing, setHumanize, beginGrooveGesture, endGrooveGesture],
   );
 
   // VMU-126: changing the style or the mode clears what the user built on top
@@ -737,6 +746,7 @@ function AppDesktop() {
         editedChords={editedChords}
         editChords={editChords}
         chance={chanceApi}
+        groove={grooveApi}
         viewRequest={viewRequest}
         onSendView={requestSequencerView}
         currentStep={currentStep}

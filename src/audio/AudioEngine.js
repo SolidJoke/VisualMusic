@@ -533,9 +533,12 @@ export const hatSynth = new Tone.NoiseSynth({
  * @param {string|string[]} notes
  * @param {string|number} duration
  * @param {number} [time]
+ * @param {number} [velocity] VMU-223: the force of a humanised Studio chord
+ *   (piano and guitar). Absent = what it always was: Tone's default for the
+ *   piano, the sample's own gain correction for the guitar.
  * @returns {import("./dictionaryVoices").DictionaryVoice | null}
  */
-export function playDictionaryNote(instrument, notes, duration, time) {
+export function playDictionaryNote(instrument, notes, duration, time, velocity) {
   const noteArray = Array.isArray(notes) ? notes : [notes];
 
   const filteredNotes = noteArray.filter(noteName => {
@@ -594,16 +597,16 @@ export function playDictionaryNote(instrument, notes, duration, time) {
       // VMU-187: triggerSamplerVoice is `triggerAttackRelease` (same sources,
       // same dates) that keeps hold of the sources it makes.
       return combineVoices(
-        filteredNotes.map((n) => triggerSamplerVoice(gSynth, n, duration, time, guitarSampleVelocity(n)))
+        filteredNotes.map((n) => triggerSamplerVoice(gSynth, n, duration, time, guitarSampleVelocity(n) * (velocity ?? 1)))
       );
     }
-    gSynth.triggerAttackRelease(filteredNotes, duration, time);
+    gSynth.triggerAttackRelease(filteredNotes, duration, time, velocity);
     return polySynthVoice(gSynth);
   }
   const pSynth = getPianoSynth();
   if (!time && pSynth.releaseAll) pSynth.releaseAll();
-  if (pSynth === pianoSampler) return triggerSamplerVoice(pSynth, filteredNotes, duration, time);
-  pSynth.triggerAttackRelease(filteredNotes, duration, time);
+  if (pSynth === pianoSampler) return triggerSamplerVoice(pSynth, filteredNotes, duration, time, velocity);
+  pSynth.triggerAttackRelease(filteredNotes, duration, time, velocity);
   return polySynthVoice(pSynth);
 }
 
