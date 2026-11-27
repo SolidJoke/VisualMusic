@@ -37,11 +37,12 @@
 /* Headers */
 .theme-modern .module-header {
   color: var(--text-primary);
-  font-family: var(--font-body);
+  background: var(--module-head-bg);
+  font-family: var(--font-display);
   font-weight: 600;
   text-transform: none;
   font-size: var(--fs-emph);
-  border-bottom: var(--lg-border);
+  border-bottom: 1px solid var(--module-head-rule);
   padding-bottom: 8px;
   margin-bottom: 16px;
   display: flex;

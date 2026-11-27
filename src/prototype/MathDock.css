@@ -51,7 +51,8 @@
   gap: 12px;
   min-height: var(--hit-min);
   padding: 0 12px;
-  border-bottom: 1px solid var(--border-subtle);
+  background: var(--module-head-bg);
+  border-bottom: 1px solid var(--module-head-rule);
 }
 
 .math-dock__title {

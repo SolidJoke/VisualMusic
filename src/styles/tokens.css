@@ -19,6 +19,9 @@
   --border-subtle:  #1f1f1f; /* séparateur décoratif */
   --border-default: #333333; /* contour de panneau (décoratif, 1,66:1 — autorisé : non porteur d'information) */
   --border-strong:  #6b6b6b; /* contour d'un contrôle, frette, bord de champ (≥ 3:1, WCAG 1.4.11) */
+  /* Bandeau de module (VMU-236, étude VMU-235 § 4.2) */
+  --module-head-bg:   var(--surface-1);      /* fond du bandeau-titre : --text-primary dessus 16,16:1 ; --text-secondary 8,33:1 */
+  --module-head-rule: var(--border-default); /* filet sous le bandeau (décoratif, 1,66:1 sur --bg — non porteur d'information) */
   /* Texte */
   --text-primary:   #e8e8e8; /* contenu (pas #fff : anti-marquage OLED) */
   --text-secondary: #a8a8a8; /* chrome statique : sidebar, header, libellés */
