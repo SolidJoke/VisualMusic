@@ -1849,3 +1849,28 @@
   font-size: var(--fs-label);
   color: var(--select);
 }
+
+/* ─── VMU-236 v2 (Gabriel, 2026-11-27): "plus de padding entre les lignes" ────
+   Rows further apart. The room is paid for by emptiness, never by a target
+   (>= 48px) or a text (14px): the piano rolls' vertical padding 16 -> 12px,
+   and the legend's bottom margin 20 -> 8px. S1-12 stays the judge at
+   3840 x 2020 (5px free before this change): the base spacing (tokens.css)
+   costs no more than the emptiness it reclaims, and two taller windows
+   (Gabriel's 2045 and the full 2160) get a little more air through height
+   tiers. Flat design: no gradient, no shadow. */
+@media (min-width: 3840px) and (min-height: 2040px) {
+  :root:has(.proto-a) { --row-gap-roll: 14px; --row-gap-transport: 24px; --module-gap: 24px; }
+}
+@media (min-width: 3840px) and (min-height: 2100px) {
+  :root:has(.proto-a) { --row-gap-roll: 24px; --row-gap-transport: 36px; --module-gap: 40px; }
+}
+:root:has(.proto-a) .piano-roll {
+  gap: var(--row-gap-roll);
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.proto-a__panel { row-gap: var(--row-gap-transport); }
+:root:has(.proto-a) .scrollable-instrument + .module-header {
+  margin-top: var(--module-gap) !important; /* the header's inline sectionGap */
+}
+.proto-a__legend .legend-container { margin-bottom: 8px !important; } /* the inline 20px */
