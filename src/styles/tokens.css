@@ -22,6 +22,11 @@
   /* Bandeau de module (VMU-236, étude VMU-235 § 4.2) */
   --module-head-bg:   var(--surface-1);      /* fond du bandeau-titre : --text-primary dessus 16,16:1 ; --text-secondary 8,33:1 */
   --module-head-rule: var(--border-default); /* filet sous le bandeau (décoratif, 1,66:1 sur --bg — non porteur d'information) */
+  /* Espacement vertical des rangées (VMU-236 v2). Base : coûte moins que le vide récupéré
+     (S1-12 à 3840 x 2020). PrototypeA.css les augmente par paliers de hauteur de fenêtre. */
+  --row-gap-roll:      12px; /* entre les rangées d'un séquenceur ; était 8px (PianoRoll.css) */
+  --row-gap-transport: 20px; /* entre les rangées du transport ; était 16px */
+  --module-gap:        20px; /* au-dessus des 2e et 3e bandeaux de module ; était 16px */
   /* Texte */
   --text-primary:   #e8e8e8; /* contenu (pas #fff : anti-marquage OLED) */
   --text-secondary: #a8a8a8; /* chrome statique : sidebar, header, libellés */
