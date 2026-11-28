@@ -142,8 +142,10 @@
 }
 
 .bg-kick.step--dropped { border-color: var(--seq-kick) !important; }
-.bg-snare.step--dropped, .bg-clap.step--dropped, .bg-rim.step--dropped { border-color: var(--seq-snare) !important; }
-.bg-hat.step--dropped, .bg-crash.step--dropped { border-color: var(--seq-hat) !important; }
+.bg-snare.step--dropped, .bg-clap.step--dropped { border-color: var(--seq-snare) !important; }
+.bg-rim.step--dropped { border-color: var(--seq-rim) !important; }
+.bg-hat.step--dropped { border-color: var(--seq-hat) !important; }
+.bg-crash.step--dropped { border-color: var(--seq-crash) !important; }
 .bg-bass.step--dropped { border-color: var(--seq-bass) !important; }
 
 .step-lamp.step--dropped::after {

@@ -142,12 +142,14 @@ export default function PianoRoll({ tracks = [], totalSteps = 16, currentStep = 
             </div>
             {tracks.filter(Boolean).map((track, trackIndex) => {
                 const colorClass = `bg-${track.name.toLowerCase()}`;
+                // VMU-237: the row carries its instrument's lane colour (a clap is a snare family row, like its lit cells).
+                const lane = track.name.toLowerCase() === 'clap' ? 'snare' : track.name.toLowerCase();
                 // VMU-221: this row's chances and removed hits (none for the chord row).
                 const withChance = Boolean(chance) && track.role !== 'chordHits';
                 const droppedSteps = withChance ? new Set(chance.dropped?.[track.id] ?? []) : null;
 
                 return (
-                    <div key={trackIndex} className="track-row">
+                    <div key={trackIndex} className={`track-row track-row--${lane}`}>
                         <div className="track-name">{track.name}</div>
                         <div className="steps-container">
                             {Array.from({ length: visibleEnd - visibleStart }).map((_, i) => {

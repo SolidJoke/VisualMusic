@@ -97,9 +97,22 @@
 .track-row {
     display: flex;
     align-items: flex-end;
+    position: relative;
+    background-color: var(--lane-wash, transparent); /* VMU-237: flat tint, no gradient, no shadow */
 }
 
+/* VMU-237: one lane colour per instrument, the same token as its lit cells. */
+.track-row--kick   { --lane: var(--seq-kick);   --lane-wash: var(--seq-kick-wash); }
+.track-row--snare  { --lane: var(--seq-snare);  --lane-wash: var(--seq-snare-wash); }
+.track-row--hat    { --lane: var(--seq-hat);    --lane-wash: var(--seq-hat-wash); }
+.track-row--chords { --lane: var(--seq-chords); --lane-wash: var(--seq-chords-wash); }
+.track-row--bass   { --lane: var(--seq-bass);   --lane-wash: var(--seq-bass-wash); }
+.track-row--rim    { --lane: var(--seq-rim);    --lane-wash: var(--seq-rim-wash); }
+.track-row--crash  { --lane: var(--seq-crash);  --lane-wash: var(--seq-crash-wash); }
+
 .track-name {
+    box-sizing: border-box;  /* the 12px inset below stays inside the 140px: no layout change */
+    padding-left: 12px;
     width: 140px;
     min-width: 140px;
     color: var(--text-secondary);
@@ -108,6 +121,17 @@
     font-weight: 500;
     text-align: left;
     padding-bottom: 4px;
+}
+
+/* The 4px bar: absolute, so it takes no room. It runs the full height of the row. */
+.track-name::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: var(--lane, transparent);
 }
 
 .steps-container {
@@ -198,21 +222,39 @@
     background-color: var(--surface-2) !important;
 }
 
-.bg-snare.active, .bg-clap.active, .bg-rim.active {
+.bg-snare.active, .bg-clap.active {
     background-color: var(--seq-snare) !important;
     border-color: var(--seq-snare) !important;
 }
-.bg-snare.step--ghost, .bg-clap.step--ghost, .bg-rim.step--ghost {
+.bg-snare.step--ghost, .bg-clap.step--ghost {
     border-color: var(--seq-snare) !important;
     background-color: var(--surface-2) !important;
 }
 
-.bg-hat.active, .bg-crash.active {
+.bg-hat.active {
     background-color: var(--seq-hat) !important;
     border-color: var(--seq-hat) !important;
 }
-.bg-hat.step--ghost, .bg-crash.step--ghost {
+.bg-hat.step--ghost {
     border-color: var(--seq-hat) !important;
+    background-color: var(--surface-2) !important;
+}
+
+/* VMU-237: rim and crash have their own colour (they borrowed snare / hat). */
+.bg-rim.active {
+    background-color: var(--seq-rim) !important;
+    border-color: var(--seq-rim) !important;
+}
+.bg-rim.step--ghost {
+    border-color: var(--seq-rim) !important;
+    background-color: var(--surface-2) !important;
+}
+.bg-crash.active {
+    background-color: var(--seq-crash) !important;
+    border-color: var(--seq-crash) !important;
+}
+.bg-crash.step--ghost {
+    border-color: var(--seq-crash) !important;
     background-color: var(--surface-2) !important;
 }
 
@@ -253,6 +295,7 @@
     }
 
     .track-name {
+        padding-left: 6px; /* VMU-237: clear of the 4px lane bar, inside the 48px */
         width: 48px; /* More compact track names */
         min-width: 48px;
         font-size: 10px;
