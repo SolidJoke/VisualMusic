@@ -57,8 +57,21 @@
   --seq-hat:    #bdc7de;
   --seq-chords: #ffb782;
   --seq-bass:   #32d583;
-  --seq-rim:    #f79009;  /* = kick : aucune valeur rendue relevée — non vérifié */
-  --seq-crash:  #bdc7de;  /* = hat — non vérifié */
+  /* VMU-237 : rim et crash ont leur couleur (elles valaient kick / hat : deux rangées de même couleur dans la vue en pistes).
+     --seq-rim = cyan (famille « caisse claire », mais distincte du bleu #2e90fa) ; --seq-crash = or pâle (cymbale, distinct du charleston gris-bleu).
+     Ni l'un ni l'autre n'est mauve : --role-extension #b084dc reste réservé aux extensions d'accord (contraste 1,62 / 2,23:1 avec eux : teintes éloignées). */
+  --seq-rim:    #22d3ee;  /* 11,62:1 sur --bg */
+  --seq-crash:  #f5e27a;  /* 16,04:1 sur --bg */
+  /* Fond de rangée de piste (VMU-237) : la couleur à 14 % sur le noir, en aplat (ni dégradé ni ombre).
+     Chaque ligne : nom de piste (--text-secondary #a8a8a8) dessus · case allumée (--seq-*) dessus.
+     La case éteinte reste décorative (non porteuse d'information, comme avant) : mesuré à l'écran, son fond fait 1,01 à 1,13:1 et son bord --border-default #333 1,30 à 1,47:1 sur ces fonds (1,66:1 sur le noir avant). */
+  --seq-kick-wash:   #231401;  /* nom 7,54 · case 7,64:1 */
+  --seq-snare-wash:  #061423;  /* nom 7,80 · case 5,73:1 */
+  --seq-hat-wash:    #1a1c1f;  /* nom 7,18 · case 10,07:1 */
+  --seq-chords-wash: #241a12;  /* nom 7,17 · case 10,03:1 */
+  --seq-bass-wash:   #071e12;  /* nom 7,34 · case 9,12:1 */
+  --seq-rim-wash:    #051e21;  /* nom 7,27 · case 9,57:1 */
+  --seq-crash-wash:  #222011;  /* nom 6,88 · case 12,51:1 */
   /* Bouton « Assistant » d'A′ (VMU-184, Gabriel 2026-10-09) : dégradé mauve -> noir.
      Habillage de transition (l'Assistant sera dissous dans le dock) ; écart à la
      règle F1 « pas d'aplat de couleur » accepté par Gabriel (VMU-183).
